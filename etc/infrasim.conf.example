@@ -1,0 +1,31 @@
+#This file is used for InfraSIM OpenIPMI configuration file
+
+
+[main]
+#Supported vnode names:
+#	quanta_d51
+#	quanta_t41
+#	dell_c6320
+#	dell_r630
+#	s2600kp
+#	s2600tp
+#	s2600wtt
+node=quanta_d51
+
+#IPMI address will bind to this bmc_network name.
+#You can set network name to bmc_network, this name would be
+#	lo, eth0, eth2, eth3, ...	-- traditional network name
+#	virbr0, docker0, lxdbr0, ...	-- Linux container/hypervisor bridge network
+#	enp0sx,	...			-- new network name
+#
+bmc_network=enp0s5
+
+
+[node]
+#Set node network mode for qemu. The options shuld be:
+#	nat		--default
+#	macvtap		--optional
+node_network_mode=nat
+
+#If you use macvtap mode, please specify the network_name
+#node_network_name=xxx

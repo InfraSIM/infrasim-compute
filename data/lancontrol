@@ -1,0 +1,408 @@
+#!/bin/sh
+
+#
+# An example script for handling external LAN configuration from the
+# IPMI simulator.  This command is generally invoked by the IPMI
+# simulator to get and set external LAN configuration parameters.
+#
+# It's parameters are:
+#
+#  ipmi_sim_lancontrol <device> get [parm [parm ...]]
+#  ipmi_sim_lancontrol <device> set|check [parm val [parm val ...]]
+#
+# where <device> is a network device (eth0, etc.) and parm is one of:
+#  ip_addr
+#  ip_addr_src
+#  mac_addr
+#  subnet_mask
+#  default_gw_ip_addr
+#  default_gw_mac_addr
+#  backup_gw_ip_addr
+#  backup_gw_mac_addr
+# These are config values out of the IPMI LAN config table that are
+# not IPMI-exclusive, they require setting external things.
+#
+# The output of the "get" is "<parm>:<value>" for each listed parm.
+# The output of the "set" is empty on success.  Error output goes to
+# standard out (so it can be captured in the simulator) and the program
+# returns an error.
+#
+# The IP address values are standard IP addresses in the form a.b.c.d.
+# The MAC addresses ar standard 6 octet xx:xx:xx:xx:xx:xx values.  The
+# only special one is ip_addr_src, which can be "dhcp" or "static".
+#
+# The "check" operation checks to see if a value is valid without
+# committing it.
+#
+
+need_ip_addr=0
+need_ip_addr_src=0
+need_mac_addr=0
+need_subnet_mask=0
+need_default_gw_ip_addr=0
+
+ip_addr="0.0.0.0"
+ip_addr_src="dhcp"
+mac_addr="00:00:00:00:00:00"
+subnet_mask="255.255.255.255"
+default_gw_ip_addr="0.0.0.0"
+
+prog=$0
+
+device=$1
+if [ "x$device" = "x" ]; then
+    echo "No device given"
+    exit 1;
+fi
+shift
+
+op=$1
+if [ "x$op" = "x" ]; then
+    echo "No operation given"
+    exit 1
+fi
+shift
+
+do_get() {
+    while [ "x$1" != "x" ]; do
+	case $1 in
+	    ip_addr)
+		val=`ifconfig $device | grep '^ *inet addr:' | tr ':' ' ' | sed 's/.*inet addr \([0-9.]*\).*$/\1/'`
+		if [ "x$val" = "x" ]; then
+		    val="0.0.0.0"
+		fi
+		;;
+
+	    ip_addr_src)
+		val=`grep "iface $device inet" /etc/network/interfaces | tr ' ' '\t' | tr -s '\t' '\t' | cut -f 4`
+		case "x$val" in
+		    xstatic)
+			;;
+		    xdhcp)
+			;;
+		    *)
+			val="unknown"
+			;;
+		esac
+		;;
+
+	    mac_addr)
+		val=`ifconfig $device | grep 'HWaddr' | sed 's/.*HWaddr \([0-9a-fA-F:]*\).*$/\1/'`
+		if [ "x$val" = "x" ]; then
+		    val="00:00:00:00:00:00"
+		fi
+		;;
+
+	    subnet_mask)
+		val=`ifconfig $device | grep '^ *inet addr:' | tr ':' ' ' | sed 's/.*Mask \([0-9.]*\).*$/\1/'`
+		if [ "x$val" = "x" ]; then
+		    val="0.0.0.0"
+		fi
+		;;
+
+	    default_gw_ip_addr)
+		val=`route -n | grep '^0\.0\.0\.0' | grep "$device\$" | tr ' ' '\t' | tr -s '\t' '\t' | cut -f 2`
+		if [ "x$val" = "x" ]; then
+		    val="0.0.0.0"
+		fi
+		;;
+
+	    default_gw_mac_addr)
+		val=`route -n | grep '^0\.0\.0\.0' | grep "$device\$" | tr ' ' '\t' | tr -s '\t' '\t' | cut -s -f 2`
+		if [ "x$val" = "x" ]; then
+		    val="00:00:00:00:00:00"
+		else
+		    ping -W 1 -c 1 $val >/dev/null 2>&1
+		    val=`arp -n $val | grep "($val)" | tr ' ' '\t' | tr -s '\t' '\t' | cut -f 4`
+		    if [ "x$val" = "x" -o "x$val" = 'x<incomplete>' ]; then
+			val="00:00:00:00:00:00"
+		    fi
+		fi
+		;;
+
+	    backup_gw_ip_addr)
+		val="0.0.0.0"
+		;;
+
+	    backup_gw_mac_addr)
+		val="00:00:00:00:00:00"
+		;;
+
+	    *)
+		echo "Invalid parameter: $1"
+		exit 1
+		;;
+	esac
+
+	echo "$1:$val"
+	shift
+    done
+}
+
+do_check() {
+	case $1 in
+	    ip_addr_src)
+		# We only support static and dhcp IP address sources
+		case $2 in
+		    static)
+			;;
+		    dhcp)
+			;;
+		    *)
+			echo "Invalid ip_addr_src: $2"
+			exit 1
+			;;
+		esac
+		;;
+
+		ip_addr | subnet_mask | default_gw_ip_addr)
+		if [ "$2" != "`echo $2 | grep -E [0-9]\{1,3\}[.][0-9]\{1,3\}[.][0-9]\{1,3\}[.][0-9]\{1,3\}`" ];
+			then
+			echo "Invalid value $2 for parameter $1"
+			exit 1
+		fi
+		;;
+
+		mac_addr)
+		if [ "$2" != "`echo $2 | grep -E [[:xdigit:]]\{1,2\}[:][[:xdigit:]]\{1,2\}[:][[:xdigit:]]\{1,2\}[:][[:xdigit:]]\{1,2\}[:][[:xdigit:]]\{1,2\}[:][[:xdigit:]]\{1,2\}`" ];
+			then
+			echo "Invalid value $2 for parameter $1"
+			exit 1
+		fi
+		;;
+
+	    *)
+		echo "Invalid parameter: $parm"
+		exit 1
+		;;
+	esac
+}
+
+do_create_stanza() {
+	if [ $need_ip_addr_src != 1 ]
+	then
+		echo "ip_addr_src required for new interface stanza - fail"
+		exit 1
+	fi
+
+	case $ip_addr_src in
+		dhcp)
+		echo "iface $device inet dhcp" >/tmp/ipmi_ifaces_stanza
+		if [ $need_mac_addr = 1 ]
+		then
+			echo "	hwaddress $mac_addr" >>/tmp/ipmi_ifaces_stanza
+		fi
+		echo "	" >>/tmp/ipmi_ifaces_stanza
+		;;
+
+		static)
+		echo "iface $device inet static" >/tmp/ipmi_ifaces_stanza
+		if [ $need_ip_addr = 1 ]
+		then
+			echo "	address $ip_addr" >>/tmp/ipmi_ifaces_stanza
+		else
+			echo "static configuration requires ip_addr - fail"
+			exit 1
+		fi
+
+		if [ $need_subnet_mask = 1 ]
+		then
+			echo "	netmask $subnet_mask" >>/tmp/ipmi_ifaces_stanza
+		else
+			echo "static configuration requires subnet_mask - fail"
+			exit 1
+		fi
+
+		if [ $need_default_gw_ip_addr = 1 ]
+		then
+			echo "	gateway $default_gw_ip_addr" >>/tmp/ipmi_ifaces_stanza
+		fi
+
+		if [ $need_mac_addr = 1 ]
+		then
+			echo "	hwaddress ether $mac_addr" >>/tmp/ipmi_ifaces_stanza
+		fi
+
+		echo "  " >>/tmp/ipmi_ifaces_stanza
+		;;
+
+	esac
+}
+
+do_split_interfaces() {
+#  separate the stanza for our device from the other stanzas
+
+	sed "/^[ \t]*iface[ \t][ \t]*$device[ \t]/,/^\t$/d" /etc/network/interfaces >/tmp/ipmi_interfaces_unchanged
+
+	sed -n "/^[ \t]*iface[ \t][ \t]*$device[ \t]/,/^\t$/p" /etc/network/interfaces >/tmp/ipmi_old_stanza
+}
+
+do_modify_stanza() {
+#  fixup the previous stanza for our device, keeping parts that are unmodified
+
+	if [ -s /tmp/ipmi_old_stanza ]
+	then
+# 	now we need to modify the file that is there to update any new settings
+#	For every new parameter, remove the old corresponding line
+		cp /tmp/ipmi_old_stanza /tmp/ipmi_old_stanza_src
+
+		if [ $need_ip_addr_src = 1 ]
+		then
+			sed '/^[ \t]*iface/d' /tmp/ipmi_old_stanza_src >/tmp/ipmi_old_stanza_dst.1
+			echo "iface $device inet $ip_addr_src" >/tmp/ipmi_ifaces_stanza
+			cp /tmp/ipmi_old_stanza_dst.1 /tmp/ipmi_old_stanza_src
+		else
+			sed -n "1p" /tmp/ipmi_old_stanza_src >/tmp/ipmi_ifaces_stanza
+			sed '/^[ \t]*iface/d' /tmp/ipmi_old_stanza_src >/tmp/ipmi_old_stanza_dst.1
+			cp /tmp/ipmi_old_stanza_dst.1 /tmp/ipmi_old_stanza_src
+		fi
+
+		if [ $need_ip_addr = 1 ]
+		then
+			sed '/^[ \t]*address/d' /tmp/ipmi_old_stanza_src >/tmp/ipmi_old_stanza_dst.2
+			echo "	address $ip_addr" >>/tmp/ipmi_ifaces_stanza
+			cp /tmp/ipmi_old_stanza_dst.2 /tmp/ipmi_old_stanza_src
+		fi
+
+		if [ $need_subnet_mask = 1 ]
+		then
+			sed '/^[ \t]*netmask/d' /tmp/ipmi_old_stanza_src >/tmp/ipmi_old_stanza_dst.3
+			echo "	netmask $subnet_mask" >>/tmp/ipmi_ifaces_stanza
+			cp /tmp/ipmi_old_stanza_dst.3 /tmp/ipmi_old_stanza_src
+		fi
+
+		if [ $need_default_gw_ip_addr = 1 ]
+		then
+			sed '/^[ \t]*gateway/d' /tmp/ipmi_old_stanza_src >/tmp/ipmi_old_stanza_dst.4
+			echo "	gateway $default_gw_ip_addr" >>/tmp/ipmi_ifaces_stanza
+			cp /tmp/ipmi_old_stanza_dst.4 /tmp/ipmi_old_stanza_src
+		fi
+
+		if [ $need_mac_addr = 1 ]
+		then
+			sed '/^[ \t]*hwaddress/d' /tmp/ipmi_old_stanza_src >/tmp/ipmi_old_stanza_dst.5
+			echo "	hwaddress ether $mac_addr" >>/tmp/ipmi_ifaces_stanza
+			cp /tmp/ipmi_old_stanza_dst.5 /tmp/ipmi_old_stanza_src
+		fi
+
+		cat /tmp/ipmi_old_stanza_src >>/tmp/ipmi_ifaces_stanza
+	else
+#		if /tmp/ipmi_old_stanza is empty, then we just need to create a new stanza
+#		as this is adding an interface to the configuration
+
+		do_create_stanza
+	fi
+
+}
+
+#	Parse existing interfaces file -
+#		if there is an existing iface stanza for $device
+#		then extract it for update with new parameters
+#		We keep any parameters that are not set on the
+#		command line for this script.
+#
+#	Be careful - you may render your connection to the management
+#   system unusable.  Upon successful creation of a new interfaces
+#	file, the interface is taken down and restarted to
+
+do_interfaces() {
+
+	if [ -d /etc/network ]
+	then
+		if [ -f /etc/network/interfaces ]
+		then
+			if [ -w /etc/network/interfaces ]
+			then
+				do_split_interfaces
+				do_modify_stanza
+				cat /tmp/ipmi_interfaces_unchanged /tmp/ipmi_ifaces_stanza >/tmp/impi_new_interfaces
+				mv  /etc/network/interfaces /etc/network/interfaces.old
+				cp /tmp/impi_new_interfaces /etc/network/interfaces
+			else
+				echo "/etc/network/interfaces exists and is not writable -fail"
+				exit 1
+			fi
+		else
+			do_create_stanza
+			cp /tmp/ipmi_ifaces_stanza /etc/network/interfaces
+		fi
+	else
+		echo "No /etc/network directory found - failing"
+		exit 1
+	fi
+
+}
+
+do_set() {
+	if [ "x$1" = "x" ]
+	then
+		echo "no parameters given for set command - fail"
+		exit 1
+	fi
+	while [ "x$1" != "x" ]; do
+		parm="$1"
+		shift
+		if [ "x$1" = "x" ]; then
+			echo "No value present for parameter $parm"
+			exit 1
+		fi
+		val="$1"
+		shift
+
+		do_check $parm $val
+
+		case $parm in
+		    ip_addr)
+			need_ip_addr=1
+			ip_addr=$val
+			;;
+
+		    ip_addr_src)
+			need_ip_addr_src=1
+			ip_addr_src=$val
+			;;
+
+		    mac_addr)
+			need_mac_addr=1
+			mac_addr=$val
+			;;
+
+		    subnet_mask)
+			need_subnet_mask=1
+			subnet_mask=$val
+			;;
+
+		    default_gw_ip_addr)
+			need_default_gw_ip_addr=1
+			default_gw_ip_addr=$val
+			;;
+
+		    *)
+			echo "Invalid parameter: $1"
+			exit 1
+			;;
+		esac
+	done
+
+	do_interfaces
+
+	ifdown $device
+	ifup $device
+}
+
+case $op in
+    get)
+	do_get $@
+	;;
+    set)
+	do_set $@
+	;;
+
+    check)
+	do_check $@
+	;;
+
+*)
+	echo "Unknown operation: $op"
+	exit 1
+esac

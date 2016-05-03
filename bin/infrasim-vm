@@ -1,0 +1,125 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import os, subprocess, sys, signal, uuid
+import ConfigParser
+import jinja2
+import libvirt
+
+class VM_CONFIG:
+    def __init__(self, node_name, xml_file):
+        self.node = {"name":node_name, "uuid":str(uuid.uuid1())}
+        self.xml_file = xml_file
+        self.render_xml = ""
+
+    def set_virtual_type(self):
+        self.node["virtual_type"] = "qemu"
+
+    def set_memory_size(self):
+        self.node["mem_size"] = 512
+
+    def set_vcpu_num(self):
+        self.node["vcpu_num"] = 4
+
+    def set_vcpu_type(self):
+        self.node["vcpu_type"] = "Haswell"
+
+    def set_sata_disk(self, disk_num):
+        disks = []
+        for i in range(0, disk_num):
+            disk = {"file":"/home/mark/infrasim/data/cirros-0.3.4-x86_64-disk.img", 
+                   "dev":"sd" + chr(97+i), "name":"sata0-0-" + str(i)}
+            disks.append(disk)
+        self.node["disks"] = disks
+
+    def set_mac_address(self):
+        nets = []
+        nets.append({"mac":"52:54:00:ad:66:b5"})
+        self.node["nets"] = nets
+
+    def generate_vm_config(self):
+        self.set_virtual_type()
+        self.set_memory_size()
+        self.set_vcpu_num()
+        self.set_vcpu_type()
+        self.set_sata_disk(2)
+        self.set_mac_address()
+
+    def render_vm_template(self):
+        raw_xml = ""
+        with open(self.xml_file, 'r') as f:
+            raw_xml = f.read()
+        template = jinja2.Template(raw_xml)
+        self.render_xml = template.render(node = self.node)
+        print self.render_xml
+
+def libvirt_start_vm(config):
+    conn = libvirt.open("qemu://system")
+    conn.close()
+
+def vm_check_pid():
+    cmd  = "ps ax | grep qemu-system"
+    pipe_list = subprocess.check_output(cmd, shell=True).split("\n")
+    for pipe in pipe_list:
+        if len(pipe) > 100:
+            return pipe
+    return None
+
+def vm_start(node):
+    if vm_check_pid() is not None:
+        print "inframsim_vm service is already running"
+        return 0
+
+    cmd = "qemu-system-x86_64 -vnc :2 -boot order=ncd,menu=on -device sga -chardev socket,id=ipmi0,host=localhost,port=9002,reconnect=10 -m 1024 -smp 4 -smbios file=/usr/local/etc/infrasim/{0}/{0}_smbios.bin -hda /usr/local/etc/infrasim/cirros-0.3.4-x86_64-disk.img -cdrom /dev/sr0 &"
+    cmd = cmd.format(node)
+    cmd_list = cmd.split(' ')
+    os.system(cmd) 
+
+def vm_stop(node):
+    status = vm_check_pid()
+    if status is None:
+        print "infrasim-vm service is OFF"
+        return 0
+  
+    pid = ""
+    item_list = status.split(" ")
+    for item in item_list:
+        if item.strip() == "":
+            continue
+        else:
+            pid = item.strip()
+            break
+    
+    os.kill(int(pid), signal.SIGTERM)
+
+def vm_status(node):
+    """
+    config = VM_CONFIG("quanta_d51", "data/vnode.xml")
+    config.generate_vm_config()
+    config.render_vm_template()
+    """
+
+    status = vm_check_pid()
+    if status is None:
+        print "infrasim-vm service is OFF"
+        return 0
+
+    print "infrasim-vm service is ON"
+    return 1
+    
+
+def vm_help():
+    print "inframsim_vm start|stop|status"
+
+if __name__ == '__main__':
+    config = ConfigParser.ConfigParser()
+    config.read('/etc/infrasim/infrasim.conf')
+    node = config.get('main', 'node')
+    if sys.argv[1] == "start":
+        vm_start(node)
+    elif sys.argv[1] == "stop":
+        vm_stop(node)
+    elif sys.argv[1] == "status":
+        vm_status(node)
+    else:
+        vm_help()        

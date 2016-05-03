@@ -1,0 +1,176 @@
+#!/bin/sh
+
+#
+# An example script for handling external power control.
+
+# It's parameters are:
+#
+#  ipmi_sim_chassiscontrol <device> get [parm [parm ...]]
+#  ipmi_sim_chassiscontrol <device> set [parm val [parm val ...]]
+#
+# where <device> is the particular target to reset and parm is either
+# "power", "reset", or "boot".
+#
+# The output of the "get" is "<parm>:<value>" for each listed parm,
+# and only power is listed, you cannot fetch reset.
+# The output of the "set" is empty on success.  Error output goes to
+# standard out (so it can be captured in the simulator) and the program
+# returns an error.
+#
+# The values for power and reset are either "1" or "0".  Note that
+# reset does a pulse, it does not set the reset line level.
+#
+# The value for boot is either "none", "pxe" or "default".
+
+prog=$0
+
+device=$1
+if [ "x$device" = "x" ]; then
+    echo "No device given"
+    exit 1;
+fi
+shift
+
+op=$1
+if [ "x$op" = "x" ]; then
+    echo "No operation given"
+    exit 1
+fi
+shift
+
+do_log() {
+    logger -t $prog "[$device] $op $1"
+}
+
+do_get() {
+    while [ "x$1" != "x" ]; do
+	case $1 in
+	    power)
+		val=1
+		pid=`pidof qemu-system-x86_64`
+		if [ "x$pid" = "x" ]; then
+			val=0
+		fi
+		;;
+
+	    boot)
+		val=default
+	if [ -e /boot/bootdev ]; then
+		val=`cat /boot/bootdev`
+	else
+		echo $val > /boot/bootdev
+	fi
+		;;
+
+	    # Note that reset has no get
+
+	    *)
+		do_log "Invalid parameter: $1"
+		exit 1
+		;;
+	esac
+
+	echo "$1:$val"
+	shift
+    done
+}
+
+do_set() {
+    while [ "x$1" != "x" ]; do
+	parm="$1"
+	shift
+	if [ "x$1" = "x" ]; then
+	    do_log "No value present for parameter $parm"
+	    exit 1
+	fi
+	val="$1"
+	shift
+
+	case $parm in
+	    power)
+            do_log "receive power signal parm=$parm val=$val"
+            pid=`pidof qemu-system-x86_64`
+            if [ "x$val" = "x1" ]; then
+                if [ "x$pid" = "x" ]; then
+                    /usr/local/etc/infrasim/startcmd
+                else
+                    do_log "host already powered on pid=$pid"
+                fi
+            fi
+            if [ "x$val" = "x0" ]; then
+                    kill -9 $pid
+            fi
+            ;;
+	    reset)
+            do_log "receive reset signal parm=$parm val=$val"
+            pid=`pidof qemu-system-x86_64`
+            kill -9 $pid
+            /usr/local/etc/infrasim/startcmd &
+            ;;
+	    boot)
+            do_log "receive boot signal parm=$parm val=$val"
+            case $val in
+                none)
+            do_log "bootdev set for none"
+                ;;
+                pxe)
+                do_log "bootdev set for pxe"
+                ;;
+                default)
+            do_log "bootdev set for default disk"
+                ;;
+                bios)
+            do_log "bootdev set for bios"
+                ;;
+                cdrom)
+            do_log "bootdev set for cdrom"
+                ;;
+                *)
+                do_log "Invalid boot value: $val"
+                exit 1
+                ;;
+            esac
+            echo $val > /boot/bootdev
+            ;;
+		identify)
+            force=$1
+            do_log "received signal parm $parm interval=$val force=$force"
+            if [[ "x$val" == "x0" && "x$force" == "x0" ]]; then
+                pid=`pidof chassisidentify`
+                if [ "x$pid" != "x" ]; then
+                    kill -9 $pid
+                fi
+            else
+                exec /etc/ipmi/chassisidentify $device $val $force &
+            fi
+            shift
+            ;;
+	    *)
+            do_log "Invalid parameter: $parm"
+            exit 1
+            ;;
+	esac
+    done
+}
+
+do_check() {
+    # Check is not supported for chassis control
+    exit 1
+}
+
+case $op in
+    get)
+	do_get $@
+	;;
+    set)
+	do_set $@
+	;;
+
+    check)
+	do_check $@
+	;;
+
+    *)
+	do_log "Unknown operation: $op"
+	exit 1
+esac
