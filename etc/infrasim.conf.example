@@ -22,10 +22,40 @@ bmc_network=enp0s5
 
 
 [node]
+#Set node cpu num, the default value is 4
+#
+#vcpu_num=4
+
+#Set node cpu type, the default value is Haswell
+#Supported vcpu_type:
+#	core2duo:  Intel(R) Core(TM)2 Duo CPU     T7700  @ 2.40GHz
+#	coreduo:   Genuine Intel(R) CPU           T2600  @ 2.16GHz
+#	Nehalem:   Intel Core i7 9xx (Nehalem Class Core i7)
+#	Westmere:  Westmere E56xx/L56xx/X56xx (Nehalem-C)
+#	SandyBridge:  Intel Xeon E312xx (Sandy Bridge)
+#	IvyBridge:  Intel Xeon E3-12xx v2 (Ivy Bridge)
+#	Haswell:  Intel Core Processor (Haswell)
+#	Broadwell:  Intel Core Processor (Broadwell)
+#vcpu_type=Haswell
+
+#Set node memory size, the unit is MB.
+#The default vaule is 512MB
+#
+#mem_size=512
+
+#Set node disks num, the default is 1
+#
+#disk_num=1
+
+#Set node disk size, the unit is GB.
+#The default value is 8GB
+#
+#disk_size=8
+
 #Set node network mode for qemu. The options shuld be:
 #	nat		--default
 #	macvtap		--optional
-node_network_mode=nat
+#network_mode=nat
 
 #If you use macvtap mode, please specify the network_name
 #node_network_name=xxx

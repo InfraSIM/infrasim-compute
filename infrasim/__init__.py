@@ -1,2 +1,3 @@
-def joke():
-    return "hello world"
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
