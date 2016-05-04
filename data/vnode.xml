@@ -4,16 +4,16 @@
   <memory unit='MB'>{{node.mem_size}}</memory>
   <vcpu>{{node.vcpu_num}}</vcpu>
   <os>
-    <type arch='x86_64' >hvm</type>
+    <type arch='x86_64'>hvm</type>
+    <model>{{node.vcpu_type}}</model>
     <boot dev='hd'/>
+    <boot dev='cdrom'/>
+    <boot dev='network'/>
   </os>
   <features>
     <acpi/>
     <apic/>
   </features>
-  <cpu mode='custom' match='exact'>
-    <model fallback='allow'>{{node.vcpu_type}}</model>
-  </cpu>
   <on_poweroff>destroy</on_poweroff>
   <on_reboot>restart</on_reboot>
   <on_crash>restart</on_crash>

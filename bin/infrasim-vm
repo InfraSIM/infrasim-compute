@@ -5,15 +5,13 @@ import os, subprocess, sys, signal, uuid
 import ConfigParser
 from infrasim import vm
 
-VM_DEFAULT_CONFIG="/etc/infrasim/infrasim.conf"
-
 def vm_start(node):
     if vm.check_vm_status(node) is True:
         print "InfraSIM-VM serivce is running"
         return
 
-    v = vm.VM("quanta_d51", "/usr/local/etc/infrasim/vnode.xml")
-    v.read_from_config(VM_DEFAULT_CONFIG)
+    v = vm.VM()
+    v.read_from_config()
 
     vm.start_vm(v.render_vm_template())
     print "InfraSIM-VM service start!"
