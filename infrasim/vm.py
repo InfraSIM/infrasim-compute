@@ -9,7 +9,7 @@ VM_DEFAULT_XML="/usr/local/etc/infrasim/vnode.xml"
 
 class VM:
     def __init__(self):
-        self.node = {"name":"", "uuid":str(uuid.uuid1()),
+        self.node = {"name":"", "uuid":str(uuid.uuid1()), "bios":{},
                    "virtual_type":"qemu", "mem_size":512, "vcpu_num":4, "vcpu_type":"Haswell"}
         self.render_xml = ""
         self.logger = logging.getLogger('infrasim')
@@ -21,6 +21,19 @@ class VM:
         output = subprocess.check_output("cat /proc/cpuinfo".split(" "))
         if output.find("vmx") > 0:
             self.node["virtual_type"] = "kvm"
+
+    def set_bios_data(self, node):
+        bios = {"bios":{}, "system":{}, "base":{}}
+        bios_file = "/usr/local/etc/infrasim/{0}/{0}_smbios.bin".format(node)
+        bios["bios"]["vendor"]=subprocess.check_output("dmidecode --from-dump {0} -s bios-vendor".format(bios_file).split(" "))
+        bios["system"]["manufacturer"] = subprocess.check_output("dmidecode --from-dump {0} -s system-manufacturer".format(bios_file).split(" "))
+        bios["system"]["product"] = subprocess.check_output("dmidecode --from-dump {0} -s system-product-name".format(bios_file).split(" "))
+        bios["system"]["version"] = subprocess.check_output("dmidecode --from-dump {0} -s system-version".format(bios_file).split(" "))
+        bios["base"]["manufacturer"] = subprocess.check_output("dmidecode --from-dump {0} -s baseboard-manufacturer".format(bios_file).split(" "))
+        bios["base"]["product"]=subprocess.check_output("dmidecode --from-dump {0} -s baseboard-product-name".format(bios_file).split(" "))
+        bios["base"]["version"] = subprocess.check_output("dmidecode --from-dump {0} -s baseboard-version".format(bios_file).split(" "))
+        bios["base"]["serial"] = subprocess.check_output("dmidecode --from-dump {0} -s baseboard-serial-number".format(bios_file).split(" "))
+        self.node["bios"] = bios
 
     def set_memory_size(self):
         self.node["mem_size"] = 512
@@ -87,6 +100,8 @@ class VM:
         if conf.has_option("node", "disk_size") is True:
             disk_num = conf.getint("node", "disk_num")
             self.set_sata_disks(disk_num)
+
+        self.set_bios_data(self.node["name"])
         
     def render_vm_template(self):
         raw_xml = ""

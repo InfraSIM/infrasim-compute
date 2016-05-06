@@ -6,6 +6,7 @@
   <os>
     <type arch='x86_64'>hvm</type>
     <model>{{node.vcpu_type}}</model>
+    <smbios mode='sysinfo'/>
     <boot dev='hd'/>
     <boot dev='cdrom'/>
     <boot dev='network'/>
@@ -14,6 +15,22 @@
     <acpi/>
     <apic/>
   </features>
+  <sysinfo type='smbios'>
+    <bios>
+      <entry name='vendor'>{{node.bios.bios.vendor}}</entry>
+    </bios>
+    <system>
+      <entry name='manufacturer'>{{node.bios.system.manufacturer}}</entry>
+      <entry name='product'>{{node.bios.system.product}}</entry>
+      <entry name='version'>{{node.bios.system.version}}</entry>
+    </system>
+    <baseBoard>
+      <entry name='manufacturer'>{{node.bios.base.manufacturer}}</entry>
+      <entry name='product'>{{node.bios.base.product}}</entry>
+      <entry name='version'>{{node.bios.base.version}}</entry>
+      <entry name='serial'>{{node.bios.base.serial}}</entry>
+    </baseBoard>
+  </sysinfo>
   <on_poweroff>destroy</on_poweroff>
   <on_reboot>restart</on_reboot>
   <on_crash>restart</on_crash>

@@ -4,6 +4,7 @@
 import os, subprocess, sys, signal
 import ConfigParser
 import psutil
+import infrasim
 
 def ipmi_check_pid():
     cmd  = "ps ax | grep ipmi_sim"
@@ -21,7 +22,9 @@ def ipmi_start(node):
     cmd = "ipmi_sim -c /etc/infrasim/vbmc.conf -f /usr/local/etc/infrasim/{0}/{0}.emu -n &"
     cmd = cmd.format(node)
     cmd_list = cmd.split(' ')
-    os.system(cmd) 
+    os.system(cmd)
+
+    os.system("gunicorn -w 4 infrasim:app -b :80 -D")
 
 def ipmi_stop(node):
     status = ipmi_check_pid()
@@ -38,6 +41,8 @@ def ipmi_stop(node):
             pid = item.strip()
             break
     os.kill(int(pid), signal.SIGTERM)
+    os.system("pkill gunicorn")
+    os.system("infrasim-vm stop")
 
 def ipmi_status(node):
     status = ipmi_check_pid()
