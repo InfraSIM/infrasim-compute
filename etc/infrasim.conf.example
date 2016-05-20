@@ -38,6 +38,11 @@ bmc_network=enp0s5
 #	Broadwell:  Intel Core Processor (Broadwell)
 #vcpu_type=Haswell
 
+#Set node if bootup using PXE
+#
+#pxeboot=no
+
+
 #Set node memory size, the unit is MB.
 #The default vaule is 512MB
 #

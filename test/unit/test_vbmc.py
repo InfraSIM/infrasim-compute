@@ -10,8 +10,9 @@ def setup_func():
 def teardown_func():
     os.system("sudo infrasim-ipmi stop")
 
-@with_setup(setup_func, teardown_func)
-def test_():
-    cmd = "ipmitool -H localhost -U admin -P admin fru print".split(" ")
-    pipe = subprocess.check_output(cmd, shell=True)
-    print pipe
+#@with_setup(setup_func, teardown_func)
+def test_fru():
+    os.system("ipmitool -H localhost -U admin -P admin fru")
+    #cmd = "ipmitool -H localhost -U admin -P admin fru print".split(" ")
+    #pipe = subprocess.check_output(cmd, shell=True)
+    #print pipe

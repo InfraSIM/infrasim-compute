@@ -6,10 +6,14 @@
   <os>
     <type arch='x86_64'>hvm</type>
     <model>{{node.vcpu_type}}</model>
+    {{node.pxe}}
+    <!--kernel>/var/www/html/CentOS/7.0/images/pxeboot/vmlinuz</kernel>
+    <initrd>/var/www/html/CentOS/7.0/images/pxeboot/initrd.img</initrd>
+    <cmdline>ks=http://192.168.191.133/kickstart/centos-ks.cfg</cmdline-->
     <smbios mode='sysinfo'/>
-    <boot dev='hd'/>
-    <boot dev='cdrom'/>
     <boot dev='network'/>
+    <boot dev='cdrom'/>
+    <boot dev='hd'/>
   </os>
   <features>
     <acpi/>

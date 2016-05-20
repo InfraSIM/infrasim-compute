@@ -44,6 +44,11 @@ class VM:
     def set_vcpu_type(self):
         self.node["vcpu_type"] = "Haswell"
 
+    def set_pxe(self):
+        self.node["pxe"] = "{0}\n{1}\n{2}\n".format("<kernel>/var/www/html/CentOS/7.0/images/pxeboot/vmlinuz</kernel>",
+    			"<initrd>/var/www/html/CentOS/7.0/images/pxeboot/initrd.img</initrd>",
+                        "<cmdline>ks=http://192.168.191.133/kickstart/centos-ks.cfg</cmdline>")
+
     def create_disk_image(self, disk_idx, disk_size=4):
         disk_img = "/var/tmp/sd{0}.img".format(chr(97+disk_idx))
         if os.path.isfile(disk_img) is True:
@@ -89,6 +94,9 @@ class VM:
             self.node["vcpu_num"] = conf.getint("node", "vcpu_num")
         if conf.has_option("node", "vcpu_type") is True:
             self.node["vcpu_type"] = conf.get("node", "vcpu_type")
+        if conf.has_option("node", "pxeboot") is True:
+            if conf.get("node", "pxeboot") == "yes":
+                self.set_pxe()
         if conf.has_option("node", "disk_num") is True:
             if conf.has_option("node", "disk_size") is True:
                 disk_num = conf.getint("node", "disk_num")

@@ -24,25 +24,17 @@ def ipmi_start(node):
     cmd_list = cmd.split(' ')
     os.system(cmd)
 
-    os.system("gunicorn -w 4 infrasim:app -b :80 -D")
+    #os.system("gunicorn -w 4 infrasim:app -b :80 -D")
 
 def ipmi_stop(node):
     status = ipmi_check_pid()
     if status is None:
         print "infrasim-ipmi service is OFF"
-        return 0
-
-    pid = ""
-    item_list = status.split(" ")
-    for item in item_list:
-        if item.strip() == "": 
-            continue
-        else:
-            pid = item.strip()
-            break
-    os.kill(int(pid), signal.SIGTERM)
+    else:
+        os.system("pkill ipmi_sim")
     os.system("pkill gunicorn")
     os.system("infrasim-vm stop")
+    print "infrasim-ipmi service stopped!"
 
 def ipmi_status(node):
     status = ipmi_check_pid()
@@ -67,5 +59,9 @@ if __name__ == '__main__':
         ipmi_stop(node)
     elif sys.argv[1] == "status":
         ipmi_status(node)
+    elif sys.argv[1] == "restart":
+        ipmi_stop(node)
+        print "Restart InfraSIM service..."
+        ipmi_start(node)
     else:
         ipmi_help()        
