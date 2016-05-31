@@ -16,6 +16,8 @@ class VM:
         self.set_virtual_type()
         self.set_sata_disks(1)
         self.set_mac_address()
+        if os.path.exists(os.environ['HOME'] + '/.infrasim') is False:
+            os.mkdir(os.environ['HOME'] + "/.infrasim")
 
     def set_virtual_type(self):
         output = subprocess.check_output("cat /proc/cpuinfo".split(" "))
@@ -50,30 +52,33 @@ class VM:
                         "<cmdline>ks=http://192.168.191.133/kickstart/centos-ks.cfg</cmdline>")
 
     def create_disk_image(self, disk_idx, disk_size=4):
-        disk_img = "/var/tmp/sd{0}.img".format(chr(97+disk_idx))
-        if os.path.isfile(disk_img) is True:
+        disk_dir = os.environ['HOME'] + "/.infrasim"
+        disk_img = "sd{0}.img".format(chr(97+disk_idx))
+        if os.path.isfile(disk_dir + disk_img) is True:
             if disk_size != 4:
-                os.remove("/var/tmp/sd{0}.img".format(chr(97+disk_idx)))
+                os.remove(disk_dir + disk_img)
             else:
                 return
 
-        command = "qemu-img create -f qcow2 /var/tmp/sd{0}.img {1}G".format(chr(97+disk_idx), disk_size)
+        command = "qemu-img create -f qcow2 {0}{1} {2}G".format(disk_dir, disk_img, disk_size)
         os.system(command)
 
     def set_sata_disks(self, disk_num):
+        disk_dir = os.environ['HOME'] + "/.infrasim"
         disks = []
         for i in range(0, disk_num):
             self.create_disk_image(i)
-            disk = {"file":"/var/tmp/sd{0}.img".format(chr(97+i)),
+            disk = {"file":"{0}sd{1}.img".format(disk_dir, chr(97+i)),
                    "dev":"sd" + chr(97+i), "name":"sata0-0-" + str(i)}
             disks.append(disk)
         self.node["disks"] = disks
 
     def set_sata_disks_with_size(self, disk_num, disk_size):
+        disk_dir = os.environ['HOME'] + "/.infrasim"
         disks = []
         for i in range(0, disk_num):
             self.create_disk_image(i, disk_size)
-            disk = {"file":"/var/tmp/sd{0}.img".format(chr(97+i)),
+            disk = {"file":"{0}sd{1}.img".format(disk_dir, chr(97+i)),
                     "dev":"sd" + chr(97+i), "name":"sata0-0-" + str(i)}
             disks.append(disk)
         self.node["disks"] = disks

@@ -5,4 +5,5 @@
 pbr
 flask
 nose
-psutil
+paramiko
+libvirt-python

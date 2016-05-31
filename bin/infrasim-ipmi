@@ -3,7 +3,6 @@
 
 import os, subprocess, sys, signal
 import ConfigParser
-import psutil
 import infrasim
 
 def ipmi_check_pid():
