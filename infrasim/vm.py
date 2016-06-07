@@ -15,7 +15,7 @@ class VM:
         self.logger = logging.getLogger('infrasim')
         self.set_virtual_type()
         self.set_sata_disks(1)
-        self.set_mac_address()
+        self.set_network("nat", None)
         if os.path.exists(os.environ['HOME'] + '/.infrasim') is False:
             os.mkdir(os.environ['HOME'] + "/.infrasim")
 
@@ -83,9 +83,14 @@ class VM:
             disks.append(disk)
         self.node["disks"] = disks
 
-    def set_mac_address(self):
+    def set_network(self, mode, name):
         nets = []
-        nets.append({"mac":"52:54:00:ad:66:b5"})
+        if mode == "nat":
+            self.node["netmode"] = "nat"
+            nets.append({"mac":"52:54:00:ad:66:b5"})
+        else:
+            self.node["netmode"] = "brdige"
+            nets.append({"mac":"52:54:00:ad:66:b5", "dev":name})
         self.node["nets"] = nets
 
     def read_from_config(self):
@@ -113,9 +118,15 @@ class VM:
         if conf.has_option("node", "disk_size") is True:
             disk_num = conf.getint("node", "disk_num")
             self.set_sata_disks(disk_num)
-
-        self.set_bios_data(self.node["name"])
+        if conf.has_option("node", "network_mode") is True:
+            nm = conf.get("node", "network_mode")
+            bridge = ""
+            if nm == "bridge":
+                bridge = conf.get("node", "network_name")
+            self.set_network(nm, bridge)
         
+        self.set_bios_data(self.node["name"])
+
     def render_vm_template(self):
         raw_xml = ""
         with open(VM_DEFAULT_XML, 'r') as f:

@@ -59,8 +59,8 @@ bmc_network=enp0s5
 
 #Set node network mode for qemu. The options shuld be:
 #	nat		--default
-#	macvtap		--optional
+#	bridge		--optional
 #network_mode=nat
 
-#If you use macvtap mode, please specify the network_name
-#node_network_name=xxx
+#If you use bridge mode, please specify the network_name
+#network_name=ens33

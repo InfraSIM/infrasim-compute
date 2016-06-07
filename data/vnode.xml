@@ -63,6 +63,7 @@
     <controller type='ide' index='0'>
       <alias name='ide0'/>
     </controller>
+    {%if node.netmode == "nat"%}
     {%for net in node.nets%}
     <interface type='network'>
       <mac address='{{net.mac}}'/>
@@ -70,6 +71,16 @@
       <model type='e1000'/>
     </interface>
     {%endfor%}
+    {%else%}
+    {%for net in node.nets%}
+    <interface type='direct'>
+      <mac address='{{net.mac}}'/>
+      <source dev='{{net.dev}}' mode='bridge'/>
+      <target dev='macvtap0'/>
+      <model type='e1000'/>
+    </interface>
+    {%endfor%}
+    {%endif%}
     <serial type='udp'>
       <source mode='bind' host='127.0.0.1' service='9002'/>
       <source mode='connect' host='127.0.0.1' service='9002'/>
