@@ -9,11 +9,12 @@ VM_DEFAULT_XML="/usr/local/etc/infrasim/vnode.xml"
 
 class VM:
     def __init__(self):
-        self.node = {"name":"", "uuid":str(uuid.uuid1()), "bios":{},
+        self.node = {"name":"quanta_d51", "uuid":str(uuid.uuid1()), "bios":{},
                    "virtual_type":"qemu", "mem_size":512, "vcpu_num":4, "vcpu_type":"Haswell"}
         self.render_xml = ""
         self.logger = logging.getLogger('infrasim')
         self.set_virtual_type()
+        self.set_bios_data(self.node["name"])
         self.set_sata_disks(1)
         self.set_network("nat", None)
         if os.path.exists(os.environ['HOME'] + '/.infrasim') is False:
