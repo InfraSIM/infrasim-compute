@@ -84,7 +84,7 @@ class Test_Default_VM:
                        "virtual size: 4.0G (4294967296 bytes)"
 
     def test_network_nat(self):
-        network_cmd = "ifconfig | grep virbr0"  # virbr0 should exist if network is nat
+        network_cmd = "ifconfig | grep vnet0"  # vnet0 should exist if network is nat
         network_returncode, network_output = \
             run_command(network_cmd,
                         stdout=subprocess.PIPE,
