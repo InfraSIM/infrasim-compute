@@ -6,7 +6,7 @@ default values checking:
     vm status: running
     vm cpu count: 4
     vm disk count: 1
-    vm disk size: 16G
+    vm disk size: 4G
     vm network: nat
     vm memory size: 512M
 
@@ -65,14 +65,14 @@ class Test_Default_VM:
         disk_count = 0
         qemu_parameters = self.output.split()
         for parameter in qemu_parameters:
-            if parameter.startswith("file="):
+            if parameter.startswith("file=") and ".img" in parameter:
                 disk_count += 1
         assert disk_count == 1
 
-    def test_disk_size_16G(self):
+    def test_disk_size_4G(self):
         qemu_parameters = self.output.split()
         for parameter in qemu_parameters:
-            if parameter.startswith("file="):
+            if parameter.startswith("file=") and ".img" in parameter:
                 disk_image_path = parameter.split(",")[0].split("=")[1]
                 disk_size_cmd = "qemu-img info {} | grep 'virtual size:'".\
                     format(disk_image_path)
@@ -81,7 +81,7 @@ class Test_Default_VM:
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
                 assert disk_size_result.strip() == \
-                       "virtual size: 16G (17179869184 bytes)"
+                       "virtual size: 4.0G (4294967296 bytes)"
 
     def test_network_nat(self):
         network_cmd = "ifconfig | grep virbr0"  # virbr0 should exist if network is nat
