@@ -38,11 +38,11 @@ class VM:
         bios["base"]["serial"] = subprocess.check_output("dmidecode --from-dump {0} -s baseboard-serial-number".format(bios_file).split(" "))
         self.node["bios"] = bios
 
-    def set_memory_size(self):
-        self.node["mem_size"] = 512
+    def set_memory_size(self, mem_size=512):
+        self.node["mem_size"] = mem_size
 
-    def set_vcpu_num(self):
-        self.node["vcpu_num"] = 4
+    def set_vcpu_num(self, vcpu_num=4):
+        self.node["vcpu_num"] = vcpu_num
 
     def set_vcpu_type(self):
         self.node["vcpu_type"] = "Haswell"
