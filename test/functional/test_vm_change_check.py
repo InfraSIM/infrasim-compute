@@ -140,20 +140,20 @@ class Test_VM_Change_CPU_Count:
 #        except:
 #            return None
 #
-    def test_vm_network_changeto_bridge(self):
-        available_network = self.get_available_physical_network()
-        if not available_network:
-            print "there is no available physical network"
-            assert True
-            return
-        stop_vm()
-        v.set_network("bridge", available_network)
-        start_vm()
-        network_check_cmd = "ifconfig | grep {}".format("macvtap0")
-        returncode, network_check = run_command(network_check_cmd,
-                                                stdout=subprocess.PIPE,
-                                                stderr=subprocess.PIPE)
-        assert network_check
+#    def test_vm_network_changeto_bridge(self):
+#        available_network = self.get_available_physical_network()
+#        if not available_network:
+#            print "there is no available physical network"
+#            assert True
+#            return
+#        stop_vm()
+#        v.set_network("bridge", available_network)
+#        start_vm()
+#        network_check_cmd = "ifconfig | grep {}".format("macvtap0")
+#        returncode, network_check = run_command(network_check_cmd,
+#                                                stdout=subprocess.PIPE,
+#                                                stderr=subprocess.PIPE)
+#        assert network_check
 
 
 class Test_VM_Change_Disk:
