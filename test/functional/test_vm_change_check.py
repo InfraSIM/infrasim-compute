@@ -11,8 +11,6 @@ change Memory size to 2048M and check
 change CPU count to 1 and check
 change CPU count to 6 and check
 
-change Network mode to bridge and check
-
 change disk count to 2 and check
 change disk size to 8G and check
 
@@ -57,7 +55,7 @@ class Test_VM_Change_Mem_Size:
     def setup_class(cls):
         start_vm()
         sys_mem_cmd = "grep MemTotal /proc/meminfo | awk '{print $2}'"
-        sys_mem_returncode, cls.sys_mem_size = run_command(sys_mem_cmd, 
+        sys_mem_returncode, cls.sys_mem_size = run_command(sys_mem_cmd,
                                                            stdout=subprocess.PIPE,
                                                            stderr=subprocess.PIPE)
     
@@ -122,26 +120,26 @@ class Test_VM_Change_CPU_Count:
         self.cpu_set_check(6)
 
 
-class Test_VM_Change_Network:
-    @classmethod
-    def setup_class(cls):
-        start_vm()
-
-    @classmethod
-    def teardown_class(cls):
-        stop_vm()
-
-    @staticmethod
-    def get_available_physical_network():
-        get_network_cmd = "lshw -class network | grep 'logical name' | awk -F ':' '{print $2}'"
-        returncode, networks = run_command(get_network_cmd,
-                                           stdout=subprocess.PIPE,
-                                           stderr=subprocess.PIPE)
-        try:
-            return networks.split()[0].strip()
-        except:
-            return None
-            
+#class Test_VM_Change_Network:
+#    @classmethod
+#    def setup_class(cls):
+#        start_vm()
+#
+#    @classmethod
+#    def teardown_class(cls):
+#        stop_vm()
+#
+#    @staticmethod
+#    def get_available_physical_network():
+#        get_network_cmd = "lshw -class network | grep 'logical name' | awk -F ':' '{print $2}'"
+#        returncode, networks = run_command(get_network_cmd,
+#                                           stdout=subprocess.PIPE,
+#                                           stderr=subprocess.PIPE)
+#        try:
+#            return networks.split()[0].strip()
+#        except:
+#            return None
+#
     def test_vm_network_changeto_bridge(self):
         available_network = self.get_available_physical_network()
         if not available_network:
