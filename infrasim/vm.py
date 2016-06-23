@@ -9,8 +9,9 @@ VM_DEFAULT_XML="/usr/local/etc/infrasim/vnode.xml"
 
 class VM:
     def __init__(self):
-        self.node = {"name":"quanta_d51", "uuid":str(uuid.uuid1()), "bios":{},
-                   "virtual_type":"qemu", "mem_size":512, "vcpu_num":4, "vcpu_type":"Haswell"}
+        self.node = {"name": "quanta_d51", "uuid": str(uuid.uuid1()),
+                     "bios": {}, "virtual_type": "qemu", "mem_size": 512,
+                     "vcpu_num": 4, "vcpu_type": "Haswell"}
         self.render_xml = ""
         self.logger = logging.getLogger('infrasim')
         self.set_virtual_type()
@@ -26,31 +27,40 @@ class VM:
             self.node["virtual_type"] = "kvm"
 
     def set_bios_data(self, node):
-        bios = {"bios":{}, "system":{}, "base":{}}
+        bios = {"bios": {}, "system": {}, "base": {}}
         bios_file = "/usr/local/etc/infrasim/{0}/{0}_smbios.bin".format(node)
-        bios["bios"]["vendor"]=subprocess.check_output("dmidecode --from-dump {0} -s bios-vendor".format(bios_file).split(" "))
-        bios["system"]["manufacturer"] = subprocess.check_output("dmidecode --from-dump {0} -s system-manufacturer".format(bios_file).split(" "))
-        bios["system"]["product"] = subprocess.check_output("dmidecode --from-dump {0} -s system-product-name".format(bios_file).split(" "))
-        bios["system"]["version"] = subprocess.check_output("dmidecode --from-dump {0} -s system-version".format(bios_file).split(" "))
-        bios["base"]["manufacturer"] = subprocess.check_output("dmidecode --from-dump {0} -s baseboard-manufacturer".format(bios_file).split(" "))
-        bios["base"]["product"]=subprocess.check_output("dmidecode --from-dump {0} -s baseboard-product-name".format(bios_file).split(" "))
-        bios["base"]["version"] = subprocess.check_output("dmidecode --from-dump {0} -s baseboard-version".format(bios_file).split(" "))
-        bios["base"]["serial"] = subprocess.check_output("dmidecode --from-dump {0} -s baseboard-serial-number".format(bios_file).split(" "))
+        bios["bios"]["vendor"] = subprocess.check_output(
+            "dmidecode --from-dump {0} -s bios-vendor".format(bios_file).split(" "))
+        bios["system"]["manufacturer"] = subprocess.check_output(
+            "dmidecode --from-dump {0} -s system-manufacturer".format(bios_file).split(" "))
+        bios["system"]["product"] = subprocess.check_output(
+            "dmidecode --from-dump {0} -s system-product-name".format(bios_file).split(" "))
+        bios["system"]["version"] = subprocess.check_output(
+            "dmidecode --from-dump {0} -s system-version".format(bios_file).split(" "))
+        bios["base"]["manufacturer"] = subprocess.check_output(
+            "dmidecode --from-dump {0} -s baseboard-manufacturer".format(bios_file).split(" "))
+        bios["base"]["product"] = subprocess.check_output(
+            "dmidecode --from-dump {0} -s baseboard-product-name".format(bios_file).split(" "))
+        bios["base"]["version"] = subprocess.check_output(
+            "dmidecode --from-dump {0} -s baseboard-version".format(bios_file).split(" "))
+        bios["base"]["serial"] = subprocess.check_output(
+            "dmidecode --from-dump {0} -s baseboard-serial-number".format(bios_file).split(" "))
         self.node["bios"] = bios
 
-    def set_memory_size(self):
-        self.node["mem_size"] = 512
+    def set_memory_size(self, mem_size=512):
+        self.node["mem_size"] = mem_size
 
-    def set_vcpu_num(self):
-        self.node["vcpu_num"] = 4
+    def set_vcpu_num(self, vcpu_num=4):
+        self.node["vcpu_num"] = vcpu_num
 
     def set_vcpu_type(self):
         self.node["vcpu_type"] = "Haswell"
 
     def set_pxe(self):
-        self.node["pxe"] = "{0}\n{1}\n{2}\n".format("<kernel>/var/www/html/CentOS/7.0/images/pxeboot/vmlinuz</kernel>",
-    			"<initrd>/var/www/html/CentOS/7.0/images/pxeboot/initrd.img</initrd>",
-                        "<cmdline>ks=http://192.168.191.133/kickstart/centos-ks.cfg</cmdline>")
+        self.node["pxe"] = "{0}\n{1}\n{2}\n".format(
+            "<kernel>/var/www/html/CentOS/7.0/images/pxeboot/vmlinuz</kernel>",
+            "<initrd>/var/www/html/CentOS/7.0/images/pxeboot/initrd.img</initrd>",
+            "<cmdline>ks=http://192.168.191.133/kickstart/centos-ks.cfg</cmdline>")
 
     def create_disk_image(self, disk_idx, disk_size=4):
         disk_dir = os.environ['HOME'] + "/.infrasim"
@@ -136,10 +146,13 @@ class VM:
         self.render_xml = template.render(node = self.node)
         return self.render_xml
 
+
 def start_vm(vm_desc):
     conn =libvirt.open()
     conn.createLinux(vm_desc, 0)
     conn.close()
+    print check_qemu_version()
+
 
 def stop_vm(node):
     conn = libvirt.open()
@@ -147,6 +160,7 @@ def stop_vm(node):
 
     domain.destroy()
     conn.close()
+
 
 def status_vm(node):
     conn = libvirt.open()
@@ -157,6 +171,7 @@ def status_vm(node):
             conn.close()
             return True
     return False
+
 
 def check_vm_status(node):
     conn = libvirt.open()
@@ -184,3 +199,17 @@ def check_vm_status(node):
 
     conn.close()
     return vm_exist_flag
+
+
+def check_qemu_version():
+    qemu_version_cmd = "/usr/bin/qemu-system-x86_64 -version"
+    qemu_version_check = subprocess.Popen(qemu_version_cmd, shell=True,
+                                          stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE)
+    cmd_result = qemu_version_check.communicate()
+    if qemu_version_check.returncode == 0:
+        return "InfraSIM-QEMU 2.0 based on {}".format(
+            cmd_result[0].split(",")[0])
+    else:
+        return cmd_result[1]
+
