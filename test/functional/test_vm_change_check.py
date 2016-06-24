@@ -120,42 +120,6 @@ class Test_VM_Change_CPU_Count:
         self.cpu_set_check(6)
 
 
-#class Test_VM_Change_Network:
-#    @classmethod
-#    def setup_class(cls):
-#        start_vm()
-#
-#    @classmethod
-#    def teardown_class(cls):
-#        stop_vm()
-#
-#    @staticmethod
-#    def get_available_physical_network():
-#        get_network_cmd = "lshw -class network | grep 'logical name' | awk -F ':' '{print $2}'"
-#        returncode, networks = run_command(get_network_cmd,
-#                                           stdout=subprocess.PIPE,
-#                                           stderr=subprocess.PIPE)
-#        try:
-#            return networks.split()[0].strip()
-#        except:
-#            return None
-#
-    def test_vm_network_changeto_bridge(self):
-        available_network = self.get_available_physical_network()
-        if not available_network:
-            print "there is no available physical network"
-            assert True
-            return
-        stop_vm()
-        v.set_network("bridge", available_network)
-        start_vm()
-        network_check_cmd = "ifconfig | grep {}".format("macvtap0")
-        returncode, network_check = run_command(network_check_cmd,
-                                                stdout=subprocess.PIPE,
-                                                stderr=subprocess.PIPE)
-        assert network_check
-
-
 class Test_VM_Change_Disk:
     @classmethod
     def setup_class(cls):
