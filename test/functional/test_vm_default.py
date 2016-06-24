@@ -15,6 +15,7 @@ author: payne.wang@emc.com
 
 import subprocess
 import re
+import os
 from nose.tools import with_setup
 from infrasim import vm
 
@@ -38,6 +39,10 @@ def run_command(cmd="", shell=True, stdout=None, stderr=None):
 class Test_Default_VM:
     @classmethod
     def setup_class(cls):
+        # remove the existing disk image
+        disk_image_path = "{}/.infrasimsda.img".format(os.environ["HOME"])
+        if os.path.exists(disk_image_path):
+            os.remove(disk_image_path)
         v = vm.VM()
         vm.start_vm(v.render_vm_template())
         qemu_cmd = "ps ax | grep qemu"
