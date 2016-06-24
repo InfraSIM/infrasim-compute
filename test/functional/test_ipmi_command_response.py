@@ -47,7 +47,7 @@ def run_command(cmd="", shell=True, stdin=None, stdout=None, stderr=None):
     return cmd_return_code, cmd_result
 
 
-class test_ipmicommand_response_test(unittest.TestCase):
+class test_ipmicommand_response(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -56,7 +56,7 @@ class test_ipmicommand_response_test(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         ipmi.ipmi_stop()
-	time.sleep(3)
+        time.sleep(3)
 
     def test_fru_print(self):
         returncode, output = run_command(fru_print_cmd)
