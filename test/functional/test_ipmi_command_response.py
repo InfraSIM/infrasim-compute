@@ -42,8 +42,6 @@ def run_command(cmd="", shell=True, stdin=None, stdout=None, stderr=None):
     child = subprocess.Popen(cmd, shell=shell, stdout=stdout, stderr=stderr)
     cmd_result = child.communicate()
     cmd_return_code = child.returncode
-    print 'cmd_result:', cmd_result
-    print 'child.returncode:', child.returncode
     return cmd_return_code, cmd_result
 
 
@@ -59,41 +57,41 @@ class test_ipmicommand_response(unittest.TestCase):
         time.sleep(3)
 
     def test_fru_print(self):
-        returncode, output = run_command(fru_print_cmd)
+        returncode, output = run_command(fru_print_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(returncode, 0)
 
     def test_lan_print(self):
-        returncode, output = run_command(lan_print_cmd)
+        returncode, output = run_command(lan_print_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(returncode, 0)
 
     def test_sensor_list(self):
-        returncode, output = run_command(sensor_list_cmd)
+        returncode, output = run_command(sensor_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(returncode, 0)
 
     def test_sel_list(self):
-        returncode, output = run_command(sel_list_cmd)
+        returncode, output = run_command(sel_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(returncode, 0)
 
     def test_sdr_list(self):
-        returncode, output = run_command(sdr_list_cmd)
+        returncode, output = run_command(sdr_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(returncode, 0)
 
     def test_user_list(self):
-        returncode, output = run_command(user_list_cmd)
+        returncode, output = run_command(user_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(returncode, 0)
 
     def test_user_compressed_list(self):
-        returncode, output = run_command(user_compressed_list_cmd)
+        returncode, output = run_command(user_compressed_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(returncode, 0)
 
     def test_user_summary(self):
-        returncode, output = run_command(user_summary_cmd)
+        returncode, output = run_command(user_summary_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(returncode, 0)
 
     def test_sel_info_entries_count_check(self):
         run_command(sel_clear_cmd)
         time.sleep(3)
-        returncode, output = run_command(sel_info_cmd)
+        returncode, output = run_command(sel_info_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         str_out = str(output)
         self.assertIsNone(re.search('Entries(\s)*:(\s)*0', str_out))
 
