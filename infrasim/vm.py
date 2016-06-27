@@ -4,8 +4,8 @@
 import jinja2, uuid, ConfigParser, subprocess, os
 import libvirt, logging
 
-VM_DEFAULT_CONFIG="/etc/infrasim/infrasim.conf"
-VM_DEFAULT_XML="/usr/local/etc/infrasim/vnode.xml"
+VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.conf"
+VM_DEFAULT_XML = "/usr/local/etc/infrasim/vnode.xml"
 
 class VM:
     def __init__(self):
@@ -16,7 +16,7 @@ class VM:
         self.logger = logging.getLogger('infrasim')
         self.set_virtual_type()
         self.set_bios_data(self.node["name"])
-        self.set_sata_disks(1)
+        self.set_sata_disks_with_size(1, 4, False)
         self.set_network("nat", None)
         if os.path.exists(os.environ['HOME'] + '/.infrasim') is False:
             os.mkdir(os.environ['HOME'] + "/.infrasim")
@@ -62,35 +62,30 @@ class VM:
             "<initrd>/var/www/html/CentOS/7.0/images/pxeboot/initrd.img</initrd>",
             "<cmdline>ks=http://192.168.191.133/kickstart/centos-ks.cfg</cmdline>")
 
-    def create_disk_image(self, disk_idx, disk_size=4):
+    def create_disk_image(self, disk_idx, disk_size=4, force=True):
         disk_dir = os.environ['HOME'] + "/.infrasim"
         disk_img = "sd{0}.img".format(chr(97+disk_idx))
-        if os.path.isfile(disk_dir + disk_img) is True:
-            if disk_size != 4:
+        if os.path.isfile(disk_dir + disk_img):
+            if not force:
+                return
+
+            image_size = subprocess.check_output("qemu-img info {} | grep 'virtual size'".format(disk_dir+disk_img), shell=True)
+            image_size = float(image_size.split()[2][:-1].strip())
+            if image_size != float(disk_size):
                 os.remove(disk_dir + disk_img)
             else:
                 return
-
         command = "qemu-img create -f qcow2 {0}{1} {2}G".format(disk_dir, disk_img, disk_size)
-        os.system(command)
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+        process.communicate()
 
-    def set_sata_disks(self, disk_num):
+    def set_sata_disks_with_size(self, disk_num=1, disk_size=4, force=True):
         disk_dir = os.environ['HOME'] + "/.infrasim"
         disks = []
         for i in range(0, disk_num):
-            self.create_disk_image(i)
-            disk = {"file":"{0}sd{1}.img".format(disk_dir, chr(97+i)),
-                   "dev":"sd" + chr(97+i), "name":"sata0-0-" + str(i)}
-            disks.append(disk)
-        self.node["disks"] = disks
-
-    def set_sata_disks_with_size(self, disk_num, disk_size):
-        disk_dir = os.environ['HOME'] + "/.infrasim"
-        disks = []
-        for i in range(0, disk_num):
-            self.create_disk_image(i, disk_size)
-            disk = {"file":"{0}sd{1}.img".format(disk_dir, chr(97+i)),
-                    "dev":"sd" + chr(97+i), "name":"sata0-0-" + str(i)}
+            self.create_disk_image(i, disk_size, force)
+            disk = {"file": "{0}sd{1}.img".format(disk_dir, chr(97+i)),
+                    "dev": "sd" + chr(97+i), "name": "sata0-0-" + str(i)}
             disks.append(disk)
         self.node["disks"] = disks
 
@@ -98,10 +93,10 @@ class VM:
         nets = []
         if mode == "nat":
             self.node["netmode"] = "nat"
-            nets.append({"mac":"52:54:00:ad:66:b5"})
+            nets.append({"mac": "52:54:00:ad:66:b5"})
         else:
             self.node["netmode"] = "brdige"
-            nets.append({"mac":"52:54:00:ad:66:b5", "dev":name})
+            nets.append({"mac": "52:54:00:ad:66:b5", "dev":name})
         self.node["nets"] = nets
 
     def read_from_config(self):
@@ -125,10 +120,10 @@ class VM:
                 self.set_sata_disks_with_size(disk_num, disk_size)
             else:
                 disk_num = conf.getint("node", "disk_num")
-                self.set_sata_disks(disk_num)
-        if conf.has_option("node", "disk_size") is True:
-            disk_num = conf.getint("node", "disk_num")
-            self.set_sata_disks(disk_num)
+                self.set_sata_disks_with_size(disk_num, 4)
+        elif conf.has_option("node", "disk_size") is True:
+            disk_size = conf.getint("node", "disk_size")
+            self.set_sata_disks_with_size(1, disk_size)
         if conf.has_option("node", "network_mode") is True:
             nm = conf.get("node", "network_mode")
             bridge = ""
@@ -143,7 +138,7 @@ class VM:
         with open(VM_DEFAULT_XML, 'r') as f:
             raw_xml = f.read()
         template = jinja2.Template(raw_xml)
-        self.render_xml = template.render(node = self.node)
+        self.render_xml = template.render(node=self.node)
         return self.render_xml
 
 
@@ -212,4 +207,3 @@ def check_qemu_version():
             cmd_result[0].split(",")[0])
     else:
         return cmd_result[1]
-

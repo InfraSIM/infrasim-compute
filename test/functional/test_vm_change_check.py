@@ -131,7 +131,7 @@ class Test_VM_Change_Disk:
 
     def test_vm_disk_count_changeto_2(self):
         stop_vm()
-        v.set_sata_disks(2)
+        v.set_sata_disks_with_size(2)
         returncode, output = start_vm()
         disk_count = 0
         qemu_parameters = output.split()
@@ -142,7 +142,7 @@ class Test_VM_Change_Disk:
 
     def test_vm_disk_size_changeto_8G(self):
         stop_vm()
-        v.set_sata_disks_with_size(1,8)
+        v.set_sata_disks_with_size(1, 8)
         returncode, output = start_vm()
         qemu_parameters = output.split()
         for parameter in qemu_parameters:
@@ -154,7 +154,8 @@ class Test_VM_Change_Disk:
                     run_command(disk_size_cmd,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
-                assert disk_size_result.strip() == \
-                       "virtual size: 8.0G (8589934592 bytes)"
+                expect_value = "virtual size: 8.0G (8589934592 bytes)"
+                assert disk_size_result.strip() == expect_value
+
 
 
