@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os, subprocess, sys, signal
-import infrasim
+import infrasim, socat
 
 def ipmi_check_pid():
     cmd  = "ps ax | grep ipmi_sim"
@@ -13,6 +13,7 @@ def ipmi_check_pid():
     return None
 
 def ipmi_start(node="quanta_d51"):
+    socat.start_socat()
     if ipmi_check_pid() is not None:
         print "inframsim_ipmi service is already running"
         return 0
@@ -25,6 +26,7 @@ def ipmi_start(node="quanta_d51"):
     #os.system("gunicorn -w 4 infrasim:app -b :80 -D")
 
 def ipmi_stop():
+    socat.stop_socat()
     status = ipmi_check_pid()
     if status is None:
         print "infrasim-ipmi service is OFF"

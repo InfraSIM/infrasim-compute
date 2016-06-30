@@ -86,6 +86,10 @@
       <source mode='connect' host='127.0.0.1' service='9002'/>
       <target port='0'/>
     </serial>
+    <serial type='tcp'>
+        <source mode='connect' host='127.0.0.1' service='9003'/>
+        <target port='1'/>
+    </serial>
     <input type='mouse' bus='ps2'/>
     <input type='keyboard' bus='ps2'/>
     <graphics type='vnc' port='5902' autoport='yes' listen='0.0.0.0' keymap='en-us'>
