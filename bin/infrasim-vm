@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os, subprocess, sys, signal, uuid
-import ConfigParser
+import cfgparse
 from infrasim import vm
+
+VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.conf"
 
 def vm_start(node):
     if vm.check_vm_status(node) is True:
@@ -39,16 +41,18 @@ def vm_help():
     print "inframsim_vm start|stop|status"
 
 if __name__ == '__main__':
-    config = ConfigParser.ConfigParser()
-    config.read('/etc/infrasim/infrasim.conf')
-    node = config.get('main', 'node')
+    config = cfgparse.ConfigParser()
+    config.add_file(VM_DEFAULT_CONFIG, type = 'ini')
+    config.add_option('node', keys = 'main')
+    opts = config.parse()
+    print opts.node
     if sys.argv[1] == "start":
-        vm_start(node)
+        vm_start(opts.node)
     elif sys.argv[1] == "stop":
-        vm_stop(node)
+        vm_stop(opts.node)
     elif sys.argv[1] == "status":
-        vm_status(node)
+        vm_status(opts.node)
     elif sys.argv[1] == "restart":
-        vm_restart(node)
+        vm_restart(opts.node)
     else:
-        vm_help()        
+        vm_help()

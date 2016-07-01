@@ -2,16 +2,19 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import ConfigParser
+import cfgparse
 from infrasim import ipmi
 
+VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.conf"
 
 if __name__ == '__main__':
-    config = ConfigParser.ConfigParser()
-    config.read('/etc/infrasim/infrasim.conf')
-    node = config.get('main', 'node')
+    config = cfgparse.ConfigParser()
+    config.add_file(VM_DEFAULT_CONFIG, type = 'ini')
+    config.parse()
+    config.add_option('node', keys = 'main')
+    opts = config.parse()
     if sys.argv[1] == "start":
-        ipmi.ipmi_start(node)
+        ipmi.ipmi_start(opts.node)
     elif sys.argv[1] == "stop":
         ipmi.ipmi_stop()
     elif sys.argv[1] == "status":
@@ -19,6 +22,6 @@ if __name__ == '__main__':
     elif sys.argv[1] == "restart":
         ipmi.ipmi_stop()
         print "Restart InfraSIM service..."
-        ipmi.ipmi_start(node)
+        ipmi.ipmi_start(opts.node)
     else:
         ipmi.ipmi_help()

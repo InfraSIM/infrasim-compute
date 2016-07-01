@@ -7,3 +7,4 @@ flask
 nose
 paramiko
 libvirt-python
+cfgparse

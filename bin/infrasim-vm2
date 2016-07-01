@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os, subprocess, sys, signal
-import ConfigParser
+import cfgparse
+
+
+VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.conf"
 
 def create_xml_head(node):
     xml = "<domain type=\'qemu\'>\
@@ -67,15 +70,16 @@ def vm_help():
     print "inframsim_vm start|stop|status"
 
 if __name__ == '__main__':
-    config = ConfigParser.ConfigParser()
-    config.read('/etc/infrasim/infrasim.conf')
-    node = config.get('main', 'node')
+    config = cfgparse.ConfigParser()
+    config.add_file(VM_DEFAULT_CONFIG, type = 'ini')
+    config.parse()
+    config.add_option('node', keys = 'main')
+    opts = config.parse()
     if sys.argv[1] == "start":
-        vm_start(node)
+        vm_start(opts.node)
     elif sys.argv[1] == "stop":
-        vm_stop(node)
+        vm_stop(opts.node)
     elif sys.argv[1] == "status":
-        vm_status(node)
+        vm_status(opts.node)
     else:
         vm_help()
-    config.close() 
