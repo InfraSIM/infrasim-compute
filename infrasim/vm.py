@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import jinja2, uuid, ConfigParser, subprocess, os
+import jinja2, uuid, cfgparse, subprocess, os
 import libvirt, logging
 
 VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.conf"
@@ -99,36 +99,65 @@ class VM:
             nets.append({"mac": "52:54:00:ad:66:b5", "dev":name})
         self.node["nets"] = nets
 
+    def has_option(self, config,section,option):
+        if None != config.parser.option_dicts.get(option):
+            if section in config.parser.option_dicts.get(option):
+                return True
+        return False
+
     def read_from_config(self):
-        conf = ConfigParser.ConfigParser()
-        conf.read(VM_DEFAULT_CONFIG)
-        if conf.has_option("main", "node") is True:
-            self.node["name"] = conf.get("main", "node")
-        if conf.has_option("node", "mem_size") is True:
-            self.node["mem_size"] = conf.getint("node", "mem_size")
-        if conf.has_option("node", "vcpu_num") is True:
-            self.node["vcpu_num"] = conf.getint("node", "vcpu_num")
-        if conf.has_option("node", "vcpu_type") is True:
-            self.node["vcpu_type"] = conf.get("node", "vcpu_type")
-        if conf.has_option("node", "pxeboot") is True:
-            if conf.get("node", "pxeboot") == "yes":
+        conf = cfgparse.ConfigParser()
+        conf.add_file(VM_DEFAULT_CONFIG, type = 'ini')
+        conf.parse()
+        # add existing options into config parser
+        if self.has_option(conf, "main", "node") is True:
+            conf.add_option("node", keys="main")
+        if self.has_option(conf, "node", "mem_size") is True:
+            conf.add_option("mem_size", keys="node")
+        if self.has_option(conf, "node", "vcpu_num") is True:
+            conf.add_option("vcpu_num", keys="node")
+        if self.has_option(conf, "node", "vcpu_type") is True:
+            conf.add_option("vcpu_type", keys="node")
+        if self.has_option(conf, "node", "pxeboot") is True:
+            conf.add_option("pxeboot", keys="node")
+        if self.has_option(conf, "node", "disk_num") is True:
+            conf.add_option("disk_num", keys="node")
+        if self.has_option(conf, "node", "disk_size") is True:
+            conf.add_option("disk_size", keys="node")
+        if self.has_option(conf, "node", "network_mode") is True:
+            conf.add_option("network_mode", keys="node")
+
+        # parse valid options
+        opts = conf.parse()
+
+        # initiation with values from configure options
+        if self.has_option(conf, "main", "node") is True:
+            self.node["name"] = opts.node
+        if self.has_option(conf, "node", "mem_size") is True:
+            self.node["mem_size"] = int(opts.mem_size)
+        if self.has_option(conf, "node", "vcpu_num") is True:
+            self.node["vcpu_num"] = int(opts.vcpu_num)
+        if self.has_option(conf, "node", "vcpu_type") is True:
+            self.node["vcpu_type"] = opts.vcpu_type
+        if self.has_option(conf, "node", "pxeboot") is True:
+            if opts.pxeboot == "yes":
                 self.set_pxe()
-        if conf.has_option("node", "disk_num") is True:
-            if conf.has_option("node", "disk_size") is True:
-                disk_num = conf.getint("node", "disk_num")
-                disk_size = conf.getint("node", "disk_size")
+        if self.has_option(conf, "node", "disk_num") is True:
+            if self.has_option(conf, "node", "disk_size") is True:
+                disk_num = int(opts.disk_num)
+                disk_size = int(opts.disk_size)
                 self.set_sata_disks_with_size(disk_num, disk_size)
             else:
-                disk_num = conf.getint("node", "disk_num")
+                disk_num = int(opts.disk_num)
                 self.set_sata_disks_with_size(disk_num, 4)
-        elif conf.has_option("node", "disk_size") is True:
-            disk_size = conf.getint("node", "disk_size")
+        elif self.has_option(conf, "node", "disk_size") is True:
+            disk_size = int(opts.disk_size)
             self.set_sata_disks_with_size(1, disk_size)
-        if conf.has_option("node", "network_mode") is True:
-            nm = conf.get("node", "network_mode")
+        if self.has_option(conf, "node", "network_mode") is True:
+            nm = opts.network_mode
             bridge = ""
             if nm == "bridge":
-                bridge = conf.get("node", "network_name")
+                bridge = opts.network_name
             self.set_network(nm, bridge)
         
         self.set_bios_data(self.node["name"])
@@ -140,7 +169,6 @@ class VM:
         template = jinja2.Template(raw_xml)
         self.render_xml = template.render(node=self.node)
         return self.render_xml
-
 
 def start_vm(vm_desc):
     conn =libvirt.open()
