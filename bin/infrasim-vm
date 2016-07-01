@@ -45,7 +45,6 @@ if __name__ == '__main__':
     config.add_file(VM_DEFAULT_CONFIG, type = 'ini')
     config.add_option('node', keys = 'main')
     opts = config.parse()
-    print opts.node
     if sys.argv[1] == "start":
         vm_start(opts.node)
     elif sys.argv[1] == "stop":

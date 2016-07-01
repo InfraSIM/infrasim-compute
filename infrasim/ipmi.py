@@ -1,51 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, subprocess, sys, signal
-import infrasim, socat
+import os
+from . import run_command
 
-def ipmi_check_pid():
-    cmd  = "ps ax | grep ipmi_sim"
-    pipe_list = subprocess.check_output(cmd, shell=True).split("\n")
-    for pipe in pipe_list:
-        if len(pipe) > 100:
-            return pipe
-    return None
+def get_ipmi():
+    code, ipmi_cmd = run_command("which /usr/local/bin/ipmi_sim")
+    if code == -1:
+        raise Exception("ipmi_sim install Error")
+    return ipmi_cmd.strip(os.linesep)
 
-def ipmi_start(node="quanta_d51"):
-    socat.start_socat()
-    if ipmi_check_pid() is not None:
-        print "inframsim_ipmi service is already running"
-        return 0
+def start_ipmi(node):
+    ipmi_cmd = get_ipmi()
+    ipmi_start_cmd = "{0} -c /etc/infrasim/vbmc.conf" \
+                    " -f /usr/local/etc/infrasim/{1}/{1}.emu -n &".format(ipmi_cmd, node)
+    run_command(ipmi_start_cmd, True, None, None)
 
-    cmd = "ipmi_sim -c /etc/infrasim/vbmc.conf -f /usr/local/etc/infrasim/{0}/{0}.emu -n &"
-    cmd = cmd.format(node)
-    cmd_list = cmd.split(' ')
-    os.system(cmd)
-
-    #os.system("gunicorn -w 4 infrasim:app -b :80 -D")
-
-def ipmi_stop():
-    socat.stop_socat()
-    status = ipmi_check_pid()
-    if status is None:
-        print "infrasim-ipmi service is OFF"
-    else:
-        os.system("pkill ipmi_sim")
-    os.system("pkill gunicorn")
-    os.system("infrasim-vm stop")
-    print "infrasim-ipmi service stopped!"
-
-def ipmi_status():
-    status = ipmi_check_pid()
-    if status is None:
-        print "infrasim-ipmi service is OFF"
-        return 0
-
-    print "infrasim-ipmi service is ON"
-    return 1
-
-
-def ipmi_help():
-    print "inframsim_ipmi start|stop|status"
-
+def stop_ipmi():
+    ipmi_stop_cmd = "pkill ipmi_sim"
+    run_command(ipmi_stop_cmd, True, None, None)

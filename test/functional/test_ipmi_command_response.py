@@ -49,12 +49,13 @@ class test_ipmicommand_response(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        ipmi.ipmi_start()
+        ipmi.start_ipmi("quanta_d51")
+        time.sleep(5)
 
     @classmethod
     def tearDownClass(cls):
-        ipmi.ipmi_stop()
-        time.sleep(3)
+        ipmi.stop_ipmi()
+        vm.stop_vm("quanta_d51")
 
     def test_fru_print(self):
         returncode, output = run_command(fru_print_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

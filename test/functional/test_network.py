@@ -34,20 +34,14 @@ class test_network(unittest.TestCase):
 
     @classmethod
     def teardown_class(cls):
-        if vm.status_vm('quanta_d51'):
-            vm.stop_vm("quanta_d51")
-        if ipmi.ipmi_status():
-            ipmi.ipmi_stop()
+        vm.stop_vm("quanta_d51")
+        ipmi.stop_ipmi()
 
     def test_set_bridge(self):
         '''
         Set QEMU bridge mode
         '''
         #stop vm
-        if vm.status_vm('quanta_d51'):
-            vm.stop_vm("quanta_d51")
-        if ipmi.ipmi_status():
-            ipmi.ipmi_stop()
 
         #get available nic
         ifconfig_cmd = "ifconfig"
