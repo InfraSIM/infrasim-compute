@@ -78,4 +78,4 @@ set_working_mc 0x20
   user 1 true  ""      "test"     user     10       none md2 md5 straight
   user 2 true  "admin" "admin" admin    10       none md2 md5 straight
 
-  #sol "/etc/ipmi/pty0" 115200 history=4000 historyfru=10
+  sol "/etc/infrasim/pty0" 115200 history=4000 historyfru=10
