@@ -3,9 +3,11 @@
 
 import jinja2, uuid, cfgparse, subprocess, os
 import libvirt, logging
+import random
 
 VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.conf"
 VM_DEFAULT_XML = "/usr/local/etc/infrasim/vnode.xml"
+MAX_QEMU_MAC_NUM=8
 
 class VM:
     def __init__(self):
@@ -89,14 +91,79 @@ class VM:
             disks.append(disk)
         self.node["disks"] = disks
 
+    def mac_generator(self):
+        return ':'.join(map(lambda x: "%02x" % x, [0x00, 0x16, 0x3e,
+            random.randint(0x00, 0x7f),
+            random.randint(0x00, 0xff),
+            random.randint(0x00, 0xff)]))
+
     def set_network(self, mode, name):
         nets = []
+        change_flag = False
+
+        conf = cfgparse.ConfigParser()
+        f = conf.add_file(VM_DEFAULT_CONFIG, type = 'ini')
+        conf.parse()
+
+        # add existing options into config parser
+        if self.has_option(conf, "node", "qemu_mac_num") is True:
+            conf.add_option("qemu_mac_num", keys="node")
+
+        mac_list = []
+        for i in range(0, MAX_QEMU_MAC_NUM):
+            if self.has_option(conf, "node", "qemu_mac"+str(i)) is True:
+                mac_list.append(conf.add_option("qemu_mac"+str(i), keys="node"))
+
+        # parse valid options
+        opts = conf.parse()
+
+        #set mac number
+        if self.has_option(conf, "node", "qemu_mac_num") is True:
+            mac_num = opts.qemu_mac_num
+        else:
+            mac_num = 1
+
+        #set netmode in vnode.xml
         if mode == "nat":
             self.node["netmode"] = "nat"
-            nets.append({"mac": "52:54:00:ad:66:b5"})
         else:
-            self.node["netmode"] = "brdige"
-            nets.append({"mac": "52:54:00:ad:66:b5", "dev":name})
+            self.node["netmode"] = "bridge"
+
+        #set mac address
+        for i in range(0,int(mac_num)):
+            #init mac, read mac from config or generate random mac
+            mac = "null"
+            if self.has_option(conf, "node", "qemu_mac"+str(i)) is True:
+                mac = mac_list[i].get()
+                if mac == "null":
+                    mac = self.mac_generator()
+                    f.set_option("qemu_mac"+str(i), mac, "node")
+                    change_flag = True
+            else:
+                mac = self.mac_generator()
+                f.set_option("qemu_mac"+str(i), mac, "node")
+                change_flag = True
+
+            #append mac in nets for "nat" and "bridge" mode
+            if mode == "nat":
+                nets.append({"mac":mac})
+            else:
+                tap = "macvtap"+str(i)
+                nets.append({"mac":mac, "dev":name, "tap":tap})
+
+        for i in range(int(mac_num), MAX_QEMU_MAC_NUM):
+            #set mac to null
+            mac = "null"
+            if self.has_option(conf,"node", "qemu_mac"+str(i)) is True:
+                mac = mac_list[i].get()
+                if mac != "null":
+                    mac = "null"
+                    f.set_option("qemu_mac"+str(i), mac, "node")
+                    change_flag = True
+
+        if (change_flag == True):
+            f.write(VM_DEFAULT_CONFIG)
+
         self.node["nets"] = nets
 
     def has_option(self, config,section,option):
@@ -109,56 +176,40 @@ class VM:
         conf = cfgparse.ConfigParser()
         conf.add_file(VM_DEFAULT_CONFIG, type = 'ini')
         conf.parse()
-        # add existing options into config parser
-        if self.has_option(conf, "main", "node") is True:
-            conf.add_option("node", keys="main")
-        if self.has_option(conf, "node", "mem_size") is True:
-            conf.add_option("mem_size", keys="node")
-        if self.has_option(conf, "node", "vcpu_num") is True:
-            conf.add_option("vcpu_num", keys="node")
-        if self.has_option(conf, "node", "vcpu_type") is True:
-            conf.add_option("vcpu_type", keys="node")
-        if self.has_option(conf, "node", "pxeboot") is True:
-            conf.add_option("pxeboot", keys="node")
-        if self.has_option(conf, "node", "disk_num") is True:
-            conf.add_option("disk_num", keys="node")
-        if self.has_option(conf, "node", "disk_size") is True:
-            conf.add_option("disk_size", keys="node")
-        if self.has_option(conf, "node", "network_mode") is True:
-            conf.add_option("network_mode", keys="node")
-
-        # parse valid options
-        opts = conf.parse()
 
         # initiation with values from configure options
         if self.has_option(conf, "main", "node") is True:
-            self.node["name"] = opts.node
+            node = conf.add_option("node", keys="main")
+            self.node["name"] = node.get()
         if self.has_option(conf, "node", "mem_size") is True:
-            self.node["mem_size"] = int(opts.mem_size)
+            mem_size = conf.add_option("mem_size", keys="node")
+            self.node["mem_size"] = int(mem_size.get())
         if self.has_option(conf, "node", "vcpu_num") is True:
-            self.node["vcpu_num"] = int(opts.vcpu_num)
+            vcpu_num = conf.add_option("vcpu_num", keys="node")
+            self.node["vcpu_num"] = int(vcpu_num.get())
         if self.has_option(conf, "node", "vcpu_type") is True:
-            self.node["vcpu_type"] = opts.vcpu_type
+            vcpu_type = conf.add_option("vcpu_type", keys="node")
+            self.node["vcpu_type"] = vcpu_type.get()
         if self.has_option(conf, "node", "pxeboot") is True:
-            if opts.pxeboot == "yes":
+            pxeboot = conf.add_option("pxeboot", keys="node")
+            if pxeboot.get() == "yes":
                 self.set_pxe()
         if self.has_option(conf, "node", "disk_num") is True:
+            disk_num = conf.add_option("disk_num", keys="node")
             if self.has_option(conf, "node", "disk_size") is True:
-                disk_num = int(opts.disk_num)
-                disk_size = int(opts.disk_size)
-                self.set_sata_disks_with_size(disk_num, disk_size)
+                disk_size = conf.add_option("disk_size", keys="node")
+                self.set_sata_disks_with_size(int(disk_num.get()),  int(disk_size.get()))
             else:
-                disk_num = int(opts.disk_num)
-                self.set_sata_disks_with_size(disk_num, 4)
+                self.set_sata_disks_with_size(int(disk_num.get()), 4)
         elif self.has_option(conf, "node", "disk_size") is True:
-            disk_size = int(opts.disk_size)
-            self.set_sata_disks_with_size(1, disk_size)
+            disk_size = conf.add_option("disk_size", keys="node")
+            self.set_sata_disks_with_size(1, int(disk_size.get()))
         if self.has_option(conf, "node", "network_mode") is True:
-            nm = opts.network_mode
+            nm = conf.add_option("network_mode", keys="node")
             bridge = ""
-            if nm == "bridge":
-                bridge = opts.network_name
-            self.set_network(nm, bridge)
+            if nm.get() == "bridge":
+                bridge = conf.add_option("network_name", keys="node")
+            self.set_network(nm, bridge.get())
         
         self.set_bios_data(self.node["name"])
 
