@@ -64,3 +64,19 @@ bmc_network=enp0s5
 
 #If you use bridge mode, please specify the network_name
 #network_name=ens33
+
+#Set qemu mac num, the default is 1
+#
+#qemu_mac_num=1
+
+#Set qemu mac address. The number of non-null address is identical to the qemu_mac_num.
+#Please don't touch below qemu mac address list. Thet are set automatically by program.
+#
+qemu_mac0=null
+qemu_mac1=null
+qemu_mac2=null
+qemu_mac3=null
+qemu_mac4=null
+qemu_mac5=null
+qemu_mac6=null
+qemu_mac7=null
