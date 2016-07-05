@@ -24,7 +24,7 @@ bmc_network=enp0s5
 [node]
 #Set node cpu num, the default value is 4
 #
-#vcpu_num=4
+vcpu=4
 
 #Set node cpu type, the default value is Haswell
 #Supported vcpu_type:
@@ -36,31 +36,30 @@ bmc_network=enp0s5
 #	IvyBridge:  Intel Xeon E3-12xx v2 (Ivy Bridge)
 #	Haswell:  Intel Core Processor (Haswell)
 #	Broadwell:  Intel Core Processor (Broadwell)
-#vcpu_type=Haswell
-
-#Set node if bootup using PXE
-#
-#pxeboot=no
-
+cpu=Haswell
 
 #Set node memory size, the unit is MB.
 #The default vaule is 512MB
 #
-#mem_size=512
+memory=1024
 
 #Set node disks num, the default is 1
 #
-#disk_num=1
+disk_num=1
 
 #Set node disk size, the unit is GB.
-#The default value is 8GB
+#The default value is 16GB
 #
-#disk_size=8
+disk_size=16
 
 #Set node network mode for qemu. The options shuld be:
 #	nat		--default
 #	bridge		--optional
-#network_mode=nat
+network=nat
 
 #If you use bridge mode, please specify the network_name
 #network_name=ens33
+
+mac1=52:54:00:ad:66:b5
+#mac2=52:54:00:ac:45:56
+#mac3=52:54:00:23:6f:13

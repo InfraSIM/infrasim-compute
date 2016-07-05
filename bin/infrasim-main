@@ -4,7 +4,7 @@
 import sys
 import cfgparse
 import time
-from infrasim import ipmi, socat, vm, run_command
+from infrasim import ipmi, socat, vm, run_command, qemu
 
 VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.conf"
 
@@ -16,11 +16,11 @@ if __name__ == '__main__':
     opts = config.parse()
     if sys.argv[1] == "start":
         socat.start_socat()
+        time.sleep(2)
         ipmi.start_ipmi(opts.node)
-        time.sleep(5)
     elif sys.argv[1] == "stop":
+        qemu.stop_qemu()
         ipmi.stop_ipmi()
-        vm.stop_vm(opts.node)
         socat.stop_socat()
     elif sys.argv[1] == "status":
         ipmi_code, _ = run_command("pidof ipmi_sim")
@@ -41,12 +41,13 @@ if __name__ == '__main__':
         else:
             print "Inrasim Socat service is stopped"
     elif sys.argv[1] == "restart":
+        qemu.stop_qemu()
         ipmi.stop_ipmi()
-        vm.stop_vm(opts.node)
         socat.stop_socat()
+        time.sleep(2)
         print "Restart InfraSIM service..."
         socat.start_socat()
+        time.sleep(2)
         ipmi.start_ipmi(opts.node)
-        time.sleep(5)
     else:
         print "{} start|stop|status|restart".format(sys.argv[0])

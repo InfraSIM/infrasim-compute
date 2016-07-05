@@ -17,9 +17,9 @@ import os
 import subprocess
 import re
 import time
-from infrasim import vm
+from infrasim import qemu
 from infrasim import ipmi
-
+from infrasim import socat
 
 # ipmitool commands to test
 cmd_prefix = 'ipmitool -H 127.0.0.1 -U admin -P admin '
@@ -49,13 +49,16 @@ class test_ipmicommand_response(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        socat.start_socat()
+        time.sleep(3)
         ipmi.start_ipmi("quanta_d51")
-        time.sleep(5)
+        time.sleep(3)
 
     @classmethod
     def tearDownClass(cls):
+        qemu.stop_qemu()
         ipmi.stop_ipmi()
-        vm.stop_vm("quanta_d51")
+        socat.stop_socat()
 
     def test_fru_print(self):
         returncode, output = run_command(fru_print_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
