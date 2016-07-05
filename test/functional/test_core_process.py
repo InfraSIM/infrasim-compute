@@ -11,10 +11,11 @@ Check:
     - corresponding process can be ended by stop service
 """
 import time
-from infrasim import vm
+from infrasim import qemu
 from infrasim import ipmi
 from infrasim import socat
 from infrasim import run_command
+import time
 
 def test_qemu_exist():
     code, result = run_command('which /usr/local/bin/qemu-system-x86_64', True, None, None)
@@ -28,9 +29,15 @@ def test_socat_exist():
     code, result = run_command('which /usr/bin/socat', True, None, None)
     assert code == 0
 
+def test_socat_process_start():
+     socat.start_socat()
+     time.sleep(3)
+     ipmi.start_ipmi("quanta_d51")
+     time.sleep(3)
+     code, result = run_command("pidof socat")
+     assert code == 0
+
 def test_ipmi_process_start():
-    ipmi.start_ipmi("quanta_d51")
-    time.sleep(5)
     code, result = run_command("pidof ipmi_sim")
     assert code == 0
 
@@ -39,7 +46,7 @@ def test_qemu_process_start():
     assert code == 0
 
 def test_qemu_prcess_stop():
-    vm.stop_vm("quanta_d51")
+    qemu.stop_qemu()
     code, result = run_command("pidof qemu-system-x86_64")
     assert code != 0
 
@@ -47,11 +54,6 @@ def test_ipmi_process_stop():
     ipmi.stop_ipmi()
     code, result = run_command("pidof ipmi_sim")
     assert code != 0
-
-def test_socat_process_start():
-     socat.start_socat()
-     code, result = run_command("pidof socat")
-     assert code == 0
 
 def test_socat_process_stop():
      socat.stop_socat()
