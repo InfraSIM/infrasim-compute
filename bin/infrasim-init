@@ -49,7 +49,18 @@ def create_infrasim_conf():
     with open(VBMC_CONF, "w") as f:
         f.write(vbmc_conf)
 
+def prepare_libraries():
+    run_command("cp /usr/local/etc/infrasim/lib/* /usr/lib/", True, None, None)
+
+def prepare_seabios():
+    if os.path.exists('/usr/local/share/qemu') is False:
+        os.mkdir("/usr/local/share/qemu")
+
+    run_command("cp -rap /usr/share/seabios/* /usr/local/share/qemu", True, None, None)
+
 if __name__ == "__main__":
     create_infrasim_directories()
     create_infrasim_conf()
+    prepare_libraries()
+    prepare_seabios()
     print "Infrasim init OK"

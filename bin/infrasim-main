@@ -2,22 +2,27 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import cfgparse
+import ConfigParser
 import time
-from infrasim import ipmi, socat, vm, run_command, qemu
+from infrasim import ipmi, socat, run_command, qemu
 
-VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.conf"
+INFRASIM_CONF = "/etc/infrasim/infrasim.conf"
 
 if __name__ == '__main__':
-    config = cfgparse.ConfigParser()
-    config.add_file(VM_DEFAULT_CONFIG, type = 'ini')
-    config.parse()
-    config.add_option('node', keys = 'main')
-    opts = config.parse()
+    conf = ConfigParser.ConfigParser()
+    conf.read(INFRASIM_CONF)
+    node = ""
+    if conf.has_option("main", "node") is True:
+        node = conf.get("main", "node")
+    else:
+        print "Can't get infrasim node name.\n" \
+              "Please check infrasim configure file"
+        sys.exit(-1)
+
     if sys.argv[1] == "start":
         socat.start_socat()
         time.sleep(2)
-        ipmi.start_ipmi(opts.node)
+        ipmi.start_ipmi(node)
     elif sys.argv[1] == "stop":
         qemu.stop_qemu()
         ipmi.stop_ipmi()
@@ -48,6 +53,6 @@ if __name__ == '__main__':
         print "Restart InfraSIM service..."
         socat.start_socat()
         time.sleep(2)
-        ipmi.start_ipmi(opts.node)
+        ipmi.start_ipmi(node)
     else:
         print "{} start|stop|status|restart".format(sys.argv[0])
