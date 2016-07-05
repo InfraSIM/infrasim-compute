@@ -1,3 +1,2 @@
 #!/bin/bash
-
-sudo infrasim-vm start
+python -c 'from infrasim import qemu; qemu.start_qemu()'

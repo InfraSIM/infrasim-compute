@@ -20,8 +20,11 @@ author: payne.wang@emc.com
 import subprocess
 import re
 from infrasim import vm
+from infrasim import qemu
+from infrasim import run_command
 
 v = vm.VM()
+qemu = qemu.Qemu()
 
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
