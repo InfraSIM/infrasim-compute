@@ -1,2 +1,55 @@
-#!/bin/bash
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
+import os, sys, jinja2, random, string
+from infrasim import run_command
+import netifaces
+
+INFRASIM_TEMP_CONF = "/usr/local/etc/infrasim/conf/infrasim.conf"
+INFRASIM_CONF = "/etc/infrasim/infrasim.conf"
+VBMC_TEMP_CONF = "/usr/local/etc/infrasim/conf/vbmc.conf"
+VBMC_CONF = "/etc/infrasim/vbmc.conf"
+
+mac_base = "00:1e:67:"
+def create_mac_address():
+    macs = []
+    for i in range(0, 9):
+        macs.append(''.join(random.SystemRandom().choice("abcdef" + string.digits) for _ in range(2)))
+    return (mac_base + ":".join([macs[0], macs[1], macs[2]]),
+            mac_base + ":".join([macs[3], macs[4], macs[5]]),
+            mac_base + ":".join([macs[6], macs[7], macs[8]]))
+
+def create_infrasim_directories():
+    if os.path.exists(os.environ['HOME'] + '/.infrasim') is False:
+        os.mkdir(os.environ['HOME'] + "/.infrasim")
+
+    if os.path.exists("/etc/infrasim") is False:
+        os.mkdir("/etc/infrasim")
+
+def create_infrasim_conf():
+    nics_list = netifaces.interfaces()
+    eth_nic = filter(lambda x: 'e' in x,nics_list)[0]
+    macs = create_mac_address()
+
+    #render infrasim.conf
+    infrasim_conf = ""
+    with open(INFRASIM_TEMP_CONF, "r") as f:
+        infrasim_conf = f.read()
+    template = jinja2.Template(infrasim_conf)
+    infrasim_conf = template.render(nic=eth_nic, mac1=macs[0], mac2=macs[1], mac3=macs[2])
+    with open(INFRASIM_CONF, "w") as f:
+        f.write(infrasim_conf)
+
+    #render vbmc.conf
+    vbmc_conf = ""
+    with open(VBMC_TEMP_CONF, "r") as f:
+        vbmc_conf = f.read()
+    template = jinja2.Template(vbmc_conf)
+    vbmc_conf = template.render(nic=eth_nic)
+    with open(VBMC_CONF, "w") as f:
+        f.write(vbmc_conf)
+
+if __name__ == "__main__":
+    create_infrasim_directories()
+    create_infrasim_conf()
+    print "Infrasim init OK"
