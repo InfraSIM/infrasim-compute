@@ -13,7 +13,7 @@ def get_ipmi():
 def start_ipmi(node):
     ipmi_cmd = get_ipmi()
     ipmi_start_cmd = "{0} -c /etc/infrasim/vbmc.conf" \
-                    " -f /usr/local/etc/infrasim/{1}/{1}.emu -n &".format(ipmi_cmd, node)
+                    " -f /usr/local/etc/infrasim/{1}/{1}.emu -n -s /var/tmp &".format(ipmi_cmd, node)
     run_command(ipmi_start_cmd, True, None, None)
 
 def stop_ipmi():
