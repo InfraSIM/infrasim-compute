@@ -25,7 +25,6 @@ if __name__ == '__main__':
 
     if sys.argv[1] == "start":
         socat.start_socat()
-        time.sleep(2)
         ipmi.start_ipmi(node)
     elif sys.argv[1] == "stop":
         qemu.stop_qemu()
@@ -53,10 +52,8 @@ if __name__ == '__main__':
         qemu.stop_qemu()
         ipmi.stop_ipmi()
         socat.stop_socat()
-        time.sleep(2)
         print "Restart InfraSIM service..."
         socat.start_socat()
-        time.sleep(2)
         ipmi.start_ipmi(node)
     else:
         print "{} start|stop|status|restart".format(sys.argv[0])
