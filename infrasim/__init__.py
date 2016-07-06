@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import logging
-from flask import Flask
 import subprocess
-
-app = Flask(__name__)
 
 logger = logging.getLogger('infrasim')
 hdlr = logging.FileHandler('/var/tmp/inframsim.log')
