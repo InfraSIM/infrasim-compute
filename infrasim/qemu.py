@@ -91,12 +91,13 @@ class QEMU():
             print "No disk_size"
             sys.exit(-1)
 
+        disk_file_base = os.environ['HOME'] + '/.infrasim/'
         for i in range(0, disk_num):
-            disk_file = "/home/mark/.infrasim/sd{0}.img".format(chr(97+i))
+            disk_file = disk_file_base + "sd{0}.img".format(chr(97+i))
             if os.path.exists(disk_file) is True:
                 self.vm_features["disks"] = self.vm_features["disks"] + self.vm_templates["disk"].format(file=disk_file, idx=i)
             else:
-               command = "qemu-img create -f qcow2 /home/mark/.infrasim/sd{0}.img {1}G".format(chr(97+i), disk_size)
+               command = "qemu-img create -f qcow2 {0}sd{1}.img {2}G".format(disk_file_base, chr(97+i), disk_size)
                os.system(command)
                self.vm_features["disks"] = self.vm_features["disks"] + self.vm_templates["disk"].format(file=disk_file, idx=i)
 
