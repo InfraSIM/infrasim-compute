@@ -56,7 +56,9 @@ def prepare_seabios():
     if os.path.exists('/usr/local/share/qemu') is False:
         os.mkdir("/usr/local/share/qemu")
 
-    run_command("cp -rap /usr/share/seabios/* /usr/local/share/qemu", True, None, None)
+    run_command("cp -rap /usr/share/qemu/* /usr/local/share/qemu")
+    run_command("cp -rap /usr/share/seabios/* /usr/local/share/qemu")
+    run_command("cp /usr/lib/ipxe/qemu/* /usr/local/share/qemu")
 
 if __name__ == "__main__":
     create_infrasim_directories()
