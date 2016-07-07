@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 
-import sshim
+from . import sshim
 from . import run_command, logger
 from .ipmicons.command import Command_Handler
 from .ipmicons.common import msg_queue
 
-import sshim, re, shlex, threading
+import re, shlex, threading
 from datetime import datetime
 
 class IPMI_CONSOLE(threading.Thread):

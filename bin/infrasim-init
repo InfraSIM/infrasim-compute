@@ -50,7 +50,13 @@ def create_infrasim_conf():
         f.write(vbmc_conf)
 
 def prepare_libraries():
-    run_command("cp /usr/local/etc/infrasim/lib/* /usr/lib/", True, None, None)
+    run_command("cp /usr/local/etc/infrasim/lib/* /usr/local/lib/", True, None, None)
+    run_command("cd /usr/local/lib && ln -sf libIPMIlanserv.so.0.0.1 liblibIPMIlanserv.so.0")
+    run_command("cd /usr/local/lib && ln -sf libIPMIlanserv.so.0.0.1 liblibIPMIlanserv.so")
+    run_command("cd /usr/local/lib && ln -sf libOpenIPMIposix.so.0.0.1 libOpenIPMIposix.so.0")
+    run_command("cd /usr/local/lib && ln -sf libOpenIPMIposix.so.0.0.1 libOpenIPMIposix.so")
+    run_command("cd /usr/local/lib && ln -sf libOpenIPMIutils.so.0.0.1 libOpenIPMIutils.so.0")
+    run_command("cd /usr/local/lib && ln -sf libOpenIPMIutils.so.0.0.1 libOpenIPMIutils.so")
 
 def prepare_seabios():
     if os.path.exists('/usr/local/share/qemu') is False:
