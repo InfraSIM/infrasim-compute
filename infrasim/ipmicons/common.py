@@ -14,17 +14,11 @@ import logging
 import socket
 import Queue
 
-execute_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(execute_path+"/modules/sshim")
-sys.path.append(execute_path+"/modules/six")
-sys.path.append(execute_path+"/modules/paramiko")
-sys.path.append(execute_path+"/modules/ecdsa")
-
 lock = threading.Lock()
 
 # logger
 logger = logging.getLogger("ipmi_sim")
-LOG_FILE = 'ipmi_sim.log'
+LOG_FILE = '/var/tmp/ipmi_sim.log'
 
 # telnet to vBMC
 tn = telnetlib.Telnet()
@@ -123,6 +117,6 @@ def send_ipmitool_command(*cmds):
         err_message = "failed to send ipmitool command: {0}".format(dst_cmd)
         logger.error(err_message)
         lock.release()
-        sys.exit(1)
+        return -1
     lock.release()
     return stdout

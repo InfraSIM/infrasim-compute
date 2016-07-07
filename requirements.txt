@@ -14,4 +14,4 @@ pycparser==2.14
 pycrypto==2.6.1
 six==1.10.0
 ssh==1.8.0
-sshim==1.0
+sshim==1.1

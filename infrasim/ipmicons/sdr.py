@@ -4,8 +4,8 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
 
-from sensor import Sensor
-import common
+from .sensor import Sensor
+from .common import logger, msg_queue, send_ipmitool_command
 import os
 import sys
 import struct
@@ -31,16 +31,18 @@ def build_sensors(name, ID, value, tp):
 
 # dump sdrs into file
 def dump_all_sdrs(file_name):
-    common.send_ipmitool_command("sdr", "dump", file_name)
+    send_ipmitool_command("sdr", "dump", file_name)
 
 
 #  read sensor value via ipmitool
 def read_sensor_raw_value(sensor_num):
-    result = common.send_ipmitool_command('raw', '0x04', '0x2d',
+    result = send_ipmitool_command('raw', '0x04', '0x2d',
                                           hex(sensor_num))
+    if result == -1:
+        return 0
     value = result.split()[0]
     info = "sensor num: {0} value: 0x{1}".format(hex(sensor_num), value)
-    common.logger.info(info)
+    logger.info(info)
     return int(value, 16)
 
 
