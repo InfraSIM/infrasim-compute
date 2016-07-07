@@ -18,7 +18,7 @@ class QEMU():
                      "disks":"", "networks":""}
         self.vm_templates = {"qemu":"", "disk":"", "net_bridge":"", "net_nat":""}
         self.start_command = ""
-        self.vm_templates["qemu"] = "/usr/local/bin/qemu-system-x86_64 -name {name} -boot ncd,menu=on -machine pc-q35-2.5 {cpu} {kvm} -m {memory} -realtime mlock=off -smp {vcpu} -rtc base=utc {smbios} -device ahci,id=sata0 {disks} {networks} -vnc :1 {sol} -device ipmi-bmc-extern,chardev=ipmi0,id=bmc0 -device isa-ipmi-kcs,bmc=bmc0 -cdrom /dev/sr0 &"
+        self.vm_templates["qemu"] = "sudo /usr/local/bin/qemu-system-x86_64 -name {name} -boot ncd,menu=on -machine pc-q35-2.5 {cpu} {kvm} -m {memory} -realtime mlock=off -smp {vcpu} -rtc base=utc {smbios} -device ahci,id=sata0 {disks} {networks} -vnc :1 {sol} -chardev socket,id=ipmi0,host=localhost,port=9002,reconnect=10 -device ipmi-bmc-extern,chardev=ipmi0,id=bmc0 -device isa-ipmi-kcs,bmc=bmc0 -cdrom /dev/sr0 &"
         self.vm_templates["disk"] = "-drive file={file},format=qcow2,if=none,id=drive-sata0-0-{idx} -device ide-hd,bus=sata0.0,drive=drive-sata0-0-{idx},id=sata0-0-{idx} "
         self.vm_templates["net_bridge"] = "-net nic,model=e1000,macaddr={mac} -net tap,id=hostnet0,fd={fd} {fd}<>/dev/tap{tap} "
         self.vm_templates["net_nat"] = "-netdev user,id=vnet{id} -device e1000,mac={mac},netdev=vnet{id} "
@@ -55,7 +55,7 @@ class QEMU():
         self.vm_features["vcpu"] = vcpu
 
     def set_sol(self):
-        self.vm_features["sol"] = "-chardev socket,id=ipmi0,host=127.0.0.1,port=9003,reconnect=10"
+        self.vm_features["sol"] = "-serial mon:tcp:127.0.0.1:9003,nowait"
 
     def set_network(self, network="nat"):
         conf = ConfigParser.ConfigParser()
