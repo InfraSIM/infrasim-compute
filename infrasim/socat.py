@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os, time
-from . import run_command
+from . import run_command, logger
 
 def get_socat():
     code, socat_cmd = run_command("which socat")
@@ -21,7 +21,9 @@ def start_socat():
                       "forever,reuseaddr,fork &".format(socat_cmd)
     run_command(socat_start_cmd, True, None, None)
     time.sleep(5)
+    logger.info("socat start")
 
 def stop_socat():
     socat_stop_cmd = "pkill socat"
     run_command(socat_stop_cmd, True, None, None)
+    logger.info("socat stop")

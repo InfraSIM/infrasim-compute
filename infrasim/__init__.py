@@ -3,12 +3,12 @@
 import logging
 import subprocess
 
-logger = logging.getLogger('infrasim')
+logger = logging.getLogger()
 hdlr = logging.FileHandler('/var/tmp/inframsim.log')
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.NOTSET)
 
 def run_command(cmd="", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
     """

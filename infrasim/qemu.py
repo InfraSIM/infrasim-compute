@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, uuid, subprocess, ConfigParser, sys
-from . import run_command
+import os, uuid, subprocess, ConfigParser, sys, socket
+from . import run_command, logger
 
 def get_qemu():
     code, qemu_cmd = run_command("which /usr/loca/bin/qemu-system-x86_64")
@@ -18,7 +18,7 @@ class QEMU():
                      "disks":"", "networks":""}
         self.vm_templates = {"qemu":"", "disk":"", "net_bridge":"", "net_nat":""}
         self.start_command = ""
-        self.vm_templates["qemu"] = "sudo /usr/local/bin/qemu-system-x86_64 -name {name} -boot ncd,menu=on -machine pc-q35-2.5 {cpu} {kvm} -m {memory} -realtime mlock=off -smp {vcpu} -rtc base=utc {smbios} -device ahci,id=sata0 {disks} {networks} -vnc :1 {sol} -chardev socket,id=ipmi0,host=localhost,port=9002,reconnect=10 -device ipmi-bmc-extern,chardev=ipmi0,id=bmc0 -device isa-ipmi-kcs,bmc=bmc0 -cdrom /dev/sr0 &"
+        self.vm_templates["qemu"] = "sudo /usr/local/bin/qemu-system-x86_64 -name {name} -boot ncd,menu=on -machine pc-q35-2.5 {cpu} {kvm} -m {memory} -realtime mlock=off -smp {vcpu} -rtc base=utc {smbios} -device ahci,id=sata0 {disks} {networks} -vnc :1 {sol} -chardev socket,id=ipmi0,host=localhost,port=9002,reconnect=10 -device ipmi-bmc-extern,chardev=ipmi0,id=bmc0 -device isa-ipmi-kcs,bmc=bmc0 -chardev socket,id=mon,host=127.0.0.1,port=2345,server,nowait -mon chardev=mon,id=monitor  -cdrom /dev/sr0 &"
         self.vm_templates["disk"] = "-drive file={file},format=qcow2,if=none,id=drive-sata0-0-{idx} -device ide-hd,bus=sata0.0,drive=drive-sata0-0-{idx},id=sata0-0-{idx} "
         self.vm_templates["net_bridge"] = "-net nic,model=e1000,macaddr={mac} -net tap,id=hostnet0,fd={fd} {fd}<>/dev/tap{tap} "
         self.vm_templates["net_nat"] = "-netdev user,id=vnet{id} -device e1000,mac={mac},netdev=vnet{id} "
@@ -55,7 +55,8 @@ class QEMU():
         self.vm_features["vcpu"] = vcpu
 
     def set_sol(self):
-        self.vm_features["sol"] = "-serial mon:tcp:127.0.0.1:9003,nowait"
+        pass
+        #self.vm_features["sol"] = "-serial mon:tcp:127.0.0.1:9003,nowait"
 
     def set_network(self, network="nat"):
         conf = ConfigParser.ConfigParser()
@@ -128,8 +129,17 @@ class QEMU():
 def start_qemu():
     vm = QEMU()
     vm.read_from_config()
-    run_command(vm.get_qemu_cmd(), True, None, None)
+    cmd = vm.get_qemu_cmd()
+    logger.debug(cmd)
+    run_command(cmd, True, None, None)
+    logger.info("qemu start")
 
 def stop_qemu():
-    qemu_stop_cmd = "pkill qemu"
-    run_command(qemu_stop_cmd, True, None, None)
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect(("127.0.0.1",  2345))
+        sock.send("quit\n")
+        sock.close()
+    except Exception, e:
+        pass
+    logger.info("qemu stopped")
