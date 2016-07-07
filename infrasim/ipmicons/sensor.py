@@ -5,10 +5,10 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
 
-import common
+from .common import msg_queue, send_ipmi_sim_command
 import random
 import threading
-import sel
+from .sel import SEL
 
 sensor_unit = {
     0:  'percent',    34: 'm',                  68: 'megabit',
@@ -65,7 +65,7 @@ class Sensor:
         self.unc = 0
         self.uc = 0
         self.unr = 0
-        self.sel = sel.SEL()
+        self.sel = SEL()
 
     def set_quit(self, flag):
         self.quit = flag
@@ -148,7 +148,7 @@ class Sensor:
         self.value = value
         command = "sensor_set_value " + hex(self.mc) + " " \
               + hex(self.lun) + " " + hex(self.ID) + " " + hex(value) + " 0x01\n"
-        common.send_ipmi_sim_command(command)
+        send_ipmi_sim_command(command)
 
     def set_raw_value(self, raw_value):
         self.value = raw_value
@@ -429,7 +429,7 @@ class Sensor:
             if s_lnc_mask == 0:
                 info = "WARN: Sensor " + str(self.name) + " did not cross " \
                     + str(self.fault_level) + " threshold since it does not exist\n"
-                common.msg_queue.put(info)
+                msg_queue.put(info)
             else:
                 # Cause lnc fault - use lc as lower limit if it exists. Otherwise use 0
                 if s_lcr_mask == 0:
@@ -441,7 +441,7 @@ class Sensor:
             if s_lcr_mask == 0:
                 info = "WARN: Sensor " + str(self.name) + " did not cross " \
                      + str(self.fault_level) + " threshold since it does not exist\n"
-                common.msg_queue.put(info)
+                msg_queue.put(info)
             else:
                 # Cause lcr fault - use lnr as lower limit if it exists. Otherwise use 0
                 if s_lnr_mask == 0:
@@ -453,7 +453,7 @@ class Sensor:
             if s_lnr_mask == 0:
                 info = "WARN: Sensor " + str(self.name) + " did not cross " \
                     + str(self.fault_level) + " threshold since it does not exist\n"
-                common.msg_queue.put(info)
+                msg_queue.put(info)
             else:
                 # Cause lnr fault - use 0 as lower limit
                 s_value = random.randint(0, self.lnr)
@@ -461,7 +461,7 @@ class Sensor:
             if s_unc_mask == 0:
                 info = "WARN: Sensor " + str(self.name) + " did not cross " \
                     + str(self.fault_level) + " threshold since it does not exist\n"
-                common.msg_queue.put(info)
+                msg_queue.put(info)
             else:
                 # Cause unc fault - use ucr as upper limit if it exists. Otherwise use 255
                 if s_ucr_mask == 0:
@@ -473,7 +473,7 @@ class Sensor:
             if s_ucr_mask == 0:
                 info = "WARN: Sensor " + str(self.name) + " did not cross " \
                      + str(self.fault_level) + " threshold since it does not exist\n"
-                common.msg_queue.put(info)
+                msg_queue.put(info)
             else:
                 # Cause ucr fault - user unr as upper limit if it exists. Otherwise use 255
                 if s_unr_mask == 0:
@@ -485,7 +485,7 @@ class Sensor:
             if s_unr_mask == 0:
                 info = "WARN: Sensor " + str(self.name) + " did not cross " \
                         + str(self.fault_level) + " threshold since it does not exist\n"
-                common.msg_queue.put(info)
+                msg_queue.put(info)
             else:
                 # Cause unr fault - use 255 as upper limit
                 s_value = random.randint(self.unr, MAX)
@@ -514,7 +514,7 @@ class Sensor:
 
                     command = "sensor_set_value " + hex(self.mc) + " " \
                         + hex(self.lun) + " " + hex(self.ID) + " " + hex(s_value) + " 0x01\n"
-                    common.send_ipmi_sim_command(command)
+                    send_ipmi_sim_command(command)
 
                     if self.mode == "auto": # auto mode
                         self.condition.wait(5)

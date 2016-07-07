@@ -3,7 +3,7 @@
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
-import common
+from .common import logger, msg_queue, send_ipmi_sim_command
 
 # sensor number --> Event Type( 01, 02-0C, 6F ) --> sensor Type
 #                    Event Type
@@ -472,8 +472,8 @@ class SEL:
             error_info = 'sensor num: {0}\n'.format(hex(self.sensor_num))
             error_info += 'event type {0} not in the sensor events.\
                     perhaps OEM defined'.format(hex(self.event_type))
-            common.logger.error(error_info)
-            common.msg_queue.put(error_info)
+            logger.error(error_info)
+            msg_queue.put(error_info)
             return False
 
     # Standard sensor type range 0x1 - 0x2C.
@@ -484,8 +484,8 @@ class SEL:
             error_info = 'sensor num: {0}\n'.format(hex(self.sensor_num))
             error_info += 'sensor type {0} not exist in the stardard \
                     system\n'.format(hex(self.sensor_type))
-            common.logger.error(error_info)
-            common.msg_queue.put(error_info)
+            logger.error(error_info)
+            msg_queue.put(error_info)
             return False
 
     # return the supported event list
@@ -494,19 +494,19 @@ class SEL:
             events = events_map[self.event_type]
             for event_id, description in events.items():
                 info = '\tID: {0}\t{1}\n'.format(event_id, description)
-                common.logger.info(info)
-                common.msg_queue.put(info)
+                logger.info(info)
+                msg_queue.put(info)
         elif self.event_type == 0x6F:
             events = sensor_specific_event_map[self.sensor_type]
             for event_id, event in events.items():
                 info = '\tID: {0}\t{1}\n'.format(event_id, event[3])
-                common.logger.info(info)
-                common.msg_queue.put(info)
+                logger.info(info)
+                msg_queue.put(info)
         else:
             error_info = 'sensor num: {0} event type {1} not exist\n'.format(
                         hex(self.sensor_num), hex(self.event_type))
-            common.logger.error(error_info)
-            common.msg_queue.put(error_info)
+            logger.error(error_info)
+            msg_queue.put(error_info)
         return True
 
     def set_event_data(self, event_id):
@@ -517,8 +517,8 @@ class SEL:
                 error_info = 'event id {0} not in the sensor event\n'.format(event_id)
                 error_info += 'sensor num: {0} sensor type: {1} event type: {2}\n'.format( \
                             hex(self.sensor_num), hex(self.sensor_type), hex(self.event_type))
-                common.logger.info(error_info)
-                common.msg_queue.put(error_info)
+                logger.info(error_info)
+                msg_queue.put(error_info)
                 return False
             self.event_data_1 = event_id
             self.event_data_2 = 0
@@ -529,8 +529,8 @@ class SEL:
                 error_info = 'event id {0} not in the sensor specific event\n'.format(event_id)
                 error_info += 'sensor num: {0} sensor type: {1} event type: {2}\n'.format( \
                             hex(self.sensor_num), hex(self.sensor_type), hex(self.event_type))
-                common.logger.info(error_info)
-                common.msg_queue.put(error_info)
+                logger.info(error_info)
+                msg_queue.put(error_info)
                 return False
             self.event_data_1 = events[event_id][0]
             self.event_data_2 = events[event_id][1]
@@ -538,8 +538,8 @@ class SEL:
         else:
             error_info = 'event type {0} not exist\n'.format(self.event_type)
             error_info += 'sensor num: {0}\n'.format(self.sensor_num)
-            common.msg_queue.put(error_info)
-            common.logger.error(error_info)
+            msg_queue.put(error_info)
+            logger.error(error_info)
             return False
         return True
 
@@ -550,8 +550,8 @@ class SEL:
               + hex(self.gid_1) + ' ' + hex(self.gid_2) + ' ' + hex(self.evm_rev) + ' ' \
               + hex(self.sensor_type) + ' ' + hex(self.sensor_num) + ' ' + hex((self.event_dir << 7)| self.event_type) + ' ' \
               + hex(self.event_data_1) + ' ' + hex(self.event_data_2) + ' ' + hex(self.event_data_3) + '\n'
-        common.logger.info(command)
-        common.send_ipmi_sim_command(command)
+        logger.info(command)
+        send_ipmi_sim_command(command)
 
 
 # OEM SEL Record - Type C0h-DFh
@@ -580,8 +580,8 @@ class OEM_SEL_C0_DF:
                 + hex(self.mfg_id_1) + ' ' + hex(self.mfg_id_2) + ' ' + hex(self.mfg_id_3) + ' ' \
                 + ' '.join([hex(x) for x in self.oem_defined]) + '\n'
 
-        common.logger.info(command)
-        common.send_ipmi_sim_command(command)
+        logger.info(command)
+        send_ipmi_sim_command(command)
 
 
 # OEM SEL Record - Type E0h-FFh
@@ -602,5 +602,5 @@ class OEM_SEL_E0_FF:
     def send_event(self, sel):
         command = 'sel_add ' + hex(self.mc) + ' ' + hex(self.record_type) + ' ' \
                 + ' '.join([hex(x) for x in self.oem_defined]) + '\n'
-        common.logger.info(command)
-        common.send_ipmi_sim_command(command)
+        logger.info(command)
+        send_ipmi_sim_command(command)
