@@ -1,6 +1,6 @@
 How to install this repo:
 
-1. sudo apt-get install socat ipmitool ipmiutil qemu openipmi python-pip
+1. sudo apt-get install socat ipmitool ipmiutil qemu openipmi python-pip libssl-dev libssh-dev
 2. sudo pip install -r requirements.txt
 3. sudo python setup.py install
 4. sudo infrasim-init
