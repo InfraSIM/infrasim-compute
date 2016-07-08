@@ -4,6 +4,7 @@
 import sys
 import ConfigParser
 import time
+import netifaces
 from infrasim import ipmi, socat, run_command, qemu
 
 INFRASIM_CONF = "/etc/infrasim/infrasim.conf"
@@ -12,8 +13,10 @@ if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
     conf.read(INFRASIM_CONF)
     node = ""
+    eth = ""
     if conf.has_option("main", "node") is True:
         node = conf.get("main", "node")
+        eth = conf.get("node", "network_name")
     else:
         print "Can't get infrasim node name.\n" \
               "Please check infrasim configure file"
@@ -26,10 +29,13 @@ if __name__ == '__main__':
     if sys.argv[1] == "start":
         socat.start_socat()
         ipmi.start_ipmi(node)
+        print "Infrasim service started.\n" \
+              "You can access virtual {} via vnc:{}:5901".format(node, netifaces.ifaddresses(eth)[netifaces.AF_INET][0]['addr'])
     elif sys.argv[1] == "stop":
         qemu.stop_qemu()
         ipmi.stop_ipmi()
         socat.stop_socat()
+        print "Infrasim Service stopped"
     elif sys.argv[1] == "status":
         ipmi_code, _ = run_command("pidof ipmi_sim")
         qemu_code, _ = run_command("pidof qemu-system-x86_64")

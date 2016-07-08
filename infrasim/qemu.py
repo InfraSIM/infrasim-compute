@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, uuid, subprocess, ConfigParser, sys, socket
+import os, uuid, subprocess, ConfigParser, sys, socket, time
+import netifaces
 from . import run_command, logger
 
 def get_qemu():
@@ -10,19 +11,29 @@ def get_qemu():
         raise Exception("Qemu install Error")
     return qemu_cmd.strip(os.linesep)
 
+def create_macvtap(idx, nic, mac):
+    run_command("ip link add link {} name macvtap{} type macvtap mode bridge".format(nic, idx))
+    run_command("ip link set macvtap{} address {} up".format(idx, mac))
+    run_command("ifconfig macvtap{} promisc".format(idx))
+    time.sleep(1)
+
+def stop_macvtap(eth):
+    run_command("ip link set {} down".format(eth))
+    run_command("ip link delete {}".format(eth))
+
 class QEMU():
     VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.conf"
     def __init__(self):
         self.vm_features = {"name": "quanta_d51", "memory": 1024,
                      "vcpu": 2, "cpu": "", "smbios":"", "kvm":"", "sol":"",
                      "disks":"", "networks":""}
-        self.vm_templates = {"qemu":"", "disk":"", "net_bridge":"", "net_nat":""}
+        self.vm_templates = {"qemu":"", "disk":"", "net_macvtap":"", "net_nat":""}
         self.start_command = ""
-        self.vm_templates["qemu"] = "sudo /usr/local/bin/qemu-system-x86_64 -name {name} -boot ncd,menu=on -machine pc-q35-2.5 {cpu} {kvm} -m {memory} -realtime mlock=off -smp {vcpu} -rtc base=utc {smbios} -device ahci,id=sata0 {disks} {networks} -vnc :1 {sol} -chardev socket,id=ipmi0,host=localhost,port=9002,reconnect=10 -device ipmi-bmc-extern,chardev=ipmi0,id=bmc0 -device isa-ipmi-kcs,bmc=bmc0 -chardev socket,id=mon,host=127.0.0.1,port=2345,server,nowait -mon chardev=mon,id=monitor  -cdrom /dev/sr0 &"
+        self.vm_templates["qemu"] = "/usr/local/bin/qemu-system-x86_64 -name {name} -boot ncd,menu=on -machine pc-q35-2.5 {cpu} {kvm} -m {memory} -realtime mlock=off -smp {vcpu} -rtc base=utc {smbios} -device ahci,id=sata0 {disks} {networks} -vnc :1 {sol} -chardev socket,id=ipmi0,host=localhost,port=9002,reconnect=10 -device ipmi-bmc-extern,chardev=ipmi0,id=bmc0 -device isa-ipmi-kcs,bmc=bmc0 -chardev socket,id=mon,host=127.0.0.1,port=2345,server,nowait -mon chardev=mon,id=monitor  -cdrom /dev/sr0 &"
         self.vm_templates["disk"] = "-drive file={file},format=qcow2,if=none,id=drive-sata0-0-{idx} -device ide-hd,bus=sata0.0,drive=drive-sata0-0-{idx},id=sata0-0-{idx} "
-        self.vm_templates["net_bridge"] = "-net nic,model=e1000,macaddr={mac} -net tap,id=hostnet0,fd={fd} {fd}<>/dev/tap{tap} "
-        self.vm_templates["net_nat"] = "-netdev user,id=vnet{id} -device e1000,mac={mac},netdev=vnet{id} "
-
+        self.vm_templates["net_macvtap"] = "-device e1000,mac={mac},netdev=hostnet{idx} -netdev tap,id=hostnet{idx},fd={fd} {fd}<>/dev/tap{tap} "
+        self.vm_templates["net_nat"] = "-net user -net nic"
+        self.set_kvm_enable()
         #self.set_smbios()
 
     def __set_default_config(self):
@@ -58,22 +69,32 @@ class QEMU():
         pass
         #self.vm_features["sol"] = "-serial mon:tcp:127.0.0.1:9003,nowait"
 
-    def set_network(self, network="nat"):
+    def set_network(self):
         conf = ConfigParser.ConfigParser()
         conf.read(self.VM_DEFAULT_CONFIG)
         macs = []
-        if conf.has_option("node", "mac1") is True:
-           macs.append(conf.get("node", "mac1"))
-        if conf.has_option("node", "mac2") is True:
-           macs.append(conf.get("node", "mac2"))
-        if conf.has_option("node", "mac3") is True:
-           macs.append(conf.get("node", "mac3"))
+        mode = ""
+        eth_name = ""
+        if conf.has_option("node", "network_mode") is True:
+           mode = conf.get("node", "network_mode")
+
+        if mode == "nat":
+            self.vm_features["networks"] = self.vm_templates["net_nat"]
+            return
+
+        eth_name = conf.get("node", "network_name")
+        if conf.has_option("node", "network_mac1") is True:
+           macs.append(conf.get("node", "network_mac1"))
+        if conf.has_option("node", "network_mac2") is True:
+           macs.append(conf.get("node", "network_mac2"))
+        if conf.has_option("node", "network_mac3") is True:
+           macs.append(conf.get("node", "network_mac3"))
 
         for i in range(0, len(macs)):
-            if network == "nat":
-                self.vm_features["networks"] = self.vm_features["networks"] + self.vm_templates["net_nat"].format(mac=macs[i],id=i)
-            if network == "bridge":
-                pass
+            create_macvtap(i, eth_name, macs[i])
+            mac = subprocess.check_output("cat /sys/class/net/macvtap{}/address".format(i), shell=True).strip()
+            tap = subprocess.check_output("cat /sys/class/net/macvtap{}/ifindex".format(i), shell=True).strip()
+            self.vm_features["networks"] = self.vm_features["networks"] + self.vm_templates["net_macvtap"].format(mac=mac, tap = tap, idx=i, fd=(i+3))
 
     def set_disks(self):
         conf = ConfigParser.ConfigParser()
@@ -99,7 +120,7 @@ class QEMU():
                 self.vm_features["disks"] = self.vm_features["disks"] + self.vm_templates["disk"].format(file=disk_file, idx=i)
             else:
                command = "qemu-img create -f qcow2 {0}sd{1}.img {2}G".format(disk_file_base, chr(97+i), disk_size)
-               os.system(command)
+               run_command(command)
                self.vm_features["disks"] = self.vm_features["disks"] + self.vm_templates["disk"].format(file=disk_file, idx=i)
 
     def read_from_config(self):
@@ -131,10 +152,19 @@ def start_qemu():
     vm.read_from_config()
     cmd = vm.get_qemu_cmd()
     logger.debug(cmd)
-    run_command(cmd, True, None, None)
-    logger.info("qemu start")
+    code, reason = run_command(cmd, True, None, None)
+    if code == 0:
+        logger.info("qemu start")
+        logger.warning(reason)
+    else:
+        logger.error(reason)
 
 def stop_qemu():
+    nics_list = netifaces.interfaces()
+    macvtaps = filter(lambda x: 'macvtap' in x,nics_list)
+    for vtaps in macvtaps:
+        stop_macvtap(vtaps)
+
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(("127.0.0.1",  2345))
