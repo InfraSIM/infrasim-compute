@@ -57,6 +57,7 @@ def prepare_libraries():
     run_command("cd /usr/local/lib && ln -sf libOpenIPMIposix.so.0.0.1 libOpenIPMIposix.so")
     run_command("cd /usr/local/lib && ln -sf libOpenIPMIutils.so.0.0.1 libOpenIPMIutils.so.0")
     run_command("cd /usr/local/lib && ln -sf libOpenIPMIutils.so.0.0.1 libOpenIPMIutils.so")
+    run_command("ldconfig")
 
 def prepare_seabios():
     if os.path.exists('/usr/local/share/qemu') is False:
