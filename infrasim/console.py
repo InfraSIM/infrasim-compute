@@ -78,11 +78,11 @@ def start_console():
     except KeyboardInterrupt:
         server.stop()
 
-    logger.info("ipmi_console start")
+    logger.info("ipmi-console start")
 
 def stop_console():
-    console_stop_cmd = "pkill ipmi_console"
+    console_stop_cmd = "pkill ipmi-console"
     run_command(console_stop_cmd, True, None, None)
-    logger.info("ipmi_console stop")
+    logger.info("ipmi-console stop")
 
 
