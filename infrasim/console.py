@@ -74,15 +74,17 @@ class IPMI_CONSOLE(threading.Thread):
 def start_console():
     server = sshim.Server(IPMI_CONSOLE, port=9300)
     try:
+        logger.info("ipmi-console start")
         server.run()
     except KeyboardInterrupt:
         server.stop()
 
-    logger.info("ipmi_console start")
-
 def stop_console():
-    console_stop_cmd = "pkill ipmi_console"
-    run_command(console_stop_cmd, True, None, None)
-    logger.info("ipmi_console stop")
+    console_stop_cmd = "pkill ipmi-console"
+    code, reason = run_command(console_stop_cmd, True, None, None)
+    if code == 0:
+        logger.info("ipmi-console stop")
+    else:
+        logger.error(reason)
 
 

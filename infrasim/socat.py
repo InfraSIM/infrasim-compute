@@ -19,11 +19,17 @@ def start_socat():
     socat_cmd = get_socat()
     socat_start_cmd = "{} pty,link=/etc/infrasim/pty0,waitslave tcp-listen:9003," \
                       "forever,reuseaddr,fork &".format(socat_cmd)
-    run_command(socat_start_cmd, True, None, None)
+    code, reason = run_command(socat_start_cmd, True, None, None)
     time.sleep(5)
-    logger.info("socat start")
+    if code == 0:
+        logger.info("socat start")
+    else:
+        logger.error(reason)
 
 def stop_socat():
     socat_stop_cmd = "pkill socat"
-    run_command(socat_stop_cmd, True, None, None)
-    logger.info("socat stop")
+    code, reason = run_command(socat_stop_cmd, True, None, None)
+    if code == 0:
+        logger.info("socat stop")
+    else:
+        logger.error(reason)
