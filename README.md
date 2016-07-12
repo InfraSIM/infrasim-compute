@@ -1,8 +1,9 @@
 Infrasim-compute: bare-metal server simulator
 -----------------------------------------------------
 
-.. image:: https://img.shields.io/pypi/v/nine.svg?maxAge=2592000   :target: https://pypi.python.org/pypi/infrasim-compute.. image:: https://img.shields.io/pypi/dm/Django.svg?maxAge=2592000   :target: https://pypi.python.org/pypi/infrasim-compute
+.. image:: https://img.shields.io/pypi/v/nine.svg?maxAge=2592000   :target: https://pypi.python.org/pypi/infrasim-compute
 
+.. image:: https://img.shields.io/pypi/dm/Django.svg?maxAge=2592000   :target: https://pypi.python.org/pypi/infrasim-compute
 
 System Basic Requirements
 -------------------------
@@ -17,9 +18,12 @@ Installation
 ------------
 
 1. Install dependency:
-    **sudo apt-get install socat ipmitool qemu openipmi python-pip libssl-dev libssh-dev**
+    **sudo apt-get install socat ipmitool qemu openipmi python-pip libssl-dev libssh-dev libpython-dev**
 
-2. Install infrasim
+2. For Ubuntu 14.04/15.04, upgrade pip:
+    ** sudo pip install --upgrade pip**
+
+3. Install infrasim
     **sudo pip install infrasim-compute**
 
 
