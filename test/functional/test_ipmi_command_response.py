@@ -20,6 +20,7 @@ import time
 from infrasim import qemu
 from infrasim import ipmi
 from infrasim import socat
+from infrasim import CommandRunFailed
 
 # ipmitool commands to test
 cmd_prefix = 'ipmitool -H 127.0.0.1 -U admin -P admin '
@@ -50,7 +51,6 @@ class test_ipmicommand_response(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         socat.start_socat()
-        time.sleep(3)
         ipmi.start_ipmi("quanta_d51")
         time.sleep(3)
 
@@ -61,41 +61,68 @@ class test_ipmicommand_response(unittest.TestCase):
         socat.stop_socat()
 
     def test_fru_print(self):
-        returncode, output = run_command(fru_print_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.assertEqual(returncode, 0)
+        try:
+            returncode, output = run_command(fru_print_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.assertEqual(returncode, 0)
+        except:
+            assert False
 
     def test_lan_print(self):
-        returncode, output = run_command(lan_print_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.assertEqual(returncode, 0)
+        try:
+            returncode, output = run_command(lan_print_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.assertEqual(returncode, 0)
+        except:
+            assert False
 
     def test_sensor_list(self):
-        returncode, output = run_command(sensor_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.assertEqual(returncode, 0)
+        try:
+            returncode, output = run_command(sensor_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.assertEqual(returncode, 0)
+        except:
+            assert False
 
     def test_sel_list(self):
-        returncode, output = run_command(sel_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.assertEqual(returncode, 0)
+        try:
+            returncode, output = run_command(sel_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.assertEqual(returncode, 0)
+        except:
+            assert False
 
     def test_sdr_list(self):
-        returncode, output = run_command(sdr_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.assertEqual(returncode, 0)
+        try:
+            returncode, output = run_command(sdr_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.assertEqual(returncode, 0)
+        except:
+            assert False
 
     def test_user_list(self):
-        returncode, output = run_command(user_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.assertEqual(returncode, 0)
+        try:
+            returncode, output = run_command(user_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.assertEqual(returncode, 0)
+        except:
+            assert False
 
     def test_user_compressed_list(self):
-        returncode, output = run_command(user_compressed_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.assertEqual(returncode, 0)
+        try:
+            returncode, output = run_command(user_compressed_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.assertEqual(returncode, 0)
+        except:
+            assert False
 
     def test_user_summary(self):
-        returncode, output = run_command(user_summary_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.assertEqual(returncode, 0)
+        try:
+            returncode, output = run_command(user_summary_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.assertEqual(returncode, 0)
+        except:
+            assert False
 
     def test_sel_info_entries_count_check(self):
-        run_command(sel_clear_cmd)
-        time.sleep(3)
-        returncode, output = run_command(sel_info_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        str_out = str(output)
-        self.assertIsNone(re.search('Entries(\s)*:(\s)*0', str_out))
+        try:
+            run_command(sel_clear_cmd)
+            time.sleep(3)
+            returncode, output = run_command(sel_info_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            str_out = str(output)
+            self.assertIsNone(re.search('Entries(\s)*:(\s)*0', str_out))
+        except:
+            assert False
 

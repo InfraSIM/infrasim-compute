@@ -22,5 +22,29 @@ def run_command(cmd="", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PI
     cmd_result = child.communicate()
     cmd_return_code = child.returncode
     if cmd_return_code != 0:
-        return -1, cmd_result[1]
+        result = ""
+        if cmd_result[1] is not None:
+            result = cmd + ":" + cmd_result[1]
+        else:
+            result = cmd
+        logger.error(result)
+        raise CommandRunFailed(result)
     return 0, cmd_result[0]
+
+class InfraSimError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+class CommandNotFound(InfraSimError):
+    pass
+
+class PackageNotFound(InfraSimError):
+    pass
+
+class CommandRunFailed(InfraSimError):
+    pass
+
+class ArgsNotCorrect(InfraSimError):
+    pass

@@ -3,13 +3,21 @@
 
 import os, uuid, subprocess, ConfigParser, sys, socket, time
 import netifaces
-from . import run_command, logger
+from . import run_command, logger, CommandNotFound, CommandRunFailed
 
 def get_qemu():
-    code, qemu_cmd = run_command("which /usr/loca/bin/qemu-system-x86_64")
-    if code != 0:
-        raise Exception("Qemu install Error")
-    return qemu_cmd.strip(os.linesep)
+    try:
+        code, qemu_cmd = run_command("which /usr/local/bin/qemu-system-x86_64")
+        return qemu_cmd.strip(os.linesep)
+    except CommandRunFailed as e:
+        raise CommandNotFound("/usr/local/bin/qemu-system-x86_64")
+
+def status_qemu():
+    try:
+        run_command("pidof qemu-system-x86_64")
+        print "Infrasim Qemu service is running"
+    except CommandRunFailed as e:
+        print "Inrasim Qemu service is stopped"
 
 def create_macvtap(idx, nic, mac):
     run_command("ip link add link {} name macvtap{} type macvtap mode bridge".format(nic, idx))
@@ -34,14 +42,6 @@ class QEMU():
         self.vm_templates["net_macvtap"] = "-device e1000,mac={mac},netdev=hostnet{idx} -netdev tap,id=hostnet{idx},fd={fd} {fd}<>/dev/tap{tap} "
         self.vm_templates["net_nat"] = "-net user -net nic"
         self.set_kvm_enable()
-        #self.set_smbios()
-
-    def __set_default_config(self):
-        self.set_kvm_enable()
-        self.set_cpu()
-        self.set_smbios()
-        self.set_network()
-        self.set_disks()
 
     def set_kvm_enable(self):
         output = subprocess.check_output("cat /proc/cpuinfo".split(" "))
@@ -152,12 +152,11 @@ def start_qemu():
     vm.read_from_config()
     cmd = vm.get_qemu_cmd()
     logger.debug(cmd)
-    code, reason = run_command(cmd, True, None, None)
-    if code == 0:
+    try:
+        run_command(cmd, True, None, None)
         logger.info("qemu start")
-        logger.warning(reason)
-    else:
-        logger.error(reason)
+    except CommandRunFailed as e:
+        raise e
 
 def stop_qemu():
     nics_list = netifaces.interfaces()
