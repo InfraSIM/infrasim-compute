@@ -5,7 +5,6 @@ Infrasim-compute: bare-metal server simulator
 
 .. image:: https://img.shields.io/pypi/dm/Django.svg?maxAge=2592000   :target: https://pypi.python.org/pypi/infrasim-compute
 
-
 System Basic Requirements
 -------------------------
 Infrasim package can be installed in any physical machine or virtual machines hosted by Virtualbox, ESXi, Parallel Desktop or cloud provider like AWS, Linode and etc.
