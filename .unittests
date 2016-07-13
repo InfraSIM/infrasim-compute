@@ -11,7 +11,7 @@ else
     cover_branches="--cover-branches --cover-html --cover-html-dir=$TOP_DIR/cover"
 fi
 cd $TOP_DIR/test/unit
-nosetests --exe $@
+nosetests --exe $@ -vv --with-coverage
 rvalue=$?
 rm -f .coverage
 cd -
