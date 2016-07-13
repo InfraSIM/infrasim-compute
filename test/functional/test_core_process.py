@@ -16,46 +16,73 @@ from infrasim import ipmi
 from infrasim import socat
 from infrasim import run_command
 import time
+from nose.tools import assert_raises
 
 def test_qemu_exist():
-    code, result = run_command('which /usr/local/bin/qemu-system-x86_64', True, None, None)
-    assert code == 0
+    try:
+        run_command('which /usr/local/bin/qemu-system-x86_64', True, None, None)
+        assert True
+    except:
+        assert False
 
 def test_ipmi_exist():
-    code, result = run_command('which /usr/local/bin/ipmi_sim', True, None, None)
-    assert code == 0
+    try:
+        run_command('which /usr/local/bin/ipmi_sim', True, None, None)
+        assert True
+    except:
+        assert False
 
 def test_socat_exist():
-    code, result = run_command('which /usr/bin/socat', True, None, None)
-    assert code == 0
+    try:
+        run_command('which /usr/bin/socat', True, None, None)
+        assert True
+    except:
+        assert False
 
 def test_socat_process_start():
-     socat.start_socat()
-     time.sleep(3)
-     ipmi.start_ipmi("quanta_d51")
-     time.sleep(3)
-     code, result = run_command("pidof socat")
-     assert code == 0
+     try:
+         socat.start_socat()
+         ipmi.start_ipmi("quanta_d51")
+         time.sleep(3)
+         code, result = run_command("pidof socat")
+         assert code == 0
+     except:
+         assert False
 
 def test_ipmi_process_start():
-    code, result = run_command("pidof ipmi_sim")
-    assert code == 0
+    try:
+        code, result = run_command("pidof ipmi_sim")
+        assert code == 0
+    except:
+        assert False
 
 def test_qemu_process_start():
-    code, result = run_command("pidof qemu-system-x86_64")
-    assert code == 0
+    try:
+        code, result = run_command("pidof qemu-system-x86_64")
+        assert code == 0
+    except:
+        assert False
 
 def test_qemu_prcess_stop():
-    qemu.stop_qemu()
-    code, result = run_command("pidof qemu-system-x86_64")
-    assert code != 0
+    try:
+        qemu.stop_qemu()
+        run_command("pidof qemu-system-x86_64")
+        assert False
+    except:
+        assert True
 
 def test_ipmi_process_stop():
-    ipmi.stop_ipmi()
-    code, result = run_command("pidof ipmi_sim")
-    assert code != 0
+    try:
+        ipmi.stop_ipmi()
+        run_command("pidof ipmi_sim")
+        assert False
+    except:
+        assert True
 
 def test_socat_process_stop():
-     socat.stop_socat()
-     code,result = run_command("pidof socat")
-     assert code != 0
+     try:
+         socat.stop_socat()
+         run_command("pidof socat")
+         assert False
+     except:
+         assert True

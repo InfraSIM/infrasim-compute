@@ -5,7 +5,7 @@ import sys
 import ConfigParser
 import time
 import netifaces
-from infrasim import ipmi, socat, run_command, qemu
+from infrasim import ipmi, socat, run_command, qemu, CommandRunFailed, ArgsNotCorrect
 
 INFRASIM_CONF = "/etc/infrasim/infrasim.conf"
 
@@ -22,44 +22,37 @@ if __name__ == '__main__':
               "Please check infrasim configure file"
         sys.exit(-1)
 
-    if len(sys.argv) < 2:
-        print "{} start|stop|status|restart".format(sys.argv[0])
-        sys.exit(0)
+    try:
+        if len(sys.argv) < 2:
+            print "{} start|stop|status|restart".format(sys.argv[0])
+            sys.exit(0)
 
-    if sys.argv[1] == "start":
-        socat.start_socat()
-        ipmi.start_ipmi(node)
-        print "Infrasim service started.\n" \
+        if sys.argv[1] == "start":
+            socat.start_socat()
+            ipmi.start_ipmi(node)
+            print "Infrasim service started.\n" \
               "You can access virtual {} via vnc:{}:5901".format(node, netifaces.ifaddresses(eth)[netifaces.AF_INET][0]['addr'])
-    elif sys.argv[1] == "stop":
-        qemu.stop_qemu()
-        ipmi.stop_ipmi()
-        socat.stop_socat()
-        print "Infrasim Service stopped"
-    elif sys.argv[1] == "status":
-        ipmi_code, _ = run_command("pidof ipmi_sim")
-        qemu_code, _ = run_command("pidof qemu-system-x86_64")
-        socat_code, _ = run_command("pidof socat")
-        if ipmi_code == 0:
-            print "InfraSim IPMI service is running"
+        elif sys.argv[1] == "stop":
+            qemu.stop_qemu()
+            ipmi.stop_ipmi()
+            socat.stop_socat()
+            print "Infrasim Service stopped"
+        elif sys.argv[1] == "status":
+            qemu.status_qemu()
+            ipmi.status_ipmi()
+            socat.status_socat()
+        elif sys.argv[1] == "restart":
+            qemu.stop_qemu()
+            ipmi.stop_ipmi()
+            socat.stop_socat()
+            print "Restart InfraSIM service..."
+            socat.start_socat()
+            ipmi.start_ipmi(node)
         else:
-            print "Infrasim IPMI service is stopped"
-
-        if qemu_code == 0:
-            print "Infrasim Qemu service is running"
-        else:
-            print "Inrasim Qemu service is stopped"
-
-        if socat_code == 0:
-            print "Infrasim Socat service is running"
-        else:
-            print "Inrasim Socat service is stopped"
-    elif sys.argv[1] == "restart":
-        qemu.stop_qemu()
-        ipmi.stop_ipmi()
-        socat.stop_socat()
-        print "Restart InfraSIM service..."
-        socat.start_socat()
-        ipmi.start_ipmi(node)
-    else:
-        print "{} start|stop|status|restart".format(sys.argv[0])
+            print "{} start|stop|status|restart".format(sys.argv[0])
+    except CommandRunFailed as e:
+        print "{} run failed\n".format(e.value)
+        print "Infrasim-main starts failed"
+    except ArgsNotCorrect as e:
+        print "{} args is incorrect".format(e.value)
+        print "infrasim-main starts failed"

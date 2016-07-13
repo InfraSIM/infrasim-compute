@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os, sys, jinja2, random, string
-from infrasim import run_command
+from infrasim import run_command, CommandNotFound
+from infrasim.socat import get_socat
+from infrasim.ipmi import get_ipmi
+from infrasim.qemu import get_qemu
 import netifaces
 
 INFRASIM_TEMP_CONF = "/usr/local/etc/infrasim/conf/infrasim.conf"
@@ -22,9 +25,21 @@ def create_mac_address():
 def create_infrasim_directories():
     if os.path.exists(os.environ['HOME'] + '/.infrasim') is False:
         os.mkdir(os.environ['HOME'] + "/.infrasim")
+    else:
+        os.system("rm -rf " + os.environ['HOME'] + "/.infrasim")
+        os.mkdir(os.environ['HOME'] + "/.infrasim")
 
     if os.path.exists("/etc/infrasim") is False:
         os.mkdir("/etc/infrasim")
+    else:
+        os.system("rm -rf /etc/infrasim")
+        os.mkdir("/etc/infrasim")
+
+    if os.path.exists('/usr/local/share/qemu') is False:
+        os.mkdir("/usr/local/share/qemu")
+    else:
+        os.system("rm -rf /usr/local/share/qemu")
+        os.mkdir("/usr/local/share/qemu")
 
 def create_infrasim_conf():
     nics_list = netifaces.interfaces()
@@ -68,8 +83,15 @@ def prepare_seabios():
     run_command("cp -rap /usr/lib/ipxe/qemu/* /usr/local/share/qemu")
 
 if __name__ == "__main__":
-    create_infrasim_directories()
-    create_infrasim_conf()
-    prepare_libraries()
-    prepare_seabios()
-    print "Infrasim init OK"
+    try:
+        get_socat()
+        get_ipmi()
+        get_qemu()
+        create_infrasim_directories()
+        create_infrasim_conf()
+        prepare_libraries()
+        prepare_seabios()
+        print "Infrasim init OK"
+    except CommandNotFound as e:
+        print "command:{} not found\n" \
+              "Infrasim init failed".format(e.value)
