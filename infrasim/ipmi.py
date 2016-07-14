@@ -16,7 +16,7 @@ def status_ipmi():
         run_command("pidof ipmi_sim")
         print "InfraSim IPMI service is running"
     except CommandRunFailed as e:
-       print "Infrasim IPMI service is stopped"
+        print "Infrasim IPMI service is stopped"
  
 def start_ipmi(node):
     ipmi_cmd = get_ipmi()
@@ -34,4 +34,4 @@ def stop_ipmi():
         run_command(ipmi_stop_cmd, True, None, None)
         logger.info("ipmi stopped")
     except CommandRunFailed as e:
-        logger.warning("ipmi stop failed")
+        logger.error("ipmi stop failed")

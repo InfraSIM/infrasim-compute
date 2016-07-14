@@ -35,4 +35,4 @@ def stop_socat():
         run_command(socat_stop_cmd, True, None, None)
         logger.info("socat stop")
     except CommandRunFailed as e:
-        logger.warning("socat stop failed")
+        logger.error("socat stop failed")
