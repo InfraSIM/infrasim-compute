@@ -14,5 +14,5 @@ fi
 nosetests --exe $@ -v --with-cov --cov-report term-missing $TOP_DIR/test/unit
 rvalue=$?
 rm -f .coverage
-cd -
+cd ../../
 exit $rvalue
