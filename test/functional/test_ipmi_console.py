@@ -38,15 +38,14 @@ def read_buffer(channel):
 
 def setup_func():
     socat.start_socat()
-    time.sleep(3)
     ipmi.start_ipmi('quanta_d51')
-    time.sleep(3)
     run_command('ipmi-console start &', True, None, None)
-    time.sleep(10)
+    time.sleep(3)
     
 
 def teardown_func():
     run_command('ipmi-console stop', True, None, None)
+    qemu.stop_qemu()
     ipmi.stop_ipmi()
     socat.stop_socat()
 
