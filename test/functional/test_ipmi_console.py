@@ -40,7 +40,7 @@ def setup_func():
     socat.start_socat()
     ipmi.start_ipmi('quanta_d51')
     run_command('ipmi-console start &', True, None, None)
-    time.sleep(3)
+    time.sleep(5)
     
 
 def teardown_func():
