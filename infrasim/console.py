@@ -42,8 +42,9 @@ class IPMI_CONSOLE(threading.Thread):
         while True:
             self.response = ""
             self.prompt()
-            groups = self.script.expect(re.compile('(?P<input>.*)')).groupdict()
+            groups = {}
             try:
+                groups = self.script.expect(re.compile('(?P<input>.*)')).groupdict()
                 cmdline = groups['input'].encode('ascii', 'ignore')
             except:
                 continue
