@@ -40,18 +40,17 @@ class QEMU():
     def __init__(self):
         self.vm_features = {"name": "quanta_d51", "memory": 1024,
                      "vcpu": 2, "cpu": "", "smbios":"", "kvm":"", "sol":"",
-                     "disks":"", "networks":""}
+                     "disks":"", "networks":"", "cdrom":""}
         self.vm_templates = {"qemu":"", "disk":"", "net_macvtap":"", "net_nat":""}
         self.start_command = ""
-        self.vm_templates["qemu"] = "/usr/local/bin/qemu-system-x86_64 -name {name} -boot ncd,menu=on -machine pc-q35-2.5 {cpu} {kvm} -m {memory} -realtime mlock=off -smp {vcpu} -rtc base=utc {smbios} -device ahci,id=sata0 {disks} {networks} -vnc :1 {sol} -chardev socket,id=ipmi0,host=localhost,port=9002,reconnect=10 -device ipmi-bmc-extern,chardev=ipmi0,id=bmc0 -device isa-ipmi-kcs,bmc=bmc0 -chardev socket,id=mon,host=127.0.0.1,port=2345,server,nowait -mon chardev=mon,id=monitor  -cdrom /dev/sr0 2>/var/tmp/qemu.log"
+        self.vm_templates["qemu"] = "/usr/local/bin/qemu-system-x86_64 -name {name} -boot ncd,menu=on -machine pc-q35-2.5 {cpu} {kvm} -m {memory} -realtime mlock=off -smp {vcpu} -rtc base=utc {smbios} -device ahci,id=sata0 {disks} {networks} -vnc :1 {sol} -chardev socket,id=ipmi0,host=localhost,port=9002,reconnect=10 -device ipmi-bmc-extern,chardev=ipmi0,id=bmc0 -device isa-ipmi-kcs,bmc=bmc0 -chardev socket,id=mon,host=127.0.0.1,port=2345,server,nowait -mon chardev=mon,id=monitor {cdrom} 2>/var/tmp/qemu.log"
         self.vm_templates["disk"] = "-drive file={file},format=qcow2,if=none,id=drive-sata0-0-{idx} -device ide-hd,bus=sata0.0,drive=drive-sata0-0-{idx},id=sata0-0-{idx} "
         self.vm_templates["net_macvtap"] = "-device e1000,mac={mac},netdev=hostnet{idx} -netdev tap,id=hostnet{idx},fd={fd} {fd}<>/dev/tap{tap} "
         self.vm_templates["net_nat"] = "-net user -net nic"
         self.set_kvm_enable()
 
     def set_kvm_enable(self):
-        output = subprocess.check_output("cat /proc/cpuinfo".split(" "))
-        if output.find("vmx") > 0:
+        if os.path.exists("/dev/kvm") is True:
             self.vm_features["kvm"] = "--enable-kvm"
         else:
             self.vm_features["kvm"] = ""
@@ -168,6 +167,9 @@ class QEMU():
                except CommandRunFailed as e:
                    raise e
 
+    def set_cdrom(self):
+        if os.path.exists("/dev/sr0") is True:
+            self.vm_features["cdrom"] = "-cdrom /dev/sr0"
     def read_from_config(self, config_file):
         try:
             self.set_node(config_file)
@@ -177,6 +179,7 @@ class QEMU():
             self.set_disks(config_file)
             self.set_network(config_file)
             self.set_sol()
+            self.set_cdrom()
         except CommandRunFailed as e:
             raise e
         except ArgsNotCorrect as e:
@@ -186,7 +189,7 @@ class QEMU():
         cmd = self.vm_templates["qemu"].format(name = self.vm_features["name"], cpu = self.vm_features["cpu"],
                          vcpu = self.vm_features["vcpu"], memory = self.vm_features["memory"],
                          smbios = self.vm_features["smbios"], kvm = self.vm_features["kvm"], sol = self.vm_features["sol"],
-                         networks = self.vm_features["networks"], disks = self.vm_features["disks"])
+                         networks = self.vm_features["networks"], disks = self.vm_features["disks"], cdrom=self.vm_features["cdrom"])
         return cmd
 
 def start_qemu():

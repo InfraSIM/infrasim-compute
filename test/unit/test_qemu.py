@@ -168,6 +168,24 @@ class qemu_functions(unittest.TestCase):
         except ArgsNotCorrect as e:
             assert True
 
+    def test_set_cdrom(self):
+        vm = qemu.QEMU()
+        vm.set_cdrom()
+        cmd = vm.get_qemu_cmd()
+        if os.path.exists("/dev/sr0") is True:
+            assert "-cdrom" in cmd
+        else:
+            assert "-cdrom" not in cmd
+
+    def test_set_kvm_enable(self):
+        vm = qemu.QEMU()
+        vm.set_kvm_enable()
+        cmd = vm.get_qemu_cmd()
+        if os.path.exists("/dev/kvm") is True:
+            assert "--enable-kvm" in cmd
+        else:
+            assert "--enable-kvm" not in cmd
+
     def test_get_qemu_cmd(self):
         vm = qemu.QEMU()
         vm.get_qemu_cmd()
