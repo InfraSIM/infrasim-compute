@@ -167,9 +167,15 @@ class QEMU():
                except CommandRunFailed as e:
                    raise e
 
-    def set_cdrom(self):
+    def set_cdrom(self, config_file):
         if os.path.exists("/dev/sr0") is True:
             self.vm_features["cdrom"] = "-cdrom /dev/sr0"
+
+        conf = ConfigParser.ConfigParser()
+        conf.read(config_file)
+        if conf.has_option("node", "cdrom") is True:
+            self.vm_features["cdrom"] = "-cdrom " + conf.get("node", "cdrom")
+
     def read_from_config(self, config_file):
         try:
             self.set_node(config_file)
@@ -179,7 +185,7 @@ class QEMU():
             self.set_disks(config_file)
             self.set_network(config_file)
             self.set_sol()
-            self.set_cdrom()
+            self.set_cdrom(config_file)
         except CommandRunFailed as e:
             raise e
         except ArgsNotCorrect as e:
