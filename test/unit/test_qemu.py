@@ -173,7 +173,7 @@ class qemu_functions(unittest.TestCase):
         vm.set_cdrom("test.config")
         cmd = vm.get_qemu_cmd()
         if os.path.exists("/dev/sr0") is True:
-            assert "-cdrom" in cmd
+            assert "-cdrom" not in cmd
         else:
             assert "-cdrom" not in cmd
 
