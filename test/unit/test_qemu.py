@@ -38,7 +38,7 @@ class qemu_functions(unittest.TestCase):
             os.system('echo "[node]" > test.config')
             os.system('echo "cpu=Haswell" >> test.config')
             vm.set_cpu("test.config")
-            assert True
+            assert False
         except:
             assert False
 
