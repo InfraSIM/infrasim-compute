@@ -70,14 +70,12 @@ class test_ipmi_console(unittest.TestCase):
         self.channel.send('sensor info\n')
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
-        print str_output
-        assert str_output.find('degrees C') != -1
+        assert 'degrees C' in str_output
     
         self.channel.send('sensor value get ' + self.sensor_id + '\n')
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
-        print str_output
-        assert str_output.find('Fan_SYS0') != -1
+        assert 'Fan_SYS0' in str_output
     
         self.channel.send('sensor value set ' + self.sensor_id + ' ' + self.sensor_value + '\n')
         time.sleep(0.1)
@@ -85,22 +83,21 @@ class test_ipmi_console(unittest.TestCase):
         self.channel.send('sensor value get ' + self.sensor_id + '\n')
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
-        print str_output
-        assert str_output.find('Fan_SYS0 : 1000.000 RPM') != -1
+        assert 'Fan_SYS0 : 1000.000 RPM' in str_output
     
     
     def test_help_accessibility(self):
         self.channel.send('help\n')
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
-        assert str_output.find('Available') != -1
+        assert 'Available' in str_output
     
     
     def test_sel_accessibility(self):
         self.channel.send('sel get ' + self.sensor_id + '\n')        
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
-        assert str_output.find('ID') != -1
+        assert 'ID' in str_output
     
         self.channel.send('sel set ' + self.sensor_id + ' ' + self.event_id + ' assert\n')
         time.sleep(0.1)
@@ -109,13 +106,14 @@ class test_ipmi_console(unittest.TestCase):
     
         ipmi_sel_cmd = 'ipmitool -H 127.0.0.1 -U admin -P admin sel list'
         returncode, output = run_command(ipmi_sel_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        lines = str(output).splitlines()
-        assert_line = lines[-2]
-        deassert_line = lines[-1]
-        print assert_line
-        print deassert_line
-        assert assert_line.find('Fan #0xc0 | Upper Non-critical going low  | Asserted') != -1
-        assert deassert_line.find('Fan #0xc0 | Upper Non-critical going low  | Deasserted') != -1
+        try:
+            lines = str(output).splitlines()
+            assert_line = lines[-2]
+            deassert_line = lines[-1]
+        except IndexError:
+            assert False
+        assert 'Fan #0xc0 | Upper Non-critical going low  | Asserted' in assert_line
+        assert 'Fan #0xc0 | Upper Non-critical going low  | Deasserted' in deassert_line
     
     
     def test_history_accessibilty(self):
@@ -128,10 +126,9 @@ class test_ipmi_console(unittest.TestCase):
     
         str_output = read_buffer(self.channel)
         lines = str_output.splitlines()
-        print str_output
     
-        assert lines[-4].find('help') != -1
-        assert lines[-3].find('help sensor') != -1
+        assert 'help' in lines[-4]
+        assert 'help sensor' in lines[-3]
 
 
 
