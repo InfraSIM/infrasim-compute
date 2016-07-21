@@ -7,6 +7,7 @@ from .common import logger, msg_queue
 from .sdr import sensor_id_map
 from .sel import SEL
 
+import common
 import re
 
 
@@ -135,6 +136,12 @@ class Command_Handler:
 
     # ######### SET SENSOR VALUE FUNCTION ##########
     def set_sensor_value(self, args):
+        """
+        Set sensor value to sensor object, and then write back to
+        openipmi data structure.
+        :param args:
+            - <sensor id>, <sensor value>: set value to the id
+        """
         if len(args) != 2:
             msg_queue.put(self.handle_sensor_value.__doc__+'\n')
             return
@@ -180,6 +187,11 @@ class Command_Handler:
 
     # ######### GET SENSOR VALUE FUNCTION ##########
     def get_sensor_value(self, args):
+        """
+        Get sensor value from sensor object, NOT from openipmi data
+        structure.
+        :param args: <sensor id>
+        """
         if len(args) != 1:
             msg_queue.put(self.handle_sensor_value.__doc__+'\n')
             return
@@ -189,14 +201,17 @@ class Command_Handler:
             return
 
         raw_value = sensor_obj.get_value()
-        value = hex(raw_value)
         if sensor_obj.get_event_type() == 'threshold':
             formula = sensor_obj.get_reading_factor()[0]
             value = '%.3f' % formula(raw_value)
-        info = "{0} : {1} {2}\n".format(sensor_obj.get_name(),
-                                        value, sensor_obj.get_unit())
-        self.add_msg(info)
-        msg_queue.put(info)
+            info = "{0} : {1} {2}\n".format(sensor_obj.get_name(),
+                                            value, sensor_obj.get_unit())
+            self.add_msg(info)
+            msg_queue.put(info)
+        elif sensor_obj.get_event_type() == 'discrete':
+            info = "{} : {}".format(sensor_obj.get_name(), raw_value)
+            self.add_msg(info)
+            msg_queue.put(info)
 
     # ######### SENSOR VALUE FUNCTIONS ##########
     def handle_sensor_value(self, args):
