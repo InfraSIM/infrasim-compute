@@ -43,7 +43,7 @@ class QEMU():
                      "disks":"", "networks":"", "cdrom":""}
         self.vm_templates = {"qemu":"", "disk":"", "net_macvtap":"", "net_nat":""}
         self.start_command = ""
-        self.vm_templates["qemu"] = "/usr/local/bin/qemu-system-x86_64 -name {name} -boot ncd,menu=on -machine pc-q35-2.5 {cpu} {kvm} -m {memory} -realtime mlock=off -smp {vcpu} -rtc base=utc {smbios} -device ahci,id=sata0 {disks} {networks} -vnc :1 {sol} -chardev socket,id=ipmi0,host=localhost,port=9002,reconnect=10 -device ipmi-bmc-extern,chardev=ipmi0,id=bmc0 -device isa-ipmi-kcs,bmc=bmc0 -chardev socket,id=mon,host=127.0.0.1,port=2345,server,nowait -mon chardev=mon,id=monitor {cdrom} 2>/var/tmp/qemu.log"
+        self.vm_templates["qemu"] = "/usr/local/bin/qemu-system-x86_64 -name {name} -boot ncd,menu=on -machine pc-q35-2.5 {cpu} {kvm} -m {memory} -realtime mlock=off -smp {vcpu} -rtc base=utc {smbios} -device sga -device ahci,id=sata0 {disks} {networks} -vnc :1 {sol} -chardev socket,id=ipmi0,host=localhost,port=9002,reconnect=10 -device ipmi-bmc-extern,chardev=ipmi0,id=bmc0 -device isa-ipmi-kcs,bmc=bmc0 -chardev socket,id=mon,host=127.0.0.1,port=2345,server,nowait -mon chardev=mon,id=monitor {cdrom} 2>/var/tmp/qemu.log &"
         self.vm_templates["disk"] = "-drive file={file},format=qcow2,if=none,id=drive-sata0-0-{idx} -device ide-hd,bus=sata0.0,drive=drive-sata0-0-{idx},id=sata0-0-{idx} "
         self.vm_templates["net_macvtap"] = "-device e1000,mac={mac},netdev=hostnet{idx} -netdev tap,id=hostnet{idx},fd={fd} {fd}<>/dev/tap{tap} "
         self.vm_templates["net_nat"] = "-net user -net nic"
@@ -95,8 +95,7 @@ class QEMU():
             raise ArgsNotCorrect("parameter: vcpu is not found")
 
     def set_sol(self):
-        pass
-        #self.vm_features["sol"] = "-serial mon:tcp:127.0.0.1:9003,nowait"
+        self.vm_features["sol"] = "-serial mon:tcp:127.0.0.1:9003,nowait"
 
     def set_network(self, config_file):
         conf = ConfigParser.ConfigParser()

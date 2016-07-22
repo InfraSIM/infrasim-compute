@@ -18,7 +18,7 @@ Installation
 ------------
 
 1. Install dependency:
-    **sudo apt-get install socat ipmitool qemu openipmi python-pip libssl-dev libssh-dev libpython-dev**
+    **sudo apt-get install socat ipmitool qemu openipmi python-pip libssl-dev libssh-dev libpython-dev libffi-dev seabios**
 
 2. For Ubuntu 14.04/15.04, upgrade pip:
     ** sudo pip install --upgrade pip**
