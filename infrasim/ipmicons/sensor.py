@@ -327,9 +327,10 @@ class Sensor:
         # Sensor ID
         info += "| {0:<10}".format(hex(self.ID))
         # sensor value
-        value = hex(self.value)
         if self.get_event_type() == 'threshold':
             value = "%.3f" % self.get_reading_factor()[0](self.value)
+        else:
+            value = "0x0"
         info += "| {0:<10}".format(value)
 
         # Sensor Unit
