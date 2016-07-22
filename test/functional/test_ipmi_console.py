@@ -60,7 +60,7 @@ class test_ipmi_console(unittest.TestCase):
     def tearDownClass(cls):
         cls.channel.close()
         cls.ssh.close()
-        run_command('ipmi-console stop', True, None, None)
+        run_command('ipmi-console stop', True, subprocess.PIPE, subprocess.PIPE)
         qemu.stop_qemu()
         ipmi.stop_ipmi()
         socat.stop_socat()
