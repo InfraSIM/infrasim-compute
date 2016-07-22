@@ -35,16 +35,30 @@ def dump_all_sdrs(file_name):
 
 
 #  read sensor value via ipmitool
-def read_sensor_raw_value(sensor_num):
+def read_sensor_raw_value(sensor_num, event_type="analog"):
+    """
+    Get sensor readying:
+    - for analog sensor, return int
+    - for discrete sensor, return 2 byte's hex, e.g. 0x1ac0
+    :param sensor_num: sensor number
+    :param event_type: "discrete" or "analog"
+    :return:
+    """
+
     result = send_ipmitool_command('raw', '0x04', '0x2d',
                                           hex(sensor_num))
     if result == -1:
         return 0
-    value = result.split()[0]
-    info = "sensor num: {0} value: 0x{1}".format(hex(sensor_num), value)
-    logger.info(info)
-    return int(value, 16)
-
+    if event_type == "analog":
+        value = result.split()[0]
+        info = "sensor num: {0} value: 0x{1}".format(hex(sensor_num), value)
+        logger.info(info)
+        return int(value, 16)
+    elif event_type == "discrete":
+        value = '0x'+result.split()[2]+result.split()[3]
+        info = "sensor num: {0} value: {1}".format(hex(sensor_num), value)
+        logger.info(info)
+        return value
 
 def parse_sdrs():
     dump_all_sdrs(SDR_NAME)
@@ -81,7 +95,6 @@ def parse_sdrs():
         # get sensor num
         fd.seek(offset+7)
         sensor_num = ord(fd.read(1))
-        sensor_value = read_sensor_raw_value(sensor_num)
 
         # get sensor capability
         fd.seek(offset+11)
@@ -94,6 +107,13 @@ def parse_sdrs():
         # get event type
         fd.seek(offset+13)
         event_type = ord(fd.read(1))
+
+        if event_type == 0x0:
+            sensor_value = None
+        elif event_type == 0x1:
+            sensor_value = read_sensor_raw_value(sensor_num)
+        else:
+            sensor_value = read_sensor_raw_value(sensor_num, "discrete")
 
         # get lower threshold mask(lower byte)
         fd.seek(offset+14)
@@ -245,9 +265,14 @@ def parse_sdrs():
 
         # set sensor units 1 byte
         sensor_obj.set_su1(sensor_su1)
-        if sensor_su1 >> 6 != 0:
-            raw_value = struct.unpack('b', chr(sensor_value))[0]
-            sensor_obj.set_raw_value(raw_value)
+
+        # Forrest comment this raw value out since we have
+        # no clue how this sensor unit bit [7:6] impacts sensor
+        # reading.
+
+        # if sensor_su1 >> 6 != 0:
+        #     raw_value = struct.unpack('b', chr(sensor_value))[0]
+        #     sensor_obj.set_raw_value(raw_value)
 
         # set sensor units 2 byte
         sensor_obj.set_su2(sensor_su2)
