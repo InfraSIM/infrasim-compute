@@ -47,6 +47,7 @@ class QEMU():
         self.vm_templates["disk"] = "-drive file={file},format=qcow2,if=none,id=drive-sata0-0-{idx} -device ide-hd,bus=sata0.0,drive=drive-sata0-0-{idx},id=sata0-0-{idx} "
         self.vm_templates["net_macvtap"] = "-device e1000,mac={mac},netdev=hostnet{idx} -netdev tap,id=hostnet{idx},fd={fd} {fd}<>/dev/tap{tap} "
         self.vm_templates["net_nat"] = "-net user -net nic"
+        self.vm_templates["net_bridge"] = "-netdev bridge,br={br},id=network{idx},helper=/usr/local/libexec/qemu-bridge-helper -device e1000,netdev=network{idx},mac={mac}"
         self.set_kvm_enable()
 
     def set_kvm_enable(self):
@@ -111,7 +112,7 @@ class QEMU():
         if mode == "nat":
             self.vm_features["networks"] = self.vm_templates["net_nat"]
             return
-        elif mode == "macvtap":
+        elif mode == "macvtap" or mode == "bridge":
             if conf.has_option("node", "network_name") is True:
                 eth_name = conf.get("node", "network_name")
             else:
@@ -129,10 +130,16 @@ class QEMU():
 
             try:
                 for i in range(0, len(macs)):
-                    create_macvtap(i, eth_name, macs[i])
-                    mac = subprocess.check_output("cat /sys/class/net/macvtap{}/address".format(i), shell=True).strip()
-                    tap = subprocess.check_output("cat /sys/class/net/macvtap{}/ifindex".format(i), shell=True).strip()
-                    self.vm_features["networks"] = self.vm_features["networks"] + self.vm_templates["net_macvtap"].format(mac=mac, tap = tap, idx=i, fd=(i+3))
+                    if mode == "macvtap":
+                        create_macvtap(i, eth_name, macs[i])
+                        mac = subprocess.check_output("cat /sys/class/net/macvtap{}/address".format(i), shell=True).strip()
+                        tap = subprocess.check_output("cat /sys/class/net/macvtap{}/ifindex".format(i), shell=True).strip()
+                        self.vm_features["networks"] = self.vm_features["networks"] + self.vm_templates["net_macvtap"].format(mac=mac, tap = tap, idx=i, fd=(i+3))
+                    elif mode == "bridge":
+                        nics_list = netifaces.interfaces()
+                        if eth_name not in nics_list:
+                            raise ArgsNotCorrect("Network: {} not exists.\nPlease check infrasim.conf file".format(eth_name))
+                        self.vm_features["networks"] = self.vm_features["networks"] + self.vm_templates["net_bridge"].format(mac=macs[i], idx=i, br=eth_name)
             except CommandRunFailed as e:
                 raise CommandRunFailed("Create macvtap failed, please check your ethname setting")
         else:
