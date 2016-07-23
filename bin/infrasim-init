@@ -35,11 +35,23 @@ def create_infrasim_directories():
         os.system("rm -rf /etc/infrasim")
         os.mkdir("/etc/infrasim")
 
+    if os.path.exists("/etc/qemu") is False:
+        os.mkdir("/etc/qemu")
+    else:
+        os.system("rm -rf /etc/qemu")
+        os.mkdir("/etc/qemu")
+
     if os.path.exists('/usr/local/share/qemu') is False:
         os.mkdir("/usr/local/share/qemu")
     else:
         os.system("rm -rf /usr/local/share/qemu")
         os.mkdir("/usr/local/share/qemu")
+
+    if os.path.exists('/usr/local/libexec') is False:
+        os.mkdir("/usr/local/libexec")
+    else:
+        os.system("rm -rf /usr/local/libexec")
+        os.mkdir("/usr/local/libexec")
 
 def create_infrasim_conf():
     nics_list = netifaces.interfaces()
@@ -78,10 +90,12 @@ def prepare_seabios():
     if os.path.exists('/usr/local/share/qemu') is False:
         os.mkdir("/usr/local/share/qemu")
 
+    run_command('echo "allow br0" > /etc/qemu/bridge.conf')
     run_command("cp -rap /usr/share/qemu/keymaps /usr/local/share/qemu/")
     run_command("cp -rap /usr/share/seabios/* /usr/local/share/qemu")
     run_command("cp -rap /usr/lib/ipxe/qemu/* /usr/local/share/qemu")
     run_command("cp /usr/share/misc/sgabios.bin /usr/local/share/qemu/")
+    run_command("cp /usr/lib/qemu/qemu-bridge-helper /usr/local/libexec/qemu-bridge-helper")
 
 if __name__ == "__main__":
     try:

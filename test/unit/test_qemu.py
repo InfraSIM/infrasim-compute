@@ -161,6 +161,26 @@ class qemu_functions(unittest.TestCase):
         except:
             assert False
 
+    def test_set_networks_network_mode_brdige_network_name(self):
+        try:
+            vm = qemu.QEMU()
+            os.system('echo "[node]" > test.config')
+            os.system('echo "network_mode=bridge" >> test.config')
+            vm.set_network("test.config")
+        except ArgsNotCorrect as e:
+            assert "network_name is not found" in e.value
+
+    def test_set_networks_network_mode_bridge_not_exist(self):
+        try:
+            vm = qemu.QEMU()
+            os.system('echo "[node]" > test.config')
+            os.system('echo "network_mode=bridge" >> test.config')
+            os.system('echo "network_name=test" >> test.config')
+            os.system('echo "network_mac1=00:1e:67:5b:d6:02" >> test.config')
+            vm.set_network("test.config")
+        except ArgsNotCorrect as e:
+            assert "not exists" in e.value
+
     def test_read_from_config_with_exception(self):
         try:
             vm = qemu.QEMU()
