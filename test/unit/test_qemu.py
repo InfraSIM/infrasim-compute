@@ -38,7 +38,7 @@ class qemu_functions(unittest.TestCase):
             os.system('echo "[node]" > test.config')
             os.system('echo "cpu=Haswell" >> test.config')
             vm.set_cpu("test.config")
-            assert False
+            assert True
         except:
             assert False
 
@@ -173,7 +173,7 @@ class qemu_functions(unittest.TestCase):
         vm.set_cdrom("test.config")
         cmd = vm.get_qemu_cmd()
         if os.path.exists("/dev/sr0") is True:
-            assert "-cdrom" not in cmd
+            assert "-cdrom" in cmd
         else:
             assert "-cdrom" not in cmd
 
