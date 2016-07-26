@@ -9,6 +9,7 @@ from .common import msg_queue, send_ipmi_sim_command
 import random
 import threading
 from .sel import SEL
+from functools import wraps
 
 sensor_unit = {
     0:  'percent',    34: 'm',                  68: 'megabit',
@@ -48,12 +49,38 @@ sensor_unit = {
 }
 
 
+class with_type(object):
+    """
+    This is a decorator for class Sensor function's constraints.
+    Only with certain types, the funtions run, or TypeError shall
+    be raised.
+    """
+
+    def __init__(self, *type):
+        self.expect_type_list = type
+
+    def __call__(self, fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            obj_self = args[0]
+            if obj_self.get_event_type() in self.expect_type_list:
+                return fn(*args, **kwargs)
+            else:
+                raise TypeError('Sensor is "{}", while function "{}" '
+                                'requires "{}"'.
+                                format(obj_self.get_event_type(),
+                                       fn.__name__,
+                                       self.expect_type))
+        return wrapper
+
+
 class Sensor:
     def __init__(self, name, ID, value, tp):
         self.name = name
         self.ID = ID
         self.tp = tp
         self.lock = threading.Lock()
+        self.lock_sensor_write = threading.Lock()
         self.condition = threading.Condition()
         self.time_cond = threading.Condition()
         self.mode = "user"
@@ -144,11 +171,82 @@ class Sensor:
         self.sel.set_event_dir(event_dir)
         self.sel.send_event()
 
-    def set_value(self, value):
+    @with_type('threshold')
+    def set_threshold_value(self, value):
         self.value = value
         command = "sensor_set_value " + hex(self.mc) + " " \
               + hex(self.lun) + " " + hex(self.ID) + " " + hex(value) + " 0x01\n"
         send_ipmi_sim_command(command)
+
+    @with_type('discrete')
+    def set_discrete_value(self, value):
+        """
+        Set discrete sensor value
+        :param value: in format of 2 byte little endian, e.g. 0xca10
+        """
+        if len(value) != 6 or not value.startswith('0x'):
+            raise ValueError('Discrete sensor value should be in format '
+                             'of 2 bytes in little endian, e.g. 0x1ac0')
+
+        # Sensor reading in big endian binary
+        # e.g.
+        # Original reading is 0xca10 in little endian
+        # This value in bin is
+        # 0001 0000 1100 1010
+        #  1    0    c    a
+        # bit 0 > 15
+        # bit 0 is reserved, bit 1 is state 14 ... bit 15 is state 0
+        value_in_bin = "{0:b}".format(int(self.value[4:6]+self.value[2:4], 16)).zfill(16)
+        value_to_set = "{0:b}".format(int(value[4:6]+value[2:4], 16)).zfill(16)
+        list_diff = []
+
+        for i in range(0, 15):
+            state_id = i
+            bit_orig = value_in_bin[15-state_id]
+            bit_targ = value_to_set[15-state_id]
+            if bit_orig != bit_targ:
+                list_diff.append((state_id, int(bit_targ)))
+
+        self.lock_sensor_write.acquire()
+        self.value = value
+        for diff in list_diff:
+            command = "sensor_set_bit " + hex(self.mc) + " " + hex(self.lun) \
+                      + " " + hex(self.ID) + " " + str(diff[0]) + " " \
+                      + str(diff[1]) + " 0x01\n"
+            send_ipmi_sim_command(command)
+        self.lock_sensor_write.release()
+
+    @with_type('discrete')
+    def set_state(self, state_id, state_bit):
+        """
+        Set disrete sensor's state in id to a certain bit
+        :param state_id: 0-14, according to IPMI spec 2.0
+        :param state_bit: 1 or 0
+        """
+        if state_id not in range(0, 15):
+            raise ValueError('State id must be in 0-14 according to '
+                             'IPMI 2.0 specification')
+        if state_bit not in range(0, 2):
+            raise ValueError('Bit to set must be 0 or 1')
+
+        value_in_int = int(self.value[4:6]+self.value[2:4], 16)
+
+        if state_bit:
+            mask = 1 << state_id
+            value_in_int = value_in_int | mask
+        else:
+            mask = ~(1 << state_id)
+            value_in_int = value_in_int & mask
+
+        value_in_hex = hex(value_in_int)[2:].zfill(4)
+
+        self.lock_sensor_write.acquire()
+        self.value = "0x"+value_in_hex[2:4]+value_in_hex[0:2]
+        command = "sensor_set_bit " + hex(self.mc) + " " + hex(self.lun) \
+                  + " " + hex(self.ID) + " " + str(state_id) + " " \
+                  + str(state_bit) + " 0x01\n"
+        send_ipmi_sim_command(command)
+        self.lock_sensor_write.release()
 
     def set_raw_value(self, raw_value):
         self.value = raw_value
@@ -329,8 +427,8 @@ class Sensor:
         # sensor value
         if self.get_event_type() == 'threshold':
             value = "%.3f" % self.get_reading_factor()[0](self.value)
-        else:
-            value = "0x0"
+        elif self.get_event_type() == 'discrete':
+            value = self.value
         info += "| {0:<10}".format(value)
 
         # Sensor Unit

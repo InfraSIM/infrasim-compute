@@ -31,10 +31,30 @@ def read_buffer(channel):
     while True:
         str_read = str(channel.recv(4096))
         str_output += str_read
-        if str_read.find('IPMI_SIM>\n'):
+        if str_output.find('IPMI_SIM>\n'):
             break
         time.sleep(0.1)
     return str_output
+
+
+def reset_console(channel, timeout=10):
+    # Clear all output first
+    while channel.recv_ready():
+        channel.recv(4096)
+        time.sleep(0.1)
+
+    # Send ENTER and wait for a new prompt
+    start = time.time()
+    str_output = ''
+    channel.send('\n')
+    while True:
+        str_output += str(channel.recv(4096))
+        if str_output.find('IPMI_SIM>\n'):
+            return
+        time.sleep(0.1)
+        if time.time() - start > timeout:
+            raise RuntimeError('ipmi-console reset expires {}s'.
+                               format(timeout))
 
 
 class test_ipmi_console(unittest.TestCase):
@@ -65,7 +85,6 @@ class test_ipmi_console(unittest.TestCase):
         ipmi.stop_ipmi()
         socat.stop_socat()
 
-
     def test_sensor_accessibility(self):
         self.channel.send('sensor info\n')
         time.sleep(0.1)
@@ -84,15 +103,13 @@ class test_ipmi_console(unittest.TestCase):
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
         assert 'Fan_SYS0 : 1000.000 RPM' in str_output
-    
-    
+
     def test_help_accessibility(self):
         self.channel.send('help\n')
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
         assert 'Available' in str_output
-    
-    
+
     def test_sel_accessibility(self):
         self.channel.send('sel get ' + self.sensor_id + '\n')        
         time.sleep(0.1)
@@ -114,8 +131,7 @@ class test_ipmi_console(unittest.TestCase):
             assert False
         assert 'Fan #0xc0 | Upper Non-critical going low  | Asserted' in assert_line
         assert 'Fan #0xc0 | Upper Non-critical going low  | Deasserted' in deassert_line
-    
-    
+
     def test_history_accessibilty(self):
         self.channel.send('help\n')        
         time.sleep(0.1)
@@ -130,6 +146,91 @@ class test_ipmi_console(unittest.TestCase):
         assert 'help' in lines[-4]
         assert 'help sensor' in lines[-3]
 
+    def test_sensor_value_get_discrete(self):
+        reset_console(self.channel)
 
+        self.channel.send("sensor value get 0xe0\n")
+        time.sleep(0.1)
+        str_output = read_buffer(self.channel)
+        self.assertTrue("PSU1 Status : 0x0100" in str_output)
+        time.sleep(1)
 
+    def test_sensor_value_set_discrete(self):
+        self.channel.send("sensor value set 0xe0 0xca01\n")
+        time.sleep(3)
+        read_buffer(self.channel)
 
+        self.channel.send("sensor value get 0xe0\n")
+        time.sleep(0.1)
+        str_output = read_buffer(self.channel)
+        self.assertTrue("PSU1 Status : 0xca01" in str_output)
+
+        self.channel.send("sensor value set 0xe0 0x0100\n")
+        time.sleep(3)
+        read_buffer(self.channel)
+
+    def test_sensor_value_set_discrete_invalid_length(self):
+        reset_console(self.channel)
+
+        self.channel.send("sensor value set 0xe0 0xca100\n")
+        time.sleep(0.1)
+        str_output = read_buffer(self.channel)
+
+        self.assertTrue("Available 'sensor value' commands:" in str_output)
+
+        self.channel.send("sensor value get 0xe0\n")
+        time.sleep(0.1)
+        str_output = read_buffer(self.channel)
+        self.assertTrue("PSU1 Status : 0x0100" in str_output)
+
+    def test_sensor_value_set_discrete_invalid_value(self):
+        reset_console(self.channel)
+
+        self.channel.send("sensor value set 0xe0 abc\n")
+        time.sleep(0.1)
+        str_output = read_buffer(self.channel)
+        self.assertTrue("Available 'sensor value' commands:" in str_output)
+
+        self.channel.send("sensor value get 0xe0\n")
+        time.sleep(0.1)
+        str_output = read_buffer(self.channel)
+        self.assertTrue("PSU1 Status : 0x0100" in str_output)
+
+    def test_sensor_value_set_discrete_state(self):
+        reset_console(self.channel)
+
+        self.channel.send("sensor value set 0xe0 state 12 1\n")
+        time.sleep(0.1)
+        read_buffer(self.channel)
+        self.channel.send("sensor value get 0xe0\n")
+        time.sleep(0.1)
+        str_output = read_buffer(self.channel)
+        self.assertTrue("PSU1 Status : 0x0110" in str_output)
+
+        self.channel.send("sensor value set 0xe0 0x0100\n")
+        time.sleep(0.1)
+        read_buffer(self.channel)
+
+    def test_sensor_value_set_discrete_state_invalid_bit(self):
+        reset_console(self.channel)
+
+        self.channel.send("sensor value set 0xe0 state 15 1\n")
+        time.sleep(0.1)
+        read_buffer(self.channel)
+        self.channel.send("sensor value get 0xe0\n")
+        time.sleep(0.1)
+        str_output = read_buffer(self.channel)
+
+        self.assertTrue("PSU1 Status : 0x0100" in str_output)
+
+    def test_sensor_value_set_discrete_state_invalid_value(self):
+        reset_console(self.channel)
+
+        self.channel.send("sensor value set 0xe0 state 12 2\n")
+        time.sleep(0.1)
+        read_buffer(self.channel)
+        self.channel.send("sensor value get 0xe0\n")
+        time.sleep(0.1)
+        str_output = read_buffer(self.channel)
+
+        self.assertTrue("PSU1 Status : 0x0100" in str_output)

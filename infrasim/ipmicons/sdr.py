@@ -35,7 +35,7 @@ def dump_all_sdrs(file_name):
 
 
 #  read sensor value via ipmitool
-def read_sensor_raw_value(sensor_num, event_type="analog"):
+def read_sensor_raw_value(sensor_num, event_type="threshold"):
     """
     Get sensor readying:
     - for analog sensor, return int
@@ -49,7 +49,7 @@ def read_sensor_raw_value(sensor_num, event_type="analog"):
                                           hex(sensor_num))
     if result == -1:
         return 0
-    if event_type == "analog":
+    if event_type == "threshold":
         value = result.split()[0]
         info = "sensor num: {0} value: 0x{1}".format(hex(sensor_num), value)
         logger.info(info)
@@ -111,7 +111,7 @@ def parse_sdrs():
         if event_type == 0x0:
             sensor_value = None
         elif event_type == 0x1:
-            sensor_value = read_sensor_raw_value(sensor_num)
+            sensor_value = read_sensor_raw_value(sensor_num, 'threshold')
         else:
             sensor_value = read_sensor_raw_value(sensor_num, "discrete")
 
