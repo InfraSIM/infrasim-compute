@@ -4,14 +4,13 @@
 
 import unittest
 import subprocess
-import netifaces
 import os
 from infrasim import qemu
 
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
     child = subprocess.Popen(cmd, shell=shell,
-            stdout=stdout, stderr=stderr)
+                             stdout=stdout, stderr=stderr)
     cmd_result = child.communicate()
     cmd_return_code = child.returncode
     if cmd_return_code != 0:
@@ -20,7 +19,6 @@ def run_command(cmd="", shell=True, stdout=None, stderr=None):
 
 
 class test_configuration_change(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         pass
@@ -36,12 +34,11 @@ class test_configuration_change(unittest.TestCase):
         os.system('echo "vcpu=8" >> test.config')
         vm.set_vcpu('test.config')
         cmd = vm.get_qemu_cmd()
-        return_code, result = run_command(cmd, True,
-                subprocess.PIPE, subprocess.PIPE)
+        run_command(cmd, True, None, None)
 
         test_cmd = 'ps ax | grep qemu'
         str_result = str(run_command(test_cmd, True,
-            subprocess.PIPE, subprocess.PIPE))
+                                     subprocess.PIPE, subprocess.PIPE))
         assert 'qemu-system-x86_64' in str_result
 
     def test_set_cpu_family(self):
@@ -51,10 +48,10 @@ class test_configuration_change(unittest.TestCase):
         vm.set_cpu('test.config')
         cmd = vm.get_qemu_cmd()
         run_command(cmd, True, None, None)
- 
+
         test_cmd = 'ps ax | grep qemu'
         str_result = str(run_command(test_cmd, True,
-            subprocess.PIPE, subprocess.PIPE))
+                                     subprocess.PIPE, subprocess.PIPE))
         assert 'qemu-system-x86_64' in str_result
 
     def test_set_bmc_vendor(self):
@@ -64,10 +61,10 @@ class test_configuration_change(unittest.TestCase):
         vm.set_node('test.config')
         cmd = vm.get_qemu_cmd()
         run_command(cmd, True, None, None)
- 
+
         test_cmd = 'ps ax | grep qemu'
         str_result = str(run_command(test_cmd, True,
-            subprocess.PIPE, subprocess.PIPE))
+                                     subprocess.PIPE, subprocess.PIPE))
         assert '-name dell_c6320' in str_result
 
     def test_set_memory_capacity(self):
@@ -77,10 +74,10 @@ class test_configuration_change(unittest.TestCase):
         vm.set_memory('test.config')
         cmd = vm.get_qemu_cmd()
         run_command(cmd, True, None, None)
- 
+
         test_cmd = 'ps ax | grep qemu'
         str_result = str(run_command(test_cmd, True,
-            subprocess.PIPE, subprocess.PIPE))
+                                     subprocess.PIPE, subprocess.PIPE))
         assert 'qemu-system-x86_64' in str_result
 
     def test_set_disk_drive(self):
@@ -91,9 +88,8 @@ class test_configuration_change(unittest.TestCase):
         vm.set_disks('test.config')
         cmd = vm.get_qemu_cmd()
         run_command(cmd, True, None, None)
- 
+
         test_cmd = 'ps ax | grep qemu'
         str_result = str(run_command(test_cmd, True,
-            subprocess.PIPE, subprocess.PIPE))
+                                     subprocess.PIPE, subprocess.PIPE))
         assert 'qemu-system-x86_64' in str_result
- 
