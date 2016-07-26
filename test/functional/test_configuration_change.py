@@ -5,6 +5,7 @@
 import unittest
 import subprocess
 import netifaces
+import os
 from infrasim import qemu
 
 
