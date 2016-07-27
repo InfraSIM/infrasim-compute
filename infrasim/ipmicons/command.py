@@ -22,7 +22,7 @@ class Command_Handler:
     def add_msg(self, msg):
         logger.info(msg)
 
-    def get_sensor_instance(self, str_num):
+    def get_sensor_instance(self, str_num, mc=int("0x20", 16)):
         """
         return sensor instance if the sensor exist
         otherwise return None
@@ -33,12 +33,12 @@ class Command_Handler:
             logger.error('illegal sensor id %s' % str_num)
             return None
 
-        if sensor_id not in sensor_id_map:
+        if (sensor_id, mc) not in sensor_id_map:
             error_info = "sensor: {0} not exist\n".format(str_num)
             msg_queue.put(error_info)
             return None
 
-        return sensor_id_map[sensor_id]
+        return sensor_id_map[(sensor_id, mc)]
 
     # args contain the sensor id list
     def output_sensors(self, args):

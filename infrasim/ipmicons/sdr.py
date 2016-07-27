@@ -19,13 +19,13 @@ sensor_id_map = {}
 SDR_NAME = "sdr.bin"
 
 
-def build_sensors(name, ID, value, tp):
+def build_sensors(name, ID, mc, value, tp):
     sensor = Sensor(name, ID, value, tp)
     sensor_list.append(sensor)
     sensor_name_list.append(name)
     sensor_id_list.append(ID)
     sensor_name_map[name] = sensor
-    sensor_id_map[ID] = sensor
+    sensor_id_map[(ID, mc)] = sensor
     return sensor
 
 
@@ -160,6 +160,7 @@ def parse_sdrs():
             # build sensor
             sensor_obj = build_sensors(sensor_name,
                                        sensor_num,
+                                       mc,
                                        sensor_value,
                                        sensor_type)
 
@@ -236,6 +237,7 @@ def parse_sdrs():
             # build sensor
             sensor_obj = build_sensors(sensor_name,
                                        sensor_num,
+                                       mc,
                                        sensor_value,
                                        sensor_type)
 

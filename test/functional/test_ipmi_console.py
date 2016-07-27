@@ -29,11 +29,11 @@ def read_buffer(channel):
     str_output = ''
     str_read = ''
     while True:
-        str_read = str(channel.recv(4096))
+        str_read = str(channel.recv(40960))
         str_output += str_read
         if str_output.find('IPMI_SIM>\n'):
             break
-        time.sleep(0.1)
+        time.sleep(1)
     return str_output
 
 
@@ -87,20 +87,20 @@ class test_ipmi_console(unittest.TestCase):
 
     def test_sensor_accessibility(self):
         self.channel.send('sensor info\n')
-        time.sleep(0.1)
+        time.sleep(1)
         str_output = read_buffer(self.channel)
         assert 'degrees C' in str_output
-    
+
         self.channel.send('sensor value get ' + self.sensor_id + '\n')
-        time.sleep(0.1)
+        time.sleep(1)
         str_output = read_buffer(self.channel)
         assert 'Fan_SYS0' in str_output
     
         self.channel.send('sensor value set ' + self.sensor_id + ' ' + self.sensor_value + '\n')
-        time.sleep(0.1)
+        time.sleep(1)
     
         self.channel.send('sensor value get ' + self.sensor_id + '\n')
-        time.sleep(0.1)
+        time.sleep(1)
         str_output = read_buffer(self.channel)
         assert 'Fan_SYS0 : 1000.000 RPM' in str_output
 
