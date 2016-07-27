@@ -22,7 +22,7 @@ class Command_Handler:
     def add_msg(self, msg):
         logger.info(msg)
 
-    def get_sensor_instance(self, str_num, mc=int("0x20",16)):
+    def get_sensor_instance(self, str_num, mc=int("0x20", 16)):
         """
         return sensor instance if the sensor exist
         otherwise return None
