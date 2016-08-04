@@ -117,7 +117,6 @@ class QEMU():
                 eth_name = conf.get("node", "network_name")
             else:
                 raise ArgsNotCorrect("parameter: network_name is not found")
-
             if conf.has_option("node", "network_mac1") is True:
                macs.append(conf.get("node", "network_mac1"))
             if conf.has_option("node", "network_mac2") is True:
@@ -129,16 +128,16 @@ class QEMU():
                raise ArgsNotCorrect("No network mac address found")
 
             try:
+                nics_list = netifaces.interfaces()
+                if eth_name not in nics_list:
+                    raise ArgsNotCorrect("Network: {} not exists.\nPlease check infrasim.conf file".format(eth_name))
+
                 for i in range(0, len(macs)):
                     if mode == "macvtap":
-                        create_macvtap(i, eth_name, macs[i])
-                        mac = subprocess.check_output("cat /sys/class/net/macvtap{}/address".format(i), shell=True).strip()
-                        tap = subprocess.check_output("cat /sys/class/net/macvtap{}/ifindex".format(i), shell=True).strip()
+                        mac = subprocess.check_output("cat /sys/class/net/{}/address".format(eth_name), shell=True).strip()
+                        tap = subprocess.check_output("cat /sys/class/net/{}/ifindex".format(eth_name), shell=True).strip()
                         self.vm_features["networks"] = self.vm_features["networks"] + self.vm_templates["net_macvtap"].format(mac=mac, tap = tap, idx=i, fd=(i+3))
                     elif mode == "bridge":
-                        nics_list = netifaces.interfaces()
-                        if eth_name not in nics_list:
-                            raise ArgsNotCorrect("Network: {} not exists.\nPlease check infrasim.conf file".format(eth_name))
                         self.vm_features["networks"] = self.vm_features["networks"] + self.vm_templates["net_bridge"].format(mac=macs[i], idx=i, br=eth_name)
             except CommandRunFailed as e:
                 raise CommandRunFailed("Create macvtap failed, please check your ethname setting")
@@ -220,11 +219,6 @@ def start_qemu():
         raise e
 
 def stop_qemu():
-    nics_list = netifaces.interfaces()
-    macvtaps = filter(lambda x: 'macvtap' in x,nics_list)
-    for vtaps in macvtaps:
-        stop_macvtap(vtaps)
-
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(("127.0.0.1",  2345))
