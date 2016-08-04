@@ -1,0 +1,2 @@
+#!/bin/bash
+python -c 'from infrasim import qemu; qemu.stop_qemu()'
