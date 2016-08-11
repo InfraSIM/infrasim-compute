@@ -18,7 +18,7 @@ Installation
 ------------
 
 1. Install dependency:
-    **sudo apt-get install socat ipmitool qemu openipmi python-pip libssl-dev libssh-dev libpython-dev libffi-dev sgabios**
+    **sudo apt-get install socat ipmitool qemu openipmi python-pip libssl-dev libssh-dev libpython-dev libffi-dev sgabios libyaml-dev**
 
 2. For Ubuntu 14.04/15.04, upgrade pip:
     ** sudo pip install --upgrade pip**
@@ -44,4 +44,4 @@ Start Infrasim Service
 Configure Infrasim
 -------------------
 
-You can configure your own legacy hardware through **/etc/infrasim/infrasim.conf**.
+You can configure your own legacy hardware through **/etc/infrasim/infrasim.yml**.
