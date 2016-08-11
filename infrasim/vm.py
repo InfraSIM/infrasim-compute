@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import jinja2, uuid, cfgparse, subprocess, os
-import libvirt, logging
+import jinja2
+import uuid
+import yaml
+import subprocess
+import os
+import libvirt
+import logging
 import random
+from . import ArgsNotCorrect, has_option
 
-VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.conf"
+VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.yml"
 VM_DEFAULT_XML = "/usr/local/etc/infrasim/vnode.xml"
 MAX_QEMU_MAC_NUM=8
 
@@ -101,115 +107,109 @@ class VM:
         nets = []
         change_flag = False
 
-        conf = cfgparse.ConfigParser()
-        f = conf.add_file(VM_DEFAULT_CONFIG, type = 'ini')
-        conf.parse()
+        with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+            conf = yaml.load(f_yml)
+
+        # conf = cfgparse.ConfigParser()
+        # f = conf.add_file(VM_DEFAULT_CONFIG, type = 'ini')
+        # conf.parse()
 
         # add existing options into config parser
-        if self.has_option(conf, "node", "qemu_mac_num") is True:
-            conf.add_option("qemu_mac_num", keys="node")
+
+        # if has_option(conf, "node", "qemu_mac_num") is True:
+        #     conf.add_option("qemu_mac_num", keys="node")
 
         mac_list = []
         for i in range(0, MAX_QEMU_MAC_NUM):
-            if self.has_option(conf, "node", "qemu_mac"+str(i)) is True:
-                mac_list.append(conf.add_option("qemu_mac"+str(i), keys="node"))
+            if has_option(conf, "node", "qemu_mac"+str(i)):
+                mac_list.append(conf["node"]["qemu_mac"+str(i)])
 
-        # parse valid options
-        opts = conf.parse()
+        # # parse valid options
+        # opts = conf.parse()
 
-        #set mac number
-        if self.has_option(conf, "node", "qemu_mac_num") is True:
-            mac_num = opts.qemu_mac_num
+        # set mac number
+        if has_option(conf, "node", "qemu_mac_num"):
+            mac_num = conf["node"]["qemu_mac_num"]
         else:
             mac_num = 1
 
-        #set netmode in vnode.xml
+        # set netmode in vnode.xml
         if mode == "nat":
             self.node["netmode"] = "nat"
         else:
             self.node["netmode"] = "bridge"
 
-        #set mac address
+        # set mac address
         for i in range(0,int(mac_num)):
-            #init mac, read mac from config or generate random mac
+            # init mac, read mac from config or generate random mac
             mac = "null"
-            if self.has_option(conf, "node", "qemu_mac"+str(i)) is True:
-                mac = mac_list[i].get()
+            if has_option(conf, "node", "qemu_mac"+str(i)):
+                mac = mac_list[i]
                 if mac == "null":
                     mac = self.mac_generator()
-                    f.set_option("qemu_mac"+str(i), mac, "node")
+                    conf["node"]["qemu_mac"+str(i)] = mac
                     change_flag = True
             else:
                 mac = self.mac_generator()
-                f.set_option("qemu_mac"+str(i), mac, "node")
+                conf["node"]["qemu_mac"+str(i)] = mac
                 change_flag = True
 
-            #append mac in nets for "nat" and "bridge" mode
+            # append mac in nets for "nat" and "bridge" mode
             if mode == "nat":
-                nets.append({"mac":mac})
+                nets.append({"mac": mac})
             else:
                 tap = "macvtap"+str(i)
-                nets.append({"mac":mac, "dev":name, "tap":tap})
+                nets.append({"mac": mac, "dev": name, "tap": tap})
 
         for i in range(int(mac_num), MAX_QEMU_MAC_NUM):
-            #set mac to null
+            # set mac to null
             mac = "null"
-            if self.has_option(conf,"node", "qemu_mac"+str(i)) is True:
-                mac = mac_list[i].get()
+            if has_option(conf, "node", "qemu_mac"+str(i)) is True:
+                mac = mac_list[i]
                 if mac != "null":
                     mac = "null"
-                    f.set_option("qemu_mac"+str(i), mac, "node")
+                    conf["node"]["qemu_mac"+str(i)] = mac
                     change_flag = True
 
-        if (change_flag == True):
-            f.write(VM_DEFAULT_CONFIG)
+        if change_flag:
+            with open(VM_DEFAULT_CONFIG, "w") as f_yml:
+                f_yml.write(yaml.dump(conf, default_flow_style=False))
 
         self.node["nets"] = nets
 
-    def has_option(self, config,section,option):
-        if None != config.parser.option_dicts.get(option):
-            if section in config.parser.option_dicts.get(option):
-                return True
-        return False
-
     def read_from_config(self):
-        conf = cfgparse.ConfigParser()
-        conf.add_file(VM_DEFAULT_CONFIG, type = 'ini')
-        conf.parse()
+        with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+            conf = yaml.load(f_yml)
 
         # initiation with values from configure options
-        if self.has_option(conf, "main", "node") is True:
-            node = conf.add_option("node", keys="main")
-            self.node["name"] = node.get()
-        if self.has_option(conf, "node", "mem_size") is True:
-            mem_size = conf.add_option("mem_size", keys="node")
-            self.node["mem_size"] = int(mem_size.get())
-        if self.has_option(conf, "node", "vcpu_num") is True:
-            vcpu_num = conf.add_option("vcpu_num", keys="node")
-            self.node["vcpu_num"] = int(vcpu_num.get())
-        if self.has_option(conf, "node", "vcpu_type") is True:
-            vcpu_type = conf.add_option("vcpu_type", keys="node")
-            self.node["vcpu_type"] = vcpu_type.get()
-        if self.has_option(conf, "node", "pxeboot") is True:
-            pxeboot = conf.add_option("pxeboot", keys="node")
-            if pxeboot.get() == "yes":
+        if has_option(conf, "main", "node"):
+            self.node["name"] = conf["main"]["node"]
+        if has_option(conf, "node", "mem_size"):
+            self.node["mem_size"] = conf["node"]["mem_size"]
+        if has_option(conf, "node", "vcpu_num"):
+            self.node["vcpu_num"] = int(conf["node"]["vcpu_num"])
+        if has_option(conf, "node", "vcpu_type"):
+            self.node["vcpu_type"] = conf["node"]["vcpu_type"]
+        if has_option(conf, "node", "pxeboot"):
+            pxeboot = conf["node"]["pxeboot"]
+            if pxeboot.lower() == "yes":
                 self.set_pxe()
-        if self.has_option(conf, "node", "disk_num") is True:
-            disk_num = conf.add_option("disk_num", keys="node")
-            if self.has_option(conf, "node", "disk_size") is True:
-                disk_size = conf.add_option("disk_size", keys="node")
-                self.set_sata_disks_with_size(int(disk_num.get()),  int(disk_size.get()))
+        if has_option(conf, "node", "disk_num"):
+            disk_num = int(conf["node"]["disk_num"])
+            if has_option(conf, "node", "disk_size"):
+                disk_size = (conf["node"]["disk_size"])
+                self.set_sata_disks_with_size(disk_num, disk_size)
             else:
-                self.set_sata_disks_with_size(int(disk_num.get()), 4)
-        elif self.has_option(conf, "node", "disk_size") is True:
-            disk_size = conf.add_option("disk_size", keys="node")
-            self.set_sata_disks_with_size(1, int(disk_size.get()))
-        if self.has_option(conf, "node", "network_mode") is True:
-            nm = conf.add_option("network_mode", keys="node")
+                self.set_sata_disks_with_size(disk_num, 4)
+        elif has_option(conf, "node", "disk_size"):
+            disk_size = conf["node"]["disk_size"]
+            self.set_sata_disks_with_size(1, disk_size)
+        if has_option(conf, "node", "network_mode"):
+            nm = conf["node"]["network_mode"]
             bridge = ""
-            if nm.get() == "bridge":
-                bridge = conf.add_option("network_name", keys="node")
-            self.set_network(nm, bridge.get())
+            if nm == "bridge":
+                bridge = conf["node"]["network_name"]
+            self.set_network(nm, bridge)
         
         self.set_bios_data(self.node["name"])
 

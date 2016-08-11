@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, uuid, subprocess, ConfigParser, sys, socket, time
+import os
+import subprocess
+import yaml
+import socket
+import time
 import netifaces
-from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect
+from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect, has_option
 
 def get_qemu():
     try:
@@ -36,7 +40,7 @@ def stop_macvtap(eth):
         raise e
 
 class QEMU():
-    VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.conf"
+    VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.yml"
     def __init__(self):
         self.vm_features = {"name": "quanta_d51", "memory": 1024,
                      "vcpu": 2, "cpu": "", "smbios":"", "kvm":"", "sol":"",
@@ -57,41 +61,41 @@ class QEMU():
             self.vm_features["kvm"] = ""
 
     def set_node(self, config_file):
-        conf = ConfigParser.ConfigParser()
-        conf.read(config_file)
-        if conf.has_option("main", "node") is True:
-            self.vm_features["name"] = conf.get("main", "node")
-            self.vm_features["smbios"] = "-smbios file=/usr/local/etc/infrasim/{0}/{0}_smbios.bin".format(conf.get("main", "node"))
+        with open(config_file, 'r') as f_yml:
+            conf = yaml.load(f_yml)
+        if has_option(conf, "main", "node"):
+            self.vm_features["name"] = conf["main"]["node"]
+            self.vm_features["smbios"] = "-smbios file=/usr/local/etc/infrasim/{0}/{0}_smbios.bin".format(conf["main"]["node"])
         else:
             raise ArgsNotCorrect("parameter: node is not found")
 
     def set_cpu(self, config_file):
-        conf = ConfigParser.ConfigParser()
-        conf.read(config_file)
+        with open(config_file, 'r') as f_yml:
+            conf = yaml.load(f_yml)
 
-        if conf.has_option("node", "cpu") is True:
+        if has_option(conf, "node", "cpu"):
             if self.vm_features["kvm"] is not "":
-                self.vm_features["cpu"] = "-cpu {},+vmx".format(conf.get("node", "cpu"))
+                self.vm_features["cpu"] = "-cpu {},+vmx".format(conf["node"]["cpu"])
             else:
                 self.vm_features["cpu"] = ""
         else:
             raise ArgsNotCorrect("parameter: cpu is not found")
 
     def set_memory(self, config_file):
-        conf = ConfigParser.ConfigParser()
-        conf.read(config_file)
+        with open(config_file, 'r') as f_yml:
+            conf = yaml.load(f_yml)
 
-        if conf.has_option("node", "memory") is True:
-            self.vm_features["memory"] = conf.getint("node", "memory")
+        if has_option(conf, "node", "memory"):
+            self.vm_features["memory"] = conf["node"]["memory"]
         else:
             raise ArgsNotCorrect("parameter: memory is not found")
 
     def set_vcpu(self, config_file):
-        conf = ConfigParser.ConfigParser()
-        conf.read(config_file)
+        with open(config_file, 'r') as f_yml:
+            conf = yaml.load(f_yml)
 
-        if conf.has_option("node", "vcpu") is True:
-            self.vm_features["vcpu"] = conf.getint("node", "vcpu")
+        if has_option(conf, "node", "vcpu"):
+            self.vm_features["vcpu"] = conf["node"]["vcpu"]
         else:
             raise ArgsNotCorrect("parameter: vcpu is not found")
 
@@ -99,33 +103,34 @@ class QEMU():
         self.vm_features["sol"] = "-serial mon:tcp:127.0.0.1:9003,nowait"
 
     def set_network(self, config_file):
-        conf = ConfigParser.ConfigParser()
-        conf.read(config_file)
+        with open(config_file, 'r') as f_yml:
+            conf = yaml.load(f_yml)
         macs = []
         mode = ""
         eth_name = ""
-        if conf.has_option("node", "network_mode") is True:
-           mode = conf.get("node", "network_mode")
+        if has_option(conf, "node", "network_mode"):
+            mode = conf["node"]["network_mode"]
         else:
-           raise ArgsNotCorrect("parameter: network_mode is not found")
+            raise ArgsNotCorrect("parameter: network_mode is not found")
 
         if mode == "nat":
             self.vm_features["networks"] = self.vm_templates["net_nat"]
             return
         elif mode == "macvtap" or mode == "bridge":
-            if conf.has_option("node", "network_name") is True:
-                eth_name = conf.get("node", "network_name")
+            if has_option(conf, "node", "network_name"):
+                eth_name = conf["node"]["network_name"]
             else:
                 raise ArgsNotCorrect("parameter: network_name is not found")
-            if conf.has_option("node", "network_mac1") is True:
-               macs.append(conf.get("node", "network_mac1"))
-            if conf.has_option("node", "network_mac2") is True:
-               macs.append(conf.get("node", "network_mac2"))
-            if conf.has_option("node", "network_mac3") is True:
-               macs.append(conf.get("node", "network_mac3"))
+
+            if has_option(conf, "node", "network_mac1"):
+                macs.append(conf["node"]["network_mac1"])
+            if has_option(conf, "node", "network_mac2"):
+                macs.append(conf["node"]["network_mac2"])
+            if has_option(conf, "node", "network_mac3"):
+                macs.append(conf["node"]["network_mac3"])
 
             if len(macs) == 0:
-               raise ArgsNotCorrect("No network mac address found")
+                raise ArgsNotCorrect("No network mac address found")
 
             try:
                 nics_list = netifaces.interfaces()
@@ -138,6 +143,9 @@ class QEMU():
                         tap = subprocess.check_output("cat /sys/class/net/{}/ifindex".format(eth_name), shell=True).strip()
                         self.vm_features["networks"] = self.vm_features["networks"] + self.vm_templates["net_macvtap"].format(mac=mac, tap = tap, idx=i, fd=(i+3))
                     elif mode == "bridge":
+                        nics_list = netifaces.interfaces()
+                        if eth_name not in nics_list:
+                            raise ArgsNotCorrect("Network: {} not exists.\nPlease check infrasim.yml file".format(eth_name))
                         self.vm_features["networks"] = self.vm_features["networks"] + self.vm_templates["net_bridge"].format(mac=macs[i], idx=i, br=eth_name)
             except CommandRunFailed as e:
                 raise CommandRunFailed("Create macvtap failed, please check your ethname setting")
@@ -145,17 +153,17 @@ class QEMU():
             raise ArgsNotCorrect("Not supported network mode {}".format(mode))
 
     def set_disks(self, config_file):
-        conf = ConfigParser.ConfigParser()
-        conf.read(config_file)
+        with open(config_file, 'r') as f_yml:
+            conf = yaml.load(f_yml)
         disk_num = 0
         disk_size = 0
-        if conf.has_option("node", "disk_num") is True:
-            disk_num = conf.getint("node", "disk_num")
+        if has_option(conf, "node", "disk_num"):
+            disk_num = int(conf["node"]["disk_num"])
         else:
             raise ArgsNotCorrect("parameter: disk_num is not found")
 
-        if conf.has_option("node", "disk_size") is True:
-            disk_size = conf.getint("node", "disk_size")
+        if has_option(conf, "node", "disk_size"):
+            disk_size = int(conf["node"]["disk_size"])
         else:
             raise ArgsNotCorrect("parameter: disk_size is not found")
 
@@ -176,10 +184,10 @@ class QEMU():
         if os.path.exists("/dev/sr0") is True:
             self.vm_features["cdrom"] = "-cdrom /dev/sr0"
 
-        conf = ConfigParser.ConfigParser()
-        conf.read(config_file)
-        if conf.has_option("node", "cdrom") is True:
-            self.vm_features["cdrom"] = "-cdrom " + conf.get("node", "cdrom")
+        with open(config_file, 'r') as f_yml:
+            conf = yaml.load(f_yml)
+        if has_option(conf, "node", "cdrom"):
+            self.vm_features["cdrom"] = "-cdrom " + conf["node"]["cdrom"]
 
     def read_from_config(self, config_file):
         try:

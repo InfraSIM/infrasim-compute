@@ -2,24 +2,32 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import ConfigParser
-import time
+import yaml
 import netifaces
 from infrasim import ipmi, socat, run_command, qemu, CommandRunFailed, ArgsNotCorrect
 
-INFRASIM_CONF = "/etc/infrasim/infrasim.conf"
+INFRASIM_CONF = "/etc/infrasim/infrasim.yml"
 
 if __name__ == '__main__':
-    conf = ConfigParser.ConfigParser()
-    conf.read(INFRASIM_CONF)
+
+    with open(INFRASIM_CONF, 'r') as f_yml:
+        conf = yaml.load(f_yml)
+
     node = ""
     eth = ""
-    if conf.has_option("main", "node") is True:
-        node = conf.get("main", "node")
-        eth = conf.get("node", "network_name")
+
+    if "main" in conf and "node" in conf["main"]:
+        node = conf["main"]["node"]
     else:
         print "Can't get infrasim node name.\n" \
-              "Please check infrasim configure file"
+              "Please check infrasim configure file: {}".format(INFRASIM_CONF)
+        sys.exit(-1)
+
+    if "node" in conf and "network_name" in conf["node"]:
+        eth = conf["node"]["network_name"]
+    else:
+        print "Can't get infrasim node network.\n" \
+              "Please check infrasim configure file: {}".format(INFRASIM_CONF)
         sys.exit(-1)
 
     try:

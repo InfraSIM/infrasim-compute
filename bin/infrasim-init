@@ -8,8 +8,8 @@ from infrasim.ipmi import get_ipmi
 from infrasim.qemu import get_qemu
 import netifaces
 
-INFRASIM_TEMP_CONF = "/usr/local/etc/infrasim/conf/infrasim.conf"
-INFRASIM_CONF = "/etc/infrasim/infrasim.conf"
+INFRASIM_TEMP_CONF = "/usr/local/etc/infrasim/conf/infrasim.yml"
+INFRASIM_CONF = "/etc/infrasim/infrasim.yml"
 VBMC_TEMP_CONF = "/usr/local/etc/infrasim/conf/vbmc.conf"
 VBMC_CONF = "/etc/infrasim/vbmc.conf"
 
