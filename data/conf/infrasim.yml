@@ -13,7 +13,7 @@ main:
     node: quanta_d51
 
 node:
-    #Set node cpu num, the default value is 4
+    #Set node cpu num, the default value is 2
     #
     vcpu: 2
 
@@ -53,8 +53,8 @@ node:
     network_name: {{nic}}
 
     network_mac1: {{mac1}}
-    #network_mac2={{mac2}}
-    #network_mac3={{mac3}}
+    #network_mac2: {{mac2}}
+    #network_mac3: {{mac3}}
 
     #Set cdrom ISO file for OS Installation
     #cdrom=
