@@ -10,9 +10,9 @@ else
     # coverage.
     cover_branches="--cover-branches --cover-html --cover-html-dir=$TOP_DIR/cover"
 fi
-cd $TOP_DIR/test/functional
-nosetests -vv --exe $@
+
+nosetests -vv --exe $@ $TOP_DIR/test/functional
 rvalue=$?
 rm -f .coverage
-cd -
+
 exit $rvalue
