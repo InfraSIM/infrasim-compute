@@ -50,11 +50,11 @@ node:
     network_mode: nat
 
     #If you use bridge mode, please specify the network_name
-    network_name: {{nic}}
+    network_name: ens33
 
-    network_mac1: {{mac1}}
-    #network_mac2: {{mac2}}
-    #network_mac3: {{mac3}}
+    network_mac1: 52:54:00:ad:66:b5
+    #network_mac2: 52:54:00:ac:45:56
+    #network_mac3: 52:54:00:23:6f:13
 
     #Set cdrom ISO file for OS Installation
     #cdrom=
