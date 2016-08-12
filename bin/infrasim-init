@@ -13,14 +13,15 @@ INFRASIM_CONF = "/etc/infrasim/infrasim.yml"
 VBMC_TEMP_CONF = "/usr/local/etc/infrasim/conf/vbmc.conf"
 VBMC_CONF = "/etc/infrasim/vbmc.conf"
 
-mac_base = "00:1e:67:"
+mac_base = "00:60:16:"
+
+
 def create_mac_address():
     macs = []
-    for i in range(0, 9):
+    for i in range(0, 3):
         macs.append(''.join(random.SystemRandom().choice("abcdef" + string.digits) for _ in range(2)))
-    return (mac_base + ":".join([macs[0], macs[1], macs[2]]),
-            mac_base + ":".join([macs[3], macs[4], macs[5]]),
-            mac_base + ":".join([macs[6], macs[7], macs[8]]))
+    return mac_base + ":".join([macs[0], macs[1], macs[2]])
+
 
 def create_infrasim_directories():
     if os.path.exists(os.environ['HOME'] + '/.infrasim') is False:
@@ -54,20 +55,28 @@ def create_infrasim_directories():
         os.mkdir("/usr/local/libexec")
 
 def create_infrasim_conf():
+
+    # Prepare default network
+    networks = []
     nics_list = netifaces.interfaces()
     eth_nic = filter(lambda x: 'e' in x,nics_list)[0]
-    macs = create_mac_address()
+    mac = create_mac_address()
+    networks.append({"nic": eth_nic, "mac": mac})
 
-    #render infrasim.conf
+    # Prepare default disk
+    disks = []
+    disks.append({"size": 8})
+
+    # Render infrasim.conf
     infrasim_conf = ""
     with open(INFRASIM_TEMP_CONF, "r") as f:
         infrasim_conf = f.read()
     template = jinja2.Template(infrasim_conf)
-    infrasim_conf = template.render(nic=eth_nic, mac1=macs[0], mac2=macs[1], mac3=macs[2])
+    infrasim_conf = template.render(disks=disks, networks=networks)
     with open(INFRASIM_CONF, "w") as f:
         f.write(infrasim_conf)
 
-    #render vbmc.conf
+    # Render vbmc.conf
     vbmc_conf = ""
     with open(VBMC_TEMP_CONF, "r") as f:
         vbmc_conf = f.read()

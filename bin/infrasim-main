@@ -4,7 +4,7 @@
 import sys
 import yaml
 import netifaces
-from infrasim import ipmi, socat, run_command, qemu, CommandRunFailed, ArgsNotCorrect
+from infrasim import ipmi, socat, run_command, qemu, CommandRunFailed, ArgsNotCorrect, has_option
 
 INFRASIM_CONF = "/etc/infrasim/infrasim.yml"
 
@@ -16,16 +16,20 @@ if __name__ == '__main__':
     node = ""
     eth = ""
 
-    if "main" in conf and "node" in conf["main"]:
-        node = conf["main"]["node"]
+    if has_option(conf, "compute", "name"):
+        node = conf["compute"]["name"]
     else:
         print "Can't get infrasim node name.\n" \
               "Please check infrasim configure file: {}".format(INFRASIM_CONF)
         sys.exit(-1)
 
-    if "node" in conf and "network_name" in conf["node"]:
-        eth = conf["node"]["network_name"]
-    else:
+    try:
+        eth = conf["compute"]["networks"][0]["network_name"]
+    except TypeError:
+        print "Attribute missing from infrasim node network.\n" \
+              "Please check infrasim configure file: {}".format(INFRASIM_CONF)
+        sys.exit(-1)
+    except KeyError:
         print "Can't get infrasim node network.\n" \
               "Please check infrasim configure file: {}".format(INFRASIM_CONF)
         sys.exit(-1)
