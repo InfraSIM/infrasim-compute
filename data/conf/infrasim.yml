@@ -29,6 +29,8 @@ compute:
         #	IvyBridge:  Intel Xeon E3-12xx v2 (Ivy Bridge)
         #	Haswell:  Intel Core Processor (Haswell)
         #	Broadwell:  Intel Core Processor (Broadwell)
+        #   host:  default, KVM processor with all supported host features
+        #          (only available in KVM mode)
         #
         type: Haswell
 

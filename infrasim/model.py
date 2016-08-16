@@ -92,7 +92,7 @@ class CCPU(CElement):
         self.__cpu = cpu_info
         self.__type = "host"
         self.__features = "+vmx"
-        self.__quantities = None
+        self.__quantities = 2
         self.__socket = socket_in_smbios
 
     def get_cpu_quantities(self):
@@ -124,6 +124,16 @@ class CCPU(CElement):
 
         if self.__socket is None:
             self.__socket = 2
+
+        if self.__quantities <= 0:
+            raise ArgsNotCorrect(
+                '[model:cpu] quantities invalid: {}, should be positive'.
+                format(self.__quantities))
+
+        if self.__quantities % self.__socket != 0:
+            raise ArgsNotCorrect(
+                '[model:cpu] quantities: {} is not divided by socket: {}'.
+                format(self.__quantities, self.__socket))
 
         cores = self.__quantities / self.__socket
         smp_option = "-smp {vcpu_num},sockets={socket},cores={cores},threads=1".format(
@@ -649,7 +659,7 @@ class CCompute(Task, CElement):
             self.__name = self.__compute['name']
             self.set_task_name(self.__name)
         else:
-            raise ArgsNotCorrect('[model:compute] Compute name is not set')
+            raise ArgsNotCorrect('[model:compute] compute name is not set')
 
         if 'kvm_enabled' in self.__compute:
             if self.__compute['kvm_enabled']:
