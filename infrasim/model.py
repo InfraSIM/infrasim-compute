@@ -728,6 +728,7 @@ class CCompute(Task, CElement):
     def handle_parms(self):
         self.add_option("-vnc :1")
         self.add_option("-name {}".format(self.get_task_name()))
+        self.add_option("-device sga")
 
         if self.__enable_kvm:
             self.add_option("--enable-kvm")
@@ -751,7 +752,7 @@ class CCompute(Task, CElement):
         self.add_option("-mon chardev=mon,id=monitor")
 
         if self.__serial:
-            self.add_option("-serial mon:tcp:127.0.0.1:{},nowait".format(self.__serial))
+            self.add_option("-serial mon:udp:127.0.0.1:{},nowait".format(self.__serial))
 
         self.add_option("-uuid {}".format(str(uuid.uuid4())))
 
