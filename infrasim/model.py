@@ -3,6 +3,25 @@
 # Author:  Robert Xia <robert.xia@emc.com>,
 # Forrest Gu <Forrest.Gu@emc.com>
 
+"""
+This module majorly defines infrasim element models.
+For each element class, they need to implement methods:
+
+    - __init__()
+        Get initialized with element information;
+        Define element attributes;
+        Assign default value for certain attributes;
+    - init()
+        Parse information dict, assign to all attribute;
+    - precheck()
+        Validate attribute integrity and environment compatibility;
+    - handle_params()
+        Add all attributes to command line options list;
+    - get_option()
+        Compose all options in list to a command line string;
+"""
+
+
 import fcntl
 import time
 import shlex
@@ -92,7 +111,7 @@ class CCPU(CElement):
         self.__cpu = cpu_info
         self.__type = "host"
         self.__features = "+vmx"
-        self.__quantities = None
+        self.__quantities = 2
         self.__socket = socket_in_smbios
 
     def get_cpu_quantities(self):
@@ -102,7 +121,15 @@ class CCPU(CElement):
         """
         Check if the CPU quantities exceeds the real physical CPU cores
         """
-        pass
+        if self.__quantities <= 0:
+            raise ArgsNotCorrect(
+                '[model:cpu] quantities invalid: {}, should be positive'.
+                format(self.__quantities))
+
+        if self.__quantities % self.__socket != 0:
+            raise ArgsNotCorrect(
+                '[model:cpu] quantities: {} is not divided by socket: {}'.
+                format(self.__quantities, self.__socket))
 
     def init(self):
         if 'type' in self.__cpu:
@@ -114,6 +141,9 @@ class CCPU(CElement):
         if 'features' in self.__cpu:
             self.__features = self.__cpu['features']
 
+        if self.__socket is None:
+            self.__socket = 2
+
     def handle_parms(self):
         if self.__features:
             cpu_option = "-cpu {0},{1}".format(self.__type, self.__features)
@@ -121,9 +151,6 @@ class CCPU(CElement):
             cpu_option = "-cpu {}".format(self.__type)
 
         self.add_option(cpu_option)
-
-        if self.__socket is None:
-            self.__socket = 2
 
         cores = self.__quantities / self.__socket
         smp_option = "-smp {vcpu_num},sockets={socket},cores={cores},threads=1".format(
@@ -649,7 +676,7 @@ class CCompute(Task, CElement):
             self.__name = self.__compute['name']
             self.set_task_name(self.__name)
         else:
-            raise ArgsNotCorrect('[model:compute] Compute name is not set')
+            raise ArgsNotCorrect('[model:compute] compute name is not set')
 
         if 'kvm_enabled' in self.__compute:
             if self.__compute['kvm_enabled']:
