@@ -4,7 +4,7 @@ import logging
 import subprocess
 
 logger = logging.getLogger()
-hdlr = logging.FileHandler('/var/tmp/inframsim.log')
+hdlr = logging.FileHandler('/var/log/inframsim.log')
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)

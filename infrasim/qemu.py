@@ -53,7 +53,7 @@ def start_qemu():
         compute = CCompute(conf["compute"])
         compute.init()
         compute.precheck()
-        cmd = "{} 2>/var/tmp/qemu.log &".format(compute.get_commandline())
+        cmd = "{} 2>/var/log/qemu.log &".format(compute.get_commandline())
         logger.debug(cmd)
         run_command(cmd, True, None, None)
 

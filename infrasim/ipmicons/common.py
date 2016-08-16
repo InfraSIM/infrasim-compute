@@ -18,7 +18,7 @@ lock = threading.Lock()
 
 # logger
 logger = logging.getLogger("ipmi_sim")
-LOG_FILE = '/var/tmp/ipmi_sim.log'
+LOG_FILE = '/var/log/ipmi_sim.log'
 
 # telnet to vBMC
 tn = telnetlib.Telnet()
