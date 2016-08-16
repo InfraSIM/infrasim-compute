@@ -25,6 +25,7 @@ class qemu_functions(unittest.TestCase):
 
             cpu = model.CCPU(cpu_info)
             cpu.init()
+            cpu.precheck()
             cpu.handle_parms()
             assert "-cpu Haswell" in cpu.get_option()
             assert "-smp 2" in cpu.get_option()
@@ -37,6 +38,7 @@ class qemu_functions(unittest.TestCase):
 
             cpu = model.CCPU(cpu_info)
             cpu.init()
+            cpu.precheck()
             cpu.handle_parms()
             assert "-cpu host" in cpu.get_option()
             assert "-smp 2" in cpu.get_option()
@@ -51,6 +53,7 @@ class qemu_functions(unittest.TestCase):
 
             cpu = model.CCPU(cpu_info)
             cpu.init()
+            cpu.precheck()
             cpu.handle_parms()
             assert "-smp 8,sockets=2,cores=4,threads=1" in cpu.get_option()
         except:
@@ -64,6 +67,7 @@ class qemu_functions(unittest.TestCase):
 
             cpu = model.CCPU(cpu_info)
             cpu.init()
+            cpu.precheck()
             cpu.handle_parms()
         except ArgsNotCorrect:
             assert True
@@ -78,6 +82,7 @@ class qemu_functions(unittest.TestCase):
 
             cpu = model.CCPU(cpu_info)
             cpu.init()
+            cpu.precheck()
             cpu.handle_parms()
             assert "-cpu host,+nx" in cpu.get_option()
         except:
