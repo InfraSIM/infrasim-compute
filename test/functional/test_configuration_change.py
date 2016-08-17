@@ -5,7 +5,11 @@
 import unittest
 import subprocess
 import os
+import yaml
 from infrasim import qemu
+
+VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.yml"
+CMD = "ps ax | grep qemu"
 
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
@@ -19,77 +23,70 @@ def run_command(cmd="", shell=True, stdout=None, stderr=None):
 
 
 class test_configuration_change(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        pass
 
-    @classmethod
-    def tearDownClass(cls):
+    def setUp(self):
+        os.system("touch test.yml")
+        with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+            self.conf = yaml.load(f_yml)
+
+    def tearDown(self):
+        self.conf = None
         cmd = 'pkill qemu'
-        run_command(cmd, True, None, None)
+        run_command(cmd, True, subprocess.PIPE, subprocess.PIPE)
+        os.system("rm -rf test.yml")
 
     def test_set_vcpu(self):
-        vm = qemu.QEMU()
-        os.system('echo "[node]" > test.config')
-        os.system('echo "vcpu=8" >> test.config')
-        vm.set_vcpu('test.config')
-        cmd = vm.get_qemu_cmd()
-        run_command(cmd, True, None, None)
-
-        test_cmd = 'ps ax | grep qemu'
-        str_result = str(run_command(test_cmd, True,
-                                     subprocess.PIPE, subprocess.PIPE))
-        assert 'qemu-system-x86_64' in str_result
+        self.conf["compute"]["cpu"]["quantities"] = 8
+        with open("test.yml", "w") as yaml_file:
+            yaml.dump(self.conf, yaml_file, default_flow_style=False)
+        qemu.start_qemu("test.yml")
+        str_result = run_command(CMD, True,
+                                 subprocess.PIPE, subprocess.PIPE)[1]
+        assert "qemu-system-x86_64" in str_result
+        assert "-smp 8" in str_result
 
     def test_set_cpu_family(self):
-        vm = qemu.QEMU()
-        os.system('echo "[node]" > test.config')
-        os.system('echo "cpu=IvyBridge" >> test.config')
-        vm.set_cpu('test.config')
-        cmd = vm.get_qemu_cmd()
-        run_command(cmd, True, None, None)
+        self.conf["compute"]["cpu"]["type"] = "IvyBridge"
+        with open("test.yml", "w") as yaml_file:
+            yaml.dump(self.conf, yaml_file, default_flow_style=False)
+        qemu.start_qemu("test.yml")
+        str_result = run_command(CMD, True,
+                                 subprocess.PIPE, subprocess.PIPE)[1]
+        assert "qemu-system-x86_64" in str_result
+        assert "-cpu IvyBridge" in str_result
 
-        test_cmd = 'ps ax | grep qemu'
-        str_result = str(run_command(test_cmd, True,
-                                     subprocess.PIPE, subprocess.PIPE))
-        assert 'qemu-system-x86_64' in str_result
-
-    def test_set_bmc_vendor(self):
-        vm = qemu.QEMU()
-        os.system('echo "[main]" > test.config')
-        os.system('echo "node=dell_c6320" >> test.config')
-        vm.set_node('test.config')
-        cmd = vm.get_qemu_cmd()
-        run_command(cmd, True, None, None)
-
-        test_cmd = 'ps ax | grep qemu'
-        str_result = str(run_command(test_cmd, True,
-                                     subprocess.PIPE, subprocess.PIPE))
-        assert '-name dell_c6320' in str_result
+    def test_set_node_name(self):
+        self.conf["compute"]["name"] = "dell_c6320"
+        with open("test.yml", "w") as yaml_file:
+            yaml.dump(self.conf, yaml_file, default_flow_style=False)
+        qemu.start_qemu("test.yml")
+        str_result = run_command(CMD, True,
+                                 subprocess.PIPE, subprocess.PIPE)[1]
+        assert "qemu-system-x86_64" in str_result
+        assert "-name dell_c6320" in str_result
+        assert "-smbios file=/usr/local/etc/infrasim/" \
+               "dell_c6320/dell_c6320_smbios.bin" in str_result
 
     def test_set_memory_capacity(self):
-        vm = qemu.QEMU()
-        os.system('echo "[node]" > test.config')
-        os.system('echo "memory=4096" >> test.config')
-        vm.set_memory('test.config')
-        cmd = vm.get_qemu_cmd()
-        run_command(cmd, True, None, None)
-
-        test_cmd = 'ps ax | grep qemu'
-        str_result = str(run_command(test_cmd, True,
-                                     subprocess.PIPE, subprocess.PIPE))
-        assert 'qemu-system-x86_64' in str_result
+        self.conf["compute"]["memory"]["size"] = 2048
+        with open("test.yml", "w") as yaml_file:
+            yaml.dump(self.conf, yaml_file, default_flow_style=False)
+        qemu.start_qemu("test.yml")
+        str_result = run_command(CMD, True,
+                                 subprocess.PIPE, subprocess.PIPE)[1]
+        assert "qemu-system-x86_64" in str_result
+        assert "-m 2048" in str_result
 
     def test_set_disk_drive(self):
-        vm = qemu.QEMU()
-        os.system('echo "[node]" > test.config')
-        os.system('echo "disk_num=2" >> test.config')
-        os.system('echo "disk_size=32" >> test.config')
-        vm.set_disks('test.config')
-        cmd = vm.get_qemu_cmd()
-        run_command(cmd, True, None, None)
-
-        test_cmd = 'ps ax | grep qemu'
-        str_result = str(run_command(test_cmd, True,
-                                     subprocess.PIPE, subprocess.PIPE))
-        assert 'qemu-system-x86_64' in str_result
+        self.conf["compute"]["drives"] = [
+            {"size": 32},
+            {"size": 32}
+        ]
+        with open("test.yml", "w") as yaml_file:
+            yaml.dump(self.conf, yaml_file, default_flow_style=False)
+        qemu.start_qemu("test.yml")
+        str_result = run_command(CMD, True,
+                                 subprocess.PIPE, subprocess.PIPE)[1]
+        assert "qemu-system-x86_64" in str_result
+        assert ".infrasim/sda.img,format=qcow2" in str_result
+        assert ".infrasim/sdb.img,format=qcow2" in str_result

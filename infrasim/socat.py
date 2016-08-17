@@ -20,8 +20,8 @@ def status_socat():
 
 def start_socat():
     socat_cmd = get_socat()
-    socat_start_cmd = "{} pty,link=/etc/infrasim/pty0,waitslave tcp-listen:9003," \
-                      "forever,reuseaddr,fork &".format(socat_cmd)
+    socat_start_cmd = "{} pty,link=/etc/infrasim/pty0,waitslave udp-listen:9003," \
+                      "reuseaddr,fork &".format(socat_cmd)
     try:
         run_command(socat_start_cmd, True, None, None)
         time.sleep(3)
