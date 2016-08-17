@@ -46,9 +46,9 @@ def stop_macvtap(eth):
         raise e
 
 
-def start_qemu():
+def start_qemu(conf=VM_DEFAULT_CONFIG):
     try:
-        with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+        with open(conf, 'r') as f_yml:
             conf = yaml.load(f_yml)
         compute = CCompute(conf["compute"])
         compute.init()
