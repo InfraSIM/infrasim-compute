@@ -20,7 +20,7 @@ from infrasim import socat
 from infrasim import run_command
 
 # command prefix for test cases
-cmd_prefix = 'ipmitool -H 127.0.0.1 -U admin -P admin chassis '
+cmd_prefix = 'ipmitool -I lanplus -H 127.0.0.1 -U admin -P admin chassis '
 
 # command to check if qemu is running
 test_cmd = 'ps ax | grep qemu'
@@ -54,39 +54,44 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
             assert 'qemu-system-x86_64' in qemu_output
 
             run_command(power_off_cmd)
+            time.sleep(3)
             qemu_output = run_command(test_cmd)[1]
             status_output = run_command(power_status_cmd)[1]
             assert 'Chassis Power is off' in status_output
             assert 'qemu-system-x86_64' not in qemu_output
 
             run_command(power_on_cmd)
+            time.sleep(3)
             qemu_output = run_command(test_cmd)[1]
             status_output = run_command(power_status_cmd)[1]
             assert 'Chassis Power is on' in status_output
             assert 'qemu-system-x86_64' in qemu_output
-        except:
+        except Exception as e:
+            print e
             assert False
 
     def test_chassis_power_cycle(self):
         try:
             pid_before = run_command(pid_cmd)[1]
             run_command(power_cycle_cmd)
-            time.sleep(2)
-            return_code, output = run_command(test_cmd)
-            assert 'qemu-system-x86_64' in output
+            time.sleep(3)
+            qemu_output = run_command(test_cmd)[1]
+            assert 'qemu-system-x86_64' in qemu_output
             pid_after = run_command(pid_cmd)[1]
             assert pid_after != pid_before
-        except:
+        except Exception as e:
+            print e
             assert False
 
     def test_chassis_power_reset(self):
         try:
             pid_before = run_command(pid_cmd)[1]
             run_command(power_reset_cmd)
-            time.sleep(2)
-            return_code, output = run_command(test_cmd)
-            assert 'qemu-system-x86_64' in output
+            time.sleep(3)
+            qemu_output = run_command(test_cmd)[1]
+            assert 'qemu-system-x86_64' in qemu_output
             pid_after = run_command(pid_cmd)[1]
             assert pid_after != pid_before
-        except:
+        except Exception as e:
+            print e
             assert False
