@@ -13,7 +13,6 @@ Test ipmitool chassis control commands:
 
 import unittest
 import time
-import traceback
 
 from infrasim import qemu
 from infrasim import ipmi
@@ -21,7 +20,7 @@ from infrasim import socat
 from infrasim import run_command
 
 # command prefix for test cases
-cmd_prefix = 'ipmitool -H 127.0.0.1 -U admin -P admin chassis '
+cmd_prefix = 'ipmitool -I lanplus -H 127.0.0.1 -U admin -P admin chassis '
 
 # command to check if qemu is running
 test_cmd = 'ps ax | grep qemu'
@@ -68,7 +67,6 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
             assert 'Chassis Power is on' in status_output
             assert 'qemu-system-x86_64' in qemu_output
         except:
-            print traceback.format_exc()
             assert False
 
     def test_chassis_power_cycle(self):
@@ -81,7 +79,6 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
             pid_after = run_command(pid_cmd)[1]
             assert pid_after != pid_before
         except:
-            print traceback.format_exc()
             assert False
 
     def test_chassis_power_reset(self):
@@ -94,5 +91,4 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
             pid_after = run_command(pid_cmd)[1]
             assert pid_after != pid_before
         except:
-            print traceback.format_exc()
             assert False
