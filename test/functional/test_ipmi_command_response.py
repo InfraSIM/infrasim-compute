@@ -51,7 +51,7 @@ class test_ipmicommand_response(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         socat.start_socat()
-        ipmi.start_ipmi("quanta_d51")
+        ipmi.start_ipmi()
         time.sleep(3)
 
     @classmethod

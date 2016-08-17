@@ -5,11 +5,8 @@ import os
 import yaml
 import socket
 import time
-import netifaces
-from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect, has_option
+from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect, has_option, VM_DEFAULT_CONFIG
 from model import CCompute
-
-VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.yml"
 
 
 def get_qemu():
@@ -51,6 +48,7 @@ def start_qemu(conf=VM_DEFAULT_CONFIG):
         with open(conf, 'r') as f_yml:
             conf = yaml.load(f_yml)
         compute = CCompute(conf["compute"])
+        compute.set_type(conf["type"])
         compute.init()
         compute.precheck()
         cmd = "{} 2>/var/log/qemu.log &".format(compute.get_commandline())

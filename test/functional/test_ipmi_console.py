@@ -69,7 +69,7 @@ class test_ipmi_console(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         socat.start_socat()
-        ipmi.start_ipmi('quanta_d51')
+        ipmi.start_ipmi()
         run_command('ipmi-console start &', True, None, None)
         time.sleep(5)
         cls.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())

@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, sys, jinja2, random, string
+import os
+import jinja2
+import random
+import string
 from infrasim import run_command, CommandNotFound
 from infrasim.socat import get_socat
 from infrasim.ipmi import get_ipmi
@@ -10,8 +13,6 @@ import netifaces
 
 INFRASIM_TEMP_CONF = "/usr/local/etc/infrasim/conf/infrasim.yml"
 INFRASIM_CONF = "/etc/infrasim/infrasim.yml"
-VBMC_TEMP_CONF = "/usr/local/etc/infrasim/conf/vbmc.conf"
-VBMC_CONF = "/etc/infrasim/vbmc.conf"
 
 mac_base = "00:60:16:"
 
@@ -48,12 +49,13 @@ def create_infrasim_directories():
         os.system("rm -rf /usr/local/libexec")
         os.mkdir("/usr/local/libexec")
 
+
 def create_infrasim_conf():
 
     # Prepare default network
     networks = []
     nics_list = netifaces.interfaces()
-    eth_nic = filter(lambda x: 'e' in x,nics_list)[0]
+    eth_nic = filter(lambda x: 'e' in x, nics_list)[0]
     mac = create_mac_address()
     networks.append({"nic": eth_nic, "mac": mac})
 
@@ -61,7 +63,7 @@ def create_infrasim_conf():
     disks = []
     disks.append({"size": 8})
 
-    # Render infrasim.conf
+    # Render infrasim.yml
     infrasim_conf = ""
     with open(INFRASIM_TEMP_CONF, "r") as f:
         infrasim_conf = f.read()
@@ -70,14 +72,6 @@ def create_infrasim_conf():
     with open(INFRASIM_CONF, "w") as f:
         f.write(infrasim_conf)
 
-    # Render vbmc.conf
-    vbmc_conf = ""
-    with open(VBMC_TEMP_CONF, "r") as f:
-        vbmc_conf = f.read()
-    template = jinja2.Template(vbmc_conf)
-    vbmc_conf = template.render(nic=eth_nic)
-    with open(VBMC_CONF, "w") as f:
-        f.write(vbmc_conf)
 
 def prepare_libraries():
     run_command("sudo /usr/local/bin/package_install.sh", True, None, None)
@@ -89,6 +83,7 @@ def prepare_libraries():
     run_command("cd /usr/local/lib && ln -sf libOpenIPMIutils.so.0.0.1 libOpenIPMIutils.so.0")
     run_command("cd /usr/local/lib && ln -sf libOpenIPMIutils.so.0.0.1 libOpenIPMIutils.so")
     run_command("ldconfig")
+
 
 def prepare_seabios():
     run_command('echo "allow br0" > /etc/qemu/bridge.conf')

@@ -38,7 +38,7 @@ power_reset_cmd = cmd_prefix + 'power reset'
 class test_ipmi_command_chassis_control(unittest.TestCase):
     def setUp(self):
         socat.start_socat()
-        ipmi.start_ipmi("quanta_d51")
+        ipmi.start_ipmi()
         time.sleep(3)
 
     def tearDown(self):

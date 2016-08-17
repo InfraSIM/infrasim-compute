@@ -29,7 +29,9 @@ import subprocess
 import os
 import uuid
 import signal
-from . import logger, run_command, CommandRunFailed, ArgsNotCorrect
+import jinja2
+import netifaces
+from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound
 
 config_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), "config/chassis.yml")
 
@@ -657,12 +659,16 @@ class CCompute(Task, CElement):
         self.__qemu_bin = "qemu-system-x86_64"
         self.__serial = 9003
         self.__cdrom_file = None
+        self.__vendor_type = None
         # remember cpu object
         self.__cpu_obj = None
         self.__numactl_obj = None
 
     def set_numactl(self, numactl_obj):
         self.__numactl_obj = numactl_obj
+
+    def set_type(self, vendor_type):
+        self.__vendor_type = vendor_type
 
     def precheck(self):
         # check if qemu-system-x86_64 exists
@@ -675,6 +681,9 @@ class CCompute(Task, CElement):
         if 'name' in self.__compute:
             self.__name = self.__compute['name']
             self.set_task_name(self.__name)
+        elif self.__vendor_type:
+            self.__name = self.__vendor_type
+            self.set_task_name(self.__vendor_type)
         else:
             raise ArgsNotCorrect('[model:compute] compute name is not set')
 
@@ -788,8 +797,13 @@ class CCompute(Task, CElement):
 
 
 class CBMC(Task):
-    def __init__(self, bmc_info):
+
+    VBMC_TEMP_CONF = "/usr/local/etc/infrasim/conf/vbmc.conf"
+    VBMC_CONF = "/etc/infrasim/vbmc.conf"
+
+    def __init__(self, bmc_info={}):
         super(CBMC, self).__init__()
+
         self.__bmc = bmc_info
         self.__address = 0x20
         self.__channel = 1
@@ -804,52 +818,37 @@ class CBMC(Task):
         self.__username = None
         self.__password = None
         self.__emu_file = None
+        self.__bin = None
+        self.__vendor_type = None
+
+    def set_type(self, vendor_type):
+        self.__vendor_type = vendor_type
 
     def precheck(self):
         # check if ipmi_sim exists
         # check script exits
         # check ports are in use
         # check lan interface exists
-        pass
+        try:
+            code, ipmi_cmd = run_command("which /usr/local/bin/ipmi_sim")
+            self.__bin = ipmi_cmd.strip(os.linesep)
+        except CommandRunFailed as e:
+            raise CommandNotFound("/usr/local/bin/ipmi_sim")
 
     def write_bmc_config(self):
-        default_vbmc_conf_file = "{}/vbmc.conf".format(self.get_task_data())
 
-        conf_contents = []
+        # Prepare default network
+        nics_list = netifaces.interfaces()
+        eth_nic = filter(lambda x: 'e' in x, nics_list)[0]
 
-        conf_contents.append("name \"{}\"\n".format(self.get_task_name()))
-        conf_contents.append("set_working_mc {0:#04x}\n".format(self.__address))
-        conf_contents.append("\tstartlan {}\n".format(self.__channel))
-        conf_contents.append("\t\taddr :: 623\n")
-        conf_contents.append("\t\tpriv_limit admin\n")
-        conf_contents.append("\t\tallowed_auths_callback none md2 md5 straight\n")
-        conf_contents.append("\t\tallowed_auths_user none md2 md5 straight\n")
-        conf_contents.append("\t\tallowed_auths_operator none md2 md5 straight\n")
-        conf_contents.append("\t\tallowed_auths_admin none md2 md5 straight\n")
-        conf_contents.append("\t\tguid a123456789abcdefa123456789abcdef\n")
-        conf_contents.append("\t\tlan_config_program \"{} {}\"\n".format(self.__lancontrol_script,
-                                                                         self.__lan_interface))
-        conf_contents.append("\tendlan\n")
-        conf_contents.append("\tchassis_control \"{0} {1:#04x}\"\n".format(self.__chassiscontrol_script,
-                                                                           self.__address))
-        conf_contents.append("\tserial 15 0.0.0.0 {0} codec VM ipmb {1:#04x}\n".format(self.__compute_connection_port,
-                                                                                       self.__address))
-        conf_contents.append("\tstartcmd \"{}/startcmd\"\n".format(self.get_task_data()))
-        conf_contents.append("\tconsole 0.0.0.0 {}\n".format(self.__telnet_listen_port))
-        if self.__startnow:
-            conf_contents.append("\tstartnow true\n")
-        else:
-            conf_contents.append("\tstartnow false\n")
-
-        conf_contents.append("\tpoweroff_wait {}\n".format(self.__poweroff_wait))
-        conf_contents.append("\tkill_wait {}\n".format(self.__kill_wait))
-        conf_contents.append("\tuser 1 true \"\"\t\t\"test\"\t\tuser\t10\tnone md2 md5 straight\n")
-        conf_contents.append("\tuser 2 true \"{}\"\t\"{}\"\t\tadmin\t10\tnone md2 md5 straight\n".format(
-                                self.__username,
-                                self.__password))
-
-        with open(default_vbmc_conf_file, "w") as f:
-            f.writelines(conf_contents)
+        # Render infrasim.conf
+        bmc_conf = ""
+        with open(self.__class__.VBMC_TEMP_CONF, "r") as f:
+            bmc_conf = f.read()
+        template = jinja2.Template(bmc_conf)
+        bmc_conf = template.render(nic=eth_nic)
+        with open(self.__class__.VBMC_CONF, "w") as f:
+            f.write(bmc_conf)
 
     def init(self):
         if 'address' in self.__bmc:
@@ -894,7 +893,8 @@ class CBMC(Task):
         self.write_bmc_config()
 
     def get_commandline(self):
-        ipmi_cmd_str = "ipmi_sim -c {}/vbmc.conf -f {} -n".format(self.get_task_data(), self.__emu_file)
+        ipmi_cmd_str = "{0} -c {1} -f /usr/local/etc/infrasim/{2}/{2}.emu -n -s /var/tmp".\
+            format(self.__bin, self.__class__.VBMC_CONF, self.__vendor_type)
         return ipmi_cmd_str
 
 

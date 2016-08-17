@@ -16,10 +16,10 @@ if __name__ == '__main__':
     node = ""
     eth = ""
 
-    if has_option(conf, "compute", "name"):
-        node = conf["compute"]["name"]
+    if has_option(conf, "type"):
+        node = conf["type"]
     else:
-        print "Can't get infrasim node name.\n" \
+        print "Can't get infrasim type.\n" \
               "Please check infrasim configure file: {}".format(INFRASIM_CONF)
         sys.exit(-1)
 
@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
         if sys.argv[1] == "start":
             socat.start_socat()
-            ipmi.start_ipmi(node)
+            ipmi.start_ipmi()
             print "Infrasim service started.\n" \
               "You can access virtual {} via vnc:{}:5901".format(node, netifaces.ifaddresses(eth)[netifaces.AF_INET][0]['addr'])
         elif sys.argv[1] == "stop":
@@ -59,7 +59,7 @@ if __name__ == '__main__':
             socat.stop_socat()
             print "Restart InfraSIM service..."
             socat.start_socat()
-            ipmi.start_ipmi(node)
+            ipmi.start_ipmi()
         else:
             print "{} start|stop|status|restart".format(sys.argv[0])
     except CommandRunFailed as e:
