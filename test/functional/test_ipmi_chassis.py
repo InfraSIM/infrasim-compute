@@ -28,11 +28,14 @@ test_cmd = 'ps ax | grep qemu'
 # get process id of qemu
 pid_cmd = 'pidof qemu-system-x86_64'
 
+# sleep 3 seconds
+sleep_cmd = '; sleep 3s'
+
 power_status_cmd = cmd_prefix + 'power status'
-power_on_cmd = cmd_prefix + 'power on'
-power_off_cmd = cmd_prefix + 'power off'
-power_cycle_cmd = cmd_prefix + 'power cycle'
-power_reset_cmd = cmd_prefix + 'power reset'
+power_on_cmd = cmd_prefix + 'power on' + sleep_cmd
+power_off_cmd = cmd_prefix + 'power off' + sleep_cmd
+power_cycle_cmd = cmd_prefix + 'power cycle' + sleep_cmd
+power_reset_cmd = cmd_prefix + 'power reset' + sleep_cmd
 
 
 class test_ipmi_command_chassis_control(unittest.TestCase):
@@ -71,9 +74,8 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
         try:
             pid_before = run_command(pid_cmd)[1]
             run_command(power_cycle_cmd)
-            time.sleep(2)
-            return_code, output = run_command(test_cmd)
-            assert 'qemu-system-x86_64' in output
+            qemu_output = run_command(test_cmd)[1]
+            assert 'qemu-system-x86_64' in qemu_output
             pid_after = run_command(pid_cmd)[1]
             assert pid_after != pid_before
         except:
@@ -83,9 +85,8 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
         try:
             pid_before = run_command(pid_cmd)[1]
             run_command(power_reset_cmd)
-            time.sleep(2)
-            return_code, output = run_command(test_cmd)
-            assert 'qemu-system-x86_64' in output
+            qemu_output = run_command(test_cmd)[1]
+            assert 'qemu-system-x86_64' in qemu_output
             pid_after = run_command(pid_cmd)[1]
             assert pid_after != pid_before
         except:
