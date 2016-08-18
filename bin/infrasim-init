@@ -100,21 +100,19 @@ def prepare_seabios():
         os.mkdir("/usr/local/share/qemu")
 
     run_command('echo "allow br0" > /etc/qemu/bridge.conf')
-    run_command("cp -rap /usr/share/qemu/keymaps /usr/local/share/qemu/")
-    run_command("cp -rap /usr/share/seabios/* /usr/local/share/qemu")
-    run_command("cp -rap /usr/lib/ipxe/qemu/* /usr/local/share/qemu")
-    run_command("cp /usr/share/misc/sgabios.bin /usr/local/share/qemu/")
-    run_command("cp /usr/lib/qemu/qemu-bridge-helper /usr/local/libexec/qemu-bridge-helper")
+    run_command("cp  /usr/bin/qemu-system-x86_64 /usr/local/bin/")
+    run_command("cp  /bin/ipmi_sim /usr/local/bin/")
+    run_command("cp -rap /usr/share/qemu/*  /usr/local/share/qemu/")
 
 if __name__ == "__main__":
     try:
-        get_socat()
-        get_ipmi()
-        get_qemu()
         create_infrasim_directories()
         create_infrasim_conf()
         prepare_libraries()
         prepare_seabios()
+        get_socat()
+        get_ipmi()
+        get_qemu()
         print "Infrasim init OK"
     except CommandNotFound as e:
         print "command:{} not found\n" \
