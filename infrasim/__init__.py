@@ -31,30 +31,8 @@ def run_command(cmd="", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PI
         else:
             result = cmd
         logger.error(result)
-        raise CommandRunFailed(result)
+        raise CommandRunFailed(result, cmd_result[0])
     return 0, cmd_result[0]
-
-
-def run_command_anyway(cmd="", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
-    """
-    Difference from run_command: doesn't raise error if cmd_return_code is not 0
-    :param cmd: the command should run
-    :param shell: if the type of cmd is string, shell should be set as True, otherwise, False
-    :param stdout: reference subprocess module
-    :param stderr: reference subprocess module
-    :return: tuple (return code, output)
-    """
-    child = subprocess.Popen(cmd, shell=shell, stdout=stdout, stderr=stderr)
-    cmd_result = child.communicate()
-    cmd_return_code = child.returncode
-    if cmd_return_code != 0:
-        result = ""
-        if cmd_result[1] is not None:
-            result = cmd + ":" + cmd_result[1]
-        else:
-            result = cmd
-        logger.error(result)
-    return cmd_return_code, cmd_result[0]
 
 
 def has_option(config, *args):
@@ -102,7 +80,9 @@ class PackageNotFound(InfraSimError):
 
 
 class CommandRunFailed(InfraSimError):
-    pass
+    def __init__(self, value, output):
+        self.value = value
+        self.output = output
 
 
 class ArgsNotCorrect(InfraSimError):

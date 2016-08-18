@@ -4,9 +4,10 @@
 import sys
 import yaml
 import netifaces
-from infrasim import ipmi, socat, run_command, run_command_anyway, qemu, CommandRunFailed, ArgsNotCorrect, has_option
+from infrasim import ipmi, socat, run_command, qemu, CommandRunFailed, ArgsNotCorrect, has_option
 
 INFRASIM_CONF = "/etc/infrasim/infrasim.yml"
+VERSION_CONF = "/usr/local/etc/infrasim/conf/version.yml"
 
 if __name__ == '__main__':
 
@@ -36,7 +37,7 @@ if __name__ == '__main__':
 
     try:
         if len(sys.argv) < 2:
-            print "{} start|stop|status|restart".format(sys.argv[0])
+            print "{} start|stop|status|restart|version".format(sys.argv[0])
             sys.exit(0)
 
         if sys.argv[1] == "start":
@@ -61,14 +62,21 @@ if __name__ == '__main__':
             socat.start_socat()
             ipmi.start_ipmi()
         elif sys.argv[1] == "version":
+            qemu_ver_cmd = qemu.get_qemu() + " --version"
+            ipmi_ver_cmd = ipmi.get_ipmi() + " -v"
+            socat_ver_cmd = socat.get_socat() + " -V"
             print "Kernel:  ", run_command("uname -sr")[1].split('\n')[0]
             print "Base OS: ", run_command("cat /etc/issue")[1].split('\\')[0]
-            print "QEMU:    ", run_command("qemu-system-x86_64 --version")[1].split(',')[0]
-            print "OpenIPMI:", run_command_anyway("ipmi_sim -v")[1].split('\n')[0]
-            print "Socat:   ", ' '.join(run_command("socat -V")[1].split('\n')[1].split(' ')[0:3])
-            print "InfraSIM:"
+            print "QEMU:    ", run_command(qemu_ver_cmd)[1].split(',')[0]
+            try:
+                print "OpenIPMI:", run_command(ipmi_ver_cmd)[1].split('\n')[0]
+            except CommandRunFailed as e:
+                print str(e.output).split('\n')[0]
+            print "Socat:   ", ' '.join(run_command(socat_ver_cmd)[1].split('\n')[1].split(' ')[0:3])
+            with open(VERSION_CONF, 'r') as v_yml:
+                print "InfraSIM: infrasim-compute version", yaml.load(v_yml)["version"]
         else:
-            print "{} start|stop|status|restart".format(sys.argv[0])
+            print "{} start|stop|status|restart|version".format(sys.argv[0])
     except CommandRunFailed as e:
         print "{} run failed\n".format(e.value)
         print "Infrasim-main starts failed"
