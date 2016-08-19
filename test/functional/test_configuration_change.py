@@ -7,6 +7,8 @@ import subprocess
 import os
 import yaml
 from infrasim import qemu
+from infrasim import ipmi
+from infrasim import socat
 
 VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.yml"
 CMD = "ps ax | grep qemu"
@@ -22,7 +24,7 @@ def run_command(cmd="", shell=True, stdout=None, stderr=None):
     return 0, cmd_result[0]
 
 
-class test_configuration_change(unittest.TestCase):
+class test_compute_configuration_change(unittest.TestCase):
 
     def setUp(self):
         os.system("touch test.yml")
@@ -90,3 +92,40 @@ class test_configuration_change(unittest.TestCase):
         assert "qemu-system-x86_64" in str_result
         assert ".infrasim/sda.img,format=qcow2" in str_result
         assert ".infrasim/sdb.img,format=qcow2" in str_result
+
+
+class test_bmc_configuration_change(unittest.TestCase):
+
+    def setUp(self):
+        os.system("touch test.yml")
+        with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+            self.conf = yaml.load(f_yml)
+
+    def tearDown(self):
+        self.conf = None
+        qemu.stop_qemu()
+        ipmi.stop_ipmi()
+        socat.stop_socat()
+        os.system("rm -rf test.yml")
+
+    def test_set_bmc_iol_port(self):
+        self.conf["bmc"] = {}
+        self.conf["bmc"]["ipmi_over_lan_port"] = 624
+        with open("test.yml", "w") as yaml_file:
+            yaml.dump(self.conf, yaml_file, default_flow_style=False)
+        socat.start_socat()
+        ipmi.start_ipmi("test.yml")
+
+        cmd = 'ipmitool -H 127.0.0.1 -U admin -P admin -p 624 -I lanplus ' \
+              'raw 0x06 0x01'
+        returncode, output = run_command(cmd,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+        assert returncode == 0
+
+        cmd = 'ipmitool -H 127.0.0.1 -U admin -P admin -p 623 -I lanplus ' \
+              'raw 0x06 0x01'
+        returncode, output = run_command(cmd,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+        assert returncode != 0

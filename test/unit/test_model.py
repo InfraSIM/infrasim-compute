@@ -5,6 +5,7 @@ import os
 import unittest
 from infrasim import ArgsNotCorrect
 from infrasim import model
+from infrasim import socat
 
 
 class qemu_functions(unittest.TestCase):
@@ -86,4 +87,406 @@ class qemu_functions(unittest.TestCase):
             cpu.handle_parms()
             assert "-cpu host,+nx" in cpu.get_option()
         except:
+            assert False
+
+
+class bmc_configuration(unittest.TestCase):
+
+    VBMC_CONF = "/etc/infrasim/vbmc.conf"
+
+    @classmethod
+    def setUpClass(cls):
+        socat.stop_socat()
+        socat.start_socat()
+
+    @classmethod
+    def tearDownClass(cls):
+        socat.stop_socat()
+
+    def test_set_bmc_type(self):
+        bmc = model.CBMC()
+
+        for node_type in ["quanta_d51", "quanta_t41",
+                          "dell_r630", "dell_c6320",
+                          "s2600kp", "s2600tp", "s2600wtt"]:
+            bmc.set_type(node_type)
+            bmc.init()
+            bmc.precheck()
+            cmd = bmc.get_commandline()
+            assert "/usr/local/etc/infrasim/{0}/{0}.emu".format(node_type) \
+                   in cmd
+
+    def test_set_bmc_lan_interface(self):
+        bmc_info = {
+            "interface": "lo"
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        with open(bmc.get_config_file(), 'r') as fp:
+            for line in fp.readlines():
+                if "lan_config_program" in line and "lo" in line:
+                    assert True
+                    return
+            assert False
+
+    def test_set_invalid_lan_control_script(self):
+        bmc_info = {
+            # Which doesn't exist
+            "lancontrol": "/etc/infrasim/lancontrol"
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "Lan control script" in str(e)
+        else:
+            assert False
+
+    def test_set_invalid_chassis_control_script(self):
+        bmc_info = {
+            # Which doesn't exist
+            "chassiscontrol": "/etc/infrasim/chassiscontrol"
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "Chassis control script" in str(e)
+        else:
+            assert False
+
+    def test_set_invalid_startcmd_script(self):
+        bmc_info = {
+            # Which doesn't exist
+            "startcmd": "/etc/infrasim/startcmd"
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "startcmd script" in str(e)
+        else:
+            assert False
+
+    def test_set_startnow_true(self):
+        bmc_info = {
+            "startnow": True
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        with open(bmc.get_config_file(), 'r') as fp:
+            if "startnow true" in fp.read():
+                assert True
+            else:
+                assert False
+
+    def test_set_startnow_false(self):
+        bmc_info = {
+            "startnow": False
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        with open(bmc.get_config_file(), 'r') as fp:
+            if "startnow false" in fp.read():
+                assert True
+            else:
+                assert False
+
+    def test_set_poweroff_wait(self):
+        bmc_info = {
+            "poweroff_wait": 0
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        with open(bmc.get_config_file(), 'r') as fp:
+            if "poweroff_wait 0" in fp.read():
+                assert True
+            else:
+                assert False
+
+    def test_set_poweroff_wait_negative(self):
+        bmc_info = {
+            "poweroff_wait": -1
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "poweroff_wait is expected to be >= 0," in str(e)
+        else:
+            assert False
+
+    def test_set_poweroff_wait_not_int(self):
+        bmc_info = {
+            "poweroff_wait": "a!"
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "poweroff_wait is expected to be integer," in str(e)
+        else:
+            assert False
+
+    def test_set_historyfru(self):
+        bmc_info = {
+            "historyfru": 11
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        with open(bmc.get_config_file(), 'r') as fp:
+            if "historyfru=11" in fp.read():
+                assert True
+            else:
+                assert False
+
+    def test_set_historyfru_negative(self):
+        bmc_info = {
+            "historyfru": -1
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "History FRU is expected to be >= 0," in str(e)
+        else:
+            assert False
+
+    def test_set_historyfru_not_int(self):
+        bmc_info = {
+            "historyfru": "a!"
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "History FRU is expected to be integer," in str(e)
+        else:
+            assert False
+
+    def test_set_kill_wait(self):
+        bmc_info = {
+            "kill_wait": 0
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        with open(bmc.get_config_file(), 'r') as fp:
+            if "kill_wait 0" in fp.read():
+                assert True
+            else:
+                assert False
+
+    def test_set_kill_wait_negative(self):
+        bmc_info = {
+            "kill_wait": -1
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "kill_wait is expected to be >= 0," in str(e)
+        else:
+            assert False
+
+    def test_set_kill_wait_not_int(self):
+        bmc_info = {
+            "kill_wait": "a!"
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "kill_wait is expected to be integer," in str(e)
+        else:
+            assert False
+
+    def test_set_username_password(self):
+        bmc_info = {
+            "username": "test_user",
+            "password": "test_password"
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        credential = "user 2 true  \"test_user\" \"test_password\" " \
+                     "admin    10       none md2 md5 straight"
+        with open(bmc.get_config_file(), 'r') as fp:
+            if credential in fp.read():
+                assert True
+            else:
+                assert False
+
+    def test_set_another_emu_file(self):
+        fn = "/etc/infrasim/test_emu"
+        os.system("touch {}".format(fn))
+
+        bmc_info = {
+            "emu_file": fn
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+        bmc.precheck()
+
+        assert "-f {}".format(fn) in bmc.get_commandline()
+        os.system("rm -rf {}".format(fn))
+
+    def test_set_invalid_emu_file(self):
+        fn = "/etc/infrasim/emu_test"
+        os.system("rm -rf {}".format(fn))
+
+        bmc_info = {
+            "emu_file": fn
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "Target emulation file doesn't exist:" in str(e)
+        else:
+            assert False
+
+    def test_set_another_config_file(self):
+        fn = "/etc/infrasim/test_conf"
+        os.system("touch {}".format(fn))
+
+        bmc_info = {
+            "config_file": fn
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+        bmc.precheck()
+
+        assert "-c {}".format(fn) in bmc.get_commandline()
+        os.system("rm -rf {}".format(fn))
+
+    def test_set_invalid_config_file(self):
+        fn = "/etc/infrasim/conf_test"
+        os.system("rm -rf {}".format(fn))
+
+        bmc_info = {
+            "config_file": fn
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "Target config file doesn't exist:" in str(e)
+        else:
+            assert False
+
+    def test_set_port_iol(self):
+        bmc_info = {
+            "ipmi_over_lan_port": 624
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        with open(bmc.get_config_file(), 'r') as fp:
+            if "addr :: 624" in fp.read():
+                assert True
+            else:
+                assert False
+
+    def test_set_port_iol_negative(self):
+        bmc_info = {
+            "ipmi_over_lan_port": -1
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "Port for IOL(IPMI over LAN) is expected to be >= 0," \
+                   in str(e)
+        else:
+            assert False
+
+    def test_set_port_iol_not_int(self):
+        bmc_info = {
+            "ipmi_over_lan_port": "a!"
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.init()
+
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "Port for IOL(IPMI over LAN) is expected to be integer," \
+                   in str(e)
+        else:
             assert False

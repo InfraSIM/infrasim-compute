@@ -657,18 +657,27 @@ class CCompute(Task, CElement):
         self.__bios = None
         self.__boot_order = "ncd"
         self.__qemu_bin = "qemu-system-x86_64"
-        self.__serial = 9003
         self.__cdrom_file = None
         self.__vendor_type = None
         # remember cpu object
         self.__cpu_obj = None
         self.__numactl_obj = None
 
+        # Node wise attributes
+        self.__port_qemu_ipmi = 9002
+        self.__port_serial = 9003
+
     def set_numactl(self, numactl_obj):
         self.__numactl_obj = numactl_obj
 
     def set_type(self, vendor_type):
         self.__vendor_type = vendor_type
+
+    def set_port_qemu_ipmi(self, port):
+        self.__port_qemu_ipmi = port
+
+    def set_port_serial(self, port):
+        self.__port_serial = port
 
     def precheck(self):
         # check if qemu-system-x86_64 exists
@@ -715,9 +724,6 @@ class CCompute(Task, CElement):
         if 'cdrom' in self.__compute:
             self.__cdrom_file = self.__compute['cdrom']
 
-        if 'serial' in self.__compute:
-            self.__serial = self.__compute['serial']
-
         cpu_obj = CCPU(self.__compute['cpu'])
         self.__element_list.append(cpu_obj)
         self.__cpu_obj = cpu_obj
@@ -734,7 +740,7 @@ class CCompute(Task, CElement):
         ipmi_obj = CIPMI({
             "interface": "kcs",
             "host": "127.0.0.1",
-            "bmc_connection_port": 9002
+            "bmc_connection_port": self.__port_qemu_ipmi
         })
         self.__element_list.append(ipmi_obj)
 
@@ -783,12 +789,14 @@ class CCompute(Task, CElement):
         if self.__cdrom_file:
             self.add_option("-cdrom {}".format(self.__cdrom_file))
 
-        self.add_option("-chardev socket,id=mon,host=127.0.0.1,port=2345,server,nowait ")
+        self.add_option("-chardev socket,id=mon,host=127.0.0.1,"
+                        "port=2345,server,nowait ")
 
         self.add_option("-mon chardev=mon,id=monitor")
 
-        if self.__serial:
-            self.add_option("-serial mon:udp:127.0.0.1:{},nowait".format(self.__serial))
+        if self.__port_serial:
+            self.add_option("-serial mon:udp:127.0.0.1:{},nowait".
+                            format(self.__port_serial))
 
         self.add_option("-uuid {}".format(str(uuid.uuid4())))
 
@@ -808,45 +816,142 @@ class CBMC(Task):
         self.__address = 0x20
         self.__channel = 1
         self.__lan_interface = None
-        self.__lancontrol_script = "scripts/lancontrol"
-        self.__chassiscontrol_script = "scripts/chassiscontrol"
-        self.__telnet_listen_port = None
-        self.__compute_connection_port = None
-        self.__startnow = False
+        self.__lancontrol_script = "/usr/local/etc/infrasim/script/lancontrol"
+        self.__chassiscontrol_script = "/usr/local/etc/infrasim/script/chassiscontrol"
+        self.__startcmd_script = "/usr/local/etc/infrasim/script/startcmd"
+        self.__startnow = "true"
         self.__poweroff_wait = 5
         self.__kill_wait = 1
-        self.__username = None
-        self.__password = None
+        self.__username = "admin"
+        self.__password = "admin"
         self.__emu_file = None
+        self.__config_file = None
         self.__bin = None
+        self.__port_iol = 623
+        self.__historyfru = 10
+
+        # Node wise attributes
         self.__vendor_type = None
+        self.__port_ipmi_console = 9000
+        self.__port_qemu_ipmi = 9002
+        self.__sol_device = "/etc/infrasim/pty0"
 
     def set_type(self, vendor_type):
         self.__vendor_type = vendor_type
 
+    def set_port_ipmi_console(self, port):
+        self.__port_ipmi_console = port
+
+    def set_port_qemu_ipmi(self, port):
+        self.__port_qemu_ipmi = port
+
+    def set_sol_device(self, device):
+        self.__sol_device = device
+
+    def get_config_file(self):
+        return self.__config_file
+
     def precheck(self):
         # check if ipmi_sim exists
-        # check script exits
-        # check ports are in use
-        # check lan interface exists
         try:
             code, ipmi_cmd = run_command("which /usr/local/bin/ipmi_sim")
             self.__bin = ipmi_cmd.strip(os.linesep)
-        except CommandRunFailed as e:
+        except CommandRunFailed:
             raise CommandNotFound("/usr/local/bin/ipmi_sim")
+
+        # check script exits
+        if not os.path.isfile(self.__lancontrol_script):
+            raise ArgsNotCorrect("Lan control script {} doesn\'t exist".
+                                 format(self.__lancontrol_script))
+
+        if not os.path.isfile(self.__chassiscontrol_script):
+            raise ArgsNotCorrect("Chassis control script {} doesn\'t exist".
+                                 format(self.__chassiscontrol_script))
+
+        if not os.path.isfile(self.__startcmd_script):
+            raise ArgsNotCorrect("startcmd script {} doesn\'t exist".
+                                 format(self.__chassiscontrol_script))
+
+        # check ports are in use
+        # check lan interface exists
+
+        # check if sol device exists
+        if not os.path.islink(self.__sol_device):
+            raise ArgsNotCorrect("SOL device {} doesn\'t exist".
+                                 format(self.__sol_device))
+
+        # check attribute
+        if self.__poweroff_wait < 0:
+            raise ArgsNotCorrect("poweroff_wait is expected to be >= 0, "
+                                 "it's set to {} now".
+                                 format(self.__poweroff_wait))
+
+        if type(self.__poweroff_wait) is not int:
+            raise ArgsNotCorrect("poweroff_wait is expected to be integer, "
+                                 "it's set to {} now".
+                                 format(self.__poweroff_wait))
+
+        if self.__kill_wait < 0:
+            raise ArgsNotCorrect("kill_wait is expected to be >= 0, "
+                                 "it's set to {} now".
+                                 format(self.__kill_wait))
+
+        if type(self.__kill_wait) is not int:
+            raise ArgsNotCorrect("kill_wait is expected to be integer, "
+                                 "it's set to {} now".
+                                 format(self.__kill_wait))
+
+        if self.__port_iol < 0:
+            raise ArgsNotCorrect("Port for IOL(IPMI over LAN) is expected "
+                                 "to be >= 0, it's set to {} now".
+                                 format(self.__port_iol))
+
+        if type(self.__port_iol) is not int:
+            raise ArgsNotCorrect("Port for IOL(IPMI over LAN) is expected "
+                                 "to be integer, it's set to {} now".
+                                 format(self.__port_iol))
+
+        if self.__historyfru < 0:
+            raise ArgsNotCorrect("History FRU is expected to be >= 0, "
+                                 "it's set to {} now".
+                                 format(self.__historyfru))
+
+        if type(self.__historyfru) is not int:
+            raise ArgsNotCorrect("History FRU is expected to be integer, "
+                                 "it's set to {} now".
+                                 format(self.__historyfru))
+
+        if not os.path.isfile(self.__emu_file):
+            raise ArgsNotCorrect("Target emulation file doesn't exist: {}".
+                                 format(self.__emu_file))
+
+        if not os.path.isfile(self.__config_file):
+            raise ArgsNotCorrect("Target config file doesn't exist: {}".
+                                 format(self.__config_file))
 
     def write_bmc_config(self):
 
         # Prepare default network
-        nics_list = netifaces.interfaces()
-        eth_nic = filter(lambda x: 'e' in x, nics_list)[0]
 
         # Render infrasim.conf
         bmc_conf = ""
         with open(self.__class__.VBMC_TEMP_CONF, "r") as f:
             bmc_conf = f.read()
         template = jinja2.Template(bmc_conf)
-        bmc_conf = template.render(nic=eth_nic)
+        bmc_conf = template.render(startcmd_script=self.__startcmd_script,
+                                   chassis_control_script=self.__chassiscontrol_script,
+                                   lan_control_script=self.__lancontrol_script,
+                                   lan_interface=self.__lan_interface,
+                                   username=self.__username,
+                                   password=self.__password,
+                                   port_qemu_ipmi=self.__port_qemu_ipmi,
+                                   port_ipmi_console=self.__port_ipmi_console,
+                                   port_iol=self.__port_iol,
+                                   sol_device=self.__sol_device,
+                                   poweroff_wait=self.__poweroff_wait,
+                                   kill_wait=self.__kill_wait,
+                                   startnow=self.__startnow,
+                                   historyfru=self.__historyfru)
         with open(self.__class__.VBMC_CONF, "w") as f:
             f.write(bmc_conf)
 
@@ -859,6 +964,9 @@ class CBMC(Task):
 
         if 'interface' in self.__bmc:
             self.__lan_interface = self.__bmc['interface']
+        else:
+            nics_list = netifaces.interfaces()
+            self.__lan_interface = filter(lambda x: 'e' in x, nics_list)[0]
 
         if 'lancontrol' in self.__bmc:
             self.__lancontrol_script = self.__bmc['lancontrol']
@@ -866,14 +974,14 @@ class CBMC(Task):
         if 'chassiscontrol' in self.__bmc:
             self.__chassiscontrol_script = self.__bmc['chassiscontrol']
 
-        if 'telnet_listen_port' in self.__bmc:
-            self.__telnet_listen_port = self.__bmc['telnet_listen_port']
-
-        if 'compute_connection_port' in self.__bmc:
-            self.__compute_connection_port = self.__bmc['compute_connection_port']
+        if 'startcmd' in self.__bmc:
+            self.__startcmd_script = self.__bmc['startcmd']
 
         if 'startnow' in self.__bmc:
-            self.__startnow = self.__bmc['startnow']
+            if self.__bmc['startnow']:
+                self.__startnow = "true"
+            else:
+                self.__startnow = "false"
 
         if 'poweroff_wait' in self.__bmc:
             self.__poweroff_wait = self.__bmc['poweroff_wait']
@@ -887,14 +995,30 @@ class CBMC(Task):
         if 'password' in self.__bmc:
             self.__password = self.__bmc['password']
 
+        if 'ipmi_over_lan_port' in self.__bmc:
+            self.__port_iol = self.__bmc['ipmi_over_lan_port']
+
+        if 'historyfru' in self.__bmc:
+            self.__historyfru = self.__bmc['historyfru']
+
         if 'emu_file' in self.__bmc:
             self.__emu_file = self.__bmc['emu_file']
+        else:
+            if not self.__vendor_type:
+                raise ArgsNotCorrect("Vendor type is null, "
+                                     "please set type first")
+            self.__emu_file = "/usr/local/etc/infrasim/{0}/{0}.emu".\
+                format(self.__vendor_type)
 
-        self.write_bmc_config()
+        if 'config_file' in self.__bmc:
+            self.__config_file = self.__bmc['config_file']
+        else:
+            self.__config_file = self.__class__.VBMC_CONF
+            self.write_bmc_config()
 
     def get_commandline(self):
-        ipmi_cmd_str = "{0} -c {1} -f /usr/local/etc/infrasim/{2}/{2}.emu -n -s /var/tmp".\
-            format(self.__bin, self.__class__.VBMC_CONF, self.__vendor_type)
+        ipmi_cmd_str = "{0} -c {1} -f {2} -n -s /var/tmp".\
+            format(self.__bin, self.__config_file, self.__emu_file)
         return ipmi_cmd_str
 
 
