@@ -89,6 +89,152 @@ class qemu_functions(unittest.TestCase):
         except:
             assert False
 
+    def test_set_ahci_storage_controller(self):
+        try:
+            backend_storage_info = [{
+                "controller": {
+                    "type": "ahci",
+                    "max_drive_per_controller": 6,
+                    "drives": [{"size": 8}]
+                }
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "-device ahci" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_scsi_storage_controller(self):
+        try:
+            backend_storage_info = [{
+                "controller": {
+                    "type": "scsi",
+                    "max_drive_per_controller": 8,
+                    "drives": [{"size": 8}]
+                }
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "-device scsi" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_ahci_storage_controller_2x(self):
+        try:
+            backend_storage_info = [{
+                "controller": {
+                    "type": "ahci",
+                    "max_drive_per_controller": 2,
+                    "drives": [{"size": 8}, {"size": 8}, {"size": 8}]
+                }
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "sata1.2" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_ahci_drive_model(self):
+        try:
+            backend_storage_info = [{
+                "controller": {
+                    "type": "ahci",
+                    "max_drive_per_controller": 6,
+                    "drives": [{"size": 8, "model": "SATADOM"}]
+                }
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "SATADOM" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_ahci_drive_serial(self):
+        try:
+            backend_storage_info = [{
+                "controller": {
+                    "type": "ahci",
+                    "max_drive_per_controller": 6,
+                    "drives": [
+                        {"size": 8, "model": "SATADOM", "serial": "HUSMM442"}
+                    ]
+                }
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "HUSMM442" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_scsi_drive_vender(self):
+        try:
+            backend_storage_info = [{
+                "controller": {
+                    "type": "megasas-gen2",
+                    "max_drive_per_controller": 6,
+                    "drives": [
+                        {"size": 8, "serial": "HUSMM442",
+                         "model": "SATADOM", "vendor": "Hitachi"}],
+                }
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "Hitachi" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_scsi_drive_rotation(self):
+        try:
+            backend_storage_info = [{
+                "controller": {
+                    "type": "megasas-gen2",
+                    "max_drive_per_controller": 6,
+                    "drives": [{
+                        "size": 8, "model": "SATADOM",
+                        "serial": "HUSMM442", "vendor": "Hitachi",
+                        "rotation": 1
+                    }]
+                }
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "rotation" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_scsi_drive_product(self):
+        try:
+            backend_storage_info = [{
+                "controller": {
+                    "type": "megasas-gen2",
+                    "max_drive_per_controller": 6,
+                    "drives": [{
+                            "size": 8, "model": "SATADOM",
+                            "serial": "HUSMM442", "vendor": "Hitachi",
+                            "rotation": 1, "product": "Quanta"}]
+                }
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "product" in storage.get_option()
+        except:
+            assert False
 
 class bmc_configuration(unittest.TestCase):
 

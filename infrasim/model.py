@@ -31,6 +31,7 @@ import uuid
 import signal
 import jinja2
 import netifaces
+import math
 from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound
 
 config_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), "config/chassis.yml")
@@ -189,7 +190,6 @@ class CDrive(CElement):
         super(CDrive, self).__init__()
         self.__drive = drive_info
         self.__index = None
-        self.__bus = "sata"  # ide/sata/scsi
         self.__vendor = None
         self.__model = None
         self.__serial = None
@@ -204,6 +204,7 @@ class CDrive(CElement):
         self.__format = "qcow2"
         self.__bus_address = None
         self.__size = 8
+        self.__controller_type = None
 
     def set_index(self, index):
         self.__index = index
@@ -211,11 +212,14 @@ class CDrive(CElement):
     def get_index(self):
         return self.__index
 
-    def get_bus_type(self):
-        return self.__bus
-
-    def set_bus_address(self, addr):
+    def set_bus(self, addr):
         self.__bus_address = addr
+
+    def set_controller_type(self, controller_type):
+        self.__controller_type = controller_type
+
+    def get_controller_type(self):
+        return self.__controller_type
 
     def precheck(self):
         """
@@ -225,19 +229,18 @@ class CDrive(CElement):
         pass
 
     def init(self):
-        # 'bus' would be one of three buses (ide, sata, scsi) in our case
-        if 'bus' in self.__drive:
-            self.__bus = self.__drive['bus']
-
-        if 'type' in self.__drive:
-            self.__type = self.__drive['type']
-
         if 'bootindex' in self.__drive:
             self.__bootindex = self.__drive['bootindex']
 
         # for ide-hd drive, there is no vendor properties
-        if 'vendor' in self.__drive and self.__bus == "scsi":
-            self.__vendor = self.__drive['vendor']
+        if self.__controller_type == "megasas" or \
+                self.__controller_type == "megasas-gen2":
+            self.__vendor = self.__drive['vendor'] if \
+                'vendor' in self.__drive else None
+
+        if self.__controller_type == "ahci":
+            self.__model = self.__drive['model'] if \
+                'model' in self.__drive else None
 
         if 'serial' in self.__drive:
             self.__serial = self.__drive['serial']
@@ -296,6 +299,11 @@ class CDrive(CElement):
         if self.__format:
             host_option = ",".join([host_option, "format={}".format(self.__format)])
 
+        if self.__controller_type == "ahci":
+            prefix = "sata"
+        else:
+            prefix = "scsi"
+
         host_option = ",".join([host_option, "if={}".format("none")])
         host_option = ",".join([host_option, "id=drive{}".format(self.__index)])
 
@@ -307,11 +315,10 @@ class CDrive(CElement):
 
         device_option = ""
 
-        # TODO:
-        # Fixme: might be not correct here? need redesign?
-        if self.__bus == "sata":
+        if self.__controller_type == "ahci":
             device_option = "ide-hd"
-        elif self.__bus == "scsi":
+        elif self.__controller_type.startswith("megasas") or \
+                self.__controller_type.startswith("lsi"):
             device_option = "scsi-hd"
         else:
             device_option = "ide-hd"
@@ -348,84 +355,111 @@ class CDrive(CElement):
         self.add_option(drive_option)
 
 
-class CBackendStorage(CElement):
-    def __init__(self, drive_info_list):
-        super(CBackendStorage, self).__init__()
-        self.__backend_drive_list = drive_info_list
+class CStorageController(CElement):
+    def __init__(self, controller_info):
+        super(CStorageController, self).__init__()
+        self.__controller_info = controller_info
+        self.__max_drive_per_controller = None
+        self.__controller_type = None
         self.__drive_list = []
-        # Backend info table:
-        # {
-        #   'ahci': [drive1, drive2, drive3, ...],
-        #   'lsi': [drive5, drive6, dirve7, ...],
-        #   ...
-        # }
-        self.__backend_info = {}
-
-        # {
-        #   'lsi': {
-        #       'max_drives': 8
-        #       'address': lsi0
-        #    }
-        # }
-        self.__controller_info = {}
-
-        self.__max_disks_per_controller = 8
+        # Only used for raid controller (megasas)
+        self.__use_jbod = None
 
     def precheck(self):
+        # Check controller params
+
+        # check each drive params
         for drive_obj in self.__drive_list:
             drive_obj.precheck()
 
     def init(self):
+        self.__max_drive_per_controller = \
+            self.__controller_info['controller']['max_drive_per_controller']
+        self.__controller_type = self.__controller_info['controller']['type']
+
+        if self.__controller_type == "ahci":
+            prefix = "sata"
+        else:
+            prefix = "scsi"
+
+        if 'use_jbod' in self.__controller_info['controller'] and \
+                (self.__controller_type == "megasas" or
+                    self.__controller_type == "megasas-gen2"):
+            self.__use_jbod = self.__controller_info['controller']['use_jbod']
+
         drive_index = 0
-        for drive in self.__backend_drive_list:
-            drive_obj = CDrive(drive)
+        controller_index = 0
+        for drive_info in self.__controller_info['controller']['drives']:
+            drive_obj = CDrive(drive_info)
             drive_obj.set_index(drive_index)
+            if drive_index > self.__max_drive_per_controller - 1:
+                controller_index += 1
+            drive_obj.set_controller_type(self.__controller_type)
+            if self.__controller_type == "ahci":
+                unit = drive_index
+            else:
+                unit = 0
+            drive_obj.set_bus("{}{}.{}".format(prefix, controller_index, unit))
             self.__drive_list.append(drive_obj)
             drive_index += 1
 
         for drive_obj in self.__drive_list:
             drive_obj.init()
 
-        # TODO:
-        # Fixme: might be not correct here? need redesign?
-        controller = None
-        for drive_obj in self.__drive_list:
-            bus_type = drive_obj.get_bus_type()
-            if bus_type == "sata":
-                controller = "ahci"
-            elif bus_type == "scsi":
-                controller = "mptsas1068"
-            elif bus_type == "ide":
-                print "TBD here"
-            else:
-                print "ERROR: should not get here"
+    def handle_params(self):
+        controller_option_list = []
+        drive_quantities = \
+            len(self.__controller_info['controller']['drives'])
+        controller_quantities = \
+            int(math.ceil(float(drive_quantities)
+                / self.__max_drive_per_controller))
+        if self.__controller_type == "ahci":
+            prefix = "sata"
+        else:
+            prefix = "scsi"
 
-            if controller not in self.__backend_info:
-                self.__backend_info[controller] = []
-
-            self.__backend_info[controller].append(drive_obj)
-
-        # TODO:
-        # If users set multiple different kind of storage
-        # controllers, how we handle such case? for example
-        # If users configured one AHCI controller for SATADOM disks,
-        # and configured one SAS controller for SAS disks.
-        for k in self.__backend_info.keys():
-            bus = "{}0".format(k)
-            for drive in self.__backend_info[k]:
-                bus_address = "{}.{}".format(bus, drive.get_index())
-                drive.set_bus_address(bus_address)
-
-    def handle_parms(self):
-        # TODO:
-        for k in self.__backend_info.keys():
-            self.add_option("-device {},id={}0".format(k, k))
+        for controller_index in range(0, controller_quantities):
+            controller_option_list.append(
+                "-device {}".format(
+                    self.__controller_info['controller']['type']))
+            controller_option_list.append(
+                "id={}{}".format(prefix, controller_index))
+            if self.__use_jbod is not None:
+                controller_option_list.append(
+                    "use_jbod={}".format(self.__use_jbod))
+            self.add_option("{}".format(",".join(controller_option_list)))
 
         for drive_obj in self.__drive_list:
             drive_obj.handle_parms()
 
         for drive_obj in self.__drive_list:
             self.add_option(drive_obj.get_option())
+
+
+class CBackendStorage(CElement):
+    def __init__(self, backend_storage_info):
+        super(CBackendStorage, self).__init__()
+        self.__backend_storage_info = backend_storage_info
+        self.__controller_list = []
+
+    def precheck(self):
+        for controller_obj in self.__controller_list:
+            controller_obj.precheck()
+
+    def init(self):
+        for controller in self.__backend_storage_info:
+            controller_obj = CStorageController(controller)
+            self.__controller_list.append(controller_obj)
+
+        for controller_obj in self.__controller_list:
+            controller_obj.init()
+
+    def handle_parms(self):
+        for controller_obj in self.__controller_list:
+            controller_obj.handle_params()
+
+        for controller_obj in self.__controller_list:
+            self.add_option(controller_obj.get_option())
 
 
 class CNetwork(CElement):
@@ -600,7 +634,7 @@ class Task(object):
         try:
             with open(pid_file, "r") as f:
                 pid = f.readline()
-        except Exception:
+        except Exception, e:
             return None
         return pid.strip()
 
@@ -731,7 +765,8 @@ class CCompute(Task, CElement):
         memory_obj = CMemory(self.__compute['memory'])
         self.__element_list.append(memory_obj)
 
-        backend_storage_obj = CBackendStorage(self.__compute['drives'])
+        backend_storage_obj = \
+            CBackendStorage(self.__compute['storage_backend'])
         self.__element_list.append(backend_storage_obj)
 
         backend_network_obj = CBackendNetwork(self.__compute['networks'])
@@ -1091,6 +1126,7 @@ class CNode(object):
             task.status()
 
 
+"""
 class CChassis(object):
     def __init__(self, chassis_info):
         self.__chassis = chassis_info
@@ -1134,7 +1170,7 @@ class CChassis(object):
     def status(self):
         for node_obj in self.__node_list:
             node_obj.status()
-
+"""
 
 class NumaCtl(object):
     def __init__(self):

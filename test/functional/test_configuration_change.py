@@ -80,10 +80,13 @@ class test_compute_configuration_change(unittest.TestCase):
         assert "-m 2048" in str_result
 
     def test_set_disk_drive(self):
-        self.conf["compute"]["drives"] = [
-            {"size": 32},
-            {"size": 32}
-        ]
+        self.conf["compute"]["storage_backend"] = [{
+            "controller": {
+                "type": "ahci",
+                "max_drive_per_controller": 6,
+                "drives": [{"size": 8}, {"size": 8}]
+            }
+        }]
         with open("test.yml", "w") as yaml_file:
             yaml.dump(self.conf, yaml_file, default_flow_style=False)
         qemu.start_qemu("test.yml")
