@@ -1059,7 +1059,39 @@ class CBMC(Task):
 
 class CSocat(Task):
     def __init__(self):
+        super(CSocat, self).__init__()
+
+        self.__bin = None
+
+        # Node wise attributes
+        self.__port_serial = 9003
+        self.__sol_device = "/etc/infrasim/pty0"
+
+    def set_port_serial(self, port):
+        self.__port_serial = port
+
+    def set_sol_device(self, device):
+        self.__sol_device = device
+
+    def precheck(self):
+
+        # check if socat exists
+        try:
+            code, socat_cmd = run_command("which /usr/bin/socat")
+            self.__bin = socat_cmd.strip(os.linesep)
+        except CommandRunFailed:
+            raise CommandNotFound("/usr/bin/socat")
+
+        # check ports are in use
+
+    def init(self):
         pass
+
+    def get_commandline(self):
+        socat_str = "{0} pty,link={1},waitslave " \
+                    "udp-listen:{2},reuseaddr,fork".\
+            format(self.__bin, self.__sol_device, self.__port_serial)
+        return socat_str
 
 
 class CNode(object):

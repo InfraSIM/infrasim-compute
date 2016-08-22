@@ -636,3 +636,20 @@ class bmc_configuration(unittest.TestCase):
                    in str(e)
         else:
             assert False
+
+
+class socat_configuration(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        socat.stop_socat()
+
+    def test_default_socat(self):
+        socat_obj = model.CSocat()
+
+        socat_obj.init()
+        socat_obj.precheck()
+        cmd = socat_obj.get_commandline()
+
+        assert "pty,link=/etc/infrasim/pty0,waitslave" in cmd
+        assert "udp-listen:9003,reuseaddr,fork" in cmd
