@@ -42,12 +42,6 @@ def create_infrasim_directories():
         os.system("rm -rf /etc/qemu")
         os.mkdir("/etc/qemu")
 
-    if os.path.exists('/usr/local/share/qemu') is False:
-        os.mkdir("/usr/local/share/qemu")
-    else:
-        os.system("rm -rf /usr/local/share/qemu")
-        os.mkdir("/usr/local/share/qemu")
-
     if os.path.exists('/usr/local/libexec') is False:
         os.mkdir("/usr/local/libexec")
     else:
@@ -100,9 +94,6 @@ def prepare_seabios():
         os.mkdir("/usr/local/share/qemu")
 
     run_command('echo "allow br0" > /etc/qemu/bridge.conf')
-    run_command("cp  /usr/bin/qemu-system-x86_64 /usr/local/bin/")
-    run_command("cp  /bin/ipmi_sim /usr/local/bin/")
-    run_command("cp -rap /usr/share/qemu/*  /usr/local/share/qemu/")
 
 if __name__ == "__main__":
     try:
