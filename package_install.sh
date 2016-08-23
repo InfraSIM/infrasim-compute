@@ -22,8 +22,8 @@ fail()
 }
     
 # install the packages with "apt-get install"
-sudo apt-get install -y socat ipmitool libssh-dev libpython-dev libffi-dev libyaml-dev
-[ $? != 0 ] && fail "sudo apt-get install -y socat ipmitool libssh-dev libpython-dev libffi-dev libyaml-dev fails"
+sudo apt-get install -y socat ipmitool libssh-dev libffi-dev libyaml-dev
+[ $? != 0 ] && fail "sudo apt-get install -y socat ipmitool libssh-dev libffi-dev libyaml-dev fails"
 
 # remove original packages
 dpkg -r infrasim-qemu
