@@ -18,13 +18,20 @@ Installation
 ------------
 
 1. Install dependency:
-    **sudo apt-get install socat ipmitool qemu openipmi python-pip libssl-dev libssh-dev libpython-dev libffi-dev sgabios libyaml-dev**
+    **sudo apt-get install python-pip libssl-dev**
 
 2. For Ubuntu 14.04/15.04, upgrade pip:
-    ** sudo pip install --upgrade pip**
+    **sudo pip install --upgrade pip**
 
-3. Install infrasim
-    **sudo pip install infrasim-compute**
+3. Two ways to install infrasim:
+    * install infrasim from source code:
+        **git clone https://github.com/InfraSIM/infrasim-compute.git**
+        **cd infrasim-compute**
+        **sudo pip install -r requirement.txt**
+        **sudo python setup.py install**
+
+    * install infrasim from python library:
+        **sudo pip install infrasim-compute**
 
 
 Start Infrasim Service

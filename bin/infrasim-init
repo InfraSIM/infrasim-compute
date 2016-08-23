@@ -42,12 +42,6 @@ def create_infrasim_directories():
         os.system("rm -rf /etc/qemu")
         os.mkdir("/etc/qemu")
 
-    if os.path.exists('/usr/local/share/qemu') is False:
-        os.mkdir("/usr/local/share/qemu")
-    else:
-        os.system("rm -rf /usr/local/share/qemu")
-        os.mkdir("/usr/local/share/qemu")
-
     if os.path.exists('/usr/local/libexec') is False:
         os.mkdir("/usr/local/libexec")
     else:
@@ -86,6 +80,7 @@ def create_infrasim_conf():
         f.write(vbmc_conf)
 
 def prepare_libraries():
+    run_command("sudo /usr/local/bin/package_install.sh", True, None, None)
     run_command("cp /usr/local/etc/infrasim/lib/* /usr/local/lib/", True, None, None)
     run_command("cd /usr/local/lib && ln -sf libIPMIlanserv.so.0.0.1 liblibIPMIlanserv.so.0")
     run_command("cd /usr/local/lib && ln -sf libIPMIlanserv.so.0.0.1 liblibIPMIlanserv.so")
@@ -96,26 +91,22 @@ def prepare_libraries():
     run_command("ldconfig")
 
 def prepare_seabios():
-    if os.path.exists('/usr/local/share/qemu') is False:
-        os.mkdir("/usr/local/share/qemu")
-
     run_command('echo "allow br0" > /etc/qemu/bridge.conf')
-    run_command("cp -rap /usr/share/qemu/keymaps /usr/local/share/qemu/")
-    run_command("cp -rap /usr/share/seabios/* /usr/local/share/qemu")
-    run_command("cp -rap /usr/lib/ipxe/qemu/* /usr/local/share/qemu")
-    run_command("cp /usr/share/misc/sgabios.bin /usr/local/share/qemu/")
-    run_command("cp /usr/lib/qemu/qemu-bridge-helper /usr/local/libexec/qemu-bridge-helper")
 
 if __name__ == "__main__":
     try:
-        get_socat()
-        get_ipmi()
-        get_qemu()
         create_infrasim_directories()
         create_infrasim_conf()
         prepare_libraries()
         prepare_seabios()
+        get_socat()
+        get_ipmi()
+        get_qemu()
         print "Infrasim init OK"
     except CommandNotFound as e:
         print "command:{} not found\n" \
               "Infrasim init failed".format(e.value)
+    except CommandRunFailed as e:
+        print "command:{} run failed\n" \
+              "Infrasim init failed".format(e.value)
+
