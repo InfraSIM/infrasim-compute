@@ -10,6 +10,7 @@ hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
 logger.setLevel(logging.NOTSET)
 
+
 def run_command(cmd="", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
     """
     :param cmd: the command should run
@@ -28,7 +29,7 @@ def run_command(cmd="", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PI
         else:
             result = cmd
         logger.error(result)
-        raise CommandRunFailed(result)
+        raise CommandRunFailed(result, cmd_result[0])
     return 0, cmd_result[0]
 
 
@@ -77,7 +78,9 @@ class PackageNotFound(InfraSimError):
 
 
 class CommandRunFailed(InfraSimError):
-    pass
+    def __init__(self, value, output):
+        self.value = value
+        self.output = output
 
 
 class ArgsNotCorrect(InfraSimError):
