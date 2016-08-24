@@ -1,16 +1,17 @@
 ---
 #This file is used as InfraSIM configuration file
 
-main:
-    #Supported vnode names:
-    #	quanta_d51
-    #	quanta_t41
-    #	dell_c6320
-    #	dell_r630
-    #	s2600kp
-    #	s2600tp
-    #	s2600wtt
-    node: quanta_d51
+#Node type of your infrasim compute, this will determine the
+#bmc emulation data and bios binary to use.
+#Supported compute node names:
+#	quanta_d51
+#	quanta_t41
+#	dell_c6320
+#	dell_r630
+#	s2600kp
+#	s2600tp
+#	s2600wtt
+type: quanta_d51
 
 node:
     #Set node cpu num, the default value is 2

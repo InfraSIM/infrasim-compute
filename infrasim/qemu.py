@@ -43,17 +43,17 @@ def stop_macvtap(eth):
         raise e
 
 
-def start_qemu(conf=VM_DEFAULT_CONFIG):
+def start_qemu(conf_file=VM_DEFAULT_CONFIG):
     try:
-        with open(conf, 'r') as f_yml:
+        with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
         compute = CCompute(conf["compute"])
         compute.set_type(conf["type"])
         compute.init()
         compute.precheck()
-        cmd = "{} 2>/var/log/qemu.log &".format(compute.get_commandline())
+        cmd = compute.get_commandline()
         logger.debug(cmd)
-        run_command(cmd, True, None, None)
+        run_command(cmd+" &", True, None, None)
 
         logger.info("qemu start")
     except CommandRunFailed as e:

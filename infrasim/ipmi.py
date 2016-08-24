@@ -23,9 +23,9 @@ def status_ipmi():
         print "Infrasim IPMI service is stopped"
 
 
-def start_ipmi(conf=VM_DEFAULT_CONFIG):
+def start_ipmi(conf_file=VM_DEFAULT_CONFIG):
     try:
-        with open(conf, 'r') as f_yml:
+        with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
         if "bmc" in conf:
             bmc = CBMC(conf["bmc"])
@@ -34,9 +34,9 @@ def start_ipmi(conf=VM_DEFAULT_CONFIG):
         bmc.set_type(conf["type"])
         bmc.init()
         bmc.precheck()
-        cmd = "{} > /var/log/openipmi.log &".format(bmc.get_commandline())
+        cmd = bmc.get_commandline()
         logger.debug(cmd)
-        run_command(cmd, True, None, None)
+        run_command(cmd+" &", True, None, None)
 
         logger.info("bmc start")
     except CommandRunFailed as e:

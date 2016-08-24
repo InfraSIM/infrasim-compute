@@ -4,7 +4,7 @@
 import sys
 import yaml
 import netifaces
-from infrasim import ipmi, socat, run_command, qemu, CommandRunFailed, ArgsNotCorrect, has_option
+from infrasim import ipmi, socat, run_command, qemu, CommandRunFailed, ArgsNotCorrect, has_option, model
 
 INFRASIM_CONF = "/etc/infrasim/infrasim.yml"
 VERSION_CONF = "/usr/local/etc/infrasim/conf/version.yml"
@@ -14,7 +14,6 @@ if __name__ == '__main__':
     with open(INFRASIM_CONF, 'r') as f_yml:
         conf = yaml.load(f_yml)
 
-    node = ""
     eth = ""
 
     if has_option(conf, "type"):
@@ -35,32 +34,32 @@ if __name__ == '__main__':
               "Please check infrasim configure file: {}".format(INFRASIM_CONF)
         sys.exit(-1)
 
+    node = model.CNode(conf)
+
     try:
         if len(sys.argv) < 2:
             print "{} start|stop|status|restart|version".format(sys.argv[0])
             sys.exit(0)
 
         if sys.argv[1] == "start":
-            socat.start_socat()
-            ipmi.start_ipmi()
+            node.init()
+            node.precheck()
+            node.start()
             print "Infrasim service started.\n" \
               "You can access virtual {} via vnc:{}:5901".format(node, netifaces.ifaddresses(eth)[netifaces.AF_INET][0]['addr'])
         elif sys.argv[1] == "stop":
-            qemu.stop_qemu()
-            ipmi.stop_ipmi()
-            socat.stop_socat()
+            node.init()
+            node.stop()
             print "Infrasim Service stopped"
         elif sys.argv[1] == "status":
-            qemu.status_qemu()
-            ipmi.status_ipmi()
-            socat.status_socat()
+            node.init()
+            node.status()
         elif sys.argv[1] == "restart":
-            qemu.stop_qemu()
-            ipmi.stop_ipmi()
-            socat.stop_socat()
+            node.init()
+            node.stop()
             print "Restart InfraSIM service..."
-            socat.start_socat()
-            ipmi.start_ipmi()
+            node.precheck()
+            node.start()
         elif sys.argv[1] == "version":
             qemu_ver_cmd = qemu.get_qemu() + " --version"
             ipmi_ver_cmd = ipmi.get_ipmi() + " -v"
@@ -78,6 +77,8 @@ if __name__ == '__main__':
         else:
             print "{} start|stop|status|restart|version".format(sys.argv[0])
     except CommandRunFailed as e:
+        import traceback
+        print traceback.format_exc()
         print "{} run failed\n".format(e.value)
         print "Infrasim-main starts failed"
     except ArgsNotCorrect as e:

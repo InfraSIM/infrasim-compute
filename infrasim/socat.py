@@ -24,9 +24,9 @@ def status_socat():
         print "Inrasim Socat service is stopped"
 
 
-def start_socat(conf=VM_DEFAULT_CONFIG):
+def start_socat(conf_file=VM_DEFAULT_CONFIG):
     try:
-        with open(conf, 'r') as f_yml:
+        with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
 
         socat = CSocat()
@@ -39,9 +39,9 @@ def start_socat(conf=VM_DEFAULT_CONFIG):
 
         socat.init()
         socat.precheck()
-        cmd = "{} &".format(socat.get_commandline())
+        cmd = socat.get_commandline()
 
-        run_command(cmd, True, None, None)
+        run_command(cmd+" &", True, None, None)
         time.sleep(3)
         logger.info("socat start")
     except CommandRunFailed as e:

@@ -21,7 +21,6 @@ For each element class, they need to implement methods:
         Compose all options in list to a command line string;
 """
 
-
 import fcntl
 import time
 import shlex
@@ -34,12 +33,10 @@ import netifaces
 import math
 from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound
 
-config_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), "config/chassis.yml")
-
 
 class Utility(object):
     @staticmethod
-    def execute_command(command):
+    def execute_command(command, log_path=""):
         args = shlex.split(command)
         proc = subprocess.Popen(args, stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE,
@@ -49,14 +46,22 @@ class Utility(object):
         flags = fcntl.fcntl(proc.stderr, fcntl.F_GETFL)
         fcntl.fcntl(proc.stderr, fcntl.F_SETFL, flags | os.O_NONBLOCK)
         time.sleep(1)
+
         errout = None
         try:
-            errout = proc.stderr.readline()
+            errout = proc.stderr.read()
         except IOError:
             pass
-
         if errout is not None:
-            raise Exception("command {} failed. caused: {}".format(command, errout))
+            if log_path:
+                with open(log_path, 'w') as fp:
+                    fp.write(errout)
+            else:
+                logger.error(errout)
+
+        if not os.path.isdir("/proc/{}".format(proc.pid)):
+            raise CommandRunFailed(command)
+
         return proc.pid
 
     @staticmethod
@@ -83,13 +88,13 @@ class CElement(object):
         self.__option_list = []
 
     def precheck(self):
-        raise NotImplemented("precheck is not implemented")
+        raise NotImplementedError("precheck is not implemented")
 
     def init(self):
-        raise NotImplemented("init is not implemented")
+        raise NotImplementedError("init is not implemented")
 
     def handle_parms(self):
-        raise NotImplemented("handle_parms is not implemented")
+        raise NotImplementedError("handle_parms is not implemented")
 
     def add_option(self, option):
         if option is None:
@@ -600,10 +605,11 @@ class Task(object):
         # |High |                | Low |
         # +-----+-----+-----+----+-----+
         self.__task_priority = None
-        self.__task_data = None
+        self.__task_directory = None
         self.__task_name = None
         self._node_id = None
         self.__debug = False
+        self.__log_path = ""
 
     def set_priority(self, priority):
         self.__task_priority = priority
@@ -618,19 +624,22 @@ class Task(object):
         return self.__task_name
 
     def get_commandline(self):
-        raise NotImplemented("get_commandline not implemented")
+        raise NotImplementedError("get_commandline not implemented")
 
-    def set_task_data(self, directory):
-        self.__task_data = directory
+    def set_task_directory(self, directory):
+        self.__task_directory = directory
 
-    def get_task_data(self):
-        return self.__task_data
+    def get_task_directory(self):
+        return self.__task_directory
 
     def set_node_id(self, node_id):
         self._node_id = node_id
 
+    def set_log_path(self, log_path):
+        self.__log_path = log_path
+
     def get_task_pid(self):
-        pid_file = "{}/.{}".format(self.__task_data, self.__task_name)
+        pid_file = "{}/.{}".format(self.__task_directory, self.__task_name)
         try:
             with open(pid_file, "r") as f:
                 pid = f.readline()
@@ -648,15 +657,16 @@ class Task(object):
             print "Task {} is already running. pid: {}".format(self.__task_name, pid)
             return
 
-        pid = Utility.execute_command(self.get_commandline())
+        pid = Utility.execute_command(self.get_commandline(),
+                                      log_path=self.__log_path)
         print "task {} is running. pid {}".format(self.__task_name, pid)
-        pid_file = "{}/.{}".format(self.__task_data, self.__task_name)
+        pid_file = "{}/.{}".format(self.__task_directory, self.__task_name)
         with open(pid_file, "w") as f:
             f.write("{}".format(pid))
 
     def terminate(self):
         task_pid = self.get_task_pid()
-        pid_file = "{}/.{}".format(self.__task_data, self.__task_name)
+        pid_file = "{}/.{}".format(self.__task_directory, self.__task_name)
         try:
             if task_pid:
                 print "Stop task {}, pid {}".format(self.__task_name, task_pid)
@@ -665,12 +675,14 @@ class Task(object):
                 if os.path.exists(pid_file):
                     os.remove(pid_file)
         except OSError:
+            import traceback
+            print traceback.format_exc()
             if os.path.exists(pid_file):
                 os.remove(pid_file)
             print("stop task {} failed.".format(self.__task_name))
 
     def status(self):
-        pid_file = "{}/.{}".format(self.__task_data, self.__task_name)
+        pid_file = "{}/.{}".format(self.__task_directory, self.__task_name)
         if not os.path.exists(pid_file):
             print "Task {} is stopped.".format(self.__task_name)
         else:
@@ -723,10 +735,12 @@ class CCompute(Task, CElement):
     def init(self):
         if 'name' in self.__compute:
             self.__name = self.__compute['name']
-            self.set_task_name(self.__name)
+            if not self.get_task_name():
+                self.set_task_name(self.__name)
         elif self.__vendor_type:
             self.__name = self.__vendor_type
-            self.set_task_name(self.__vendor_type)
+            if not self.get_task_name():
+                self.set_task_name(self.__vendor_type)
         else:
             raise ArgsNotCorrect('[model:compute] compute name is not set')
 
@@ -757,6 +771,13 @@ class CCompute(Task, CElement):
 
         if 'cdrom' in self.__compute:
             self.__cdrom_file = self.__compute['cdrom']
+
+        if 'numa_control' in self.__compute and self.__compute['numa_control']:
+            if os.path.exists("/usr/bin/numactl"):
+                self.set_numactl(NumaCtl())
+                logger.log('[model:compute] infrasim has enabled numa control')
+            else:
+                logger.log('[model:compute] infrasim can\'t find numactl in this environment')
 
         cpu_obj = CCPU(self.__compute['cpu'])
         self.__element_list.append(cpu_obj)
@@ -798,7 +819,7 @@ class CCompute(Task, CElement):
             bind_cpu_list = [str(x) for x in self.__numactl_obj.get_cpu_list(cpu_number)]
             if len(bind_cpu_list) > 0:
                 numactl_option = 'numactl --physcpubind={} --localalloc'.format(','.join(bind_cpu_list))
-                qemu_commandline = " ".join(numactl_option, qemu_commandline)
+                qemu_commandline = " ".join([numactl_option, qemu_commandline])
 
         return qemu_commandline
 
@@ -854,7 +875,7 @@ class CBMC(Task):
         self.__lancontrol_script = "/usr/local/etc/infrasim/script/lancontrol"
         self.__chassiscontrol_script = "/usr/local/etc/infrasim/script/chassiscontrol"
         self.__startcmd_script = "/usr/local/etc/infrasim/script/startcmd"
-        self.__startnow = "true"
+        self.__startnow = "false"
         self.__poweroff_wait = 5
         self.__kill_wait = 1
         self.__username = "admin"
@@ -909,11 +930,6 @@ class CBMC(Task):
 
         # check ports are in use
         # check lan interface exists
-
-        # check if sol device exists
-        if not os.path.islink(self.__sol_device):
-            raise ArgsNotCorrect("SOL device {} doesn\'t exist".
-                                 format(self.__sol_device))
 
         # check attribute
         if self.__poweroff_wait < 0:
@@ -1054,6 +1070,7 @@ class CBMC(Task):
     def get_commandline(self):
         ipmi_cmd_str = "{0} -c {1} -f {2} -n -s /var/tmp".\
             format(self.__bin, self.__config_file, self.__emu_file)
+
         return ipmi_cmd_str
 
 
@@ -1089,8 +1106,9 @@ class CSocat(Task):
 
     def get_commandline(self):
         socat_str = "{0} pty,link={1},waitslave " \
-                    "udp-listen:{2},reuseaddr,fork".\
+                    "udp-listen:{2},reuseaddr".\
             format(self.__bin, self.__sol_device, self.__port_serial)
+
         return socat_str
 
 
@@ -1098,8 +1116,8 @@ class CNode(object):
     def __init__(self, node_info):
         self.__tasks_list = []
         self.__node = node_info
-        self.__name = None
-        self.__node_id = None
+        self.__name = "infrasim-compute"
+        self.__node_id = 0
         self.__numactl_obj = None
 
     def set_numactl(self, numactl_obj):
@@ -1119,26 +1137,58 @@ class CNode(object):
         if self.__node['compute'] is None:
             raise Exception("No compute information")
 
-        if self.__node['bmc'] is None:
-            raise Exception("No BMC information")
-
         if 'node_id' in self.__node:
             self.__node_id = self.__node['node_id']
+
+        socat_obj = CSocat()
+        socat_obj.set_priority(0)
+        socat_obj.set_task_name("{}-{}-socat".format(self.__name, self.__node_id))
+        self.__tasks_list.append(socat_obj)
+
+        bmc_obj = CBMC(self.__node.get('bmc', {}))
+        bmc_obj.set_priority(1)
+        bmc_obj.set_task_name("{}-{}-bmc".format(self.__name, self.__node_id))
+        bmc_obj.set_log_path("/var/log/openipmi.log")
+        self.__tasks_list.append(bmc_obj)
 
         compute_obj = CCompute(self.__node['compute'])
         compute_obj.set_priority(2)
         compute_obj.set_node_id(self.__node_id)
-        compute_obj.set_numactl(self.__numactl_obj)
         compute_obj.set_task_name("{}-{}-node".format(self.__name, self.__node_id))
+        compute_obj.set_log_path("/var/log/qemu.log")
         self.__tasks_list.append(compute_obj)
 
-        bmc_obj = CBMC(self.__node['bmc'])
-        bmc_obj.set_priority(1)
-        bmc_obj.set_task_name("{}-{}-bmc".format(self.__name, self.__node_id))
-        self.__tasks_list.append(bmc_obj)
+        # Set interface
+        if "type" not in self.__node:
+            raise ArgsNotCorrect("Can't get infrasim type")
+        else:
+            bmc_obj.set_type(self.__node['type'])
+            compute_obj.set_type(self.__node['type'])
+
+        if "sol_device" in self.__node:
+            socat_obj.set_sol_device(self.__node["sol_device"])
+            bmc_obj.set_sol_device(self.__node["sol_device"])
+
+        if "serial_port" in self.__node:
+            socat_obj.set_port_serial(self.__node["serial_port"])
+            compute_obj.set_port_serial(self.__node["serial_port"])
+
+        if "ipmi_console_port" in self.__node:
+            bmc_obj.set_port_ipmi_console(self.__node["ipmi_console_port"])
+            # ipmi-console shall connect to same port with the same conf file
+
+        if "bmc_connection_port" in self.__node:
+            bmc_obj.set_port_qemu_ipmi(self.__node["bmc_connection_port"])
+            compute_obj.set_port_qemu_ipmi(self.__node["bmc_connection_port"])
+
+        # Prepare workspace
+        directory = "{}/.infrasim/node{}".\
+            format(os.environ['HOME'], self.__node_id)
+        if not os.path.isdir(directory):
+            os.system("mkdir -p {}".format(directory))
 
         for task in self.__tasks_list:
-            task.set_task_data("chassis/node{}".format(self.__node_id))
+            task.set_task_directory(directory)
             task.init()
 
     # Run tasks list as the priority
@@ -1150,6 +1200,9 @@ class CNode(object):
             task.run()
 
     def stop(self):
+        # sort the tasks as the priority in reversed sequence
+        self.__tasks_list.sort(key=lambda x: x.get_priority(), reverse=True)
+
         for task in self.__tasks_list:
             task.terminate()
 
@@ -1175,7 +1228,6 @@ class CChassis(object):
         for node in self.__chassis['nodes']:
             node_obj = CNode(node)
             node_obj.set_name(self.__chassis['name'])
-            node_obj.set_numactl(self.__numactl_obj)
             self.__node_list.append(node_obj)
 
         for node_obj in self.__node_list:
@@ -1237,3 +1289,4 @@ class NumaCtl(object):
                     return returned_cpu_list
 
         return returned_cpu_list
+

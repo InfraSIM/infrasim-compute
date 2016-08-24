@@ -652,4 +652,4 @@ class socat_configuration(unittest.TestCase):
         cmd = socat_obj.get_commandline()
 
         assert "pty,link=/etc/infrasim/pty0,waitslave" in cmd
-        assert "udp-listen:9003,reuseaddr,fork" in cmd
+        assert "udp-listen:9003,reuseaddr" in cmd
