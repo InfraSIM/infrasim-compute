@@ -244,9 +244,13 @@ class bmc_configuration(unittest.TestCase):
     def setUpClass(cls):
         socat.stop_socat()
         socat.start_socat()
+        os.mkdir("{}/.infrasim/.test".format(os.environ["HOME"]))
+        os.mkdir("{}/.infrasim/.test/data".format(os.environ["HOME"]))
+        os.system("touch {}/.infrasim/.test/data/vbmc.conf")
 
     @classmethod
     def tearDownClass(cls):
+        os.system("rm -rf {}/.infrasim/.test".format(os.environ["HOME"]))
         socat.stop_socat()
 
     def test_set_bmc_type(self):
@@ -270,63 +274,13 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         with open(bmc.get_config_file(), 'r') as fp:
             for line in fp.readlines():
                 if "lan_config_program" in line and "lo" in line:
                     assert True
                     return
-            assert False
-
-    def test_set_invalid_lan_control_script(self):
-        bmc_info = {
-            # Which doesn't exist
-            "lancontrol": "/etc/infrasim/lancontrol"
-        }
-
-        bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
-        bmc.init()
-
-        try:
-            bmc.precheck()
-        except ArgsNotCorrect, e:
-            assert "Lan control script" in str(e)
-        else:
-            assert False
-
-    def test_set_invalid_chassis_control_script(self):
-        bmc_info = {
-            # Which doesn't exist
-            "chassiscontrol": "/etc/infrasim/chassiscontrol"
-        }
-
-        bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
-        bmc.init()
-
-        try:
-            bmc.precheck()
-        except ArgsNotCorrect, e:
-            assert "Chassis control script" in str(e)
-        else:
-            assert False
-
-    def test_set_invalid_startcmd_script(self):
-        bmc_info = {
-            # Which doesn't exist
-            "startcmd": "/etc/infrasim/startcmd"
-        }
-
-        bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
-        bmc.init()
-
-        try:
-            bmc.precheck()
-        except ArgsNotCorrect, e:
-            assert "startcmd script" in str(e)
-        else:
             assert False
 
     def test_set_startnow_true(self):
@@ -337,6 +291,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         with open(bmc.get_config_file(), 'r') as fp:
             if "startnow true" in fp.read():
@@ -352,6 +307,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         with open(bmc.get_config_file(), 'r') as fp:
             if "startnow false" in fp.read():
@@ -367,6 +323,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         with open(bmc.get_config_file(), 'r') as fp:
             if "poweroff_wait 0" in fp.read():
@@ -382,6 +339,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         try:
             bmc.precheck()
@@ -398,6 +356,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         try:
             bmc.precheck()
@@ -414,6 +373,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         with open(bmc.get_config_file(), 'r') as fp:
             if "historyfru=11" in fp.read():
@@ -429,6 +389,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         try:
             bmc.precheck()
@@ -445,6 +406,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         try:
             bmc.precheck()
@@ -461,6 +423,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         with open(bmc.get_config_file(), 'r') as fp:
             if "kill_wait 0" in fp.read():
@@ -476,6 +439,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         try:
             bmc.precheck()
@@ -492,6 +456,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         try:
             bmc.precheck()
@@ -509,6 +474,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         credential = "user 2 true  \"test_user\" \"test_password\" " \
                      "admin    10       none md2 md5 straight"
@@ -529,6 +495,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
         bmc.precheck()
 
         assert "-f {}".format(fn) in bmc.get_commandline()
@@ -545,6 +512,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         try:
             bmc.precheck()
@@ -564,6 +532,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
         bmc.precheck()
 
         assert "-c {}".format(fn) in bmc.get_commandline()
@@ -580,6 +549,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.set_config_file(fn)
 
         try:
             bmc.precheck()
@@ -596,6 +566,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         with open(bmc.get_config_file(), 'r') as fp:
             if "addr :: 624" in fp.read():
@@ -611,6 +582,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         try:
             bmc.precheck()
@@ -628,6 +600,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.init()
+        bmc.write_bmc_config()
 
         try:
             bmc.precheck()

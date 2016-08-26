@@ -27,12 +27,15 @@ def start_ipmi(conf_file=VM_DEFAULT_CONFIG):
     try:
         with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
-        if "bmc" in conf:
-            bmc = CBMC(conf["bmc"])
-        else:
-            bmc = CBMC()
+
+        bmc = CBMC(conf.get('bmc', {}))
+        node_name = conf["name"] if "name" in conf else "node-0"
+        bmc.set_task_name("{}-bmc".format(node_name))
+        bmc.set_log_path("/var/log/infrasim/{}/openipmi.log".
+                         format(node_name))
         bmc.set_type(conf["type"])
         bmc.init()
+        bmc.write_bmc_config()
         bmc.precheck()
         cmd = bmc.get_commandline()
         logger.debug(cmd)

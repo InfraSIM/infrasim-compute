@@ -92,19 +92,19 @@ do_set() {
             pid=`pidof qemu-system-x86_64`
             if [ "x$val" = "x1" ]; then
                 if [ "x$pid" = "x" ]; then
-                    /usr/local/etc/infrasim/script/startcmd
+                    {{startcmd}}
                 else
                     do_log "host already powered on pid=$pid"
                 fi
             fi
             if [ "x$val" = "x0" ]; then
-                    /usr/local/etc/infrasim/script/stopcmd
+                    {{stopcmd}}
                     do_log "host stopped"
             fi
             ;;
 	    reset)
             do_log "receive reset signal parm=$parm val=$val"
-            /usr/local/etc/infrasim/script/resetcmd
+            {{resetcmd}}
             ;;
 	    boot)
             do_log "receive boot signal parm=$parm val=$val"

@@ -50,6 +50,7 @@ if __name__ == '__main__':
         elif sys.argv[1] == "stop":
             node.init()
             node.stop()
+            node.terminate_workspace()
             print "Infrasim Service stopped"
         elif sys.argv[1] == "status":
             node.init()
@@ -77,8 +78,6 @@ if __name__ == '__main__':
         else:
             print "{} start|stop|status|restart|version".format(sys.argv[0])
     except CommandRunFailed as e:
-        import traceback
-        print traceback.format_exc()
         print "{} run failed\n".format(e.value)
         print "Infrasim-main starts failed"
     except ArgsNotCorrect as e:

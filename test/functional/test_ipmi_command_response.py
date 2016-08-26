@@ -17,9 +17,8 @@ import os
 import subprocess
 import re
 import time
-from infrasim import qemu
-from infrasim import ipmi
-from infrasim import socat
+import yaml
+from infrasim import model
 from infrasim import CommandRunFailed
 
 # ipmitool commands to test
@@ -50,15 +49,25 @@ class test_ipmicommand_response(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        socat.start_socat()
-        ipmi.start_ipmi()
-        time.sleep(3)
+        node_info = {}
+        with open("/etc/infrasim/infrasim.yml", 'r') as f_yml:
+            node_info = yaml.load(f_yml)
+        node_info["name"] = "test"
+        node = model.CNode(node_info)
+        node.init()
+        node.precheck()
+        node.start()
 
     @classmethod
     def tearDownClass(cls):
-        qemu.stop_qemu()
-        ipmi.stop_ipmi()
-        socat.stop_socat()
+        node_info = {}
+        with open("/etc/infrasim/infrasim.yml", 'r') as f_yml:
+            node_info = yaml.load(f_yml)
+        node_info["name"] = "test"
+        node = model.CNode(node_info)
+        node.init()
+        node.stop()
+        node.terminate_workspace()
 
     def test_fru_print(self):
         try:

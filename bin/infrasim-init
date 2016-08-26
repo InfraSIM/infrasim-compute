@@ -49,6 +49,12 @@ def create_infrasim_directories():
         os.system("rm -rf /usr/local/libexec")
         os.mkdir("/usr/local/libexec")
 
+    if os.path.exists("/var/log/infrasim") is False:
+        os.mkdir("/var/log/infrasim")
+    else:
+        os.system("rm -rf /var/log/infrasim")
+        os.mkdir("/var/log/infrasim")
+
 
 def create_infrasim_conf():
 
