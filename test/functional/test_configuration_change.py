@@ -230,4 +230,3 @@ class test_connection(unittest.TestCase):
         str_result = run_command(PS_IPMI, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
         assert "dell_c6320.emu" in str_result
-

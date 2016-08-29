@@ -528,7 +528,8 @@ class CNetwork(CElement):
         elif self.__network_mode == "nat":
             network_option = "-net user -net nic"
         else:
-            raise Exception("ERROR: {} is not supported now.".format(self.__network_mode))
+            raise Exception("ERROR: {} is not supported now.".
+                            format(self.__network_mode))
 
         self.add_option(network_option)
 
@@ -590,7 +591,8 @@ class CIPMI(CElement):
     def handle_parms(self):
         chardev_option = ','.join(["socket", 'id=ipmi0',
                                    'host={}'.format(self.__host),
-                                   'port={}'.format(self.__bmc_connection_port),
+                                   'port={}'.
+                                  format(self.__bmc_connection_port),
                                    'reconnect=10'])
         bmc_option = ','.join(['ipmi-bmc-extern', 'chardev=ipmi0', 'id=bmc0'])
         interface_option = ','.join(['isa-ipmi-kcs', 'bmc=bmc0'])
@@ -666,7 +668,8 @@ class Task(object):
                 if time.time()-start > 5:
                     break
             if pid is None:
-                print "[ {:<6} ] {} fail to start".format(pid, self.__task_name)
+                print "[ {:<6} ] {} fail to start".\
+                    format(pid, self.__task_name)
             else:
                 print "[ {:<6} ] {} run".format(pid, self.__task_name)
             return
@@ -678,7 +681,8 @@ class Task(object):
         pid = self.get_task_pid()
         if pid > 0:
             if os.path.exists("/proc/{}".format(pid)):
-                print "[ {:<6} ] {} is already running".format(pid, self.__task_name)
+                print "[ {:<6} ] {} is already running".\
+                    format(pid, self.__task_name)
                 return
             else:
                 os.remove("{}/.{}".format(self.__workspace, self.__task_name))
@@ -706,7 +710,8 @@ class Task(object):
             if not os.path.exists("/proc/{}".format(task_pid)):
                 pass
             else:
-                print("[ {:<6} ] {} stop failed.".format(task_pid, self.__task_name))
+                print("[ {:<6} ] {} stop failed.".
+                      format(task_pid, self.__task_name))
 
     def status(self):
         task_pid = self.get_task_pid()
@@ -719,7 +724,8 @@ class Task(object):
         else:
             task_pid = self.get_task_pid()
             if task_pid:
-                print "[ {:<6} ] {} is running.".format(task_pid, self.__task_name)
+                print "[ {:<6} ] {} is running.".\
+                    format(task_pid, self.__task_name)
 
 
 class CCompute(Task, CElement):
@@ -771,17 +777,21 @@ class CCompute(Task, CElement):
                     logger.log('[model:compute] infrasim has enabled kvm')
                 else:
                     self.__enable_kvm = False
-                    logger.warning('[model:compute] infrasim can\'t enable kvm on this environment')
+                    logger.warning('[model:compute] infrasim can\'t '
+                                   'enable kvm on this environment')
             else:
                 self.__enable_kvm = False
                 logger.log('[model:compute] infrasim doesn\'t enable kvm')
 
         if 'smbios' in self.__compute:
             self.__smbios = self.__compute['smbios']
-        elif os.path.exists("/usr/local/etc/infrasim/{0}/{0}_smbios.bin".format(self.__vendor_type)):
-            self.__smbios = "/usr/local/etc/infrasim/{0}/{0}_smbios.bin".format(self.__vendor_type)
+        elif os.path.exists("/usr/local/etc/infrasim/{0}/{0}_smbios.bin".
+                                    format(self.__vendor_type)):
+            self.__smbios = "/usr/local/etc/infrasim/{0}/{0}_smbios.bin".\
+                format(self.__vendor_type)
         else:
-            logger.warning('[model:compute] infrasim doesn\'t find proper SMBIOS file')
+            logger.warning('[model:compute] infrasim doesn\'t '
+                           'find proper SMBIOS file')
 
         if 'bios' in self.__compute:
             self.__bios = self.__compute['bios']
@@ -792,12 +802,15 @@ class CCompute(Task, CElement):
         if 'cdrom' in self.__compute:
             self.__cdrom_file = self.__compute['cdrom']
 
-        if 'numa_control' in self.__compute and self.__compute['numa_control']:
+        if 'numa_control' in self.__compute \
+                and self.__compute['numa_control']:
             if os.path.exists("/usr/bin/numactl"):
                 self.set_numactl(NumaCtl())
-                logger.log('[model:compute] infrasim has enabled numa control')
+                logger.log('[model:compute] infrasim has '
+                           'enabled numa control')
             else:
-                logger.log('[model:compute] infrasim can\'t find numactl in this environment')
+                logger.log('[model:compute] infrasim can\'t '
+                           'find numactl in this environment')
 
         cpu_obj = CCPU(self.__compute['cpu'])
         self.__element_list.append(cpu_obj)
@@ -1048,7 +1061,8 @@ class CBMC(Task):
         if 'lancontrol' in self.__bmc:
             self.__lancontrol_script = self.__bmc['lancontrol']
         else:
-            self.__lancontrol_script = "/usr/local/etc/infrasim/script/lancontrol"
+            self.__lancontrol_script \
+                = "/usr/local/etc/infrasim/script/lancontrol"
 
         if 'chassiscontrol' in self.__bmc:
             self.__chassiscontrol_script = self.__bmc['chassiscontrol']
@@ -1256,13 +1270,21 @@ class CNode(object):
                     os.chmod(dst, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
             if not has_option(self.__node, "bmc", "startcmd"):
-                path_startcmd = os.path.join(self.workspace, "script", "startcmd")
+                path_startcmd = os.path.join(self.workspace,
+                                             "script",
+                                             "startcmd")
                 bmc_obj.set_startcmd_script(path_startcmd)
 
             if not has_option(self.__node, "bmc", "chassiscontrol"):
-                path_startcmd = os.path.join(self.workspace, "script", "startcmd")
-                path_stopcmd = os.path.join(self.workspace, "script", "stopcmd")
-                path_resetcmd = os.path.join(self.workspace, "script", "resetcmd")
+                path_startcmd = os.path.join(self.workspace,
+                                             "script",
+                                             "startcmd")
+                path_stopcmd = os.path.join(self.workspace,
+                                            "script",
+                                            "stopcmd")
+                path_resetcmd = os.path.join(self.workspace,
+                                             "script",
+                                             "resetcmd")
                 src = os.path.join(TEMPLATE_ROOT, "script", "chassiscontrol")
                 dst = os.path.join(self.workspace, "script", "chassiscontrol")
                 with open(src, "r") as f:
@@ -1279,10 +1301,16 @@ class CNode(object):
                 bmc_obj.set_chassiscontrol_script(path_chassiscontrol)
 
             if not has_option(self.__node, "bmc", "lancontrol"):
-                os.symlink(os.path.join(TEMPLATE_ROOT, "script", "lancontrol"),
-                           os.path.join(self.workspace, "script", "lancontrol"))
+                os.symlink(os.path.join(TEMPLATE_ROOT,
+                                        "script",
+                                        "lancontrol"),
+                           os.path.join(self.workspace,
+                                        "script",
+                                        "lancontrol"))
 
-                path_lancontrol = os.path.join(self.workspace, "script", "lancontrol")
+                path_lancontrol = os.path.join(self.workspace,
+                                               "script",
+                                               "lancontrol")
                 bmc_obj.set_lancontrol_script(path_lancontrol)
 
             # Render connection port/device
@@ -1478,4 +1506,3 @@ class NumaCtl(object):
                     return returned_cpu_list
 
         return returned_cpu_list
-
