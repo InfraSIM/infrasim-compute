@@ -27,6 +27,7 @@ class test_serial(unittest.TestCase):
     def tearDown(self):
         self.conf = None
         socat.stop_socat()
+        os.system("rm -rf {}/.infrasim/node-0/".format(os.environ["HOME"]))
         os.system("rm -rf test.yml")
 
     def test_socat_create_serial_device_file(self):

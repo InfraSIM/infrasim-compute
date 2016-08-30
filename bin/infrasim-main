@@ -46,7 +46,9 @@ if __name__ == '__main__':
             node.precheck()
             node.start()
             print "Infrasim service started.\n" \
-              "You can access virtual {} via vnc:{}:5901".format(node, netifaces.ifaddresses(eth)[netifaces.AF_INET][0]['addr'])
+              "You can access node {} via vnc:{}:5901".\
+                format(node.get_node_name(),
+                       netifaces.ifaddresses(eth)[netifaces.AF_INET][0]['addr'])
         elif sys.argv[1] == "stop":
             node.init()
             node.stop()

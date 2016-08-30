@@ -84,6 +84,7 @@ class test_ipmi_console(unittest.TestCase):
         qemu.stop_qemu()
         ipmi.stop_ipmi()
         socat.stop_socat()
+        os.system("rm -rf {}/.infrasim/node-0/".format(os.environ["HOME"]))
 
     def test_sensor_accessibility(self):
         self.channel.send('sensor info\n')

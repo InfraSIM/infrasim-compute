@@ -38,6 +38,7 @@ class test_compute_configuration_change(unittest.TestCase):
         qemu.stop_qemu("test.yml")
         self.conf = None
         os.system("rm -rf test.yml")
+        os.system("rm -rf {}/.infrasim/node-0/".format(os.environ["HOME"]))
 
     def test_set_vcpu(self):
         self.conf["compute"]["cpu"]["quantities"] = 8

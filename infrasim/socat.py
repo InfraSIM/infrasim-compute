@@ -4,7 +4,7 @@
 import os
 import time
 import yaml
-from infrasim.model import CSocat
+from infrasim.model import CSocat, CNode
 from . import run_command, logger, CommandNotFound, CommandRunFailed, VM_DEFAULT_CONFIG
 
 
@@ -29,6 +29,11 @@ def start_socat(conf_file=VM_DEFAULT_CONFIG):
         with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
 
+        node = CNode(conf)
+        if "name" in conf:
+            node.set_node_name(conf["name"])
+        node.init_workspace()
+
         socat = CSocat()
         # Read SOL device, serial port from conf
         # and set to socat
@@ -37,6 +42,7 @@ def start_socat(conf_file=VM_DEFAULT_CONFIG):
         if "serial_port" in conf:
             socat.set_port_serial(conf["serial_port"])
 
+        socat.set_workspace(node.workspace)
         socat.init()
         socat.precheck()
         cmd = socat.get_commandline()
@@ -48,7 +54,7 @@ def start_socat(conf_file=VM_DEFAULT_CONFIG):
         raise e
 
 
-def stop_socat():
+def stop_socat(conf_file=VM_DEFAULT_CONFIG):
     socat_stop_cmd = "pkill socat"
     try:
         run_command(socat_stop_cmd, True, None, None)

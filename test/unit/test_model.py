@@ -3,9 +3,11 @@
 
 import os
 import unittest
+import yaml
 from infrasim import ArgsNotCorrect
 from infrasim import model
 from infrasim import socat
+from infrasim import VM_DEFAULT_CONFIG
 
 
 class qemu_functions(unittest.TestCase):
@@ -236,22 +238,33 @@ class qemu_functions(unittest.TestCase):
         except:
             assert False
 
+
 class bmc_configuration(unittest.TestCase):
 
-    VBMC_CONF = "/etc/infrasim/vbmc.conf"
+    WORKSPACE = "{}/.infrasim/.test".format(os.environ["HOME"])
 
     @classmethod
     def setUpClass(cls):
-        socat.stop_socat()
-        socat.start_socat()
-        os.mkdir("{}/.infrasim/.test".format(os.environ["HOME"]))
-        os.mkdir("{}/.infrasim/.test/data".format(os.environ["HOME"]))
-        os.system("touch {}/.infrasim/.test/data/vbmc.conf")
+        with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+            conf = yaml.load(f_yml)
+        conf["name"] = ".test"
+        with open("test.yml", 'w') as f_yml:
+            yaml.dump(conf, f_yml, default_flow_style=False)
+
+        cls.node = model.CNode(conf)
+        cls.node.set_node_name(".test")
+        cls.node.init_workspace()
+        socat.start_socat("test.yml")
 
     @classmethod
     def tearDownClass(cls):
-        os.system("rm -rf {}/.infrasim/.test".format(os.environ["HOME"]))
-        socat.stop_socat()
+        socat.stop_socat("test.yml")
+        with open("test.yml", 'r') as f_yml:
+            conf = yaml.load(f_yml)
+        cls.node = model.CNode(conf)
+        cls.node.init()
+        cls.node.terminate_workspace()
+        os.system("rm test.yml")
 
     def test_set_bmc_type(self):
         bmc = model.CBMC()
@@ -261,7 +274,6 @@ class bmc_configuration(unittest.TestCase):
                           "s2600kp", "s2600tp", "s2600wtt"]:
             bmc.set_type(node_type)
             bmc.init()
-            bmc.precheck()
             cmd = bmc.get_commandline()
             assert "/usr/local/etc/infrasim/{0}/{0}.emu".format(node_type) \
                    in cmd
@@ -273,6 +285,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -290,6 +303,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -306,6 +320,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -322,6 +337,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -338,6 +354,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -355,6 +372,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -372,6 +390,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -388,6 +407,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -405,6 +425,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -422,6 +443,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -438,6 +460,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -455,6 +478,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -473,6 +497,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -494,6 +519,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
         bmc.precheck()
@@ -511,6 +537,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -531,6 +558,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
         bmc.precheck()
@@ -548,6 +576,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.set_config_file(fn)
 
@@ -565,6 +594,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -581,6 +611,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 
@@ -599,6 +630,7 @@ class bmc_configuration(unittest.TestCase):
 
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
 

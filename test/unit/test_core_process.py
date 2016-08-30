@@ -14,8 +14,27 @@ Check:
 from infrasim import qemu
 from infrasim import ipmi
 from infrasim import socat
+from infrasim import model
+from infrasim import VM_DEFAULT_CONFIG
 import time
-from nose.tools import assert_raises
+import yaml
+import os
+
+
+def setUp():
+    workspace = "{}/.infrasim/node-0".format(os.environ["HOME"])
+    if os.path.exists(workspace):
+        os.system("rm -rf {}".format(workspace))
+    with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+        conf = yaml.load(f_yml)
+    node = model.CNode(conf)
+    node.init_workspace()
+
+
+def tearDown():
+    workspace = "{}/.infrasim/node-0".format(os.environ["HOME"])
+    if os.path.exists(workspace):
+        os.system("rm -rf {}".format(workspace))
 
 
 def test_qemu_exist():
@@ -45,8 +64,7 @@ def test_socat_exist():
 def test_socat_process_start():
     try:
         socat.start_socat()
-        ipmi.start_ipmi()
-        time.sleep(3)
+        time.sleep(2)
         socat.status_socat()
         assert True
     except:
@@ -55,6 +73,8 @@ def test_socat_process_start():
 
 def test_ipmi_process_start():
     try:
+        ipmi.start_ipmi()
+        time.sleep(2)
         ipmi.status_ipmi()
         assert True
     except:

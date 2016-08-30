@@ -943,14 +943,29 @@ class CBMC(Task):
     def set_config_file(self, dst):
         self.__config_file = dst
 
+    def get_emu_file(self):
+        return self.__emu_file
+
+    def set_emu_file(self, path):
+        self.__emu_file = path
+
     def set_startcmd_script(self, path):
         self.__startcmd_script = path
+
+    def get_startcmd_script(self):
+        return self.__startcmd_script
 
     def set_chassiscontrol_script(self, path):
         self.__chassiscontrol_script = path
 
+    def get_chassiscontrol_script(self):
+        return self.__chassiscontrol_script
+
     def set_lancontrol_script(self, path):
         self.__lancontrol_script = path
+
+    def get_lancontrol_script(self):
+        return self.__lancontrol_script
 
     def precheck(self):
         # check if ipmi_sim exists
@@ -959,6 +974,19 @@ class CBMC(Task):
             self.__bin = ipmi_cmd.strip(os.linesep)
         except CommandRunFailed:
             raise CommandNotFound("/usr/local/bin/ipmi_sim")
+
+        # check script exits
+        if not os.path.exists(self.__lancontrol_script):
+            raise ArgsNotCorrect("Lan control script {} doesn\'t exist".
+                                 format(self.__lancontrol_script))
+
+        if not os.path.exists(self.__chassiscontrol_script):
+            raise ArgsNotCorrect("Chassis control script {} doesn\'t exist".
+                                 format(self.__chassiscontrol_script))
+
+        if not os.path.exists(self.__startcmd_script):
+            raise ArgsNotCorrect("startcmd script {} doesn\'t exist".
+                                 format(self.__chassiscontrol_script))
 
         # check ports are in use
         # check lan interface exists
@@ -1003,9 +1031,6 @@ class CBMC(Task):
             raise ArgsNotCorrect("History FRU is expected to be integer, "
                                  "it's set to {} now".
                                  format(self.__historyfru))
-
-        if not self.__sol_device and not self.get_workspace():
-            raise ArgsNotCorrect("No workspace or serial device is defined")
 
         # check configuration file exists
         if not os.path.isfile(self.__emu_file):
@@ -1060,15 +1085,27 @@ class CBMC(Task):
 
         if 'lancontrol' in self.__bmc:
             self.__lancontrol_script = self.__bmc['lancontrol']
+        elif self.get_workspace():
+            self.__lancontrol_script = os.path.join(self.get_workspace(),
+                                                    "script",
+                                                    "lancontrol")
         else:
             self.__lancontrol_script \
                 = "/usr/local/etc/infrasim/script/lancontrol"
 
         if 'chassiscontrol' in self.__bmc:
             self.__chassiscontrol_script = self.__bmc['chassiscontrol']
+        elif self.get_workspace():
+            self.__chassiscontrol_script = os.path.join(self.get_workspace(),
+                                                        "script",
+                                                        "chassiscontrol")
 
         if 'startcmd' in self.__bmc:
             self.__startcmd_script = self.__bmc['startcmd']
+        elif self.get_workspace():
+            self.__startcmd_script = os.path.join(self.get_workspace(),
+                                                  "script",
+                                                  "startcmd")
 
         if 'startnow' in self.__bmc:
             if self.__bmc['startnow']:
