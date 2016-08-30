@@ -9,7 +9,7 @@
 # besides, seabios binary file is also downloaded into expected folder
 
 
-openipmi_link="https://bintray.com/infrasim/deb/download_file?file_path=pool%2Fmain%2FO%2FOpenIpmi%2Finfrasim-openipmi_2.0.21-2.0_amd64.deb" 
+openipmi_link="https://bintray.com/infrasim/deb/download_file?file_path=pool%2Fmain%2FO%2FOpenIpmi%2Finfrasim-openipmi_1.0.13-1.0_amd64.deb"
 qemu_link="https://bintray.com/infrasim/deb/download_file?file_path=pool%2Fmain%2FQ%2FQemu%2Finfrasim-qemu_2.6.0-1.0_amd64.deb"
 seabios_link="https://bintray.com/infrasim/generic/download_file?file_path=infrasim-seabios_1.0-1_amd64.bin"
 seabios_file="bios-256k.bin"
