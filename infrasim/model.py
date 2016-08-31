@@ -724,7 +724,7 @@ class Task(object):
         else:
             task_pid = self.get_task_pid()
             if task_pid:
-                print "[ {:<6} ] {} is running.".\
+                print "[ {:<6} ] {} is running".\
                     format(task_pid, self.__task_name)
 
 
@@ -761,8 +761,23 @@ class CCompute(Task, CElement):
     def set_port_serial(self, port):
         self.__port_serial = port
 
+    def set_smbios(self, smbios):
+        self.__smbios = smbios
+
+    def get_smbios(self):
+        return self.__smbios
+
     def precheck(self):
         # check if qemu-system-x86_64 exists
+        try:
+            run_command("which {}".format(self.__qemu_bin))
+        except CommandRunFailed:
+            raise CommandNotFound(self.__qemu_bin)
+
+        # check if smbios exists
+        if not os.path.isfile(self.__smbios):
+            raise ArgsNotCorrect("Target SMBIOS file doesn't exist: {}".
+                                 format(self.__smbios))
 
         # check sub-elements
         for element in self.__element_list:
@@ -785,13 +800,14 @@ class CCompute(Task, CElement):
 
         if 'smbios' in self.__compute:
             self.__smbios = self.__compute['smbios']
-        elif os.path.exists("/usr/local/etc/infrasim/{0}/{0}_smbios.bin".
-                                    format(self.__vendor_type)):
+        elif self.get_workspace():
+            self.__smbios = os.path.join(self.get_workspace(),
+                                         "data",
+                                         "{}_smbios.bin".
+                                         format(self.__vendor_type))
+        else:
             self.__smbios = "/usr/local/etc/infrasim/{0}/{0}_smbios.bin".\
                 format(self.__vendor_type)
-        else:
-            logger.warning('[model:compute] infrasim doesn\'t '
-                           'find proper SMBIOS file')
 
         if 'bios' in self.__compute:
             self.__bios = self.__compute['bios']
@@ -915,7 +931,7 @@ class CBMC(Task):
         self.__password = "admin"
         self.__emu_file = None
         self.__config_file = ""
-        self.__bin = None
+        self.__bin = "/usr/local/bin/ipmi_sim"
         self.__port_iol = 623
         self.__historyfru = 10
 
@@ -970,10 +986,9 @@ class CBMC(Task):
     def precheck(self):
         # check if ipmi_sim exists
         try:
-            code, ipmi_cmd = run_command("which /usr/local/bin/ipmi_sim")
-            self.__bin = ipmi_cmd.strip(os.linesep)
+            run_command("which {}".format(self.__bin))
         except CommandRunFailed:
-            raise CommandNotFound("/usr/local/bin/ipmi_sim")
+            raise CommandNotFound(self.__bin)
 
         # check script exits
         if not os.path.exists(self.__lancontrol_script):
@@ -1385,10 +1400,18 @@ class CNode(object):
             shutil.copy(path_emu_src, os.path.join(path_emu_dst, "{}.emu".
                                                    format(node_type)))
 
-        # Place holder to change serial number
-
         # VII. Move bios.bin
-        # Place holder
+        path_bios_dst = os.path.join(self.workspace, "data")
+        if has_option(self.__node, "compute", "smbios"):
+            shutil.copy(self.__node["compute"]["smbios"], path_bios_dst)
+        else:
+            node_type = self.__node["type"]
+            path_bios_src = "/usr/local/etc/infrasim/{0}/{0}_smbios.bin".\
+                format(node_type)
+            shutil.copy(path_bios_src, os.path.join(path_emu_dst,
+                                                    "{}_smbios.bin".
+                                                    format(node_type)))
+        # Place holder to sync serial number
 
     def terminate_workspace(self):
         os.system("rm -rf {}".format(self.workspace))

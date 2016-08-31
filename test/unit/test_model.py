@@ -11,6 +11,7 @@ from infrasim import VM_DEFAULT_CONFIG
 
 
 class qemu_functions(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         os.system("touch test.yml")
@@ -238,6 +239,38 @@ class qemu_functions(unittest.TestCase):
         except:
             assert False
 
+    def test_set_smbios(self):
+        with open("/etc/infrasim/infrasim.yml", "r") as f_yml:
+            compute_info = yaml.load(f_yml)["compute"]
+        compute_info["smbios"] = "/etc/infrasim/test.smbios"
+
+        compute = model.CCompute(compute_info)
+        compute.init()
+        assert compute.get_smbios() == "/etc/infrasim/test.smbios"
+
+    def test_set_smbios_without_workspace(self):
+        with open("/etc/infrasim/infrasim.yml", "r") as f_yml:
+            compute_info = yaml.load(f_yml)["compute"]
+
+        compute = model.CCompute(compute_info)
+        compute.set_type("s2600kp")
+        compute.init()
+        assert compute.get_smbios() == \
+            "/usr/local/etc/infrasim/s2600kp/s2600kp_smbios.bin"
+
+    def test_set_smbios_with_type_and_workspace(self):
+        with open("/etc/infrasim/infrasim.yml", "r") as f_yml:
+            compute_info = yaml.load(f_yml)["compute"]
+        workspace = os.path.join(os.environ["HOME"], ".infrasim", ".test")
+
+        compute = model.CCompute(compute_info)
+        compute.set_type("s2600kp")
+        compute.set_workspace(workspace)
+        compute.init()
+        assert compute.get_smbios() == os.path.join(workspace,
+                                                    "data",
+                                                    "s2600kp_smbios.bin")
+
 
 class bmc_configuration(unittest.TestCase):
 
@@ -288,6 +321,7 @@ class bmc_configuration(unittest.TestCase):
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
+        bmc.precheck()
 
         with open(bmc.get_config_file(), 'r') as fp:
             for line in fp.readlines():
@@ -306,6 +340,7 @@ class bmc_configuration(unittest.TestCase):
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
+        bmc.precheck()
 
         with open(bmc.get_config_file(), 'r') as fp:
             if "startnow true" in fp.read():
@@ -323,6 +358,7 @@ class bmc_configuration(unittest.TestCase):
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
+        bmc.precheck()
 
         with open(bmc.get_config_file(), 'r') as fp:
             if "startnow false" in fp.read():
@@ -340,6 +376,7 @@ class bmc_configuration(unittest.TestCase):
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
+        bmc.precheck()
 
         with open(bmc.get_config_file(), 'r') as fp:
             if "poweroff_wait 0" in fp.read():
@@ -393,6 +430,7 @@ class bmc_configuration(unittest.TestCase):
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
+        bmc.precheck()
 
         with open(bmc.get_config_file(), 'r') as fp:
             if "historyfru=11" in fp.read():
@@ -446,6 +484,7 @@ class bmc_configuration(unittest.TestCase):
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
+        bmc.precheck()
 
         with open(bmc.get_config_file(), 'r') as fp:
             if "kill_wait 0" in fp.read():
@@ -500,6 +539,7 @@ class bmc_configuration(unittest.TestCase):
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
+        bmc.precheck()
 
         credential = "user 2 true  \"test_user\" \"test_password\" " \
                      "admin    10       none md2 md5 straight"
@@ -597,6 +637,7 @@ class bmc_configuration(unittest.TestCase):
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
+        bmc.precheck()
 
         with open(bmc.get_config_file(), 'r') as fp:
             if "addr :: 624" in fp.read():

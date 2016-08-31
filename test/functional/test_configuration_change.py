@@ -33,12 +33,16 @@ class test_compute_configuration_change(unittest.TestCase):
         os.system("touch test.yml")
         with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
             self.conf = yaml.load(f_yml)
+        self.conf["name"] = ".test"
+        node = model.CNode(self.conf)
+        node.set_node_name(self.conf["name"])
+        node.init_workspace()
 
     def tearDown(self):
         qemu.stop_qemu("test.yml")
         self.conf = None
         os.system("rm -rf test.yml")
-        os.system("rm -rf {}/.infrasim/node-0/".format(os.environ["HOME"]))
+        os.system("rm -rf {}/.infrasim/.test/".format(os.environ["HOME"]))
 
     def test_set_vcpu(self):
         self.conf["compute"]["cpu"]["quantities"] = 8
@@ -225,9 +229,10 @@ class test_connection(unittest.TestCase):
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
         assert "qemu-system-x86_64" in str_result
-        assert "-smbios file=/usr/local/etc/infrasim/" \
-               "dell_c6320/dell_c6320_smbios.bin" in str_result
+        assert "-smbios file={}/.infrasim/test/data/dell_c6320_smbios.bin".\
+            format(os.environ["HOME"]) in str_result
 
         str_result = run_command(PS_IPMI, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
-        assert "dell_c6320.emu" in str_result
+        assert "-f {}/.infrasim/test/data/dell_c6320.emu".\
+            format(os.environ["HOME"]) in str_result
