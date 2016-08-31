@@ -1322,6 +1322,9 @@ class CNode(object):
                 path_resetcmd = os.path.join(self.workspace,
                                              "script",
                                              "resetcmd")
+                path_qemu_pid = os.path.join(self.workspace,
+                                             ".{}-node".
+                                             format(self.get_node_name()))
                 src = os.path.join(TEMPLATE_ROOT, "script", "chassiscontrol")
                 dst = os.path.join(self.workspace, "script", "chassiscontrol")
                 with open(src, "r") as f:
@@ -1329,7 +1332,8 @@ class CNode(object):
                 template = jinja2.Template(src_text)
                 dst_text = template.render(startcmd=path_startcmd,
                                            stopcmd=path_stopcmd,
-                                           resetcmd=path_resetcmd)
+                                           resetcmd=path_resetcmd,
+                                           qemu_pid_file=path_qemu_pid)
                 with open(dst, "w") as f:
                     f.write(dst_text)
                 os.chmod(dst, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
