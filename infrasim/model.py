@@ -789,14 +789,14 @@ class CCompute(Task, CElement):
             if self.__compute['kvm_enabled']:
                 if os.path.exists("/dev/kvm"):
                     self.__enable_kvm = True
-                    logger.log('[model:compute] infrasim has enabled kvm')
+                    logger.info('[model:compute] infrasim has enabled kvm')
                 else:
                     self.__enable_kvm = False
                     logger.warning('[model:compute] infrasim can\'t '
                                    'enable kvm on this environment')
             else:
                 self.__enable_kvm = False
-                logger.log('[model:compute] infrasim doesn\'t enable kvm')
+                logger.info('[model:compute] infrasim doesn\'t enable kvm')
 
         if 'smbios' in self.__compute:
             self.__smbios = self.__compute['smbios']
@@ -822,10 +822,10 @@ class CCompute(Task, CElement):
                 and self.__compute['numa_control']:
             if os.path.exists("/usr/bin/numactl"):
                 self.set_numactl(NumaCtl())
-                logger.log('[model:compute] infrasim has '
+                logger.info('[model:compute] infrasim has '
                            'enabled numa control')
             else:
-                logger.log('[model:compute] infrasim can\'t '
+                logger.info('[model:compute] infrasim can\'t '
                            'find numactl in this environment')
 
         cpu_obj = CCPU(self.__compute['cpu'])
@@ -842,11 +842,19 @@ class CCompute(Task, CElement):
         backend_network_obj = CBackendNetwork(self.__compute['networks'])
         self.__element_list.append(backend_network_obj)
 
-        ipmi_obj = CIPMI({
-            "interface": "kcs",
-            "host": "127.0.0.1",
-            "bmc_connection_port": self.__port_qemu_ipmi
-        })
+        if has_option(self.__compute, "ipmi"):
+            ipmi_obj = CIPMI({
+                "interface": self.__compute["ipmi"].get("interface", "kcs"),
+                "host": self.__compute["ipmi"].get("host", "127.0.0.1"),
+                "bmc_connection_port": self.__port_qemu_ipmi
+            })
+        else:
+            ipmi_obj = CIPMI({
+                "interface": "kcs",
+                "host": "127.0.0.1",
+                "bmc_connection_port": self.__port_qemu_ipmi
+            })
+
         self.__element_list.append(ipmi_obj)
 
         for element in self.__element_list:
