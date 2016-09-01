@@ -495,8 +495,8 @@ class CNetwork(CElement):
         if 'network_mode' in self.__network:
             self.__network_mode = self.__network['network_mode']
 
-        if 'bridge' in self.__network:
-            self.__bridge_name = self.__network['bridge']
+        if 'network_name' in self.__network:
+            self.__bridge_name = self.__network['network_name']
 
         if 'device' in self.__network:
             self.__nic_name = self.__network['device']

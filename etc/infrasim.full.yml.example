@@ -6,6 +6,7 @@ type: quanta_d51
 
 compute:
     kvm_enabled: true
+    numa_control: true
     cpu:
         model: host
         features: +vmx
@@ -55,12 +56,12 @@ compute:
                     file: chassis/node1/sdc.img
     networks:
         -
-            type: bridge
-            bridge: br0
+            network_mode: bridge
+            network_name: br0
             device: vmxnet3
         -
-            type: bridge
-            bridge: br0
+            network_mode: bridge
+            network_name: br0
             device: vmxnet3
     ipmi:
         interface: bt
@@ -72,8 +73,11 @@ bmc:
     password: admin
     emu_file: chassis/node1/quanta_d51.emu
 
-# Used by ipmi_sim and
-bmc_connection_port: 9100
-
 # Renamed from telnet_listen_port to ipmi_console_port, extracted from bmc
 ipmi_console_port: 9000
+
+# Used by ipmi_sim and qemu
+bmc_connection_port: 9100
+
+# Used by socat and qemu
+serial_port: 9003
