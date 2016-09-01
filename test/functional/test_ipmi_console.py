@@ -69,7 +69,7 @@ class test_ipmi_console(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         socat.start_socat()
-        ipmi.start_ipmi('quanta_d51')
+        ipmi.start_ipmi()
         run_command('ipmi-console start &', True, None, None)
         time.sleep(5)
         cls.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -84,6 +84,7 @@ class test_ipmi_console(unittest.TestCase):
         qemu.stop_qemu()
         ipmi.stop_ipmi()
         socat.stop_socat()
+        os.system("rm -rf {}/.infrasim/node-0/".format(os.environ["HOME"]))
 
     def test_sensor_accessibility(self):
         self.channel.send('sensor info\n')

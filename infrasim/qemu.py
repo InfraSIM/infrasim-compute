@@ -5,11 +5,8 @@ import os
 import yaml
 import socket
 import time
-import netifaces
-from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect, has_option
+from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect, has_option, VM_DEFAULT_CONFIG
 from model import CCompute
-
-VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.yml"
 
 
 def get_qemu():
@@ -46,18 +43,46 @@ def stop_macvtap(eth):
         raise e
 
 
-def start_qemu(conf=VM_DEFAULT_CONFIG):
+def start_qemu(conf_file=VM_DEFAULT_CONFIG):
     try:
-        with open(conf, 'r') as f_yml:
+        with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
         compute = CCompute(conf["compute"])
+        node_name = conf["name"] if "name" in conf else "node-0"
+        workspace = "{}/.infrasim/{}".format(os.environ["HOME"], node_name)
+        if not os.path.isdir(workspace):
+            os.mkdir(workspace)
+        path_log = "/var/log/infrasim/{}".format(node_name)
+        if not os.path.isdir(path_log):
+            os.mkdir(path_log)
+
+        # Set attributes
+        compute.set_task_name("{}-node".format(node_name))
+        compute.set_log_path("/var/log/infrasim/{}/qemu.log".
+                             format(node_name))
+        compute.set_workspace("{}/.infrasim/{}".
+                              format(os.environ["HOME"], node_name))
+        compute.set_type(conf["type"])
+
+        # Set interface
+        if "type" not in conf:
+            raise ArgsNotCorrect("Can't get infrasim type")
+        else:
+            compute.set_type(conf['type'])
+
+        if "serial_port" in conf:
+            compute.set_port_serial(conf["serial_port"])
+
+        if "bmc_connection_port" in conf:
+            compute.set_port_qemu_ipmi(conf["bmc_connection_port"])
+
         compute.init()
         compute.precheck()
-        cmd = "{} 2>/var/log/qemu.log &".format(compute.get_commandline())
-        logger.debug(cmd)
-        run_command(cmd, True, None, None)
+        compute.run()
 
         logger.info("qemu start")
+
+        return
     except CommandRunFailed as e:
         logger.error(e.value)
         raise e
@@ -66,12 +91,37 @@ def start_qemu(conf=VM_DEFAULT_CONFIG):
         raise e
 
 
-def stop_qemu():
+def stop_qemu(conf_file=VM_DEFAULT_CONFIG):
     try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(("127.0.0.1",  2345))
-        sock.send("quit\n")
-        sock.close()
+        with open(conf_file, 'r') as f_yml:
+            conf = yaml.load(f_yml)
+        compute = CCompute(conf["compute"])
+        node_name = conf["name"] if "name" in conf else "node-0"
+
+        # Set attributes
+        compute.set_task_name("{}-node".format(node_name))
+        compute.set_log_path("/var/log/infrasim/{}/qemu.log".
+                             format(node_name))
+        compute.set_workspace("{}/.infrasim/{}".
+                              format(os.environ["HOME"], node_name))
+        compute.set_type(conf["type"])
+
+        # Set interface
+        if "type" not in conf:
+            raise ArgsNotCorrect("Can't get infrasim type")
+        else:
+            compute.set_type(conf['type'])
+
+        if "serial_port" in conf:
+            compute.set_port_serial(conf["serial_port"])
+
+        if "bmc_connection_port" in conf:
+            compute.set_port_qemu_ipmi(conf["bmc_connection_port"])
+
+        compute.init()
+        compute.terminate()
+
+        logger.info("qemu stopped")
     except Exception, e:
-        pass
-    logger.info("qemu stopped")
+        logger.error(e.value)
+        raise e

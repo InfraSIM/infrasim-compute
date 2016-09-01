@@ -36,10 +36,10 @@ set_working_mc 0x20
     #bmc_key "abcdefghijklmnopqrst"
 
     # A program to get and set the LAN configuration of the interface.
-    lan_config_program "/usr/local/etc/infrasim/lancontrol eth0"
+    lan_config_program "/usr/local/etc/infrasim/script/lancontrol eth0"
   endlan
 
-  chassis_control "/usr/local/etc/infrasim/chassiscontrol 0x20"
+  chassis_control "/usr/local/etc/infrasim/script/chassiscontrol 0x20"
 
   # Define a serial VM inteface for channel 15 (the system interface) on
   # port 9002, just available to the local system (localhost).
@@ -47,9 +47,9 @@ set_working_mc 0x20
 
   # startcmd is what to execute to start a VM associated with the
   # codec above (localhost 9002).  It also starts a console serial port
-  # on port 9003 that is also used as the monitor interface.
+  # as the monitor interface.
 
-  startcmd "/usr/local/etc/infrasim/startcmd"
+  startcmd "/usr/local/etc/infrasim/script/startcmd"
 
   # Set up telnet session for ipmi simulator on port 9000
   console 0.0.0.0 9000
