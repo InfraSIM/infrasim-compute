@@ -1,2 +1,2 @@
 #!/bin/bash
-python -c 'from infrasim import qemu; qemu.start_qemu()'
+python -c 'from infrasim import qemu; qemu.start_qemu("{{yml_file}}")'

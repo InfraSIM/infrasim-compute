@@ -1,16 +1,17 @@
 ---
 #This file is used as InfraSIM configuration file
 
-main:
-    #Supported vnode names:
-    #	quanta_d51
-    #	quanta_t41
-    #	dell_c6320
-    #	dell_r630
-    #	s2600kp
-    #	s2600tp
-    #	s2600wtt
-    node: quanta_d51
+#Node type of your infrasim compute, this will determine the
+#bmc emulation data and bios binary to use.
+#Supported compute node names:
+#	quanta_d51
+#	quanta_t41
+#	dell_c6320
+#	dell_r630
+#	s2600kp
+#	s2600tp
+#	s2600wtt
+type: quanta_d51
 
 node:
     #Set node cpu num, the default value is 2
@@ -34,27 +35,47 @@ node:
     #
     memory: 1024
 
-    #Set node disks num, the default is 1
-    #
-    disk_num: 1
+    storage_backend:
+        #Set drive list and define drive attributes
+        -
+            controller:
+                type: ahci
+                max_drive_per_controller: 8
+                drives:
 
-    #Set node disk size, the unit is GB.
-    #The default value is 8GB
-    #
-    disk_size: 8
+                -
+                    #Set node disk size, the unit is GB.
+                    #The default value is 8GB
+                    #
+                    size: 8
 
-    #Set node network mode for qemu. The options shuld be:
-    #	nat		--default
-    #	macvtap
-    #	bridge
-    network_mode: nat
 
-    #If you use bridge mode, please specify the network_name
-    network_name: ens33
+    networks:
+        #Set network list and define drive attributes
+        #
 
-    network_mac1: 52:54:00:ad:66:b5
-    #network_mac2: 52:54:00:ac:45:56
-    #network_mac3: 52:54:00:23:6f:13
+        -
+            #Set node network mode for qemu. The options should be:
+            #   nat             --default
+            #   macvtap
+            #   bridge
+            #
+            network_mode: nat
+
+            #If you use bridge mode, please specify this with bridge name
+            #
+            network_name: ens160
+
+            #Set network device for qemu. The options should be:
+            #   vmxnet3 --default
+            #   e1000
+            device: vmxnet3
+
+            #Set MAC for this network, this MAC is generated with
+            #datetime as random seed, but you can specify yours
+            #
+            mac: 00:60:16:9e:a8:e9
+
 
     #Set cdrom ISO file for OS Installation
     #cdrom=

@@ -13,10 +13,9 @@ Test ipmitool chassis control commands:
 
 import unittest
 import time
+import yaml
 
-from infrasim import qemu
-from infrasim import ipmi
-from infrasim import socat
+from infrasim import model
 from infrasim import run_command
 
 # command prefix for test cases
@@ -37,14 +36,24 @@ power_reset_cmd = cmd_prefix + 'power reset'
 
 class test_ipmi_command_chassis_control(unittest.TestCase):
     def setUp(self):
-        socat.start_socat()
-        ipmi.start_ipmi("quanta_d51")
-        time.sleep(3)
+        node_info = {}
+        with open("/etc/infrasim/infrasim.yml", 'r') as f_yml:
+            node_info = yaml.load(f_yml)
+        node_info["name"] = "test"
+        node = model.CNode(node_info)
+        node.init()
+        node.precheck()
+        node.start()
 
     def tearDown(self):
-        qemu.stop_qemu()
-        ipmi.stop_ipmi()
-        socat.stop_socat()
+        node_info = {}
+        with open("/etc/infrasim/infrasim.yml", 'r') as f_yml:
+            node_info = yaml.load(f_yml)
+        node_info["name"] = "test"
+        node = model.CNode(node_info)
+        node.init()
+        node.stop()
+        node.terminate_workspace()
 
     def test_chassis_power_off_on(self):
         try:
@@ -74,7 +83,7 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
         try:
             pid_before = run_command(pid_cmd)[1]
             run_command(power_cycle_cmd)
-            time.sleep(3)
+            time.sleep(5)
             qemu_output = run_command(test_cmd)[1]
             assert 'qemu-system-x86_64' in qemu_output
             pid_after = run_command(pid_cmd)[1]
@@ -87,7 +96,7 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
         try:
             pid_before = run_command(pid_cmd)[1]
             run_command(power_reset_cmd)
-            time.sleep(3)
+            time.sleep(5)
             qemu_output = run_command(test_cmd)[1]
             assert 'qemu-system-x86_64' in qemu_output
             pid_after = run_command(pid_cmd)[1]

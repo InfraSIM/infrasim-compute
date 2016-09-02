@@ -47,7 +47,11 @@ do_get() {
 	case $1 in
 	    power)
 		val=1
-		pid=`pidof qemu-system-x86_64`
+		if [ ! -f "{{qemu_pid_file}}" ]; then
+		    pid=""
+		else
+		    pid=`cat {{qemu_pid_file}}`
+		fi
 		if [ "x$pid" = "x" ]; then
 			val=0
 		fi
@@ -89,22 +93,26 @@ do_set() {
 	case $parm in
 	    power)
             do_log "receive power signal parm=$parm val=$val"
-            pid=`pidof qemu-system-x86_64`
+            if [ ! -f "{{qemu_pid_file}}" ]; then
+                pid=""
+            else
+                pid=`cat {{qemu_pid_file}}`
+            fi
             if [ "x$val" = "x1" ]; then
                 if [ "x$pid" = "x" ]; then
-                    /usr/local/etc/infrasim/script/startcmd
+                    {{startcmd}}
                 else
                     do_log "host already powered on pid=$pid"
                 fi
             fi
             if [ "x$val" = "x0" ]; then
-                    /usr/local/etc/infrasim/script/stopcmd
+                    {{stopcmd}}
                     do_log "host stopped"
             fi
             ;;
 	    reset)
             do_log "receive reset signal parm=$parm val=$val"
-            /usr/local/etc/infrasim/script/resetcmd
+            {{resetcmd}}
             ;;
 	    boot)
             do_log "receive boot signal parm=$parm val=$val"

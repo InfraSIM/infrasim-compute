@@ -3,12 +3,15 @@
 import logging
 import subprocess
 
+VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.yml"
+
 logger = logging.getLogger()
-hdlr = logging.FileHandler('/var/log/inframsim.log')
+hdlr = logging.FileHandler('/var/log/infrasim.log')
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
 logger.setLevel(logging.NOTSET)
+
 
 def run_command(cmd="", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
     """
@@ -28,7 +31,7 @@ def run_command(cmd="", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PI
         else:
             result = cmd
         logger.error(result)
-        raise CommandRunFailed(result)
+        raise CommandRunFailed(result, cmd_result[0])
     return 0, cmd_result[0]
 
 
@@ -77,7 +80,9 @@ class PackageNotFound(InfraSimError):
 
 
 class CommandRunFailed(InfraSimError):
-    pass
+    def __init__(self, value, output):
+        self.value = value
+        self.output = output
 
 
 class ArgsNotCorrect(InfraSimError):
