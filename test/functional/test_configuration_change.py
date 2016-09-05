@@ -33,22 +33,26 @@ class test_compute_configuration_change(unittest.TestCase):
         os.system("touch test.yml")
         with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
             self.conf = yaml.load(f_yml)
-        self.conf["name"] = ".test"
-        node = model.CNode(self.conf)
-        node.set_node_name(self.conf["name"])
-        node.init_workspace()
+        self.conf["name"] = "test"
 
     def tearDown(self):
-        qemu.stop_qemu("test.yml")
+        node = model.CNode(self.conf)
+        node.init()
+        node.stop()
+        node.terminate_workspace()
         self.conf = None
         os.system("rm -rf test.yml")
-        os.system("rm -rf {}/.infrasim/.test/".format(os.environ["HOME"]))
 
     def test_set_vcpu(self):
         self.conf["compute"]["cpu"]["quantities"] = 8
         with open("test.yml", "w") as yaml_file:
             yaml.dump(self.conf, yaml_file, default_flow_style=False)
-        qemu.start_qemu("test.yml")
+
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
         assert "qemu-system-x86_64" in str_result
@@ -58,7 +62,12 @@ class test_compute_configuration_change(unittest.TestCase):
         self.conf["compute"]["cpu"]["type"] = "IvyBridge"
         with open("test.yml", "w") as yaml_file:
             yaml.dump(self.conf, yaml_file, default_flow_style=False)
-        qemu.start_qemu("test.yml")
+
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
         assert "qemu-system-x86_64" in str_result
@@ -68,7 +77,12 @@ class test_compute_configuration_change(unittest.TestCase):
         self.conf["compute"]["memory"]["size"] = 1536
         with open("test.yml", "w") as yaml_file:
             yaml.dump(self.conf, yaml_file, default_flow_style=False)
-        qemu.start_qemu("test.yml")
+
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
         assert "qemu-system-x86_64" in str_result
@@ -84,7 +98,12 @@ class test_compute_configuration_change(unittest.TestCase):
         }]
         with open("test.yml", "w") as yaml_file:
             yaml.dump(self.conf, yaml_file, default_flow_style=False)
-        qemu.start_qemu("test.yml")
+
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
         assert "qemu-system-x86_64" in str_result
