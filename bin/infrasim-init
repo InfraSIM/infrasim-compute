@@ -5,7 +5,7 @@ import os
 import jinja2
 import random
 import string
-from infrasim import run_command, CommandNotFound
+from infrasim import run_command, CommandNotFound, CommandRunFailed
 from infrasim.socat import get_socat
 from infrasim.ipmi import get_ipmi
 from infrasim.qemu import get_qemu
@@ -81,13 +81,6 @@ def create_infrasim_conf():
 
 def prepare_libraries():
     run_command("sudo /usr/local/bin/package_install.sh", True, None, None)
-    run_command("cp /usr/local/etc/infrasim/lib/* /usr/local/lib/", True, None, None)
-    run_command("cd /usr/local/lib && ln -sf libIPMIlanserv.so.0.0.1 liblibIPMIlanserv.so.0")
-    run_command("cd /usr/local/lib && ln -sf libIPMIlanserv.so.0.0.1 liblibIPMIlanserv.so")
-    run_command("cd /usr/local/lib && ln -sf libOpenIPMIposix.so.0.0.1 libOpenIPMIposix.so.0")
-    run_command("cd /usr/local/lib && ln -sf libOpenIPMIposix.so.0.0.1 libOpenIPMIposix.so")
-    run_command("cd /usr/local/lib && ln -sf libOpenIPMIutils.so.0.0.1 libOpenIPMIutils.so.0")
-    run_command("cd /usr/local/lib && ln -sf libOpenIPMIutils.so.0.0.1 libOpenIPMIutils.so")
     run_command("ldconfig")
 
 
