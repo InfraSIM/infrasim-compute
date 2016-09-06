@@ -110,6 +110,60 @@ class test_compute_configuration_change(unittest.TestCase):
         assert ".infrasim/sda.img,format=qcow2" in str_result
         assert ".infrasim/sdb.img,format=qcow2" in str_result
 
+    def test_qemu_boot_from_disk_img(self):
+        test_img_file = "{}/cirros-0.3.4-x86_64-disk.img".\
+            format(os.environ['HOME'])
+        if os.path.exists(test_img_file) is False:
+            os.system("wget -c \
+                http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img \
+                -O {}".format(test_img_file))
+
+        if os.path.exists(test_img_file) is False:
+            assert False
+
+        self.conf["compute"]["storage_backend"] = [{
+            "controller": {
+                "type": "ahci",
+                "max_drive_per_controller": 6,
+                "drives": [{"size": 8, "file": test_img_file}]
+            }
+        }]
+        with open("test.yml", "w") as yaml_file:
+            yaml.dump(self.conf, yaml_file, default_flow_style=False)
+
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        import telnetlib
+        import paramiko
+        import time
+        tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
+        tn.read_until("(qemu)")
+        tn.write("hostfwd_add ::2222-:22\n")
+        tn.read_until("(qemu)")
+        tn.close()
+
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        paramiko.util.log_to_file("filename.log")
+        while True:
+            try:
+                ssh.connect("127.0.0.1", port=2222, username="cirros",
+                        password="cubswin:)", timeout=120)
+                ssh.close()
+                break
+            except paramiko.SSHException:
+                time.sleep(1)
+                continue
+            except Exception as e:
+                assert False
+                return
+
+        os.system("rm -rf {}".format(test_img_file))
+        assert True
+
 
 class test_bmc_configuration_change(unittest.TestCase):
 
