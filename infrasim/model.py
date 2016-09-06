@@ -663,9 +663,11 @@ class Task(object):
             start = time.time()
             while True:
                 pid = self.get_task_pid()
-                if pid is not None:
+                if time.time()-start > 10:
                     break
-                if time.time()-start > 5:
+                if pid == "":
+                    continue
+                if pid is not None:
                     break
             if pid is None:
                 print "[ {:<6} ] {} fail to start".\
@@ -702,6 +704,8 @@ class Task(object):
                 print "[ {:<6} ] {} stop".format(task_pid, self.__task_name)
                 os.kill(int(task_pid), signal.SIGTERM)
                 time.sleep(1)
+                if os.path.exists("/proc/{}".format(task_pid)):
+                    os.system("kill -9 {}".format(task_pid))
                 if os.path.exists(pid_file):
                     os.remove(pid_file)
         except OSError:
