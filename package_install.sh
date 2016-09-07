@@ -1,4 +1,9 @@
 #!/bin/bash
+'''
+*********************************************************
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
+'''
 
 # this script is used to install the necessary packages before starting infrasim-compute
 # the packages includes:
