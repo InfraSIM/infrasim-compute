@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+'''
+*********************************************************
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
+'''
 # -*- coding: utf-8 -*-
 """
 Test InfraSIM core component:
