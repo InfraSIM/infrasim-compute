@@ -1,9 +1,9 @@
 Infrasim-compute: bare-metal server simulator
 -----------------------------------------------------
 
-.. image:: https://img.shields.io/pypi/v/nine.svg?maxAge=2592000   :target: https://pypi.python.org/pypi/infrasim-compute
+[![Version](https://img.shields.io/pypi/v/nine.svg?maxAge=2592000)](https://pypi.python.org/pypi/infrasim-compute)
 
-.. image:: https://img.shields.io/pypi/dm/Django.svg?maxAge=2592000   :target: https://pypi.python.org/pypi/infrasim-compute
+[![Downloads](https://img.shields.io/pypi/dm/Django.svg?maxAge=2592000)](https://pypi.python.org/pypi/infrasim-compute)
 
 System Basic Requirements
 -------------------------
