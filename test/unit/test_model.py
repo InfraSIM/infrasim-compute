@@ -261,7 +261,7 @@ class qemu_functions(unittest.TestCase):
         compute.set_type("s2600kp")
         compute.init()
         assert compute.get_smbios() == \
-            "/usr/local/etc/infrasim/s2600kp/s2600kp_smbios.bin"
+            os.environ['HOME'] + "/.infrasim/data/s2600kp/s2600kp_smbios.bin"
 
     def test_set_smbios_with_type_and_workspace(self):
         with open("/etc/infrasim/infrasim.yml", "r") as f_yml:
@@ -313,7 +313,7 @@ class bmc_configuration(unittest.TestCase):
             bmc.set_type(node_type)
             bmc.init()
             cmd = bmc.get_commandline()
-            assert "/usr/local/etc/infrasim/{0}/{0}.emu".format(node_type) \
+            assert "{0}/{0}.emu".format(node_type) \
                    in cmd
 
     def test_set_bmc_lan_interface(self):

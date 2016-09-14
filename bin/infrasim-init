@@ -11,8 +11,8 @@ from infrasim.ipmi import get_ipmi
 from infrasim.qemu import get_qemu
 import netifaces
 
-INFRASIM_TEMP_CONF = "/usr/local/etc/infrasim/conf/infrasim.yml"
-INFRASIM_CONF = "/etc/infrasim/infrasim.yml"
+INFRASIM_TEMP_CONF = "/usr/local/infrasim/template/infrasim.yml"
+INFRASIM_CONF = os.environ['HOME'] + "/.infrasim/etc/infrasim.yml"
 
 mac_base = "00:60:16:"
 
@@ -30,6 +30,8 @@ def create_infrasim_directories():
     else:
         os.system("rm -rf " + os.environ['HOME'] + "/.infrasim")
         os.mkdir(os.environ['HOME'] + "/.infrasim")
+    os.mkdir(os.environ['HOME'] + "/.infrasim/data")
+    os.mkdir(os.environ['HOME'] + "/.infrasim/etc")
 
     if os.path.exists("/etc/infrasim") is False:
         os.mkdir("/etc/infrasim")
@@ -77,7 +79,7 @@ def create_infrasim_conf():
     infrasim_conf = template.render(disks=disks, networks=networks)
     with open(INFRASIM_CONF, "w") as f:
         f.write(infrasim_conf)
-
+    os.system("ln -sf {} /etc/infrasim/infrasim.yml".format(INFRASIM_CONF))
 
 def prepare_libraries():
     run_command("sudo /usr/local/bin/package_install.sh", True, None, None)
@@ -90,8 +92,8 @@ def prepare_seabios():
 if __name__ == "__main__":
     try:
         create_infrasim_directories()
-        create_infrasim_conf()
         prepare_libraries()
+        create_infrasim_conf()
         prepare_seabios()
         get_socat()
         get_ipmi()

@@ -41,8 +41,8 @@ import shutil
 import stat
 from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
 
-TEMPLATE_ROOT = "/usr/local/etc/infrasim"
-
+TEMPLATE_ROOT = os.environ['HOME'] + "/.infrasim/"
+TEMPLATE_SYSROOT = "/usr/local/infrasim/"
 
 class Utility(object):
     @staticmethod
@@ -815,7 +815,7 @@ class CCompute(Task, CElement):
                                          "{}_smbios.bin".
                                          format(self.__vendor_type))
         else:
-            self.__smbios = "/usr/local/etc/infrasim/{0}/{0}_smbios.bin".\
+            self.__smbios = TEMPLATE_ROOT + "data/{0}/{0}_smbios.bin".\
                 format(self.__vendor_type)
 
         if 'bios' in self.__compute:
@@ -928,8 +928,8 @@ class CCompute(Task, CElement):
 
 class CBMC(Task):
 
-    VBMC_TEMP_CONF = "/usr/local/etc/infrasim/conf/vbmc.conf"
-    VBMC_CONF = "/etc/infrasim/vbmc.conf"
+    VBMC_TEMP_CONF = TEMPLATE_SYSROOT + "template/vbmc.conf"
+    VBMC_CONF = TEMPLATE_ROOT + "etc/vbmc.conf"
 
     def __init__(self, bmc_info={}):
         super(CBMC, self).__init__()
@@ -1123,7 +1123,7 @@ class CBMC(Task):
                                                     "lancontrol")
         else:
             self.__lancontrol_script \
-                = "/usr/local/etc/infrasim/script/lancontrol"
+                = TEMPLATE_SYSROOT + "template/lancontrol"
 
         if 'chassiscontrol' in self.__bmc:
             self.__chassiscontrol_script = self.__bmc['chassiscontrol']
@@ -1171,7 +1171,7 @@ class CBMC(Task):
                                            "{}.emu".
                                            format(self.__vendor_type))
         else:
-            self.__emu_file = "/usr/local/etc/infrasim/{0}/{0}.emu".\
+            self.__emu_file = TEMPLATE_ROOT + "data/{0}/{0}.emu".\
                 format(self.__vendor_type)
 
         if 'config_file' in self.__bmc:
@@ -1328,7 +1328,7 @@ class CNode(object):
 
             for target in ["startcmd", "stopcmd", "resetcmd"]:
                 if not has_option(self.__node, "bmc", target):
-                    src = os.path.join(TEMPLATE_ROOT, "script", target)
+                    src = os.path.join(TEMPLATE_SYSROOT, "template", target)
                     dst = os.path.join(self.workspace, "script", target)
                     with open(src, "r")as f:
                         src_text = f.read()
@@ -1357,7 +1357,7 @@ class CNode(object):
                 path_qemu_pid = os.path.join(self.workspace,
                                              ".{}-node".
                                              format(self.get_node_name()))
-                src = os.path.join(TEMPLATE_ROOT, "script", "chassiscontrol")
+                src = os.path.join(TEMPLATE_SYSROOT, "template", "chassiscontrol")
                 dst = os.path.join(self.workspace, "script", "chassiscontrol")
                 with open(src, "r") as f:
                     src_text = f.read()
@@ -1374,8 +1374,8 @@ class CNode(object):
                 bmc_obj.set_chassiscontrol_script(path_chassiscontrol)
 
             if not has_option(self.__node, "bmc", "lancontrol"):
-                os.symlink(os.path.join(TEMPLATE_ROOT,
-                                        "script",
+                os.symlink(os.path.join(TEMPLATE_SYSROOT,
+                                        "template",
                                         "lancontrol"),
                            os.path.join(self.workspace,
                                         "script",
@@ -1412,7 +1412,7 @@ class CNode(object):
             shutil.copy(self.__node["bmc"]["emu_file"], path_emu_dst)
         else:
             node_type = self.__node["type"]
-            path_emu_src = "/usr/local/etc/infrasim/{0}/{0}.emu".\
+            path_emu_src = TEMPLATE_ROOT + "data/{0}/{0}.emu".\
                 format(node_type)
             shutil.copy(path_emu_src, os.path.join(path_emu_dst, "{}.emu".
                                                    format(node_type)))
@@ -1423,7 +1423,7 @@ class CNode(object):
             shutil.copy(self.__node["compute"]["smbios"], path_bios_dst)
         else:
             node_type = self.__node["type"]
-            path_bios_src = "/usr/local/etc/infrasim/{0}/{0}_smbios.bin".\
+            path_bios_src = TEMPLATE_ROOT + "data/{0}/{0}_smbios.bin".\
                 format(node_type)
             shutil.copy(path_bios_src, os.path.join(path_emu_dst,
                                                     "{}_smbios.bin".
