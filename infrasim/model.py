@@ -494,7 +494,15 @@ class CNetwork(CElement):
     def precheck(self):
         # Check if parameters are valid
         # bridge exists?
-        pass
+        if self.__network_mode == "bridge":
+            if self.__bridge_name is None:
+                if "br0" not in netifaces.interfaces():
+                    raise ArgsNotCorrect("ERROR: network_name(br0) is not exists")
+            else:
+                if self.__bridge_name not in netifaces.interfaces():
+                    raise ArgsNotCorrect("ERROR: network_name({}) is not exists".
+                            format(self.__bridge_name))
+
 
     def init(self):
         if 'network_mode' in self.__network:
@@ -548,7 +556,10 @@ class CBackendNetwork(CElement):
 
     def precheck(self):
         for network_obj in self.__network_list:
-            network_obj.precheck()
+            try:
+                network_obj.precheck()
+            except ArgsNotCorrect as e:
+                raise e
 
     def init(self):
         index = 0
@@ -790,7 +801,10 @@ class CCompute(Task, CElement):
 
         # check sub-elements
         for element in self.__element_list:
-            element.precheck()
+            try:
+                element.precheck()
+            except Exception as e:
+                raise e
 
     def init(self):
 
@@ -1263,7 +1277,10 @@ class CNode(object):
 
     def precheck(self):
         for task in self.__tasks_list:
-            task.precheck()
+            try:
+                task.precheck()
+            except ArgsNotCorrect as e:
+                raise e
 
     def init_workspace(self):
         """
