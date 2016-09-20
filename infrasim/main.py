@@ -82,6 +82,12 @@ def infrasim_main(arg):
     except CommandRunFailed as e:
         print "{} run failed\n".format(e.value)
         print "Infrasim-main starts failed"
+        node.init()
+        node.stop()
+        node.terminate_workspace()
     except ArgsNotCorrect as e:
         print "{} args is incorrect".format(e.value)
         print "infrasim-main starts failed"
+        node.init()
+        node.stop()
+        node.terminate_workspace()
