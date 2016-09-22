@@ -16,3 +16,4 @@ ssh==1.8.0
 coverage >=3.6
 nose-cov==1.6
 pyyaml==3.11
+requests==2.11.1

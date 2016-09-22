@@ -15,7 +15,9 @@
 # limitations under the License.
 
 # THIS FILE IS MANAGED BY THE GLOBAL REQUIREMENTS REPO - DO NOT EDIT
-import setuptools
+import re
+import json
+import fileinput
 
 # In python < 2.7.4, a lazy loading of package `pbr` will break
 # setuptools if some other modules registered functions in `atexit`.
@@ -24,6 +26,36 @@ try:
     import multiprocessing  # noqa
 except ImportError:
     pass
+import requests
+import setuptools
+
+
+def load_version(filename):
+    version = None
+    with open(filename) as verfile:
+        for line in verfile:
+            version = re.search('\d+.\d+.\d+', line)
+            if version is not None:
+                version = version.group()
+                break
+    return version
+
+ver = load_version("template/version.yml")
+if ver is not None:
+    for line in fileinput.input("setup.cfg", inplace=True):
+        print line,
+        if line.startswith("summary"):
+            print "version =", ver
+else:
+    r = requests.get("https://api.github.com/repos/Infrasim/infrasim-compute/releases/latest")
+    if r.ok:
+        data = json.loads(r.content)
+        ver = data['tag_name']
+    for line in fileinput.input("template/version.yml", inplace=True):
+        if line.startswith("version"):
+            print "version: ", ver,
+        else:
+            print line,
 
 setuptools.setup(
     setup_requires=['pbr'],
