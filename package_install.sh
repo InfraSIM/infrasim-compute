@@ -63,3 +63,5 @@ wget ${seabios_link} -O ${seabios_file} -q
 popd
 
 cp -rap /usr/local/infrasim/data/* ~/.infrasim/data/
+mkdir -pv /usr/local/etc/qemu
+ln -sf /etc/qemu/bridge.conf /usr/local/etc/qemu/bridge.conf

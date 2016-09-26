@@ -531,7 +531,7 @@ class CNetwork(CElement):
 
             netdev_option = ",".join(['bridge', 'id=netdev{}'.format(self.__index),
                                       'br={}'.format(self.__bridge_name),
-                                      'helper=/usr/libexec/qemu-bridge-helper'])
+                                      'helper=/usr/local/libexec/qemu-bridge-helper'])
             nic_option = ",".join(["{}".format(self.__nic_name),
                                    "netdev=netdev{}".format(self.__index),
                                    "mac={}".format(self.__mac_address)])
