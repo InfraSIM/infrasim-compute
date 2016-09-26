@@ -918,7 +918,23 @@ class CCompute(Task, CElement):
             self.add_option("-bios {}".format(self.__bios))
 
         if self.__boot_order:
-            self.add_option("-boot {}".format(self.__boot_order))
+            boot_param = ""
+            bootdev_path = self.get_workspace() + '/bootdev'
+            if os.path.exists(bootdev_path) is True:
+                with open(bootdev_path, "r") as f:
+                    boot_param = f.readlines()
+                boot_param = boot_param[0].strip()
+                if boot_param == "default":
+                    self.__boot_order = "d"
+                elif boot_param == "pxe":
+                    self.__boot_order = "n"
+                elif boot_param == "cdrom":
+                    self.__boot_order = "c"
+                else:
+                    self.__boot_order = "ncd"
+                self.add_option("-boot {}".format(self.__boot_order))
+            else:
+                self.add_option("-boot {}".format(self.__boot_order))
 
         self.add_option("-machine q35,usb=off,vmport=off")
 
@@ -1371,6 +1387,8 @@ class CNode(object):
                 path_resetcmd = os.path.join(self.workspace,
                                              "script",
                                              "resetcmd")
+                path_bootdev = os.path.join(self.workspace,
+                                             "", "bootdev")
                 path_qemu_pid = os.path.join(self.workspace,
                                              ".{}-node".
                                              format(self.get_node_name()))
@@ -1382,7 +1400,8 @@ class CNode(object):
                 dst_text = template.render(startcmd=path_startcmd,
                                            stopcmd=path_stopcmd,
                                            resetcmd=path_resetcmd,
-                                           qemu_pid_file=path_qemu_pid)
+                                           qemu_pid_file=path_qemu_pid,
+                                           bootdev=path_bootdev)
                 with open(dst, "w") as f:
                     f.write(dst_text)
                 os.chmod(dst, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)

@@ -59,10 +59,10 @@ do_get() {
 
 	    boot)
 		val=default
-	if [ -e /boot/bootdev ]; then
-		val=`cat /boot/bootdev`
+	if [ -e {{bootdev}} ]; then
+		val=`cat {{bootdev}}`
 	else
-		echo $val > /boot/bootdev
+		echo $val > {{bootdev}}
 	fi
 		;;
 
@@ -137,7 +137,7 @@ do_set() {
                 exit 1
                 ;;
             esac
-            echo $val > /boot/bootdev
+            echo $val > {{bootdev}}
             ;;
 		identify)
             force=$1
