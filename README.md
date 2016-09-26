@@ -20,7 +20,9 @@ The basic installation system requirements are:
 Installation
 ------------
 
-1. Install dependency:
+1. Ensure sources.list integrity then install dependency:
+
+    **sudo apt-get update**
 
     **sudo apt-get install python-pip libpython-dev libssl-dev**
 
