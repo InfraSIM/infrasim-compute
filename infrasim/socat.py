@@ -9,8 +9,9 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import os
 import time
 import yaml
+import config
 from infrasim.model import CSocat, CNode
-from . import run_command, logger, CommandNotFound, CommandRunFailed, VM_DEFAULT_CONFIG
+from . import run_command, logger, CommandNotFound, CommandRunFailed
 
 
 def get_socat():
@@ -29,7 +30,7 @@ def status_socat():
         print "Inrasim Socat service is stopped"
 
 
-def start_socat(conf_file=VM_DEFAULT_CONFIG):
+def start_socat(conf_file=config.infrasim_initial_config):
     try:
         with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
@@ -59,7 +60,7 @@ def start_socat(conf_file=VM_DEFAULT_CONFIG):
         raise e
 
 
-def stop_socat(conf_file=VM_DEFAULT_CONFIG):
+def stop_socat(conf_file=config.infrasim_initial_config):
     socat_stop_cmd = "pkill socat"
     try:
         run_command(socat_stop_cmd, True, None, None)

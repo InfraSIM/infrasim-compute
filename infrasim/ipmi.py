@@ -8,7 +8,8 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import os
 import yaml
-from . import run_command, logger, ArgsNotCorrect, CommandNotFound, CommandRunFailed, VM_DEFAULT_CONFIG
+import config
+from . import run_command, logger, ArgsNotCorrect, CommandNotFound, CommandRunFailed
 from model import CBMC, CNode
 
 
@@ -28,7 +29,7 @@ def status_ipmi():
         print "Infrasim IPMI service is stopped"
 
 
-def start_ipmi(conf_file=VM_DEFAULT_CONFIG):
+def start_ipmi(conf_file=config.infrasim_initial_config):
     try:
         with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
@@ -61,7 +62,7 @@ def start_ipmi(conf_file=VM_DEFAULT_CONFIG):
         raise e
 
 
-def stop_ipmi(conf_file=VM_DEFAULT_CONFIG):
+def stop_ipmi(conf_file=config.infrasim_initial_config):
     ipmi_stop_cmd = "pkill ipmi_sim"
     try:
         run_command(ipmi_stop_cmd, True, None, None)

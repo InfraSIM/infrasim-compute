@@ -10,7 +10,8 @@ import os
 import yaml
 import socket
 import time
-from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect, has_option, VM_DEFAULT_CONFIG
+import config
+from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect, has_option
 from model import CCompute
 
 
@@ -48,7 +49,7 @@ def stop_macvtap(eth):
         raise e
 
 
-def start_qemu(conf_file=VM_DEFAULT_CONFIG):
+def start_qemu(conf_file=config.infrasim_initial_config):
     try:
         with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
@@ -96,7 +97,7 @@ def start_qemu(conf_file=VM_DEFAULT_CONFIG):
         raise e
 
 
-def stop_qemu(conf_file=VM_DEFAULT_CONFIG):
+def stop_qemu(conf_file=config.infrasim_initial_config):
     try:
         with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
