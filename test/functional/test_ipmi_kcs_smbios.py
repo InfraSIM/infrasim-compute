@@ -14,14 +14,16 @@ Test KCS function
     - local sel can work
     - local sdr can work
     - local user can work
+Test SMBIOS data
+    - verify system information "Product Name" and "Manufacturer"
 """
 import unittest
 import os
+import time
 import yaml
 from infrasim import VM_DEFAULT_CONFIG
 from infrasim import qemu
 from infrasim import model
-import time
 import paramiko
 
 
@@ -70,8 +72,7 @@ class test_kcs(unittest.TestCase):
         paramiko.util.log_to_file("filename.log")
         while True:
             try:
-                ssh.connect("127.0.0.1", port=2222, username="root",
-                    password="root", timeout=120)
+                ssh.connect("127.0.0.1", port=2222, username="root", password="root", timeout=120)
                 ssh.close()
                 break
             except paramiko.SSHException:
@@ -93,7 +94,6 @@ class test_kcs(unittest.TestCase):
         self.conf = None
         os.system("rm -rf test.yml")
         os.system("rm -rf {}".format(test_img_file))
-
     def test_qemu_local_fru(self):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -165,3 +165,40 @@ class test_kcs(unittest.TestCase):
         print lines
         ssh.close()
         assert "admin" in lines
+
+    def test_smbios_data(self):
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect("127.0.0.1", port=2222, username="root", password="root",timeout=10)
+        stdin, stdout, stderr = ssh.exec_command("dmidecode -t1")
+        while not stdout.channel.exit_status_ready():
+            pass
+
+        lines = stdout.channel.recv(2048)
+        print lines
+
+        ssh.close()
+        with open("test.yml", "r") as yml_file:
+            self.conf = yaml.load(yml_file)
+
+        if self.conf["type"] == "quanta_d51":
+            assert "Manufacturer: Quanta Computer Inc" in lines
+            assert "Product Name: D51B-2U (dual 10G LoM)" in lines
+        if self.conf["type"] == "quanta_t41":
+            assert "Manufacturer: QuantaPlex Computer Inc" in lines
+            assert "Product Name: QuantaPlex T41S-2U" in lines
+        if self.conf["type"] == "dell_c6320":
+            assert "Manufacturer: Dell Inc" in lines
+            assert "Product Name: PowerEdge C6320" in lines
+        if self.conf["type"] == "dell_r630":
+            assert "Manufacturer: Dell Inc" in lines
+            assert "Product Name: PowerEdge R630" in lines
+        if self.conf["type"] == "s2600kp":
+            assert "Manufacturer: EMC" in lines
+            assert "Product Name: S2600KP" in lines
+        if self.conf["type"] == "s2600tp":
+            assert "Manufacturer: EMC" in lines
+            assert "Product Name: S2600TP" in lines
+        if self.conf["type"] == "s2600wtt":
+            assert "Manufacturer: EMC" in lines
+            assert "Product Name: S2600WTT" in lines
