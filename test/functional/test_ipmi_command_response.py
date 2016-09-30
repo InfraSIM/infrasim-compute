@@ -42,6 +42,10 @@ user_summary_cmd = cmd_prefix + 'user summary'
 sel_clear_cmd = cmd_prefix + 'sel clear'
 sel_info_cmd = cmd_prefix + 'sel info'
 
+chassis_bootdev_pxe_cmd = cmd_prefix + 'chassis bootdev pxe'
+chassis_bootdev_disk_cmd = cmd_prefix + 'chassis bootdev disk'
+chassis_bootdev_cdrom_cmd = cmd_prefix + 'chassis bootdev cdrom'
+
 
 def run_command(cmd="", shell=True, stdin=None, stdout=None, stderr=None):
     child = subprocess.Popen(cmd, shell=shell, stdout=stdout, stderr=stderr)
@@ -140,3 +144,51 @@ class test_ipmicommand_response(unittest.TestCase):
         except:
             assert False
 
+    def test_chassic_bootdev_pxe(self):
+        try:
+            run_command(chassis_bootdev_pxe_cmd)
+            time.sleep(3)
+            boot = ""
+            path = os.environ['HOME'] + '/.infrasim/test/bootdev'
+            with open(path) as f:
+                boot = f.readlines()
+            boot = boot[0].strip()
+            if boot == "pxe":
+                assert True
+            else:
+                assert False
+        except:
+            assert False
+
+
+    def test_chassic_bootdev_disk(self):
+        try:
+            run_command(chassis_bootdev_disk_cmd)
+            time.sleep(3)
+            boot = ""
+            path = os.environ['HOME'] + '/.infrasim/test/bootdev'
+            with open(path) as f:
+                boot = f.readlines()
+            boot = boot[0].strip()
+            if boot == "default":
+                assert True
+            else:
+                assert False
+        except:
+            assert False
+
+    def test_chassic_bootdev_cdrom(self):
+        try:
+            run_command(chassis_bootdev_cdrom_cmd)
+            time.sleep(3)
+            boot = ""
+            path = os.environ['HOME'] + '/.infrasim/test/bootdev'
+            with open(path) as f:
+                boot = f.readlines()
+            boot = boot[0].strip()
+            if boot == "cdrom":
+                assert True
+            else:
+                assert False
+        except:
+            assert False
