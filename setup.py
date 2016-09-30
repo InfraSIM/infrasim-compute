@@ -43,6 +43,9 @@ def load_version(filename):
 ver = load_version("template/version.yml")
 if ver is not None:
     for line in fileinput.input("setup.cfg", inplace=True):
+        if line.startswith("version ="):
+            continue
+
         print line,
         if line.startswith("summary"):
             print "version =", ver

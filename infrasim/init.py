@@ -37,6 +37,9 @@ def create_infrasim_directories():
         shutil.rmtree(config.infrasim_logdir)
     os.mkdir(config.infrasim_logdir)
 
+    if not os.path.exists("/usr/local/libexec"):
+        os.mkdir("/usr/local/libexec")
+
 
 def init_infrasim_conf():
 
@@ -61,21 +64,20 @@ def init_infrasim_conf():
         f.write(infrasim_conf)
 
 
-#def prepare_libraries():
-#    run_command("sudo /usr/local/bin/package_install.sh", True, None, None)
-#    run_command("ldconfig")
-#
+def install_packages():
+    run_command("sudo /usr/local/bin/package_install.sh", True, None, None)
 
-#def prepare_seabios():
-#    run_command('echo "allow br0" > /etc/qemu/bridge.conf')
-#
+
+def update_bridge_cfg():
+    run_command('echo "allow br0" > /etc/qemu/bridge.conf')
+
 
 def infrasim_init():
     try:
         create_infrasim_directories()
-#        prepare_libraries()
+        install_packages()
         init_infrasim_conf()
-#        prepare_seabios()
+        update_bridge_cfg()
         get_socat()
         get_ipmi()
         get_qemu()
