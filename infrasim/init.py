@@ -57,7 +57,7 @@ def init_infrasim_conf():
         infrasim_conf = f.read()
     template = jinja2.Template(infrasim_conf)
     infrasim_conf = template.render(disks=disks, networks=networks)
-    with open(config.infrasim_intial_config, "w") as f:
+    with open(config.infrasim_initial_config, "w") as f:
         f.write(infrasim_conf)
 
 

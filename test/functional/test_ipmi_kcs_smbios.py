@@ -21,10 +21,10 @@ import unittest
 import os
 import time
 import yaml
-from infrasim import VM_DEFAULT_CONFIG
 from infrasim import qemu
 from infrasim import model
 import paramiko
+from infrasim import config
 
 
 class test_kcs(unittest.TestCase):
@@ -41,7 +41,7 @@ class test_kcs(unittest.TestCase):
             return
 
         os.system("touch test.yml")
-        with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+        with open(config.infrasim_initial_config, 'r') as f_yml:
             self.conf = yaml.load(f_yml)
         self.conf["name"] = "test"
         self.conf["compute"]["storage_backend"] = [{

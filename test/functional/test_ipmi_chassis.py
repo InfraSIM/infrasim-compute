@@ -22,6 +22,7 @@ import yaml
 
 from infrasim import model
 from infrasim import run_command
+from infrasim import config
 
 # command prefix for test cases
 cmd_prefix = 'ipmitool -I lanplus -H 127.0.0.1 -U admin -P admin chassis '
@@ -42,7 +43,7 @@ power_reset_cmd = cmd_prefix + 'power reset'
 class test_ipmi_command_chassis_control(unittest.TestCase):
     def setUp(self):
         node_info = {}
-        with open("/etc/infrasim/infrasim.yml", 'r') as f_yml:
+        with open(config.infrasim_initial_config, 'r') as f_yml:
             node_info = yaml.load(f_yml)
         node_info["name"] = "test"
         node = model.CNode(node_info)
@@ -54,7 +55,7 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
 
     def tearDown(self):
         node_info = {}
-        with open("/etc/infrasim/infrasim.yml", 'r') as f_yml:
+        with open(config.infrasim_initial_config, 'r') as f_yml:
             node_info = yaml.load(f_yml)
         node_info["name"] = "test"
         node = model.CNode(node_info)
@@ -82,6 +83,8 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
             assert 'qemu-system-x86_64' in qemu_output
         except Exception as e:
             print e
+            import traceback
+            print traceback.format_exc()
             assert False
 
     def test_chassis_power_cycle(self):

@@ -25,6 +25,7 @@ import time
 import yaml
 from infrasim import model
 from infrasim import CommandRunFailed
+from infrasim import config
 
 # ipmitool commands to test
 cmd_prefix = 'ipmitool -H 127.0.0.1 -U admin -P admin '
@@ -59,7 +60,7 @@ class test_ipmicommand_response(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         node_info = {}
-        with open("/etc/infrasim/infrasim.yml", 'r') as f_yml:
+        with open(config.infrasim_initial_config, 'r') as f_yml:
             node_info = yaml.load(f_yml)
         node_info["name"] = "test"
         node = model.CNode(node_info)
@@ -72,7 +73,7 @@ class test_ipmicommand_response(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         node_info = {}
-        with open("/etc/infrasim/infrasim.yml", 'r') as f_yml:
+        with open(config.infrasim_initial_config, 'r') as f_yml:
             node_info = yaml.load(f_yml)
         node_info["name"] = "test"
         node = model.CNode(node_info)

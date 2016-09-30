@@ -15,10 +15,10 @@ from model import CBMC, CNode
 
 def get_ipmi():
     try:
-        code, ipmi_cmd = run_command("which /usr/local/bin/ipmi_sim")
+        code, ipmi_cmd = run_command("which ipmi_sim")
         return ipmi_cmd.strip(os.linesep)
     except CommandRunFailed as e:
-        raise CommandNotFound("/usr/local/bin/ipmi_sim")
+        raise CommandNotFound("ipmi_sim")
 
 
 def status_ipmi():

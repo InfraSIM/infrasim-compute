@@ -16,7 +16,7 @@ sensor_id_list = []
 sensor_name_map = {}
 sensor_id_map = {}
 
-SDR_NAME = "sdr.bin"
+SDR_NAME = "/tmp/sdr.bin"
 
 
 def build_sensors(name, ID, mc, value, tp):

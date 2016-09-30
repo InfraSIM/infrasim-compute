@@ -11,7 +11,7 @@ import unittest
 import subprocess
 import os
 import yaml
-import config
+from infrasim import config
 from infrasim import qemu
 from infrasim import ipmi
 from infrasim import socat

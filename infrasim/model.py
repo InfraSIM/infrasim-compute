@@ -231,7 +231,7 @@ class CCharDev(CElement):
         if self.__host is not None:
             chardev_option_list.append("host={}".format(self.__host))
 
-        if self.__host is not None:
+        if self.__port is not None:
             chardev_option_list.append("port={}".format(self.__port))
 
         if self.__id is not None:
@@ -927,7 +927,7 @@ class CMonitor(CElement):
         super(CMonitor, self).__init__()
         self.__monitor = monitor_info
         self.__chardev = None
-        self.__mode = "control"
+        self.__mode = "readline"
 
     def precheck(self):
         pass
@@ -1029,7 +1029,7 @@ class Task(object):
                     format(pid, self.__task_name)
                 return
             else:
-                os.remove("{}/.{}".format(self.__workspace, self.__task_name))
+                os.remove("{}/.{}.pid".format(self.__workspace, self.__task_name))
 
         pid = Utility.execute_command(self.get_commandline(),
                                       log_path=self.__log_path)
@@ -1204,23 +1204,32 @@ class CCompute(Task, CElement):
 
         if has_option(self.__compute, "ipmi"):
             ipmi_obj = CIPMI(self.__compute['ipmi'])
-            ipmi_obj.set_bmc_conn_port(self.__port_qemu_ipmi)
         else:
             ipmi_info = {
                 'interface': 'kcs',
                 'chardev': {
                     'backend': 'socket',
                     'host': '127.0.0.1',
-                    'bmc_connection_port': self.__port_qemu_ipmi
                 }
             }
             ipmi_obj = CIPMI(ipmi_info)
-
+        ipmi_obj.set_bmc_conn_port(self.__port_qemu_ipmi)
         self.__element_list.append(ipmi_obj)
 
         if 'monitor' in self.__compute:
             monitor_obj = CMonitor(self.__compute['monitor'])
-            self.__element_list.append(monitor_obj)
+        else:
+            monitor_obj = CMonitor({
+                'mode': 'readline',
+                'chardev': {
+                    'backend': 'socket',
+                    'host': '127.0.0.1',
+                    'port': 2345,
+                    'server': True,
+                    'wait': False
+                }
+            })
+        self.__element_list.append(monitor_obj)
 
         for element in self.__element_list:
             element.init()
@@ -1320,7 +1329,7 @@ class CBMC(Task):
         self.__password = "admin"
         self.__emu_file = None
         self.__config_file = ""
-        self.__bin = "/usr/local/bin/ipmi_sim"
+        self.__bin = "ipmi_sim"
         self.__port_iol = 623
         self.__historyfru = 10
 
@@ -1732,7 +1741,7 @@ class CNode(object):
                 path_bootdev = os.path.join(self.workspace,
                                              "", "bootdev")
                 path_qemu_pid = os.path.join(self.workspace,
-                                             ".{}-node".
+                                             ".{}-node.pid".
                                              format(self.get_node_name()))
                 src = os.path.join(config.infrasim_template, "chassiscontrol")
                 dst = os.path.join(self.workspace, "script", "chassiscontrol")
@@ -1831,7 +1840,7 @@ class CNode(object):
         self.__tasks_list.append(bmc_obj)
 
         compute_obj = CCompute(self.__node['compute'])
-        compute_obj.set_asyncronous(False)
+        compute_obj.set_asyncronous(True)
         compute_obj.set_priority(2)
         compute_obj.set_task_name("{}-node".format(self.__node_name))
         compute_obj.set_log_path("/var/log/infrasim/{}/qemu.log".

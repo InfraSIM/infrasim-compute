@@ -17,10 +17,10 @@ from model import CCompute
 
 def get_qemu():
     try:
-        code, qemu_cmd = run_command("which /usr/local/bin/qemu-system-x86_64")
+        code, qemu_cmd = run_command("which qemu-system-x86_64")
         return qemu_cmd.strip(os.linesep)
     except CommandRunFailed as e:
-        raise CommandNotFound("/usr/local/bin/qemu-system-x86_64")
+        raise CommandNotFound("qemu-system-x86_64")
 
 
 def status_qemu():

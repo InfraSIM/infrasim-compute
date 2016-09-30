@@ -15,8 +15,7 @@ import unittest
 import re
 
 from infrasim import run_command
-
-version_cmd = "infrasim-main version"
+from infrasim import main
 
 
 class test_version_command(unittest.TestCase):
@@ -30,7 +29,7 @@ class test_version_command(unittest.TestCase):
 
     def test_infrasim_ver(self):
         try:
-            str_output = run_command(version_cmd)[1]
+            str_output = main.version()
             if 'failed' in str_output:
                 assert False
             version_list = str_output.split('\n')
