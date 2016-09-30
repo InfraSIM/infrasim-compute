@@ -42,10 +42,12 @@ def infrasim_main(arg):
             node.init()
             node.precheck()
             node.start()
+            # get IP address
+            ifname = node_info["compute"]["networks"][0]["network_name"]
             print "Infrasim service started.\n" \
                 "You can access node {} via vnc:{}:5901". \
                 format(node.get_node_name(),
-                       netifaces.ifaddresses(eth)[netifaces.AF_INET][0]['addr'])
+                       netifaces.ifaddresses(ifname)[netifaces.AF_INET][0]['addr'])
         elif arg == "stop":
             node.init()
             node.stop()
