@@ -311,9 +311,10 @@ class bmc_configuration(unittest.TestCase):
                           "dell_r630", "dell_c6320",
                           "s2600kp", "s2600tp", "s2600wtt"]:
             bmc.set_type(node_type)
+            bmc.set_workspace(self.__class__.WORKSPACE)
             bmc.init()
             cmd = bmc.get_commandline()
-            assert "{0}/{0}.emu".format(node_type) \
+            assert "{0}.emu".format(node_type) \
                    in cmd
 
     def test_set_bmc_lan_interface(self):
