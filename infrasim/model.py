@@ -1055,7 +1055,7 @@ class Task(object):
         task_pid = self.get_task_pid()
         pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
         try:
-            if task_pid:
+            if task_pid > 0:
                 print "[ {:<6} ] {} stop".format(task_pid, self.__task_name)
                 os.kill(int(task_pid), signal.SIGTERM)
                 time.sleep(1)
