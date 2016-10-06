@@ -995,46 +995,59 @@ class Task(object):
         pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
         try:
             with open(pid_file, "r") as f:
-                pid = f.readline()
+                pid = f.readline().strip()
         except Exception:
-            return None
-        return pid.strip()
+            return -1
+
+        if pid == "":
+            return -1
+
+        return pid
+
+    def __task_is_running(self):
+        pid = self.get_task_pid()
+        if pid > 0 and os.path.exists("/proc/{}".format(pid)):
+            return True
+        return False
 
     def run(self):
         if self.__asyncronous:
             start = time.time()
             while True:
-                pid = self.get_task_pid()
+                if self.__task_is_running():
+                    break
+
                 if time.time()-start > 10:
                     break
-                if pid == "":
-                    continue
-                if pid is not None:
-                    break
-            if pid is None:
-                print "[ {:<6} ] {} fail to start".\
-                    format(pid, self.__task_name)
+
+
+            if not self.__task_is_running():
+                print "[ {} ] {} fail to start".\
+                    format("ERROR", self.__task_name)
             else:
-                print "[ {:<6} ] {} run".format(pid, self.__task_name)
+                print "[ {:<6} ] {} is runnning".format(self.get_task_pid(), self.__task_name)
             return
 
         if self.__debug:
             print self.get_commandline()
             return
 
-        pid = self.get_task_pid()
-        if pid > 0:
-            if os.path.exists("/proc/{}".format(pid)):
-                print "[ {:<6} ] {} is already running".\
-                    format(pid, self.__task_name)
-                return
-            else:
-                os.remove("{}/.{}.pid".format(self.__workspace, self.__task_name))
+        pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
+
+        if self.__task_is_running():
+            print "[ {:<6} ] {} is already running".format(
+                self.get_task_pid(), self.__task_name)
+            return
+        elif os.path.exists(pid_file):
+            # If the qemu quits exceptionally when starts, pid file is also
+            # created, but actually the qemu died.
+            os.remove(pid_file)
 
         pid = Utility.execute_command(self.get_commandline(),
                                       log_path=self.__log_path)
-        print "[ {:<6} ] {} start to run".format(pid, self.__task_name)
-        pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
+
+        print "[ {:<6} ] {} starts to run.".format(pid, self.__task_name)
+
         with open(pid_file, "w") as f:
             f.write("{}".format(pid))
 
@@ -1069,7 +1082,7 @@ class Task(object):
             os.remove(pid_file)
         else:
             task_pid = self.get_task_pid()
-            if task_pid:
+            if task_pid > 0:
                 print "[ {:<6} ] {} is running".\
                     format(task_pid, self.__task_name)
 
@@ -1562,7 +1575,7 @@ class CBMC(Task):
                                               "data",
                                               "vbmc.conf")
         else:
-            self.__config_file = "/etc/infrasim/vbmc.conf"
+            raise Exception("Couldn't find vbmc.conf!")
 
         if self.__sol_device:
             pass
