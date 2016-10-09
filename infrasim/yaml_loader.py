@@ -1,6 +1,7 @@
 import yaml
 import os
 
+
 class YAMLLoader(yaml.Loader):
     def __init__(self, stream):
         super(YAMLLoader, self).__init__(stream)
@@ -13,7 +14,3 @@ class YAMLLoader(yaml.Loader):
         filename = os.path.join(self._root, loader.construct_scalar(node))
         with open(filename, 'r') as f:
             return yaml.load(f, YAMLLoader)
-
-#with open("test.yml", "r") as f:
-#    data = YAMLLoader(f).get_data()
-#    print data

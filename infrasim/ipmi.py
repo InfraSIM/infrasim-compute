@@ -17,7 +17,7 @@ def get_ipmi():
     try:
         code, ipmi_cmd = run_command("which ipmi_sim")
         return ipmi_cmd.strip(os.linesep)
-    except CommandRunFailed as e:
+    except CommandRunFailed:
         raise CommandNotFound("ipmi_sim")
 
 
@@ -25,7 +25,7 @@ def status_ipmi():
     try:
         run_command("pidof ipmi_sim")
         print "InfraSim IPMI service is running"
-    except CommandRunFailed as e:
+    except CommandRunFailed:
         print "Infrasim IPMI service is stopped"
 
 
@@ -67,5 +67,5 @@ def stop_ipmi(conf_file=config.infrasim_initial_config):
     try:
         run_command(ipmi_stop_cmd, True, None, None)
         logger.info("ipmi stopped")
-    except CommandRunFailed as e:
+    except CommandRunFailed:
         logger.error("ipmi stop failed")

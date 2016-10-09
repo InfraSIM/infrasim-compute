@@ -69,8 +69,8 @@ def install_packages():
         retcode, package_install_script = run_command('which package_install.sh')
         if retcode == 0:
             package_install_script = package_install_script.strip(os.linesep)
-    except CommandRunFailed as e:
-       package_install_script = os.path.join(config.get_infrasim_root(), "package_install.sh")
+    except CommandRunFailed:
+        package_install_script = os.path.join(config.get_infrasim_root(), "package_install.sh")
     run_command("sudo {}".format(package_install_script), True, None, None)
 
 

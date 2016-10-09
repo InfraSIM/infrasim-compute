@@ -1020,7 +1020,6 @@ class Task(object):
                 if time.time()-start > 10:
                     break
 
-
             if not self.__task_is_running():
                 print "[ {} ] {} fail to start".\
                     format("ERROR", self.__task_name)
@@ -1752,7 +1751,7 @@ class CNode(object):
                                              "script",
                                              "resetcmd")
                 path_bootdev = os.path.join(self.workspace,
-                                             "", "bootdev")
+                                            "", "bootdev")
                 path_qemu_pid = os.path.join(self.workspace,
                                              ".{}-node.pid".
                                              format(self.get_node_name()))

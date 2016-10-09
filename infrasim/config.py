@@ -1,5 +1,6 @@
 import os
 
+
 def get_infrasim_root():
     if os.environ.get('INFRASIM_ROOT'):
         infrasim_root = os.environ['INFRASIM_ROOT']

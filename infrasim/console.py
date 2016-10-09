@@ -11,12 +11,11 @@ import threading
 import os
 import sys
 from . import sshim
-from . import run_command, logger
+from . import logger
 from .ipmicons.command import Command_Handler
 from .ipmicons.common import msg_queue
 
-import re, shlex, threading
-from datetime import datetime
+import re
 
 from ipmicons import sdr, common
 import daemon
@@ -24,9 +23,12 @@ from infrasim import config
 import signal
 
 server = None
+
+
 class IPMI_CONSOLE(threading.Thread):
     WELCOME = 'You have connected to the test server.'
     PROMPT = "IPMI_SIM> "
+
     def __init__(self, script):
         threading.Thread.__init__(self)
         self.history = []
@@ -95,11 +97,13 @@ def _start_console():
     except KeyboardInterrupt:
         server.stop()
 
+
 def _stop_console():
     if server:
         server.stop()
 
 sensor_thread_list = []
+
 
 def _spawn_sensor_thread():
     for sensor_obj in sdr.sensor_list:
@@ -138,7 +142,7 @@ def start():
     # running thread for each threshold based sensor
     _spawn_sensor_thread()
     _start_console()
- 
+
 
 def stop():
     try:
@@ -162,4 +166,3 @@ def console_main():
         stop()
     else:
         pass
-

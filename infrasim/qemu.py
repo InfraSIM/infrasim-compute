@@ -8,10 +8,9 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import os
 import yaml
-import socket
 import time
 import config
-from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect, has_option
+from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect
 from model import CCompute
 
 
@@ -19,7 +18,7 @@ def get_qemu():
     try:
         code, qemu_cmd = run_command("which qemu-system-x86_64")
         return qemu_cmd.strip(os.linesep)
-    except CommandRunFailed as e:
+    except CommandRunFailed:
         raise CommandNotFound("qemu-system-x86_64")
 
 
@@ -27,7 +26,7 @@ def status_qemu():
     try:
         run_command("pidof qemu-system-x86_64")
         print "Infrasim Qemu service is running"
-    except CommandRunFailed as e:
+    except CommandRunFailed:
         print "Inrasim Qemu service is stopped"
 
 
