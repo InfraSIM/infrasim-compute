@@ -49,6 +49,8 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
+        # FIXME: sleep is not a good way to wait qemu starts up.
+        time.sleep(3)
 
     def tearDown(self):
         node_info = {}

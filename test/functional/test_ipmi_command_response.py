@@ -66,6 +66,8 @@ class test_ipmicommand_response(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
+        # FIXME: sleep is not a good way to wait qemu starts up.
+        time.sleep(3)
 
     @classmethod
     def tearDownClass(cls):
