@@ -3,8 +3,6 @@
 import logging
 import subprocess
 
-VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.yml"
-
 logger = logging.getLogger()
 hdlr = logging.FileHandler('/var/log/infrasim.log')
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')

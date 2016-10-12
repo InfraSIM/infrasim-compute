@@ -11,12 +11,12 @@ import unittest
 import subprocess
 import os
 import yaml
+from infrasim import config
 from infrasim import qemu
 from infrasim import ipmi
 from infrasim import socat
 from infrasim import model
 
-VM_DEFAULT_CONFIG = "/etc/infrasim/infrasim.yml"
 PS_QEMU = "ps ax | grep qemu"
 PS_IPMI = "ps ax | grep ipmi"
 PS_SOCAT = "ps ax | grep socat"
@@ -36,7 +36,7 @@ class test_compute_configuration_change(unittest.TestCase):
 
     def setUp(self):
         os.system("touch test.yml")
-        with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+        with open(config.infrasim_initial_config, 'r') as f_yml:
             self.conf = yaml.load(f_yml)
         self.conf["name"] = "test"
 
@@ -188,7 +188,7 @@ class test_bmc_configuration_change(unittest.TestCase):
 
     def setUp(self):
         os.system("touch test.yml")
-        with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+        with open(config.infrasim_initial_config, 'r') as f_yml:
             self.conf = yaml.load(f_yml)
         self.conf["name"] = "test"
 
@@ -228,7 +228,7 @@ class test_connection(unittest.TestCase):
 
     def setUp(self):
         os.system("touch test.yml")
-        with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+        with open(config.infrasim_initial_config, 'r') as f_yml:
             self.conf = yaml.load(f_yml)
         self.conf["name"] = "test"
         self.bmc_conf = os.path.join(os.environ["HOME"], ".infrasim",

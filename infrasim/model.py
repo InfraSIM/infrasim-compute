@@ -8,6 +8,22 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 # Author:  Robert Xia <robert.xia@emc.com>,
 # Forrest Gu <Forrest.Gu@emc.com>
 
+import fcntl
+import time
+import shlex
+import subprocess
+import os
+import uuid
+import signal
+import jinja2
+import netifaces
+import math
+import yaml
+import shutil
+import stat
+import config
+from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
+
 """
 This module majorly defines infrasim element models.
 For each element class, they need to implement methods:
@@ -26,23 +42,6 @@ For each element class, they need to implement methods:
         Compose all options in list to a command line string;
 """
 
-import fcntl
-import time
-import shlex
-import subprocess
-import os
-import uuid
-import signal
-import jinja2
-import netifaces
-import math
-import yaml
-import shutil
-import stat
-from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
-
-TEMPLATE_ROOT = os.environ['HOME'] + "/.infrasim/"
-TEMPLATE_SYSROOT = "/usr/local/infrasim/"
 
 class Utility(object):
     @staticmethod
@@ -177,6 +176,79 @@ class CCPU(CElement):
         self.add_option(smp_option)
 
 
+class CCharDev(CElement):
+    def __init__(self, chardev):
+        super(CCharDev, self).__init__()
+        self.__chardev = chardev
+        self.__id = None
+        self.__is_server = False
+        self.__wait = True
+        self.__path = None
+        self.__backend_type = None  # should be socket/pipe/file/pty/stdio/ringbuffer/...
+        self.__reconnect = 10
+        self.__host = None
+        self.__port = None
+
+    def set_id(self, chardev_id):
+        self.__id = chardev_id
+
+    def set_host(self, host):
+        self.__host = host
+
+    def set_port(self, port):
+        self.__port = port
+
+    def get_id(self):
+        return self.__id
+
+    def precheck(self):
+        pass
+
+    def init(self):
+        if 'backend' not in self.__chardev:
+            raise Exception("Backend should be set.")
+
+        self.__backend_type = self.__chardev['backend']
+
+        self.__is_server = self.__chardev['server'] if 'server' in self.__chardev else self.__is_server
+
+        self.__host = self.__chardev['host'] if 'host' in self.__chardev else self.__host
+        self.__port = self.__chardev['port'] if 'port' in self.__chardev else self.__port
+        self.__wait = self.__chardev['wait'] if 'wait' in self.__chardev else self.__wait
+
+        self.__path = self.__chardev['path'] if 'path' in self.__chardev else self.__path
+
+        self.__reconnect = self.__chardev['reconnect'] if 'reconnect' in self.__chardev else self.__reconnect
+
+    def handle_parms(self):
+        chardev_option_list = []
+
+        chardev_option_list.append(self.__backend_type)
+
+        if self.__path is not None:
+            chardev_option_list.append("path={}".format(self.__path))
+
+        if self.__host is not None:
+            chardev_option_list.append("host={}".format(self.__host))
+
+        if self.__port is not None:
+            chardev_option_list.append("port={}".format(self.__port))
+
+        if self.__id is not None:
+            chardev_option_list.append("id={}".format(self.__id))
+
+        if self.__is_server:
+            chardev_option_list.append("server")
+
+        if self.__wait is False:
+            chardev_option_list.append("nowait")
+
+        chardev_option_list.append("reconnect={}".format(self.__reconnect))
+
+        chardev_option = "-chardev {}".format(",".join(chardev_option_list))
+        self.add_option(chardev_option)
+
+
 class CMemory(CElement):
     def __init__(self, memory_info):
         super(CMemory, self).__init__()
@@ -220,6 +292,12 @@ class CDrive(CElement):
         self.__bus_address = None
         self.__size = 8
         self.__controller_type = None
+        self.__wwn = None
+        self.__port_index = None
+        self.__port_wwn = None
+        self.__scsi_id = None
+        self.__lun = None
+        self.__slot_number = None
 
     def set_index(self, index):
         self.__index = index
@@ -227,14 +305,14 @@ class CDrive(CElement):
     def get_index(self):
         return self.__index
 
-    def set_bus(self, addr):
-        self.__bus_address = addr
+    def get_controller_type(self):
+        return self.__controller_type
 
     def set_controller_type(self, controller_type):
         self.__controller_type = controller_type
 
-    def get_controller_type(self):
-        return self.__controller_type
+    def set_bus(self, addr):
+        self.__bus_address = addr
 
     def precheck(self):
         """
@@ -304,6 +382,20 @@ class CDrive(CElement):
                     raise e
             self.__file = disk_file
 
+        self.__wwn = self.__drive['wwn'] if 'wwn' in self.__drive else None
+
+        self.__port_index = self.__drive['port_index'] if 'port_index' in self.__drive else None
+
+        self.__port_wwn = self.__drive['port_wwn'] if 'port_wwn' in self.__drive else None
+
+        self.__channel = self.__drive['channel'] if 'channel' in self.__drive else None
+
+        self.__scsi_id = self.__drive['scsi-id'] if 'scsi-id' in self.__drive else None
+
+        self.__lun = self.__drive['lun'] if 'lun' in self.__drive else None
+
+        self.__slot_number = self.__drive['slot_number'] if 'slot_number' in self.__drive else None
+
     def handle_parms(self):
         host_option = ""
         if self.__file:
@@ -320,7 +412,7 @@ class CDrive(CElement):
             prefix = "scsi"
 
         host_option = ",".join([host_option, "if={}".format("none")])
-        host_option = ",".join([host_option, "id=drive{}".format(self.__index)])
+        host_option = ",".join([host_option, "id={}-drive{}".format(prefix, self.__index)])
 
         if self.__cache:
             host_option = ",".join([host_option, "cache={}".format(self.__cache)])
@@ -362,7 +454,28 @@ class CDrive(CElement):
         if self.__bus_address:
             device_option = ",".join([device_option, "bus={}".format(self.__bus_address)])
 
-        device_option = ",".join([device_option, "drive=drive{}".format(self.__index)])
+        if self.__wwn:
+            device_option = ",".join([device_option, "wwn={0:#10x}".format(self.__wwn)])
+
+        if self.__port_index:
+            device_option = ",".join([device_option, "port_index={}".format(self.__port_index)])
+
+        if self.__port_wwn:
+            device_option = ",".join([device_option, "port_wwn={0:#10x}".format(self.__port_wwn)])
+
+        if self.__channel:
+            device_option = ",".join([device_option, "channel={0:#02x}".format(self.__channel)])
+
+        if self.__scsi_id:
+            device_option = ",".join([device_option, "scsi-id={0:#02x}".format(self.__scsi_id)])
+
+        if self.__lun:
+            device_option = ",".join([device_option, "lun={0:#02x}".format(self.__lun)])
+
+        if self.__slot_number is not None:
+            device_option = ",".join([device_option, "slot_number={}".format(self.__slot_number)])
+
+        device_option = ",".join([device_option, "drive={}-drive{}".format(prefix, self.__index)])
 
         drive_option = " ".join(["-drive", host_option,
                                 "-device", device_option])
@@ -379,6 +492,19 @@ class CStorageController(CElement):
         self.__drive_list = []
         # Only used for raid controller (megasas)
         self.__use_jbod = None
+        self.__sas_address = None
+        # self.__has_serial = False
+        self.__pci_bus_nr = None
+        self.__ptm = None
+        self.__use_msi = None
+        self.__max_cmds = None
+        self.__max_sge = None
+
+    def set_pci_bus_nr(self, nr):
+        self.__pci_bus_nr = nr
+
+    def set_pci_topology_mgr(self, ptm):
+        self.__ptm = ptm
 
     def precheck(self):
         # Check controller params
@@ -391,15 +517,23 @@ class CStorageController(CElement):
         self.__max_drive_per_controller = \
             self.__controller_info['controller']['max_drive_per_controller']
         self.__controller_type = self.__controller_info['controller']['type']
+        self.__sas_address = self.__controller_info['controller']['sas_address'] \
+            if 'sas_address' in self.__controller_info['controller'] else None
+        self.__max_cmds = self.__controller_info['controller']['max_cmds'] \
+            if 'max_cmds' in self.__controller_info['controller'] else self.__max_cmds
+        self.__max_sge = self.__controller_info['controller']['max_sge'] \
+            if 'max_sge' in self.__controller_info['controller'] else self.__max_sge
 
         if self.__controller_type == "ahci":
             prefix = "sata"
         else:
             prefix = "scsi"
 
+        self.__use_msi = self.__controller_info['controller']['use_msi'] \
+            if 'use_msi' in self.__controller_info['controller'] else None
+
         if 'use_jbod' in self.__controller_info['controller'] and \
-                (self.__controller_type == "megasas" or
-                    self.__controller_type == "megasas-gen2"):
+                self.__controller_type.startswith("megasas"):
             self.__use_jbod = self.__controller_info['controller']['use_jbod']
 
         drive_index = 0
@@ -426,14 +560,17 @@ class CStorageController(CElement):
         drive_quantities = \
             len(self.__controller_info['controller']['drives'])
         controller_quantities = \
-            int(math.ceil(float(drive_quantities)
-                / self.__max_drive_per_controller))
+            int(math.ceil(float(drive_quantities) / self.__max_drive_per_controller))
         if self.__controller_type == "ahci":
             prefix = "sata"
         else:
             prefix = "scsi"
 
+        bus_nr_gen = None
+        if self.__controller_type.startswith("megasas") and self.__ptm:
+            bus_nr_gen = self.__ptm.get_available_bus()
         for controller_index in range(0, controller_quantities):
+            controller_option_list = []
             controller_option_list.append(
                 "-device {}".format(
                     self.__controller_info['controller']['type']))
@@ -442,6 +579,25 @@ class CStorageController(CElement):
             if self.__use_jbod is not None:
                 controller_option_list.append(
                     "use_jbod={}".format(self.__use_jbod))
+            if self.__sas_address is not None:
+                controller_option_list.append("sas_address={}".format(self.__sas_address))
+
+            if self.__use_msi is not None:
+                controller_option_list.append("use_msi={}".format(self.__use_msi))
+
+            if self.__max_cmds is not None:
+                controller_option_list.append("max_cmds={}".format(self.__max_cmds))
+
+            if self.__max_sge is not None:
+                controller_option_list.append("max_sge={}".format(self.__max_sge))
+            # random serial number
+            # if self.__has_serial:
+            #     uuid_val = uuid.uuid4()
+            #     controller_option_list.append("hba_serial=LSIMEGARAID{}".format(str(uuid_val)[0:6]))
+            if bus_nr_gen:
+                pci_bus_nr = bus_nr_gen.next()
+                controller_option_list.append("bus=pci.{},addr=0x1".format(pci_bus_nr))
+
             self.add_option("{}".format(",".join(controller_option_list)))
 
         for drive_obj in self.__drive_list:
@@ -456,6 +612,10 @@ class CBackendStorage(CElement):
         super(CBackendStorage, self).__init__()
         self.__backend_storage_info = backend_storage_info
         self.__controller_list = []
+        self.__pci_topology_manager = None
+
+    def set_pci_topology_mgr(self, ptm):
+        self.__pci_topology_manager = ptm
 
     def precheck(self):
         for controller_obj in self.__controller_list:
@@ -464,6 +624,7 @@ class CBackendStorage(CElement):
     def init(self):
         for controller in self.__backend_storage_info:
             controller_obj = CStorageController(controller)
+            controller_obj.set_pci_topology_mgr(self.__pci_topology_manager)
             self.__controller_list.append(controller_obj)
 
         for controller_obj in self.__controller_list:
@@ -501,8 +662,7 @@ class CNetwork(CElement):
             else:
                 if self.__bridge_name not in netifaces.interfaces():
                     raise ArgsNotCorrect("ERROR: network_name({}) is not exists".
-                            format(self.__bridge_name))
-
+                                         format(self.__bridge_name))
 
     def init(self):
         if 'network_mode' in self.__network:
@@ -587,36 +747,202 @@ class CIPMI(CElement):
         self.__interface = None
         self.__host = None
         self.__bmc_connection_port = None
+        self.__chardev_obj = None
+
+    def set_bmc_conn_host(self, host):
+        self.__host = host
+
+    def set_bmc_conn_port(self, port):
+        self.__bmc_connection_port = port
 
     def precheck(self):
         """
         Check if internal socket port is used.
         """
-        pass
+        if self.__chardev_obj is None:
+            raise Exception("-chardev should set.")
 
     def init(self):
         if 'interface' in self.__ipmi:
             self.__interface = self.__ipmi['interface']
 
-        if 'host' in self.__ipmi:
-            self.__host = self.__ipmi['host']
-
-        if 'bmc_connection_port' in self.__ipmi:
-            self.__bmc_connection_port = self.__ipmi['bmc_connection_port']
+        if 'chardev' in self.__ipmi:
+            self.__chardev_obj = CCharDev(self.__ipmi['chardev'])
+            self.__chardev_obj.set_id("ipmi0")
+            self.__chardev_obj.set_host(self.__host)
+            self.__chardev_obj.set_port(self.__bmc_connection_port)
+            self.__chardev_obj.init()
 
     def handle_parms(self):
-        chardev_option = ','.join(["socket", 'id=ipmi0',
-                                   'host={}'.format(self.__host),
-                                   'port={}'.
-                                  format(self.__bmc_connection_port),
-                                   'reconnect=10'])
-        bmc_option = ','.join(['ipmi-bmc-extern', 'chardev=ipmi0', 'id=bmc0'])
+        self.__chardev_obj.handle_parms()
+        chardev_option = self.__chardev_obj.get_option()
+        bmc_option = ','.join(['ipmi-bmc-extern', 'chardev={}'.format(self.__chardev_obj.get_id()), 'id=bmc0'])
         interface_option = ','.join(['isa-ipmi-kcs', 'bmc=bmc0'])
 
-        ipmi_option = " ".join(["-chardev {}".format(chardev_option),
+        ipmi_option = " ".join([chardev_option,
                                 "-device {}".format(bmc_option),
                                 "-device {}".format(interface_option)])
         self.add_option(ipmi_option)
+
+
+class CPCIBridge(CElement):
+    def __init__(self, bridge_info):
+        super(CPCIBridge, self).__init__()
+        self.__bridge_info = bridge_info
+        self.__children_bridge_list = None
+        self.__current_bridge_device = None
+        self.__addr = None
+        self.__bus = None
+        self.__parent = None
+        self.__can_use_bus = False
+        self.__chassis_nr = None
+        self.__msi = None
+        self.__multifunction = None
+
+    def set_bus(self, bus_nr):
+        self.__bus = bus_nr
+
+    def get_bus(self):
+        return self.__bus
+
+    def get_bus_list(self):
+        bus_list = []
+        for br_obj in self.__children_bridge_list:
+            if br_obj.__can_use_bus:
+                bus_list.append(br_obj.get_bus())
+        return bus_list
+
+    def set_parent(self, parent):
+        self.__parent = parent
+
+    def get_parent(self):
+        return self.__parent
+
+    def precheck(self):
+        pass
+
+    def init(self):
+        if 'device' in self.__bridge_info:
+            self.__current_bridge_device = self.__bridge_info['device']
+        else:
+            raise Exception("bridge device is required.")
+
+        if 'addr' in self.__bridge_info:
+            self.__addr = self.__bridge_info['addr']
+
+        if 'chassis_nr' in self.__bridge_info:
+            self.__chassis_nr = self.__bridge_info['chassis_nr']
+
+        if 'msi' in self.__bridge_info:
+            self.__msi = self.__bridge_info['msi']
+
+        if 'multifunction' in self.__bridge_info:
+            self.__multifunction = self.__bridge_info['multifunction']
+
+        if 'downstream_bridge' not in self.__bridge_info:
+            return
+
+        self.__children_bridge_list = []
+        current_bus_nr = self.__bus + 1
+        for child_br in self.__bridge_info['downstream_bridge']:
+            child_obj = CPCIBridge(child_br)
+            child_obj.set_bus(current_bus_nr)
+            child_obj.__can_use_bus = True
+            child_obj.set_parent("pci.{}".format(self.__bus))
+            self.__children_bridge_list.append(child_obj)
+            current_bus_nr += 1
+
+        for child_obj in self.__children_bridge_list:
+            child_obj.init()
+
+    def handle_parms(self):
+        bridge_option = "-device {},bus={},id=pci.{}".format(
+                            self.__current_bridge_device,
+                            self.__parent,
+                            self.__bus
+                            )
+        if self.__addr:
+            bridge_option = ",".join([bridge_option, "addr={}".format(self.__addr)])
+
+        if self.__chassis_nr:
+            bridge_option = ",".join([bridge_option, "chassis_nr={}".format(self.__chassis_nr)])
+
+        if self.__msi:
+            bridge_option = ",".join([bridge_option, "msi={}".format(self.__msi)])
+
+        if self.__multifunction:
+            bridge_option = ",".join([bridge_option, "multifunction={}".format(self.__multifunction)])
+
+        self.add_option(bridge_option)
+
+        if self.__children_bridge_list is None:
+            return
+
+        for child_obj in self.__children_bridge_list:
+            child_obj.handle_parms()
+
+        for child_obj in self.__children_bridge_list:
+            self.add_option(child_obj.get_option())
+
+
+class CPCITopologyManager(CElement):
+    def __init__(self, pci_topology_info):
+        super(CPCITopologyManager, self).__init__()
+        self.__pci_topology_info = pci_topology_info
+        self.__bridge_list = []
+        self.__available_bus_list = []
+
+    def get_available_bus(self):
+        for bus_nr in self.__available_bus_list:
+            yield bus_nr
+
+    def precheck(self):
+        pass
+
+    def init(self):
+        current_bus_nr = 1
+        for bri in self.__pci_topology_info:
+            bridge_obj = CPCIBridge(bri)
+            bridge_obj.set_bus(current_bus_nr)
+            bridge_obj.set_parent("pcie.0")
+            self.__bridge_list.append(bridge_obj)
+            current_bus_nr += 1
+
+        for br_obj in self.__bridge_list:
+            br_obj.init()
+
+        for br_obj in self.__bridge_list:
+            self.__available_bus_list.extend(br_obj.get_bus_list())
+
+    def handle_parms(self):
+        for br_obj in self.__bridge_list:
+            br_obj.handle_parms()
+
+        for br_obj in self.__bridge_list:
+            self.add_option(br_obj.get_option())
+
+
+class CMonitor(CElement):
+    def __init__(self, monitor_info):
+        super(CMonitor, self).__init__()
+        self.__monitor = monitor_info
+        self.__chardev = None
+        self.__mode = "readline"
+
+    def precheck(self):
+        pass
+
+    def init(self):
+        self.__mode = self.__monitor['mode'] if 'mode' in self.__monitor else self.__mode
+        if 'chardev' in self.__monitor:
+            self.__chardev = CCharDev(self.__monitor['chardev'])
+            self.__chardev.set_id("monitorchardev")
+            self.__chardev.init()
+
+    def handle_parms(self):
+        self.__chardev.handle_parms()
+        self.add_option(self.__chardev.get_option())
+        self.add_option("-mon chardev={},mode={}".format(self.__chardev.get_id(), self.__mode))
 
 
 class Task(object):
@@ -633,10 +959,10 @@ class Task(object):
         self.__debug = False
         self.__log_path = ""
 
-        # If any task set the __run_mask to True,
+        # If any task set the __asyncronous to True,
         # this task shall only be maintained with information
         # no actual run shall be taken
-        self.__run_mask = False
+        self.__asyncronous = False
 
     def set_priority(self, priority):
         self.__task_priority = priority
@@ -662,61 +988,73 @@ class Task(object):
     def set_log_path(self, log_path):
         self.__log_path = log_path
 
-    def set_run_mask(self, run_mask):
-        self.__run_mask = run_mask
+    def set_asyncronous(self, asyncr):
+        self.__asyncronous = asyncr
 
     def get_task_pid(self):
-        pid_file = "{}/.{}".format(self.__workspace, self.__task_name)
+        pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
         try:
             with open(pid_file, "r") as f:
-                pid = f.readline()
-        except Exception, e:
-            return None
-        return pid.strip()
+                pid = f.readline().strip()
+        except Exception:
+            return -1
+
+        if pid == "":
+            return -1
+
+        return pid
+
+    def __task_is_running(self):
+        pid = self.get_task_pid()
+        if pid > 0 and os.path.exists("/proc/{}".format(pid)):
+            return True
+        return False
 
     def run(self):
-        if self.__run_mask:
+        if self.__asyncronous:
             start = time.time()
             while True:
-                pid = self.get_task_pid()
+                if self.__task_is_running():
+                    break
+
                 if time.time()-start > 10:
                     break
-                if pid == "":
-                    continue
-                if pid is not None:
-                    break
-            if pid is None:
-                print "[ {:<6} ] {} fail to start".\
-                    format(pid, self.__task_name)
+
+            if not self.__task_is_running():
+                print "[ {} ] {} fail to start".\
+                    format("ERROR", self.__task_name)
             else:
-                print "[ {:<6} ] {} run".format(pid, self.__task_name)
+                print "[ {:<6} ] {} is runnning".format(self.get_task_pid(), self.__task_name)
             return
 
         if self.__debug:
             print self.get_commandline()
             return
 
-        pid = self.get_task_pid()
-        if pid > 0:
-            if os.path.exists("/proc/{}".format(pid)):
-                print "[ {:<6} ] {} is already running".\
-                    format(pid, self.__task_name)
-                return
-            else:
-                os.remove("{}/.{}".format(self.__workspace, self.__task_name))
+        pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
+
+        if self.__task_is_running():
+            print "[ {:<6} ] {} is already running".format(
+                self.get_task_pid(), self.__task_name)
+            return
+        elif os.path.exists(pid_file):
+            # If the qemu quits exceptionally when starts, pid file is also
+            # created, but actually the qemu died.
+            os.remove(pid_file)
 
         pid = Utility.execute_command(self.get_commandline(),
                                       log_path=self.__log_path)
-        print "[ {:<6} ] {} start to run".format(pid, self.__task_name)
-        pid_file = "{}/.{}".format(self.__workspace, self.__task_name)
+
+        print "[ {:<6} ] {} starts to run.".format(pid, self.__task_name)
+
         with open(pid_file, "w") as f:
             f.write("{}".format(pid))
 
     def terminate(self):
         task_pid = self.get_task_pid()
-        pid_file = "{}/.{}".format(self.__workspace, self.__task_name)
+        pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
         try:
-            if task_pid:
+            if task_pid > 0:
                 print "[ {:<6} ] {} stop".format(task_pid, self.__task_name)
                 os.kill(int(task_pid), signal.SIGTERM)
                 time.sleep(1)
@@ -735,7 +1073,7 @@ class Task(object):
 
     def status(self):
         task_pid = self.get_task_pid()
-        pid_file = "{}/.{}".format(self.__workspace, self.__task_name)
+        pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
         if not os.path.exists(pid_file):
             print("{} is stopped".format(self.__task_name))
         elif not os.path.exists("/proc/{}".format(task_pid)):
@@ -743,7 +1081,7 @@ class Task(object):
             os.remove(pid_file)
         else:
             task_pid = self.get_task_pid()
-            if task_pid:
+            if task_pid > 0:
                 print "[ {:<6} ] {} is running".\
                     format(task_pid, self.__task_name)
 
@@ -764,6 +1102,8 @@ class CCompute(Task, CElement):
         # remember cpu object
         self.__cpu_obj = None
         self.__numactl_obj = None
+        self.__cdrom_file = None
+        self.__monitor = None
 
         # Node wise attributes
         self.__port_qemu_ipmi = 9002
@@ -829,8 +1169,8 @@ class CCompute(Task, CElement):
                                          "{}_smbios.bin".
                                          format(self.__vendor_type))
         else:
-            self.__smbios = TEMPLATE_ROOT + "data/{0}/{0}_smbios.bin".\
-                format(self.__vendor_type)
+            self.__smbios = os.path.join(config.infrasim_intermediate_data,
+                                         "{0}/{0}_smbios.bin".format(self.__vendor_type))
 
         if 'bios' in self.__compute:
             self.__bios = self.__compute['bios']
@@ -846,10 +1186,10 @@ class CCompute(Task, CElement):
             if os.path.exists("/usr/bin/numactl"):
                 self.set_numactl(NumaCtl())
                 logger.info('[model:compute] infrasim has '
-                           'enabled numa control')
+                            'enabled numa control')
             else:
                 logger.info('[model:compute] infrasim can\'t '
-                           'find numactl in this environment')
+                            'find numactl in this environment')
 
         cpu_obj = CCPU(self.__compute['cpu'])
         self.__element_list.append(cpu_obj)
@@ -858,27 +1198,50 @@ class CCompute(Task, CElement):
         memory_obj = CMemory(self.__compute['memory'])
         self.__element_list.append(memory_obj)
 
-        backend_storage_obj = \
-            CBackendStorage(self.__compute['storage_backend'])
+        # If PCI device wants to sit on one specific PCI bus, the bus should be
+        # created first prior to using the bus, here we always create the PCI
+        # bus prior to other PCI devices' creation
+        pci_topology_manager_obj = None
+        if 'pci_bridge_topology' in self.__compute:
+            pci_topology_manager_obj = CPCITopologyManager(self.__compute['pci_bridge_topology'])
+            self.__element_list.append(pci_topology_manager_obj)
+
+        backend_storage_obj = CBackendStorage(self.__compute['storage_backend'])
+        if pci_topology_manager_obj:
+            backend_storage_obj.set_pci_topology_mgr(pci_topology_manager_obj)
         self.__element_list.append(backend_storage_obj)
 
         backend_network_obj = CBackendNetwork(self.__compute['networks'])
         self.__element_list.append(backend_network_obj)
 
         if has_option(self.__compute, "ipmi"):
-            ipmi_obj = CIPMI({
-                "interface": self.__compute["ipmi"].get("interface", "kcs"),
-                "host": self.__compute["ipmi"].get("host", "127.0.0.1"),
-                "bmc_connection_port": self.__port_qemu_ipmi
-            })
+            ipmi_obj = CIPMI(self.__compute['ipmi'])
         else:
-            ipmi_obj = CIPMI({
-                "interface": "kcs",
-                "host": "127.0.0.1",
-                "bmc_connection_port": self.__port_qemu_ipmi
-            })
-
+            ipmi_info = {
+                'interface': 'kcs',
+                'chardev': {
+                    'backend': 'socket',
+                    'host': '127.0.0.1',
+                }
+            }
+            ipmi_obj = CIPMI(ipmi_info)
+        ipmi_obj.set_bmc_conn_port(self.__port_qemu_ipmi)
         self.__element_list.append(ipmi_obj)
+
+        if 'monitor' in self.__compute:
+            monitor_obj = CMonitor(self.__compute['monitor'])
+        else:
+            monitor_obj = CMonitor({
+                'mode': 'readline',
+                'chardev': {
+                    'backend': 'socket',
+                    'host': '127.0.0.1',
+                    'port': 2345,
+                    'server': True,
+                    'wait': False
+                }
+            })
+        self.__element_list.append(monitor_obj)
 
         for element in self.__element_list:
             element.init()
@@ -941,10 +1304,10 @@ class CCompute(Task, CElement):
         if self.__cdrom_file:
             self.add_option("-cdrom {}".format(self.__cdrom_file))
 
-        self.add_option("-chardev socket,id=mon,host=127.0.0.1,"
-                        "port=2345,server,nowait ")
-
-        self.add_option("-mon chardev=mon,id=monitor")
+#        self.add_option("-chardev socket,id=mon,host=127.0.0.1,"
+#                        "port=2345,server,nowait ")
+#
+#        self.add_option("-mon chardev=mon,id=monitor")
 
         if self.__port_serial:
             self.add_option("-serial mon:udp:127.0.0.1:{},nowait".
@@ -958,8 +1321,8 @@ class CCompute(Task, CElement):
 
 class CBMC(Task):
 
-    VBMC_TEMP_CONF = TEMPLATE_SYSROOT + "template/vbmc.conf"
-    VBMC_CONF = TEMPLATE_ROOT + "etc/vbmc.conf"
+    VBMC_TEMP_CONF = os.path.join(config.infrasim_template, "vbmc.conf")
+    VBMC_CONF = os.path.join(config.infrasim_intermediate_etc, "vbmc.conf")
 
     def __init__(self, bmc_info={}):
         super(CBMC, self).__init__()
@@ -978,7 +1341,7 @@ class CBMC(Task):
         self.__password = "admin"
         self.__emu_file = None
         self.__config_file = ""
-        self.__bin = "/usr/local/bin/ipmi_sim"
+        self.__bin = "ipmi_sim"
         self.__port_iol = 623
         self.__historyfru = 10
 
@@ -1152,8 +1515,8 @@ class CBMC(Task):
                                                     "script",
                                                     "lancontrol")
         else:
-            self.__lancontrol_script \
-                = TEMPLATE_SYSROOT + "template/lancontrol"
+            self.__lancontrol_script = os.path.join(config.infrasim_template,
+                                                    "lancontrol")
 
         if 'chassiscontrol' in self.__bmc:
             self.__chassiscontrol_script = self.__bmc['chassiscontrol']
@@ -1201,8 +1564,8 @@ class CBMC(Task):
                                            "{}.emu".
                                            format(self.__vendor_type))
         else:
-            self.__emu_file = TEMPLATE_ROOT + "data/{0}/{0}.emu".\
-                format(self.__vendor_type)
+            self.__emu_file = os.path.join(config.infrasim_intermediate_data,
+                                           "{0}/{0}.emu".format(self.__vendor_type))
 
         if 'config_file' in self.__bmc:
             self.__config_file = self.__bmc['config_file']
@@ -1211,14 +1574,14 @@ class CBMC(Task):
                                               "data",
                                               "vbmc.conf")
         else:
-            self.__config_file = "/etc/infrasim/vbmc.conf"
+            raise Exception("Couldn't find vbmc.conf!")
 
         if self.__sol_device:
             pass
         elif self.get_workspace():
             self.__sol_device = os.path.join(self.get_workspace(), ".pty0")
         else:
-            self.__sol_device = "/etc/infrasim/pty0"
+            self.__sol_device = os.path.join(config.infrasim_etc, "pty0")
 
     def get_commandline(self):
         ipmi_cmd_str = "{0} -c {1} -f {2} -n -s /var/tmp".\
@@ -1264,7 +1627,7 @@ class CSocat(Task):
         elif self.get_workspace():
             self.__sol_device = os.path.join(self.get_workspace(), ".pty0")
         else:
-            self.__sol_device = "/etc/infrasim/pty0"
+            self.__sol_device = os.path.join(config.infrasim_etc, "pty0")
 
     def get_commandline(self):
         socat_str = "{0} pty,link={1},waitslave " \
@@ -1361,7 +1724,7 @@ class CNode(object):
 
             for target in ["startcmd", "stopcmd", "resetcmd"]:
                 if not has_option(self.__node, "bmc", target):
-                    src = os.path.join(TEMPLATE_SYSROOT, "template", target)
+                    src = os.path.join(config.infrasim_template, target)
                     dst = os.path.join(self.workspace, "script", target)
                     with open(src, "r")as f:
                         src_text = f.read()
@@ -1388,11 +1751,11 @@ class CNode(object):
                                              "script",
                                              "resetcmd")
                 path_bootdev = os.path.join(self.workspace,
-                                             "", "bootdev")
+                                            "", "bootdev")
                 path_qemu_pid = os.path.join(self.workspace,
-                                             ".{}-node".
+                                             ".{}-node.pid".
                                              format(self.get_node_name()))
-                src = os.path.join(TEMPLATE_SYSROOT, "template", "chassiscontrol")
+                src = os.path.join(config.infrasim_template, "chassiscontrol")
                 dst = os.path.join(self.workspace, "script", "chassiscontrol")
                 with open(src, "r") as f:
                     src_text = f.read()
@@ -1410,8 +1773,7 @@ class CNode(object):
                 bmc_obj.set_chassiscontrol_script(path_chassiscontrol)
 
             if not has_option(self.__node, "bmc", "lancontrol"):
-                os.symlink(os.path.join(TEMPLATE_SYSROOT,
-                                        "template",
+                os.symlink(os.path.join(config.infrasim_template,
                                         "lancontrol"),
                            os.path.join(self.workspace,
                                         "script",
@@ -1448,8 +1810,7 @@ class CNode(object):
             shutil.copy(self.__node["bmc"]["emu_file"], path_emu_dst)
         else:
             node_type = self.__node["type"]
-            path_emu_src = TEMPLATE_ROOT + "data/{0}/{0}.emu".\
-                format(node_type)
+            path_emu_src = os.path.join(config.infrasim_data, "{0}/{0}.emu".format(node_type))
             shutil.copy(path_emu_src, os.path.join(path_emu_dst, "{}.emu".
                                                    format(node_type)))
 
@@ -1459,8 +1820,8 @@ class CNode(object):
             shutil.copy(self.__node["compute"]["smbios"], path_bios_dst)
         else:
             node_type = self.__node["type"]
-            path_bios_src = TEMPLATE_ROOT + "data/{0}/{0}_smbios.bin".\
-                format(node_type)
+            path_bios_src = os.path.join(config.infrasim_data,
+                                         "{0}/{0}_smbios.bin".format(node_type))
             shutil.copy(path_bios_src, os.path.join(path_emu_dst,
                                                     "{}_smbios.bin".
                                                     format(node_type)))
@@ -1491,7 +1852,7 @@ class CNode(object):
         self.__tasks_list.append(bmc_obj)
 
         compute_obj = CCompute(self.__node['compute'])
-        compute_obj.set_run_mask(True)
+        compute_obj.set_asyncronous(True)
         compute_obj.set_priority(2)
         compute_obj.set_task_name("{}-node".format(self.__node_name))
         compute_obj.set_log_path("/var/log/infrasim/{}/qemu.log".
@@ -1589,6 +1950,7 @@ class CChassis(object):
         for node_obj in self.__node_list:
             node_obj.status()
 """
+
 
 class NumaCtl(object):
     def __init__(self):

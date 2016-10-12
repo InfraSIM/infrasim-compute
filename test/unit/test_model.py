@@ -12,7 +12,7 @@ import yaml
 from infrasim import ArgsNotCorrect
 from infrasim import model
 from infrasim import socat
-from infrasim import VM_DEFAULT_CONFIG
+from infrasim import config
 
 
 class qemu_functions(unittest.TestCase):
@@ -245,16 +245,16 @@ class qemu_functions(unittest.TestCase):
             assert False
 
     def test_set_smbios(self):
-        with open("/etc/infrasim/infrasim.yml", "r") as f_yml:
+        with open(config.infrasim_initial_config, "r") as f_yml:
             compute_info = yaml.load(f_yml)["compute"]
-        compute_info["smbios"] = "/etc/infrasim/test.smbios"
+        compute_info["smbios"] = "/tmp/test.smbios"
 
         compute = model.CCompute(compute_info)
         compute.init()
-        assert compute.get_smbios() == "/etc/infrasim/test.smbios"
+        assert compute.get_smbios() == "/tmp/test.smbios"
 
     def test_set_smbios_without_workspace(self):
-        with open("/etc/infrasim/infrasim.yml", "r") as f_yml:
+        with open(config.infrasim_initial_config, "r") as f_yml:
             compute_info = yaml.load(f_yml)["compute"]
 
         compute = model.CCompute(compute_info)
@@ -264,7 +264,7 @@ class qemu_functions(unittest.TestCase):
             os.environ['HOME'] + "/.infrasim/data/s2600kp/s2600kp_smbios.bin"
 
     def test_set_smbios_with_type_and_workspace(self):
-        with open("/etc/infrasim/infrasim.yml", "r") as f_yml:
+        with open(config.infrasim_initial_config, "r") as f_yml:
             compute_info = yaml.load(f_yml)["compute"]
         workspace = os.path.join(os.environ["HOME"], ".infrasim", ".test")
 
@@ -283,7 +283,7 @@ class bmc_configuration(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+        with open(config.infrasim_initial_config, 'r') as f_yml:
             conf = yaml.load(f_yml)
         conf["name"] = ".test"
         with open("test.yml", 'w') as f_yml:
@@ -311,9 +311,10 @@ class bmc_configuration(unittest.TestCase):
                           "dell_r630", "dell_c6320",
                           "s2600kp", "s2600tp", "s2600wtt"]:
             bmc.set_type(node_type)
+            bmc.set_workspace(self.__class__.WORKSPACE)
             bmc.init()
             cmd = bmc.get_commandline()
-            assert "{0}/{0}.emu".format(node_type) \
+            assert "{0}.emu".format(node_type) \
                    in cmd
 
     def test_set_bmc_lan_interface(self):
@@ -555,7 +556,7 @@ class bmc_configuration(unittest.TestCase):
                 assert False
 
     def test_set_another_emu_file(self):
-        fn = "/etc/infrasim/test_emu"
+        fn = "/tmp/test_emu"
         os.system("touch {}".format(fn))
 
         bmc_info = {
@@ -573,7 +574,7 @@ class bmc_configuration(unittest.TestCase):
         os.system("rm -rf {}".format(fn))
 
     def test_set_invalid_emu_file(self):
-        fn = "/etc/infrasim/emu_test"
+        fn = "/tmp/emu_test"
         os.system("rm -rf {}".format(fn))
 
         bmc_info = {
@@ -594,7 +595,7 @@ class bmc_configuration(unittest.TestCase):
             assert False
 
     def test_set_another_config_file(self):
-        fn = "/etc/infrasim/test_conf"
+        fn = "/tmp/test_conf"
         os.system("touch {}".format(fn))
 
         bmc_info = {
@@ -612,7 +613,7 @@ class bmc_configuration(unittest.TestCase):
         os.system("rm -rf {}".format(fn))
 
     def test_set_invalid_config_file(self):
-        fn = "/etc/infrasim/conf_test"
+        fn = "/tmp/conf_test"
         os.system("rm -rf {}".format(fn))
 
         bmc_info = {
@@ -702,5 +703,5 @@ class socat_configuration(unittest.TestCase):
         socat_obj.precheck()
         cmd = socat_obj.get_commandline()
 
-        assert "pty,link=/etc/infrasim/pty0,waitslave" in cmd
+        assert "pty,link={}/pty0,waitslave".format(config.infrasim_etc) in cmd
         assert "udp-listen:9003,reuseaddr" in cmd

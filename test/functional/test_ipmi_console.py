@@ -17,6 +17,8 @@ from infrasim import qemu
 from infrasim import ipmi
 from infrasim import socat
 from nose import with_setup
+from infrasim import console
+import threading
 
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
@@ -75,7 +77,9 @@ class test_ipmi_console(unittest.TestCase):
     def setUpClass(cls):
         socat.start_socat()
         ipmi.start_ipmi()
-        run_command('ipmi-console start &', True, None, None)
+        ipmi_console_thread = threading.Thread(target = console.start, args=())
+        ipmi_console_thread.setDaemon(True)
+        ipmi_console_thread.start()
         time.sleep(5)
         cls.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         cls.ssh.connect('127.0.0.1', username='', password='', port=9300)
@@ -85,7 +89,7 @@ class test_ipmi_console(unittest.TestCase):
     def tearDownClass(cls):
         cls.channel.close()
         cls.ssh.close()
-        run_command('ipmi-console stop', True, subprocess.PIPE, subprocess.PIPE)
+        #run_command('ipmi-console stop', True, subprocess.PIPE, subprocess.PIPE)
         qemu.stop_qemu()
         ipmi.stop_ipmi()
         socat.stop_socat()

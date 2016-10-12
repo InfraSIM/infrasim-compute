@@ -8,27 +8,28 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import os
 import yaml
-from . import run_command, logger, ArgsNotCorrect, CommandNotFound, CommandRunFailed, VM_DEFAULT_CONFIG
+import config
+from . import run_command, logger, ArgsNotCorrect, CommandNotFound, CommandRunFailed
 from model import CBMC, CNode
 
 
 def get_ipmi():
     try:
-        code, ipmi_cmd = run_command("which /usr/local/bin/ipmi_sim")
+        code, ipmi_cmd = run_command("which ipmi_sim")
         return ipmi_cmd.strip(os.linesep)
-    except CommandRunFailed as e:
-        raise CommandNotFound("/usr/local/bin/ipmi_sim")
+    except CommandRunFailed:
+        raise CommandNotFound("ipmi_sim")
 
 
 def status_ipmi():
     try:
         run_command("pidof ipmi_sim")
         print "InfraSim IPMI service is running"
-    except CommandRunFailed as e:
+    except CommandRunFailed:
         print "Infrasim IPMI service is stopped"
 
 
-def start_ipmi(conf_file=VM_DEFAULT_CONFIG):
+def start_ipmi(conf_file=config.infrasim_initial_config):
     try:
         with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
@@ -61,10 +62,10 @@ def start_ipmi(conf_file=VM_DEFAULT_CONFIG):
         raise e
 
 
-def stop_ipmi(conf_file=VM_DEFAULT_CONFIG):
+def stop_ipmi(conf_file=config.infrasim_initial_config):
     ipmi_stop_cmd = "pkill ipmi_sim"
     try:
         run_command(ipmi_stop_cmd, True, None, None)
         logger.info("ipmi stopped")
-    except CommandRunFailed as e:
+    except CommandRunFailed:
         logger.error("ipmi stop failed")

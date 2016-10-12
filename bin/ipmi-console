@@ -1,52 +1,5 @@
 #!/usr/bin/python
-import threading
-import os
-import sys
-
-from infrasim.ipmicons import sdr, common
 from infrasim import console
 
-sensor_thread_list = []
-
-def spawn_sensor_thread():
-    for sensor_obj in sdr.sensor_list:
-        if sensor_obj.get_event_type() == "threshold":
-            t = threading.Thread(target=sensor_obj.execute)
-            t.setDaemon(True)
-            sensor_thread_list.append(t)
-            common.logger.info('spawn a thread for sensor ' +
-                               sensor_obj.get_name())
-            t.start()
-
-
-def free_resource():
-    # close telnet session
-    # common.close_telnet_session()
-
-    # join the sensor thread
-    for sensor_obj in sdr.sensor_list:
-        sensor_obj.set_mode("user")
-        # set quit flag
-        sensor_obj.set_quit(True)
-        # acquire the lock that before notify
-        sensor_obj.condition.acquire()
-        sensor_obj.condition.notify()
-        sensor_obj.condition.release()
-
-    for thread in sensor_thread_list:
-        thread.join()
-
 if __name__ == '__main__':
-    if sys.argv[1] == "start":
-        # initialize logging
-        common.init_logger()
-        # parse the sdrs and build all sensors
-        sdr.parse_sdrs()
-        # running thread for each threshold based sensor
-        spawn_sensor_thread()
-        console.start_console()
-    elif sys.argv[1] == "stop":
-        console.stop_console()
-    else:
-        pass
-
+    console.console_main()

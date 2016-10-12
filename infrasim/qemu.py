@@ -8,25 +8,25 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import os
 import yaml
-import socket
 import time
-from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect, has_option, VM_DEFAULT_CONFIG
+import config
+from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect
 from model import CCompute
 
 
 def get_qemu():
     try:
-        code, qemu_cmd = run_command("which /usr/local/bin/qemu-system-x86_64")
+        code, qemu_cmd = run_command("which qemu-system-x86_64")
         return qemu_cmd.strip(os.linesep)
-    except CommandRunFailed as e:
-        raise CommandNotFound("/usr/local/bin/qemu-system-x86_64")
+    except CommandRunFailed:
+        raise CommandNotFound("qemu-system-x86_64")
 
 
 def status_qemu():
     try:
         run_command("pidof qemu-system-x86_64")
         print "Infrasim Qemu service is running"
-    except CommandRunFailed as e:
+    except CommandRunFailed:
         print "Inrasim Qemu service is stopped"
 
 
@@ -48,7 +48,7 @@ def stop_macvtap(eth):
         raise e
 
 
-def start_qemu(conf_file=VM_DEFAULT_CONFIG):
+def start_qemu(conf_file=config.infrasim_initial_config):
     try:
         with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
@@ -96,7 +96,7 @@ def start_qemu(conf_file=VM_DEFAULT_CONFIG):
         raise e
 
 
-def stop_qemu(conf_file=VM_DEFAULT_CONFIG):
+def stop_qemu(conf_file=config.infrasim_initial_config):
     try:
         with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)

@@ -15,7 +15,8 @@ Test serial functions:
 import unittest
 import os
 import yaml
-from infrasim import socat, VM_DEFAULT_CONFIG
+from infrasim import socat
+from infrasim import config
 
 
 class test_serial(unittest.TestCase):
@@ -26,7 +27,7 @@ class test_serial(unittest.TestCase):
 
     def setUp(self):
         os.system("touch test.yml")
-        with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+        with open(config.infrasim_initial_config, 'r') as f_yml:
             self.conf = yaml.load(f_yml)
 
     def tearDown(self):

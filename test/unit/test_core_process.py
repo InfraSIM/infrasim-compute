@@ -20,7 +20,7 @@ from infrasim import qemu
 from infrasim import ipmi
 from infrasim import socat
 from infrasim import model
-from infrasim import VM_DEFAULT_CONFIG
+from infrasim import config
 import time
 import yaml
 import os
@@ -30,7 +30,7 @@ def setUp():
     workspace = "{}/.infrasim/node-0".format(os.environ["HOME"])
     if os.path.exists(workspace):
         os.system("rm -rf {}".format(workspace))
-    with open(VM_DEFAULT_CONFIG, 'r') as f_yml:
+    with open(config.infrasim_initial_config, 'r') as f_yml:
         conf = yaml.load(f_yml)
     node = model.CNode(conf)
     node.init_workspace()

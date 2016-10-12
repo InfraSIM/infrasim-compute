@@ -62,6 +62,10 @@ wget ${seabios_link} -O ${seabios_file} -q
 [ -f ${seabios_file} ] || fail "can't download seabios file"
 popd
 
-cp -rap /usr/local/infrasim/data/* ~/.infrasim/data/
-mkdir -pv /usr/local/etc/qemu
+[ ! -d /etc/qemu ] && mkdir -p /etc/qemu
+
+if [ ! -d /usr/local/etc/qemu ];then
+    mkdir -pv /usr/local/etc/qemu
+fi
+
 ln -sf /etc/qemu/bridge.conf /usr/local/etc/qemu/bridge.conf
