@@ -7,6 +7,7 @@ from infrasim import run_command, CommandNotFound, CommandRunFailed
 from infrasim.socat import get_socat
 from infrasim.ipmi import get_ipmi
 from infrasim.qemu import get_qemu
+from infrasim.package_install import package_install
 import netifaces
 import config
 
@@ -65,13 +66,7 @@ def init_infrasim_conf():
 
 
 def install_packages():
-    try:
-        retcode, package_install_script = run_command('which package_install.sh')
-        if retcode == 0:
-            package_install_script = package_install_script.strip(os.linesep)
-    except CommandRunFailed:
-        package_install_script = os.path.join(config.get_infrasim_root(), "package_install.sh")
-    run_command("sudo {}".format(package_install_script), True, None, None)
+    package_install()
 
 
 def config_library_link():
