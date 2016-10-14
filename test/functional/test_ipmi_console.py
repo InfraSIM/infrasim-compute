@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 '''
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
@@ -9,14 +9,12 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import unittest
 import subprocess
-import re
 import os
 import time
 import paramiko
 from infrasim import qemu
 from infrasim import ipmi
 from infrasim import socat
-from nose import with_setup
 from infrasim import console
 import threading
 
@@ -77,19 +75,19 @@ class test_ipmi_console(unittest.TestCase):
     def setUpClass(cls):
         socat.start_socat()
         ipmi.start_ipmi()
-        ipmi_console_thread = threading.Thread(target = console.start, args=())
+        ipmi_console_thread = threading.Thread(target=console.start, args=())
         ipmi_console_thread.setDaemon(True)
         ipmi_console_thread.start()
         time.sleep(5)
         cls.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         cls.ssh.connect('127.0.0.1', username='', password='', port=9300)
         cls.channel = cls.ssh.invoke_shell()
-    
+
     @classmethod
     def tearDownClass(cls):
+        cls.channel.send('quit\n')
         cls.channel.close()
         cls.ssh.close()
-        #run_command('ipmi-console stop', True, subprocess.PIPE, subprocess.PIPE)
         qemu.stop_qemu()
         ipmi.stop_ipmi()
         socat.stop_socat()
@@ -105,10 +103,10 @@ class test_ipmi_console(unittest.TestCase):
         time.sleep(1)
         str_output = read_buffer(self.channel)
         assert 'Fan_SYS0' in str_output
-    
+
         self.channel.send('sensor value set ' + self.sensor_id + ' ' + self.sensor_value + '\n')
         time.sleep(1)
-    
+
         self.channel.send('sensor value get ' + self.sensor_id + '\n')
         time.sleep(1)
         str_output = read_buffer(self.channel)
@@ -121,16 +119,16 @@ class test_ipmi_console(unittest.TestCase):
         assert 'Available' in str_output
 
     def test_sel_accessibility(self):
-        self.channel.send('sel get ' + self.sensor_id + '\n')        
+        self.channel.send('sel get ' + self.sensor_id + '\n')
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
         assert 'ID' in str_output
-    
+
         self.channel.send('sel set ' + self.sensor_id + ' ' + self.event_id + ' assert\n')
         time.sleep(0.1)
         self.channel.send('sel set ' + self.sensor_id + ' ' + self.event_id + ' deassert\n')
         time.sleep(0.1)
-    
+
         ipmi_sel_cmd = 'ipmitool -H 127.0.0.1 -U admin -P admin sel list'
         returncode, output = run_command(ipmi_sel_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         try:
@@ -143,16 +141,16 @@ class test_ipmi_console(unittest.TestCase):
         assert 'Fan #0xc0 | Upper Non-critical going low  | Deasserted' in deassert_line
 
     def test_history_accessibilty(self):
-        self.channel.send('help\n')        
+        self.channel.send('help\n')
         time.sleep(0.1)
-        self.channel.send('help sensor\n')        
+        self.channel.send('help sensor\n')
         time.sleep(0.1)
-        self.channel.send('history\n')        
+        self.channel.send('history\n')
         time.sleep(0.1)
-    
+
         str_output = read_buffer(self.channel)
         lines = str_output.splitlines()
-    
+
         assert 'help' in lines[-4]
         assert 'help sensor' in lines[-3]
 
