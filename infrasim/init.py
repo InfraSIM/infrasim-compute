@@ -74,6 +74,10 @@ def install_packages():
     run_command("sudo {}".format(package_install_script), True, None, None)
 
 
+def config_library_link():
+    run_command("ldconfig")
+
+
 def update_bridge_cfg():
     run_command('echo "allow br0" > /etc/qemu/bridge.conf')
 
@@ -83,6 +87,7 @@ def infrasim_init():
         create_infrasim_directories()
         install_packages()
         init_infrasim_conf()
+        config_library_link()
         update_bridge_cfg()
         get_socat()
         get_ipmi()
