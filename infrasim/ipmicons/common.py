@@ -13,6 +13,7 @@ import logging
 
 import socket
 import Queue
+import re
 
 lock = threading.Lock()
 
@@ -99,12 +100,24 @@ def close_telnet_session():
 
 # send ipmitool command to vBMC
 def send_ipmitool_command(*cmds):
+    vbmc_user = "admin"
+    output = send_ipmi_sim_command(
+        "get_user_password 0x20 {}\n".format(vbmc_user))
+    for line in output.split(os.linesep):
+        pass_obj = re.search(r"(^[^>].*)", line)
+        if pass_obj:
+            break
+
+    if pass_obj is None:
+        return -1
+
+    vbmc_pass = pass_obj.group().strip('\r\n')
+
     lock.acquire()
     dst_cmd = ["ipmitool",
-               "-I", "lan", "-H", 'localhost', "-U", 'admin', "-P", 'admin']
+               "-I", "lan", "-H", 'localhost', "-U", vbmc_user, "-P", vbmc_pass]
     for cmd in cmds:
         dst_cmd.append(cmd)
-
     child = subprocess.Popen(dst_cmd,
             stdout=subprocess.PIPE,
             stdin=subprocess.PIPE,
