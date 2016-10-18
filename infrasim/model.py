@@ -1104,6 +1104,7 @@ class CCompute(Task, CElement):
         self.__numactl_obj = None
         self.__cdrom_file = None
         self.__monitor = None
+        self.__display = None
 
         # Node wise attributes
         self.__port_qemu_ipmi = 9002
@@ -1191,6 +1192,9 @@ class CCompute(Task, CElement):
                 logger.info('[model:compute] infrasim can\'t '
                             'find numactl in this environment')
 
+        self.__display = self.__compute['vnc_display'] \
+            if 'vnc_display' in self.__compute else 1
+
         cpu_obj = CCPU(self.__compute['cpu'])
         self.__element_list.append(cpu_obj)
         self.__cpu_obj = cpu_obj
@@ -1252,7 +1256,7 @@ class CCompute(Task, CElement):
 
         qemu_commandline = ""
         for element_obj in self.__element_list:
-            qemu_commandline = " ".join([element_obj.get_option(), qemu_commandline])
+            qemu_commandline = " ".join([qemu_commandline, element_obj.get_option()])
 
         qemu_commandline = " ".join([self.__qemu_bin, self.get_option(), qemu_commandline])
 
@@ -1267,7 +1271,7 @@ class CCompute(Task, CElement):
         return qemu_commandline
 
     def handle_parms(self):
-        self.add_option("-vnc :1")
+        self.add_option("-vnc :{}".format(self.__display))
         self.add_option("-name {}".format(self.get_task_name()))
         self.add_option("-device sga")
 
@@ -1904,52 +1908,6 @@ class CNode(object):
     def status(self):
         for task in self.__tasks_list:
             task.status()
-
-
-"""
-class CChassis(object):
-    def __init__(self, chassis_info):
-        self.__chassis = chassis_info
-        self.__chassis_model = None
-        self.__node_list = []
-        self.__numactl_obj = NumaCtl()
-
-    def precheck(self):
-        # check total resources
-        for node in self.__node_list:
-            node.precheck()
-
-    def init(self):
-        for node in self.__chassis['nodes']:
-            node_obj = CNode(node)
-            node_obj.set_node_name(self.__chassis['name'])
-            self.__node_list.append(node_obj)
-
-        for node_obj in self.__node_list:
-            node_obj.init()
-
-    def start(self, node_id=None):
-        for node_obj in self.__node_list:
-            if node_id and node_obj.get_node_name() == node_id:
-                node_obj.start()
-                return
-
-        for node_obj in self.__node_list:
-            node_obj.start()
-
-    def stop(self, node_id=None):
-        for node_obj in self.__node_list:
-            if node_id and node_obj.get_node_name() == node_id:
-                node_obj.stop()
-                return
-
-        for node_obj in self.__node_list:
-            node_obj.stop()
-
-    def status(self):
-        for node_obj in self.__node_list:
-            node_obj.status()
-"""
 
 
 class NumaCtl(object):
