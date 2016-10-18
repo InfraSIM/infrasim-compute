@@ -62,10 +62,13 @@ def copy_data_to_workspace():
 
 def create_bridge_conf_link():
     if not os.path.exists("/usr/local/etc/qemu/bridge.conf"):
+        bridge_conf_initial_dir = "/etc/qemu"
         bridge_conf_dir = "/usr/local/etc/qemu"
+        if not os.path.exists(bridge_conf_initial_dir):
+            os.makedirs(bridge_conf_initial_dir)
         if not os.path.exists(bridge_conf_dir):
             os.makedirs(bridge_conf_dir)
-            os.symlink("/etc/qemu/bridge.conf", "/usr/local/etc/qemu/bridge.conf")
+        os.symlink("/etc/qemu/bridge.conf", "/usr/local/etc/qemu/bridge.conf")
 
 
 def package_install():
