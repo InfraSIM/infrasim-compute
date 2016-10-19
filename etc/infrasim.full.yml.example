@@ -67,6 +67,9 @@ compute:
         interface: bt
         host: 127.0.0.1
     smbios: chassis/node1/quanta_d51_smbios.bin
+
+    # set vnc display <X>
+    vnc_display: 1
 bmc:
     interface: br0
     username: admin
