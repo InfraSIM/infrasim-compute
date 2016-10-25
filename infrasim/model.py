@@ -21,6 +21,7 @@ import yaml
 import shutil
 import stat
 import config
+import json
 from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
 
 """
@@ -662,6 +663,21 @@ class CNetwork(CElement):
                 if self.__bridge_name not in netifaces.interfaces():
                     raise ArgsNotCorrect("ERROR: network_name({}) is not exists".
                                          format(self.__bridge_name))
+            if "mac" not in self.__network:
+                raise ArgsNotCorrect("ERROR: mac address is not specified for "
+                                     "target network:\n{}".
+                                     format(json.dumps(self.__network, indent=4)))
+            else:
+                list_addr = self.__mac_address.split(":")
+                if len(list_addr) != 6:
+                    raise ArgsNotCorrect("ERROR: mac address invalid: {}".
+                                         format(self.__mac_address))
+                for each_addr in list_addr:
+                    try:
+                        int(each_addr, 16)
+                    except:
+                        raise ArgsNotCorrect("ERROR: mac address invalid: {}".
+                                             format(self.__mac_address))
 
     def init(self):
         if 'network_mode' in self.__network:
@@ -677,13 +693,6 @@ class CNetwork(CElement):
             self.__mac_address = self.__network['mac']
 
     def handle_parms(self):
-        if self.__mac_address is None:
-            uuid_val = uuid.uuid4()
-            str1 = str(uuid_val)[-2:]
-            str2 = str(uuid_val)[-4:-2]
-            str3 = str(uuid_val)[-6:-4]
-            self.__mac_address = ":".join(["52:54:BE", str1, str2, str3])
-
         if self.__network_mode == "bridge":
             if self.__bridge_name is None:
                 self.__bridge_name = "br0"
@@ -1845,6 +1854,17 @@ class CNode(object):
 
         if 'name' in self.__node:
             self.set_node_name(self.__node['name'])
+
+        # If user specify "network_mode" as "bridge" but without MAC
+        # address, generate one for this network.
+        for network in self.__node['compute']['networks']:
+            if network['network_mode'] == 'bridge':
+                if 'mac' not in network:
+                    uuid_val = uuid.uuid4()
+                    str1 = str(uuid_val)[-2:]
+                    str2 = str(uuid_val)[-4:-2]
+                    str3 = str(uuid_val)[-6:-4]
+                    network['mac'] = ":".join(["52:54:BE", str1, str2, str3])
 
         self.init_workspace()
 
