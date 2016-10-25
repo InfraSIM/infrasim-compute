@@ -688,9 +688,15 @@ class CNetwork(CElement):
             if self.__bridge_name is None:
                 self.__bridge_name = "br0"
 
+            qemu_sys_prefix = os.path.dirname(
+                Utility.run_command("which qemu-system-x86_64")
+            ).replace("bin", "")
+            bridge_helper = os.path.join(qemu_sys_prefix,
+                                         "libexec",
+                                         "qemu-bridge-helper")
             netdev_option = ",".join(['bridge', 'id=netdev{}'.format(self.__index),
                                       'br={}'.format(self.__bridge_name),
-                                      'helper=/usr/local/libexec/qemu-bridge-helper'])
+                                      'helper={}'.format(bridge_helper)])
             nic_option = ",".join(["{}".format(self.__nic_name),
                                    "netdev=netdev{}".format(self.__index),
                                    "mac={}".format(self.__mac_address)])

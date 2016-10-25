@@ -38,10 +38,6 @@ def create_infrasim_directories():
         shutil.rmtree(config.infrasim_logdir)
     os.mkdir(config.infrasim_logdir)
 
-    if not os.path.exists("/usr/local/libexec"):
-        os.mkdir("/usr/local/libexec")
-
-
 def init_infrasim_conf():
 
     # Prepare default network
@@ -74,7 +70,14 @@ def config_library_link():
 
 
 def update_bridge_cfg():
-    run_command('echo "allow br0" > /etc/qemu/bridge.conf')
+    qemu_sys_prefix = os.path.dirname(get_qemu()).replace('bin', '')
+    bridge_conf_loc = os.path.join(qemu_sys_prefix, "etc/qemu")
+    if not os.path.exists(bridge_conf_loc):
+        os.mkdir(bridge_conf_loc)
+
+    bridge_conf = os.path.join(qemu_sys_prefix, bridge_conf_loc, "bridge.conf")
+    with open(bridge_conf, "w") as f:
+        f.write("allow all")
 
 
 def infrasim_init():
