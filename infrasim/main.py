@@ -2,6 +2,7 @@ import os
 import sys
 from yaml_loader import YAMLLoader
 import netifaces
+from netifaces import interfaces, ifaddresses, AF_INET
 import config
 from . import ipmi, socat, run_command, qemu
 from . import CommandRunFailed, ArgsNotCorrect, model
@@ -26,6 +27,12 @@ def version():
         version_str += "InfraSIM: infrasim-compute version {}\n".format(YAMLLoader(v_yml).get_data()["version"])
     return version_str
 
+def ip4_addresses():
+    ip_list = []
+    for interface in netifaces.interfaces():
+        for link in netifaces.ifaddresses(interface).get(AF_INET, ()):
+            ip_list.append(link['addr'])
+    return ip_list
 
 def infrasim_main(arg):
 
@@ -42,9 +49,12 @@ def infrasim_main(arg):
             # get IP address
             ifname = node_info["compute"]["networks"][0]["network_name"]
             print "Infrasim service started.\n" \
-                "You can access node {} via vnc:{}:5901". \
-                format(node.get_node_name(),
-                       netifaces.ifaddresses(ifname)[netifaces.AF_INET][0]['addr'])
+                  "Node {} graphic interface accessible via: \n" \
+                  "VNC port: 5901 \n" \
+                  "Either host IP: {} \n" \
+                  "depending on host in which network VNC viewer is running". \
+                  format(node.get_node_name(), ip4_addresses())
+
         elif arg == "stop":
             node.init()
             node.stop()
