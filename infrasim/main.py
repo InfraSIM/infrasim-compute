@@ -27,12 +27,14 @@ def version():
         version_str += "InfraSIM: infrasim-compute version {}\n".format(YAMLLoader(v_yml).get_data()["version"])
     return version_str
 
+
 def ip4_addresses():
     ip_list = []
     for interface in netifaces.interfaces():
         for link in netifaces.ifaddresses(interface).get(AF_INET, ()):
             ip_list.append(link['addr'])
     return ip_list
+
 
 def infrasim_main(arg):
 
