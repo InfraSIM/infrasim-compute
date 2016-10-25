@@ -1,10 +1,14 @@
-#!/usr/bin/env python
 '''
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
-# -*- coding: utf-8 -*-
+import unittest
+import time
+from infrasim import model
+from infrasim import run_command
+from test import fixtures
+
 
 """
 Test ipmitool chassis control commands:
@@ -15,14 +19,6 @@ Test ipmitool chassis control commands:
     - cycle
     - reset
 """
-
-import unittest
-import time
-import yaml
-
-from infrasim import model
-from infrasim import run_command
-from infrasim import config
 
 # command prefix for test cases
 cmd_prefix = 'ipmitool -I lanplus -H 127.0.0.1 -U admin -P admin chassis '
@@ -42,11 +38,10 @@ power_reset_cmd = cmd_prefix + 'power reset'
 
 class test_ipmi_command_chassis_control(unittest.TestCase):
     def setUp(self):
-        node_info = {}
-        with open(config.infrasim_initial_config, 'r') as f_yml:
-            node_info = yaml.load(f_yml)
-        node_info["name"] = "test"
-        node = model.CNode(node_info)
+        self.node_info = {}
+        fake_config = fixtures.FakeConfig()
+        self.node_info = fake_config.get_node_info()
+        node = model.CNode(self.node_info)
         node.init()
         node.precheck()
         node.start()
@@ -54,11 +49,7 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
         time.sleep(3)
 
     def tearDown(self):
-        node_info = {}
-        with open(config.infrasim_initial_config, 'r') as f_yml:
-            node_info = yaml.load(f_yml)
-        node_info["name"] = "test"
-        node = model.CNode(node_info)
+        node = model.CNode(self.node_info)
         node.init()
         node.stop()
         node.terminate_workspace()

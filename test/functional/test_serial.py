@@ -1,10 +1,15 @@
-#!/usr/bin/env python
 '''
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
-# -*- coding: utf-8 -*-
+import unittest
+import os
+import yaml
+from infrasim import socat
+from infrasim import config
+from test import fixtures
+import shutil
 
 """
 Test serial functions:
@@ -12,40 +17,41 @@ Test serial functions:
     - qemu connect to it
     - SOL (serial over lan) work as expected
 """
-import unittest
-import os
-import yaml
-from infrasim import socat
-from infrasim import config
 
 
 class test_serial(unittest.TestCase):
-
+    TMP_CONF_FILE = "/tmp/test.yml"
     @classmethod
     def setUpClass(cls):
         socat.stop_socat()
 
     def setUp(self):
-        os.system("touch test.yml")
-        with open(config.infrasim_initial_config, 'r') as f_yml:
-            self.conf = yaml.load(f_yml)
+        fake_config = fixtures.FakeConfig()
+        self.conf = fake_config.get_node_info()
 
     def tearDown(self):
+        socat.stop_socat(conf_file=self.TMP_CONF_FILE)
+
+        if os.path.exists(self.TMP_CONF_FILE):
+            os.unlink(self.TMP_CONF_FILE)
+
+        workspace = os.path.join(config.infrasim_home, self.conf['name'])
+        if workspace and os.path.exists(workspace):
+            shutil.rmtree(workspace)
+
         self.conf = None
-        socat.stop_socat()
-        os.system("rm -rf {}/.infrasim/node-0/".format(os.environ["HOME"]))
-        os.system("rm -rf test.yml")
 
     def test_socat_create_serial_device_file(self):
-        target_device = "./pty_serial"
+        target_device = "/tmp/pty_serial"
         if os.path.isfile(target_device) or os.path.islink(target_device):
-            os.system("rm {}".format(target_device))
+            os.unlink(target_device)
 
         # Start socat and device shall be created
         self.conf["sol_device"] = target_device
-        with open("test.yml", "w") as yaml_file:
+        with open(self.TMP_CONF_FILE, "w") as yaml_file:
             yaml.dump(self.conf, yaml_file, default_flow_style=False)
-        socat.start_socat("test.yml")
+
+        socat.start_socat(conf_file=self.TMP_CONF_FILE)
 
         if os.path.islink(target_device):
             assert True

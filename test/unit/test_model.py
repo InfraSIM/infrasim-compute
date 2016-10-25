@@ -1,10 +1,8 @@
-#!/usr/bin/env python
 '''
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
-# -*- coding: utf-8 -*-
 
 import os
 import unittest
@@ -13,17 +11,20 @@ from infrasim import ArgsNotCorrect
 from infrasim import model
 from infrasim import socat
 from infrasim import config
+from test import fixtures
+
+TMP_CONF_FILE = "/tmp/test.yml"
 
 
 class qemu_functions(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        os.system("touch test.yml")
+        pass
 
     @classmethod
     def tearDownClass(cls):
-        os.system("rm -rf test.yml")
+        pass
 
     def test_set_cpu(self):
         try:
@@ -279,30 +280,27 @@ class qemu_functions(unittest.TestCase):
 
 class bmc_configuration(unittest.TestCase):
 
-    WORKSPACE = "{}/.infrasim/.test".format(os.environ["HOME"])
-
     @classmethod
     def setUpClass(cls):
-        with open(config.infrasim_initial_config, 'r') as f_yml:
-            conf = yaml.load(f_yml)
-        conf["name"] = ".test"
-        with open("test.yml", 'w') as f_yml:
-            yaml.dump(conf, f_yml, default_flow_style=False)
+        fake_config = fixtures.FakeConfig()
+        cls.conf = fake_config.get_node_info()
+        cls.WORKSPACE = "{}/{}".format(config.infrasim_home, cls.conf['name'])
+        with open(TMP_CONF_FILE, 'w') as f_yml:
+            yaml.dump(cls.conf, f_yml, default_flow_style=False)
 
-        cls.node = model.CNode(conf)
-        cls.node.set_node_name(".test")
+        cls.node = model.CNode(cls.conf)
+        cls.node.set_node_name(cls.conf['name'])
         cls.node.init_workspace()
-        socat.start_socat("test.yml")
+        socat.start_socat(conf_file=TMP_CONF_FILE)
 
     @classmethod
     def tearDownClass(cls):
-        socat.stop_socat("test.yml")
-        with open("test.yml", 'r') as f_yml:
-            conf = yaml.load(f_yml)
-        cls.node = model.CNode(conf)
+        socat.stop_socat(conf_file=TMP_CONF_FILE)
+        cls.node = model.CNode(cls.conf)
         cls.node.init()
         cls.node.terminate_workspace()
-        os.system("rm test.yml")
+        if os.path.exists(TMP_CONF_FILE):
+            os.unlink(TMP_CONF_FILE)
 
     def test_set_bmc_type(self):
         bmc = model.CBMC()

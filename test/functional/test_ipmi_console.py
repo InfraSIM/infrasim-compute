@@ -17,8 +17,10 @@ from infrasim import ipmi
 from infrasim import socat
 from infrasim import console
 from infrasim import config
+from test import fixtures
 import threading
 import yaml
+import shutil
 
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
@@ -72,19 +74,19 @@ class test_ipmi_console(unittest.TestCase):
     sensor_id = '0xc0'
     sensor_value = '1000.00'
     event_id = '6'
+    TMP_CONF_FILE = "/tmp/test.yml"
 
     @classmethod
     def setUpClass(cls):
         node_info = {}
-        with open(config.infrasim_initial_config, 'r') as f_yml:
-            node_info = yaml.load(f_yml)
-        node_info["name"] = "test"
+        fake_config = fixtures.FakeConfig()
+        node_info = fake_config.get_node_info()
 
-        with open("/tmp/test.yaml", "w") as f:
+        with open(cls.TMP_CONF_FILE, "w") as f:
             yaml.dump(node_info, f, default_flow_style=False)
 
-        socat.start_socat(conf_file="/tmp/test.yaml")
-        ipmi.start_ipmi(conf_file="/tmp/test.yaml")
+        socat.start_socat(conf_file=cls.TMP_CONF_FILE)
+        ipmi.start_ipmi(conf_file=cls.TMP_CONF_FILE)
         # Wait ipmi_sim sever coming up.
         # FIXME: good way???
         time.sleep(5)
@@ -104,10 +106,15 @@ class test_ipmi_console(unittest.TestCase):
         cls.channel.send('quit\n')
         cls.channel.close()
         cls.ssh.close()
-        qemu.stop_qemu(conf_file="/tmp/test.yaml")
-        ipmi.stop_ipmi(conf_file="/tmp/test.yaml")
-        socat.stop_socat(conf_file="/tmp/test.yaml")
-        os.system("rm -rf {}/.infrasim/test/".format(os.environ["HOME"]))
+        qemu.stop_qemu(conf_file=cls.TMP_CONF_FILE)
+        ipmi.stop_ipmi(conf_file=cls.TMP_CONF_FILE)
+        socat.stop_socat(conf_file=cls.TMP_CONF_FILE)
+        if os.path.exists(cls.TMP_CONF_FILE):
+            os.unlink(cls.TMP_CONF_FILE)
+
+        workspace = os.path.join(config.infrasim_home, "test")
+        if os.path.exists(workspace):
+            shutil.rmtree(workspace)
 
     def test_sensor_accessibility(self):
         self.channel.send('sensor info\n')
