@@ -3,7 +3,11 @@
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 """
-# -*- coding: utf-8 -*-
+
+import requests
+import shutil
+import os
+from infrasim import run_command
 
 """
 this script is used to install the necessary packages before starting infrasim-compute
@@ -14,10 +18,6 @@ the packages includes:
 besides, seabios binary file is also downloaded into expected folder
 """
 
-import requests
-import shutil
-import os
-from infrasim import run_command
 
 BASE_URL = "https://api.bintray.com/packages/infrasim/"
 
@@ -52,30 +52,8 @@ def install_bintray_packages(repo, package):
         run_command("dpkg -i " + file_name)
 
 
-def copy_data_to_workspace():
-    dst = "{}/.infrasim/data/".format(os.environ["HOME"])
-    if os.path.exists(dst):
-        shutil.rmtree(dst)
-    shutil.copytree("/usr/local/infrasim/data/", dst)
-
-
-def create_bridge_conf_link():
-    if not os.path.exists("/usr/local/etc/qemu/bridge.conf"):
-        bridge_conf_initial_dir = "/etc/qemu"
-        bridge_conf_dir = "/usr/local/etc/qemu"
-        if not os.path.exists(bridge_conf_initial_dir):
-            os.makedirs(bridge_conf_initial_dir)
-        if not os.path.exists(bridge_conf_dir):
-            os.makedirs(bridge_conf_dir)
-        os.symlink("/etc/qemu/bridge.conf", "/usr/local/etc/qemu/bridge.conf")
-
-
 def package_install():
     install_official_packages()
     install_bintray_packages("deb", "Qemu")
     install_bintray_packages("deb", "OpenIpmi")
     install_bintray_packages("generic", "Seabios")
-    copy_data_to_workspace()
-    create_bridge_conf_link()
-
-

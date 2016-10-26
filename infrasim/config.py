@@ -32,11 +32,5 @@ infrasim_config_template = os.path.join(infrasim_template, "infrasim.yml")
 # This is the infrasim home directory, most data and configuration file will be put here
 infrasim_home = os.path.join(os.environ['HOME'], ".infrasim")
 
-# Data for one specific node, copied from 'infrasim_data', might be changed.
-infrasim_intermediate_data = os.path.join(infrasim_home, "data")
-
-# This is the intermediate configuration for one specific node
-infrasim_intermediate_etc = os.path.join(infrasim_home, "etc")
-
 # Log
 infrasim_logdir = "/var/log/infrasim"

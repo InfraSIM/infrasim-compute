@@ -262,7 +262,7 @@ class qemu_functions(unittest.TestCase):
         compute.set_type("s2600kp")
         compute.init()
         assert compute.get_smbios() == \
-            os.environ['HOME'] + "/.infrasim/data/s2600kp/s2600kp_smbios.bin"
+            "{}/s2600kp/s2600kp_smbios.bin".format(config.infrasim_data)
 
     def test_set_smbios_with_type_and_workspace(self):
         with open(config.infrasim_initial_config, "r") as f_yml:
