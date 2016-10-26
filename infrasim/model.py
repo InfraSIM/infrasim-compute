@@ -22,6 +22,7 @@ import shutil
 import stat
 import config
 import json
+import helper
 from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
 
 """
@@ -1163,18 +1164,10 @@ class CCompute(Task, CElement):
 
     def init(self):
 
-        if 'kvm_enabled' in self.__compute:
-            if self.__compute['kvm_enabled']:
-                if os.path.exists("/dev/kvm"):
-                    self.__enable_kvm = True
-                    logger.info('[model:compute] infrasim has enabled kvm')
-                else:
-                    self.__enable_kvm = False
-                    logger.warning('[model:compute] infrasim can\'t '
-                                   'enable kvm on this environment')
-            else:
-                self.__enable_kvm = False
-                logger.info('[model:compute] infrasim doesn\'t enable kvm')
+        if 'kvm_enabled' in self.__compute and not helper.check_kvm_existence():
+            self.__enable_kvm = False
+        else:
+            self.__enable_kvm = helper.check_kvm_existence()
 
         if 'smbios' in self.__compute:
             self.__smbios = self.__compute['smbios']
