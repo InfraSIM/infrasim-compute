@@ -1,10 +1,16 @@
-#!/usr/bin/env python
 '''
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
-# -*- coding: utf-8 -*-
+import unittest
+import os
+import time
+import yaml
+from infrasim import model
+import paramiko
+from test import fixtures
+
 
 """
 Test KCS function
@@ -17,17 +23,12 @@ Test KCS function
 Test SMBIOS data
     - verify system information "Product Name" and "Manufacturer"
 """
-import unittest
-import os
-import time
-import yaml
-from infrasim import qemu
-from infrasim import model
-import paramiko
-from infrasim import config
 
 
 class test_kcs(unittest.TestCase):
+
+    TMP_CONF_FILE = "/tmp/test.yml"
+
     @classmethod
     def setUpClass(self):
         test_img_file = "{}/kcs.img".\
@@ -40,10 +41,9 @@ class test_kcs(unittest.TestCase):
         if os.path.exists(test_img_file) is False:
             return
 
-        os.system("touch test.yml")
-        with open(config.infrasim_initial_config, 'r') as f_yml:
-            self.conf = yaml.load(f_yml)
-        self.conf["name"] = "test"
+        fake_config = fixtures.FakeConfig()
+        self.conf = fake_config.get_node_info()
+
         self.conf["compute"]["storage_backend"] = [{
             "controller": {
                 "type": "ahci",
@@ -51,7 +51,8 @@ class test_kcs(unittest.TestCase):
                 "drives": [{"size": 8, "file": test_img_file}]
             }
         }]
-        with open("test.yml", "w") as yaml_file:
+
+        with open(self.TMP_CONF_FILE, "w") as yaml_file:
             yaml.dump(self.conf, yaml_file, default_flow_style=False)
 
         node = model.CNode(self.conf)
@@ -72,13 +73,14 @@ class test_kcs(unittest.TestCase):
         paramiko.util.log_to_file("filename.log")
         while True:
             try:
-                ssh.connect("127.0.0.1", port=2222, username="root", password="root", timeout=120)
+                ssh.connect("127.0.0.1", port=2222, username="root",
+                            password="root", timeout=120)
                 ssh.close()
                 break
             except paramiko.SSHException:
                 time.sleep(1)
                 continue
-            except Exception as e:
+            except Exception:
                 assert False
 
         time.sleep(3)
@@ -92,12 +94,17 @@ class test_kcs(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         self.conf = None
-        os.system("rm -rf test.yml")
-        os.system("rm -rf {}".format(test_img_file))
+        if os.path.exists(self.TMP_CONF_FILE):
+            os.unlink(self.TMP_CONF_FILE)
+
+        if os.path.exists(test_img_file):
+            os.unlink(test_img_file)
+
     def test_qemu_local_fru(self):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root", password="root", timeout=10)
+        ssh.connect("127.0.0.1", port=2222, username="root",
+                    password="root", timeout=10)
         stdin, stdout, stderr = ssh.exec_command("ipmitool fru print")
         while not stdout.channel.exit_status_ready():
             pass
@@ -109,7 +116,8 @@ class test_kcs(unittest.TestCase):
     def test_qemu_local_lan(self):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root", password="root", timeout=10)
+        ssh.connect("127.0.0.1", port=2222, username="root",
+                    password="root", timeout=10)
         stdin, stdout, stderr = ssh.exec_command("ipmitool lan print")
         while not stdout.channel.exit_status_ready():
             pass
@@ -121,7 +129,8 @@ class test_kcs(unittest.TestCase):
     def test_qemu_local_sensor(self):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root", password="root", timeout=10)
+        ssh.connect("127.0.0.1", port=2222, username="root",
+                    password="root", timeout=10)
         stdin, stdout, stderr = ssh.exec_command("ipmitool sensor list")
         while not stdout.channel.exit_status_ready():
             pass
@@ -133,7 +142,8 @@ class test_kcs(unittest.TestCase):
     def test_qemu_local_sdr(self):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root", password="root", timeout=10)
+        ssh.connect("127.0.0.1", port=2222, username="root",
+                    password="root", timeout=10)
         stdin, stdout, stderr = ssh.exec_command("ipmitool sdr list")
         while not stdout.channel.exit_status_ready():
             pass
@@ -145,7 +155,8 @@ class test_kcs(unittest.TestCase):
     def test_qemu_local_sel(self):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root", password="root", timeout=10)
+        ssh.connect("127.0.0.1", port=2222, username="root",
+                    password="root", timeout=10)
         stdin, stdout, stderr = ssh.exec_command("ipmitool sel list")
         while not stdout.channel.exit_status_ready():
             pass
@@ -157,7 +168,8 @@ class test_kcs(unittest.TestCase):
     def test_qemu_local_user(self):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root", password="root", timeout=10)
+        ssh.connect("127.0.0.1", port=2222, username="root",
+                    password="root", timeout=10)
         stdin, stdout, stderr = ssh.exec_command("ipmitool user list")
         while not stdout.channel.exit_status_ready():
             pass
@@ -169,7 +181,8 @@ class test_kcs(unittest.TestCase):
     def test_smbios_data(self):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root", password="root",timeout=10)
+        ssh.connect("127.0.0.1", port=2222, username="root",
+                    password="root", timeout=10)
         stdin, stdout, stderr = ssh.exec_command("dmidecode -t1")
         while not stdout.channel.exit_status_ready():
             pass
@@ -178,7 +191,7 @@ class test_kcs(unittest.TestCase):
         print lines
 
         ssh.close()
-        with open("test.yml", "r") as yml_file:
+        with open(self.TMP_CONF_FILE, "r") as yml_file:
             self.conf = yaml.load(yml_file)
 
         if self.conf["type"] == "quanta_d51":

@@ -11,16 +11,14 @@ import unittest
 import subprocess
 import os
 import yaml
-from infrasim import config
-from infrasim import qemu
-from infrasim import ipmi
-from infrasim import socat
 from infrasim import model
+from test import fixtures
 
 PS_QEMU = "ps ax | grep qemu"
 PS_IPMI = "ps ax | grep ipmi"
 PS_SOCAT = "ps ax | grep socat"
 
+TMP_CONF_FILE = "/tmp/test.yml"
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
     child = subprocess.Popen(cmd, shell=shell,
@@ -35,10 +33,8 @@ def run_command(cmd="", shell=True, stdout=None, stderr=None):
 class test_compute_configuration_change(unittest.TestCase):
 
     def setUp(self):
-        os.system("touch test.yml")
-        with open(config.infrasim_initial_config, 'r') as f_yml:
-            self.conf = yaml.load(f_yml)
-        self.conf["name"] = "test"
+        fake_config = fixtures.FakeConfig()
+        self.conf = fake_config.get_node_info()
 
     def tearDown(self):
         node = model.CNode(self.conf)
@@ -46,12 +42,13 @@ class test_compute_configuration_change(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         self.conf = None
-        os.system("rm -rf test.yml")
+        # if os.path.exists(TMP_CONF_FILE):
+        #    os.unlink(TMP_CONF_FILE)
 
     def test_set_vcpu(self):
         self.conf["compute"]["cpu"]["quantities"] = 8
-        with open("test.yml", "w") as yaml_file:
-            yaml.dump(self.conf, yaml_file, default_flow_style=False)
+        # with open(TMP_CONF_FILE, "w") as yaml_file:
+        #    yaml.dump(self.conf, yaml_file, default_flow_style=False)
 
         node = model.CNode(self.conf)
         node.init()
@@ -65,8 +62,8 @@ class test_compute_configuration_change(unittest.TestCase):
 
     def test_set_cpu_family(self):
         self.conf["compute"]["cpu"]["type"] = "IvyBridge"
-        with open("test.yml", "w") as yaml_file:
-            yaml.dump(self.conf, yaml_file, default_flow_style=False)
+        # with open(TMP_CONF_FILE, "w") as yaml_file:
+        #    yaml.dump(self.conf, yaml_file, default_flow_style=False)
 
         node = model.CNode(self.conf)
         node.init()
@@ -80,7 +77,7 @@ class test_compute_configuration_change(unittest.TestCase):
 
     def test_set_memory_capacity(self):
         self.conf["compute"]["memory"]["size"] = 1536
-        with open("test.yml", "w") as yaml_file:
+        with open(TMP_CONF_FILE, "w") as yaml_file:
             yaml.dump(self.conf, yaml_file, default_flow_style=False)
 
         node = model.CNode(self.conf)
@@ -101,8 +98,8 @@ class test_compute_configuration_change(unittest.TestCase):
                 "drives": [{"size": 8}, {"size": 8}]
             }
         }]
-        with open("test.yml", "w") as yaml_file:
-            yaml.dump(self.conf, yaml_file, default_flow_style=False)
+        # with open(TMP_CONF_FILE, "w") as yaml_file:
+        #    yaml.dump(self.conf, yaml_file, default_flow_style=False)
 
         node = model.CNode(self.conf)
         node.init()
@@ -118,15 +115,15 @@ class test_compute_configuration_change(unittest.TestCase):
     def test_network_bridge_network(self):
         self.conf["compute"]["networks"][0]["network_mode"] = "bridge"
         self.conf["compute"]["networks"][0]["network_name"] = "fakebr0"
-        with open("test.yml", "w") as yaml_file:
-            yaml.dump(self.conf, yaml_file, default_flow_style=False)
+        # with open(TMP_CONF_FILE, "w") as yaml_file:
+        #    yaml.dump(self.conf, yaml_file, default_flow_style=False)
 
         try:
             node = model.CNode(self.conf)
             node.init()
             node.precheck()
             node.start()
-        except Exception as e:
+        except Exception:
             assert True
 
     def test_qemu_boot_from_disk_img(self):
@@ -147,8 +144,8 @@ class test_compute_configuration_change(unittest.TestCase):
                 "drives": [{"size": 8, "file": test_img_file}]
             }
         }]
-        with open("test.yml", "w") as yaml_file:
-            yaml.dump(self.conf, yaml_file, default_flow_style=False)
+        # with open(TMP_CONF_FILE, "w") as yaml_file:
+        #    yaml.dump(self.conf, yaml_file, default_flow_style=False)
 
         node = model.CNode(self.conf)
         node.init()
@@ -170,13 +167,13 @@ class test_compute_configuration_change(unittest.TestCase):
         while True:
             try:
                 ssh.connect("127.0.0.1", port=2222, username="cirros",
-                        password="cubswin:)", timeout=120)
+                            password="cubswin:)", timeout=120)
                 ssh.close()
                 break
             except paramiko.SSHException:
                 time.sleep(1)
                 continue
-            except Exception as e:
+            except Exception:
                 assert False
                 return
 
@@ -187,18 +184,17 @@ class test_compute_configuration_change(unittest.TestCase):
 class test_bmc_configuration_change(unittest.TestCase):
 
     def setUp(self):
-        os.system("touch test.yml")
-        with open(config.infrasim_initial_config, 'r') as f_yml:
-            self.conf = yaml.load(f_yml)
-        self.conf["name"] = "test"
+        fake_config = fixtures.FakeConfig()
+        self.conf = fake_config.get_node_info()
 
     def tearDown(self):
         node = model.CNode(self.conf)
         node.init()
         node.stop()
         node.terminate_workspace()
+        # if os.path.exists(TMP_CONF_FILE):
+        #    os.unlink(TMP_CONF_FILE)
         self.conf = None
-        os.system("rm -rf test.yml")
 
     def test_set_bmc_iol_port(self):
         self.conf["bmc"] = {}
@@ -227,10 +223,8 @@ class test_bmc_configuration_change(unittest.TestCase):
 class test_connection(unittest.TestCase):
 
     def setUp(self):
-        os.system("touch test.yml")
-        with open(config.infrasim_initial_config, 'r') as f_yml:
-            self.conf = yaml.load(f_yml)
-        self.conf["name"] = "test"
+        fake_config = fixtures.FakeConfig()
+        self.conf = fake_config.get_node_info()
         self.bmc_conf = os.path.join(os.environ["HOME"], ".infrasim",
                                      "test", "data", "vbmc.conf")
 
@@ -239,8 +233,9 @@ class test_connection(unittest.TestCase):
         node.init()
         node.stop()
         node.terminate_workspace()
+        if os.path.exists(TMP_CONF_FILE):
+            os.unlink(TMP_CONF_FILE)
         self.conf = None
-        os.system("rm -rf test.yml")
 
     def test_set_sol_device(self):
         temp_sol_device = "{}/.infrasim/pty_test".format(os.environ['HOME'])
@@ -256,8 +251,8 @@ class test_connection(unittest.TestCase):
         assert "pty,link={},waitslave".format(temp_sol_device) in str_result
 
         with open(self.bmc_conf, "r") as fp:
-            bmc_conf = fp.read()
-        assert 'sol "{}" 115200', format(temp_sol_device) in bmc_conf
+            fake_bmc_conf = fp.read()
+        assert 'sol "{}" 115200'.format(temp_sol_device) in fake_bmc_conf
 
     def test_set_ipmi_console_port(self):
         self.conf["ipmi_console_port"] = 9100
@@ -298,9 +293,6 @@ class test_connection(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
-
-        with open(self.bmc_conf, "r") as fp:
-            bmc_conf = fp.read()
 
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]

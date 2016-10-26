@@ -1,10 +1,17 @@
-#!/usr/bin/env python
 '''
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
-# -*- coding: utf-8 -*-
+import unittest
+import os
+import subprocess
+import re
+import time
+from infrasim import model
+from test import fixtures
+
+
 """
 Test ipmitool commands work properly:
     - fru print
@@ -17,15 +24,7 @@ Test ipmitool commands work properly:
 Check:
     - command return code
 """
-import unittest
-import os
-import subprocess
-import re
-import time
-import yaml
-from infrasim import model
-from infrasim import CommandRunFailed
-from infrasim import config
+
 
 # ipmitool commands to test
 cmd_prefix = 'ipmitool -H 127.0.0.1 -U admin -P admin '
@@ -60,9 +59,8 @@ class test_ipmicommand_response(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         node_info = {}
-        with open(config.infrasim_initial_config, 'r') as f_yml:
-            node_info = yaml.load(f_yml)
-        node_info["name"] = "test"
+        fake_config = fixtures.FakeConfig()
+        node_info = fake_config.get_node_info()
         node = model.CNode(node_info)
         node.init()
         node.precheck()
@@ -72,10 +70,8 @@ class test_ipmicommand_response(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        node_info = {}
-        with open(config.infrasim_initial_config, 'r') as f_yml:
-            node_info = yaml.load(f_yml)
-        node_info["name"] = "test"
+        fake_config = fixtures.FakeConfig()
+        node_info = fake_config.get_node_info()
         node = model.CNode(node_info)
         node.init()
         node.stop()
@@ -83,56 +79,72 @@ class test_ipmicommand_response(unittest.TestCase):
 
     def test_fru_print(self):
         try:
-            returncode, output = run_command(fru_print_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            returncode, output = run_command(fru_print_cmd,
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
         except:
             assert False
 
     def test_lan_print(self):
         try:
-            returncode, output = run_command(lan_print_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            returncode, output = run_command(lan_print_cmd,
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
         except:
             assert False
 
     def test_sensor_list(self):
         try:
-            returncode, output = run_command(sensor_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            returncode, output = run_command(sensor_list_cmd,
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
         except:
             assert False
 
     def test_sel_list(self):
         try:
-            returncode, output = run_command(sel_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            returncode, output = run_command(sel_list_cmd,
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
         except:
             assert False
 
     def test_sdr_list(self):
         try:
-            returncode, output = run_command(sdr_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            returncode, output = run_command(sdr_list_cmd,
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
         except:
             assert False
 
     def test_user_list(self):
         try:
-            returncode, output = run_command(user_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            returncode, output = run_command(user_list_cmd,
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
         except:
             assert False
 
     def test_user_compressed_list(self):
         try:
-            returncode, output = run_command(user_compressed_list_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            returncode, output = run_command(user_compressed_list_cmd,
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
         except:
             assert False
 
     def test_user_summary(self):
         try:
-            returncode, output = run_command(user_summary_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            returncode, output = run_command(user_summary_cmd,
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
         except:
             assert False
@@ -141,7 +153,9 @@ class test_ipmicommand_response(unittest.TestCase):
         try:
             run_command(sel_clear_cmd)
             time.sleep(3)
-            returncode, output = run_command(sel_info_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            returncode, output = run_command(sel_info_cmd,
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE)
             str_out = str(output)
             self.assertIsNone(re.search('Entries(\s)*:(\s)*0', str_out))
         except:
@@ -162,7 +176,6 @@ class test_ipmicommand_response(unittest.TestCase):
                 assert False
         except:
             assert False
-
 
     def test_chassic_bootdev_disk(self):
         try:
