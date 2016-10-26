@@ -1621,10 +1621,10 @@ class CSocat(Task):
 
         # check if socat exists
         try:
-            code, socat_cmd = run_command("which /usr/bin/socat")
+            code, socat_cmd = run_command("which socat")
             self.__bin = socat_cmd.strip(os.linesep)
         except CommandRunFailed:
-            raise CommandNotFound("/usr/bin/socat")
+            raise CommandNotFound("socat")
 
         # check ports are in use
 
