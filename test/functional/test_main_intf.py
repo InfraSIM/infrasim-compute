@@ -43,6 +43,8 @@ class test_start_intf(unittest.TestCase):
 
             # Verify IP address, except 127.0.0.1, both lists share
             # same set of ip address
+
+            hit = True
             for ip in host_ip:
                 hit = False
                 for test_ip in test_ip_list:
