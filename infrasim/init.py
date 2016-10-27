@@ -26,17 +26,10 @@ def create_infrasim_directories():
         shutil.rmtree(config.infrasim_home)
     os.mkdir(config.infrasim_home)
 
-    if os.path.exists(config.infrasim_intermediate_data):
-        shutil.rmtree(config.infrasim_intermediate_data)
-    os.mkdir(config.infrasim_intermediate_data)
-
-    if os.path.exists(config.infrasim_intermediate_etc):
-        shutil.rmtree(config.infrasim_intermediate_etc)
-    os.mkdir(config.infrasim_intermediate_etc)
-
     if os.path.exists(config.infrasim_logdir):
         shutil.rmtree(config.infrasim_logdir)
     os.mkdir(config.infrasim_logdir)
+
 
 def init_infrasim_conf():
 

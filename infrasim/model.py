@@ -1177,7 +1177,7 @@ class CCompute(Task, CElement):
                                          "{}_smbios.bin".
                                          format(self.__vendor_type))
         else:
-            self.__smbios = os.path.join(config.infrasim_intermediate_data,
+            self.__smbios = os.path.join(config.infrasim_data,
                                          "{0}/{0}_smbios.bin".format(self.__vendor_type))
 
         if 'bios' in self.__compute:
@@ -1333,7 +1333,6 @@ class CCompute(Task, CElement):
 class CBMC(Task):
 
     VBMC_TEMP_CONF = os.path.join(config.infrasim_template, "vbmc.conf")
-    VBMC_CONF = os.path.join(config.infrasim_intermediate_etc, "vbmc.conf")
 
     def __init__(self, bmc_info={}):
         super(CBMC, self).__init__()
@@ -1575,7 +1574,7 @@ class CBMC(Task):
                                            "{}.emu".
                                            format(self.__vendor_type))
         else:
-            self.__emu_file = os.path.join(config.infrasim_intermediate_data,
+            self.__emu_file = os.path.join(config.infrasim_data,
                                            "{0}/{0}.emu".format(self.__vendor_type))
 
         if 'config_file' in self.__bmc:
