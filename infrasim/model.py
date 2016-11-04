@@ -1315,14 +1315,19 @@ class CCompute(Task, CElement):
         if self.__cdrom_file:
             self.add_option("-cdrom {}".format(self.__cdrom_file))
 
-#        self.add_option("-chardev socket,id=mon,host=127.0.0.1,"
-#                        "port=2345,server,nowait ")
-#
-#        self.add_option("-mon chardev=mon,id=monitor")
-
         if self.__port_serial:
-            self.add_option("-serial mon:udp:127.0.0.1:{},nowait".
-                            format(self.__port_serial))
+            chardev = CCharDev({
+                "backend": "udp",
+                "host": "127.0.0.1",
+                "wait": "off",
+                "port": self.__port_serial
+            })
+            chardev.set_id("serial0")
+            chardev.init()
+            chardev.handle_parms()
+
+            self.add_option(chardev.get_option())
+            self.add_option("-device isa-serial,chardev={}".format(chardev.get_id()))
 
         self.add_option("-uuid {}".format(str(uuid.uuid4())))
 
@@ -1641,7 +1646,7 @@ class CSocat(Task):
 
     def get_commandline(self):
         socat_str = "{0} pty,link={1},waitslave " \
-                    "udp-listen:{2},reuseaddr".\
+            "udp-listen:{2},reuseaddr,fork".\
             format(self.__bin, self.__sol_device, self.__port_serial)
 
         return socat_str
