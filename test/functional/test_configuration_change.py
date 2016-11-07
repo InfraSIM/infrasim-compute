@@ -296,11 +296,12 @@ class test_connection(unittest.TestCase):
 
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
-        assert "-serial mon:udp:127.0.0.1:9103,nowait" in str_result
+        assert "-chardev udp,host=127.0.0.1,port=9103,id=serial0,reconnect=10" in str_result
+        assert "-device isa-serial,chardev=serial0" in str_result
 
         str_result = run_command(PS_SOCAT, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
-        assert "udp-listen:9103,reuseaddr" in str_result
+        assert "udp-listen:9103,reuseaddr,fork" in str_result
 
     def test_set_node_type(self):
         self.conf["type"] = "dell_c6320"
