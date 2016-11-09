@@ -11,6 +11,7 @@ import unittest
 import subprocess
 import os
 import yaml
+import netifaces
 from infrasim import model
 from test import fixtures
 
@@ -19,6 +20,7 @@ PS_IPMI = "ps ax | grep ipmi"
 PS_SOCAT = "ps ax | grep socat"
 
 TMP_CONF_FILE = "/tmp/test.yml"
+
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
     child = subprocess.Popen(cmd, shell=shell,
@@ -218,6 +220,55 @@ class test_bmc_configuration_change(unittest.TestCase):
                                          stdout=subprocess.PIPE,
                                          stderr=subprocess.PIPE)
         assert returncode != 0
+
+    def test_set_bmc_interface(self):
+        """
+        Set BMC listen on specified interface and won't response to another
+        :return:
+        """
+        # Find two valid interface with IP in to a list, e.g:
+        # [{"interface":"ens160","ip":"192.168.190.9"}, {}]
+        # If the list has no less than 2 interface, do this test
+        valid_nic = []
+        for interface in netifaces.interfaces():
+            try:
+                addr = netifaces.ifaddresses(interface)
+            except ValueError:
+                continue
+            try:
+                ip = addr[netifaces.AF_INET][0]["addr"]
+            except KeyError:
+                ip = ""
+            if ip:
+                valid_nic.append({"interface": interface, "ip": ip})
+
+        if len(valid_nic) < 2:
+            raise self.skipTest("No enough nic for test")
+
+        # Set BMC to listen on first valid nic
+        # Try to access via first one, it works
+        # Try to access via second one, it fails
+        self.conf["bmc"] = {}
+        self.conf["bmc"]["interface"] = valid_nic[0]["interface"]
+
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        cmd = 'ipmitool -H {} -U admin -P admin -I lanplus raw 0x06 0x01'.\
+            format(valid_nic[0]["ip"])
+        ret, rsp = run_command(cmd,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+        assert ret == 0
+
+        cmd = 'ipmitool -H {} -U admin -P admin -I lanplus raw 0x06 0x01'.\
+            format(valid_nic[1]["ip"])
+        ret, rsp = run_command(cmd,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+        assert ret != 0
 
 
 class test_connection(unittest.TestCase):
