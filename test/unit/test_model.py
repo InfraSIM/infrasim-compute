@@ -334,6 +334,42 @@ class bmc_configuration(unittest.TestCase):
                     return
             assert False
 
+    def test_set_ipmi_listen_range(self):
+        bmc_info = {
+            "interface": "lo"
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
+        bmc.init()
+        bmc.write_bmc_config()
+        bmc.precheck()
+
+        with open(bmc.get_config_file(), 'r') as fp:
+            for line in fp.readlines():
+                if "addr 127.0.0.1 623" in line:
+                    assert True
+                    return
+            assert False
+
+    def test_set_fake_bmc_lan_interface(self):
+        bmc_info = {
+            "interface": "fake_lan"
+        }
+
+        bmc = model.CBMC(bmc_info)
+        bmc.set_type("quanta_d51")
+        bmc.set_workspace(self.__class__.WORKSPACE)
+        bmc.init()
+        bmc.write_bmc_config()
+        try:
+            bmc.precheck()
+        except ArgsNotCorrect, e:
+            assert "Specified BMC interface fake_lan doesn\'t exist" in str(e)
+        else:
+            assert False
+
     def test_set_startnow_true(self):
         bmc_info = {
             "startnow": True

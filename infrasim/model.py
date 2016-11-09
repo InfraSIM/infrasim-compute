@@ -1359,6 +1359,7 @@ class CBMC(Task):
         self.__bin = "ipmi_sim"
         self.__port_iol = 623
         self.__historyfru = 10
+        self.__ipmi_listen_range = "::"
 
         # Node wise attributes
         self.__vendor_type = None
@@ -1428,8 +1429,15 @@ class CBMC(Task):
             raise ArgsNotCorrect("startcmd script {} doesn\'t exist".
                                  format(self.__chassiscontrol_script))
 
-        # check ports are in use
+        # check ports are not in use
+
         # check lan interface exists
+        if self.__lan_interface not in netifaces.interfaces():
+            raise ArgsNotCorrect("Specified BMC interface {} doesn\'t exist".
+                                 format(self.__lan_interface))
+        if not self.__ipmi_listen_range:
+            raise ArgsNotCorrect("No IP is found on interface {}, BMC can\'t listen".
+                                 format(self.__lan_interface))
 
         # check attribute
         if self.__poweroff_wait < 0:
@@ -1496,6 +1504,7 @@ class CBMC(Task):
                                    chassis_control_script=self.__chassiscontrol_script,
                                    lan_control_script=self.__lancontrol_script,
                                    lan_interface=self.__lan_interface,
+                                   ipmi_listen_range=self.__ipmi_listen_range,
                                    username=self.__username,
                                    password=self.__password,
                                    port_qemu_ipmi=self.__port_qemu_ipmi,
@@ -1519,6 +1528,7 @@ class CBMC(Task):
 
         if 'interface' in self.__bmc:
             self.__lan_interface = self.__bmc['interface']
+            self.__ipmi_listen_range = helper.get_interface_ip(self.__lan_interface)
         else:
             nics_list = netifaces.interfaces()
             self.__lan_interface = filter(lambda x: 'e' in x, nics_list)[0]
