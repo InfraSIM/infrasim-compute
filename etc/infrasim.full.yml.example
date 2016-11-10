@@ -13,6 +13,19 @@ compute:
         quantities: 8
     memory:
         size: 4096
+    # Currently the PCI bridge is only designed for megasas storage controller
+    # When you create multiple megasas controller, the controllers will be assigned
+    # a different pci bus number
+    pci_bridge_topology:
+        -
+            device: i82801b11-bridge
+            addr: 0x1e.0x0
+            multifunction: on
+                -
+                    device: pci-bridge
+                    chassis_nr: 0x1
+                    msi: false
+                    addr: 0x1
     storage_backend:
         -
             controller:
@@ -54,6 +67,24 @@ compute:
                     model: SM162521
                     serial: S0451X2B
                     file: chassis/node1/sdc.img
+        -
+            controller:
+                type: megasas-gen2
+                use_jbod: true
+                use_msi: true
+                max_cmds: 1024
+                max-sge: 128
+                max_drive_per_controller: 1
+                drives:
+                    -
+                        vendor: HITACHI
+                        product: HUSMM168XXXXX
+                        serial: SN0500010351XXX
+                        rotation: 1
+                        slot_number: 0
+                        wwn: 0x50000ccaxxxxxxxx
+                        file: <path/to/your disk file>
+
     networks:
         -
             network_mode: bridge
@@ -65,15 +96,37 @@ compute:
             device: vmxnet3
     ipmi:
         interface: bt
-        host: 127.0.0.1
+        chardev:
+            backend: socket
+            host: 127.0.0.1
+            reconnect: 10
+        ioport: 0xca8
+        irq: 10
     smbios: chassis/node1/quanta_d51_smbios.bin
-
+    monitor:
+        mode: control
+        chardev:
+            backend: socket
+            server: on
+            wait: off
+            path: <path/to/your/sock file>
+    vnc_display: 1
     # set vnc display <X>
     vnc_display: 1
 bmc:
     interface: br0
     username: admin
     password: admin
+    address: <ip address>
+    channel: 1
+    lancontrol: <path/to/lan control script>
+    chassiscontrol: <path/to/chassis control script>
+    startcmd: <cmd to be excuted>
+    startnow: true
+    poweroff_wait: 5
+    kill_wait: 5
+    historyfru: 20
+    config_file: <path/to/your config file>
     emu_file: chassis/node1/quanta_d51.emu
 
 # Renamed from telnet_listen_port to ipmi_console_port, extracted from bmc

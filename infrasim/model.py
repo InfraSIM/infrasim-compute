@@ -763,6 +763,8 @@ class CIPMI(CElement):
         self.__host = None
         self.__bmc_connection_port = None
         self.__chardev_obj = None
+        self.__ioport = None
+        self.__irq = None
 
     def set_bmc_conn_host(self, host):
         self.__host = host
@@ -788,11 +790,23 @@ class CIPMI(CElement):
             self.__chardev_obj.set_port(self.__bmc_connection_port)
             self.__chardev_obj.init()
 
+        if 'ioport' in self.__ipmi:
+            self.__ioport = self.__ipmi['ioport']
+
+        if 'irq' in self.__ipmi:
+            self.__irq = self.__ipmi['irq']
+
+
     def handle_parms(self):
         self.__chardev_obj.handle_parms()
         chardev_option = self.__chardev_obj.get_option()
         bmc_option = ','.join(['ipmi-bmc-extern', 'chardev={}'.format(self.__chardev_obj.get_id()), 'id=bmc0'])
         interface_option = ','.join(['isa-ipmi-kcs', 'bmc=bmc0'])
+        if self.__ioport:
+            interface_option = ','.join([interface_option, "ioport={}".format(self.__ioport)])
+
+        if self.__irq:
+            interface_option = ','.join([interface_option, "irq={}".format(self.__irq)])
 
         ipmi_option = " ".join([chardev_option,
                                 "-device {}".format(bmc_option),
@@ -1369,6 +1383,8 @@ class CBMC(Task):
         self.__port_ipmi_console = 9000
         self.__port_qemu_ipmi = 9002
         self.__sol_device = ""
+
+
 
     def set_type(self, vendor_type):
         self.__vendor_type = vendor_type
