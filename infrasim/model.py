@@ -1372,8 +1372,11 @@ class CBMC(Task):
         self.__config_file = ""
         self.__bin = "ipmi_sim"
         self.__port_iol = 623
-        self.__historyfru = 10
         self.__ipmi_listen_range = "::"
+
+        # Be careful with updating this number, it could cause FRU index confliction
+        # on particular platform, e.g. onr FRU of s2600wtt already occupied index 10
+        self.__historyfru = 99
 
         # Node wise attributes
         self.__vendor_type = None
