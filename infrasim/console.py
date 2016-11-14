@@ -13,6 +13,7 @@ from . import sshim
 from . import logger
 from .ipmicons.command import Command_Handler
 from .ipmicons.common import msg_queue
+from .ipmicons import env
 
 import re
 
@@ -88,7 +89,7 @@ class IPMI_CONSOLE(threading.Thread):
 
 def _start_console():
     global server
-    server = sshim.Server(IPMI_CONSOLE, port=9300)
+    server = sshim.Server(IPMI_CONSOLE, port=env.PORT_SSH_FOR_CLIENT)
     try:
         logger.info("ipmi-console start")
         server.run()
@@ -132,9 +133,18 @@ def _free_resource():
         thread.join()
 
 
-def start():
+def start(instance="node-0"):
+    """
+    Attach ipmi-console to target instance specified by
+    its name
+    :param instance: infrasim instance name
+    """
+    daemon.daemonize("{}/{}/.ipmi_console.pid".format(config.infrasim_home, instance))
+
     # initialize logging
     common.init_logger()
+    # initialize environment
+    common.init_env(instance)
     # parse the sdrs and build all sensors
     sdr.parse_sdrs()
     # running thread for each threshold based sensor
@@ -142,25 +152,32 @@ def start():
     _start_console()
 
 
-def stop():
+def stop(instance="node-0"):
+    """
+    Stop ipmi-console of target instance specified by
+    its name
+    :param instance: infrasim instance name
+    """
     try:
-        with open("{}/.ipmi_console.pid".format(config.infrasim_home), "r") as f:
+        file_ipmi_console_pid = "{}/{}/.ipmi_console.pid".\
+            format(config.infrasim_home, instance)
+        with open(file_ipmi_console_pid, "r") as f:
             pid = f.readline().strip()
 
         os.kill(int(pid), signal.SIGTERM)
+        os.remove(file_ipmi_console_pid)
     except:
         pass
 
 
-def console_main():
+def console_main(instance="node-0"):
     if len(sys.argv) < 2:
         print "ipmi-console [ start | stop ]"
         sys.exit(1)
 
     if sys.argv[1] == "start":
-        daemon.daemonize("{}/.ipmi_console.pid".format(config.infrasim_home))
-        start()
+        start(instance)
     elif sys.argv[1] == "stop":
-        stop()
+        stop(instance)
     else:
         pass

@@ -12,15 +12,16 @@ import subprocess
 import os
 import time
 import paramiko
-from infrasim import qemu
-from infrasim import ipmi
-from infrasim import socat
 from infrasim import console
 from infrasim import config
+from infrasim.model import CNode
 from test import fixtures
 import threading
 import yaml
 import shutil
+import telnetlib
+import socket
+import signal
 
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
@@ -85,14 +86,20 @@ class test_ipmi_console(unittest.TestCase):
         with open(cls.TMP_CONF_FILE, "w") as f:
             yaml.dump(node_info, f, default_flow_style=False)
 
-        socat.start_socat(conf_file=cls.TMP_CONF_FILE)
-        ipmi.start_ipmi(conf_file=cls.TMP_CONF_FILE)
+        node = CNode(node_info)
+        node.init()
+        node.precheck()
+        node.start()
+
         # Wait ipmi_sim sever coming up.
         # FIXME: good way???
-        time.sleep(5)
-        ipmi_console_thread = threading.Thread(target=console.start, args=())
+        print "Wait ipmi-console start in about 30s..."
+        time.sleep(15)
+
+        ipmi_console_thread = threading.Thread(target=console.start, args=(node_info["name"],))
         ipmi_console_thread.setDaemon(True)
         ipmi_console_thread.start()
+
         # Wait SSH server coming up
         # FIXME: Need a good way to check if SSH server is listening
         # on port 9300
@@ -106,9 +113,17 @@ class test_ipmi_console(unittest.TestCase):
         cls.channel.send('quit\n')
         cls.channel.close()
         cls.ssh.close()
-        qemu.stop_qemu(conf_file=cls.TMP_CONF_FILE)
-        ipmi.stop_ipmi(conf_file=cls.TMP_CONF_FILE)
-        socat.stop_socat(conf_file=cls.TMP_CONF_FILE)
+
+        with open(cls.TMP_CONF_FILE, "r") as yml_file:
+            node_info = yaml.load(yml_file)
+
+        console.stop(node_info["name"])
+
+        node = CNode(node_info)
+        node.init()
+        node.precheck()
+        node.stop()
+
         if os.path.exists(cls.TMP_CONF_FILE):
             os.unlink(cls.TMP_CONF_FILE)
 
@@ -142,6 +157,9 @@ class test_ipmi_console(unittest.TestCase):
         assert 'Available' in str_output
 
     def test_sel_accessibility(self):
+        ipmi_sel_cmd = 'ipmitool -H 127.0.0.1 -U admin -P admin sel clear'
+        run_command(ipmi_sel_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
         self.channel.send('sel get ' + self.sensor_id + '\n')
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
@@ -150,7 +168,7 @@ class test_ipmi_console(unittest.TestCase):
         self.channel.send('sel set ' + self.sensor_id + ' ' + self.event_id + ' assert\n')
         time.sleep(0.1)
         self.channel.send('sel set ' + self.sensor_id + ' ' + self.event_id + ' deassert\n')
-        time.sleep(0.1)
+        time.sleep(2)
 
         ipmi_sel_cmd = 'ipmitool -H 127.0.0.1 -U admin -P admin sel list'
         returncode, output = run_command(ipmi_sel_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -160,6 +178,7 @@ class test_ipmi_console(unittest.TestCase):
             deassert_line = lines[-1]
         except IndexError:
             assert False
+
         assert 'Fan #0xc0 | Upper Non-critical going low  | Asserted' in assert_line
         assert 'Fan #0xc0 | Upper Non-critical going low  | Deasserted' in deassert_line
 
@@ -265,3 +284,131 @@ class test_ipmi_console(unittest.TestCase):
         str_output = read_buffer(self.channel)
 
         self.assertTrue("PSU1 Status : 0x0100" in str_output)
+
+
+class test_ipmi_console_config_change(unittest.TestCase):
+
+    ssh = paramiko.SSHClient()
+    channel = None
+    # Just for quanta_d51
+    sensor_id = '0xc0'
+    sensor_value = '1000.00'
+    event_id = '6'
+    TMP_CONF_FILE = "/tmp/test.yml"
+    bmc_conf = ""
+
+    @classmethod
+    def setUpClass(cls):
+        node_info = {}
+        fake_config = fixtures.FakeConfig()
+        node_info = fake_config.get_node_info()
+        node_info["ipmi_console_port"] = 9100
+        node_info["ipmi_console_ssh"] = 9400
+        cls.bmc_conf = os.path.join(os.environ["HOME"], ".infrasim",
+                                    node_info["name"], "data", "vbmc.conf")
+
+        with open(cls.TMP_CONF_FILE, "w") as f:
+            yaml.dump(node_info, f, default_flow_style=False)
+
+        node = CNode(node_info)
+        node.init()
+        node.precheck()
+        node.start()
+
+        # Wait ipmi_sim sever coming up.
+        # FIXME: good way???
+        print "Wait ipmi-console start in about 30s..."
+        time.sleep(15)
+
+        ipmi_console_thread = threading.Thread(target=console.start, args=(node_info["name"],))
+        ipmi_console_thread.setDaemon(True)
+        ipmi_console_thread.start()
+
+        # console.start(node_info["name"])
+
+        # Wait SSH server coming up
+        # FIXME: Need a good way to check if SSH server is listening
+        # on port 9300
+        time.sleep(20)
+
+    @classmethod
+    def tearDownClass(cls):
+
+        with open(cls.TMP_CONF_FILE, "r") as yml_file:
+            node_info = yaml.load(yml_file)
+
+        console.stop(node_info["name"])
+
+        node = CNode(node_info)
+        node.init()
+        node.precheck()
+        node.stop()
+
+        if os.path.exists(cls.TMP_CONF_FILE):
+            os.unlink(cls.TMP_CONF_FILE)
+
+        workspace = os.path.join(config.infrasim_home, "test")
+        if os.path.exists(workspace):
+            shutil.rmtree(workspace)
+
+    def test_ipmi_console_valid_port(self):
+        """
+        Verify vBMC console is listening on port 9100
+        """
+        with open(self.bmc_conf, "r") as fp:
+            bmc_conf = fp.read()
+        assert 'console 0.0.0.0 9100' in bmc_conf
+
+        tn = telnetlib.Telnet(host="127.0.0.1", port=9100, timeout=5)
+        tn.read_until(">")
+        tn.write("get_user_password 0x20 admin\n")
+        tn.read_until("\nadmin", timeout=5)
+        tn.close()
+
+    def test_ipmi_console_invalid_port(self):
+        """
+        Verify vBMC console is not listening on default port 9000
+        """
+        try:
+            tn = telnetlib.Telnet(host="127.0.0.1", port=9000, timeout=5)
+        except socket.error:
+            pass
+        else:
+            raise self.fail("Default port 9000 for ipmi-console is still "
+                            "in use after changed to 9100.")
+
+    def test_ipmi_console_valid_ssh(self):
+        """
+        Verify port 9400 is valid
+        """
+        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.ssh.connect('127.0.0.1', username='', password='', port=9400)
+        channel = self.ssh.invoke_shell()
+
+        try:
+            channel.send("\n")
+            time.sleep(0.1)
+            str_output = read_buffer(channel)
+            self.assertTrue("IPMI_SIM>" in str_output)
+        except:
+            channel.send("quit\n")
+            channel.close()
+            self.ssh.close()
+            raise
+        else:
+            channel.send("quit\n")
+            channel.close()
+            self.ssh.close()
+
+    def test_ipmi_console_invalid_ssh(self):
+        """
+        Verify default port 9300 is invalid now
+        """
+        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            self.ssh.connect('127.0.0.1', username='', password='', port=9300)
+        except socket.error:
+            pass
+        else:
+            self.fail("Expect server refuse connection to port 9300, "
+                      "but test fail")

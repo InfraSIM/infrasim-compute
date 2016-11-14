@@ -1384,8 +1384,6 @@ class CBMC(Task):
         self.__port_qemu_ipmi = 9002
         self.__sol_device = ""
 
-
-
     def set_type(self, vendor_type):
         self.__vendor_type = vendor_type
 

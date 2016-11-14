@@ -129,7 +129,11 @@ bmc:
     config_file: <path/to/your config file>
     emu_file: chassis/node1/quanta_d51.emu
 
+# SSH to this port to visit ipmi-console
+ipmi_console_ssh: 9300
+
 # Renamed from telnet_listen_port to ipmi_console_port, extracted from bmc
+# ipmi-console talk with vBMC via this port
 ipmi_console_port: 9000
 
 # Used by ipmi_sim and qemu
