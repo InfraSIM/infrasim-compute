@@ -1,3 +1,12 @@
+# This example virtual server configuration file intends to throughout
+# list parameters and properties that infrasim-compute virtual server
+# supports to adjust. In most cases it is fine to use default value
+# for particuar configuration by skipping putting it into infrasim.yml
+# configuration file. For anything item you're interested, it is recommended
+# to look up infomation here first. For example, if you'd like to customize
+# properties of your drive - either serial number or vender - in below there're
+# corresponding item to show how to achieve that.
+
 # Unique identifier
 name: node-0
 
@@ -17,7 +26,8 @@ name: node-0
 type: quanta_d51
 
 compute:
-    # n - Network (PXE); c - CD-ROM; d - Drive (bootindex in drive sections controls booting HDD)
+    # n - Network (PXE); c - CD-ROM;
+    # d - Drive (bootindex in drive sections controls order of booting HDD)
     boot_order: ncd
     kvm_enabled: true
     numa_control: true
