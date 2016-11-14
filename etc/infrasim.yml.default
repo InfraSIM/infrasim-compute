@@ -1,5 +1,7 @@
 ---
-#This file is used as InfraSIM configuration file
+# This file lists all the default configuration settings if a virtrual server
+# service started without making any update to infrasim-compute after installing
+# it from either source code or pypi library
 
 # Node type is mandatory
 # Node type of your infrasim compute, this will determine the
@@ -14,6 +16,7 @@
 #  s2600kp - Rinjin KP
 #  s2600tp - Rinjin TP
 #  s2600wtt - Node of Hydra, Python
+#
 type: quanta_d51
 
 node:
@@ -31,6 +34,7 @@ node:
     #	IvyBridge:  Intel Xeon E3-12xx v2 (Ivy Bridge)
     #	Haswell:  Intel Core Processor (Haswell)
     #	Broadwell:  Intel Core Processor (Broadwell)
+    #
     cpu: Haswell
 
     #Set node memory size, the unit is MB.
@@ -72,6 +76,7 @@ node:
             #Set network device for qemu. The options should be:
             #   vmxnet3 --default
             #   e1000
+            #
             device: vmxnet3
 
             #Set MAC for this network, this MAC is generated with
