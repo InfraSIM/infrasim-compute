@@ -50,7 +50,7 @@ if ver is not None:
         if line.startswith("summary"):
             print "version =", ver
 else:
-    r = requests.get("https://api.github.com/repos/Infrasim/infrasim-compute/releases/latest")
+    r = requests.get("https://api.github.com/repos/InfraSIM/infrasim-compute/releases/latest")
     if r.ok:
         data = json.loads(r.content)
         ver = data['tag_name']
