@@ -1,10 +1,34 @@
+# This example virtual server configuration file intends to throughout
+# list parameters and properties that infrasim-compute virtual server
+# supports to adjust. In most cases it is fine to use default value
+# for particuar configuration by skipping putting it into infrasim.yml
+# configuration file. For anything item you're interested, it is recommended
+# to look up infomation here first. For example, if you'd like to customize
+# properties of your drive - either serial number or vender - in below there're
+# corresponding item to show how to achieve that.
+
 # Unique identifier
-name: node-1
+name: node-0
 
 # Node type is mandatory
+# Node type of your infrasim compute, this will determine the
+# bmc emulation data and bios binary to use.
+# Supported compute node names:
+#  quanta_d51
+#  quanta_t41
+#  dell_c6320
+#  dell_r630
+#  dell_r730
+#  dell_r730xd
+#  s2600kp - Rinjin KP
+#  s2600tp - Rinjin TP
+#  s2600wtt - Node of Hydra, Python
 type: quanta_d51
 
 compute:
+    # n - Network (PXE); c - CD-ROM;
+    # d - Drive (bootindex in drive sections controls order of booting HDD)
+    boot_order: ncd
     kvm_enabled: true
     numa_control: true
     cpu:
@@ -88,12 +112,15 @@ compute:
     networks:
         -
             network_mode: bridge
+            # Bridge need to be prepared beforehand with brctl
             network_name: br0
             device: vmxnet3
+            mac: 00:60:16:9e:a8:e9
         -
             network_mode: bridge
             network_name: br0
             device: vmxnet3
+            mac: 00:60:16:9e:a8:f9
     ipmi:
         interface: bt
         chardev:
