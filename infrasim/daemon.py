@@ -56,6 +56,9 @@ def daemonize(pidfile, stdin='/dev/null', stdout='/dev/null',
     si = file(stdin, 'r')
     so = file(stdout, 'a+')
     se = file(stderr, 'a+', 0)
-    os.dup2(si.fileno(), sys.stdin.fileno())
-    os.dup2(so.fileno(), sys.stdout.fileno())
-    os.dup2(se.fileno(), sys.stderr.fileno())
+    if hasattr(sys.stdin, "fileno"):
+        os.dup2(si.fileno(), sys.stdin.fileno())
+    if hasattr(sys.stdout, "fileno"):
+        os.dup2(so.fileno(), sys.stdout.fileno())
+    if hasattr(sys.stderr, "fileno"):
+        os.dup2(se.fileno(), sys.stderr.fileno())
