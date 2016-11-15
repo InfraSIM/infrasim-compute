@@ -1937,11 +1937,11 @@ class CNode(object):
             bmc_obj.set_type(self.__node['type'])
             compute_obj.set_type(self.__node['type'])
 
-        if "sol_device" in self.__node:
+        if "sol_device" in self.__node and self.__sol_enabled:
             socat_obj.set_sol_device(self.__node["sol_device"])
             bmc_obj.set_sol_device(self.__node["sol_device"])
 
-        if "serial_port" in self.__node:
+        if "serial_port" in self.__node and self.__sol_enabled:
             socat_obj.set_port_serial(self.__node["serial_port"])
             compute_obj.set_port_serial(self.__node["serial_port"])
 
