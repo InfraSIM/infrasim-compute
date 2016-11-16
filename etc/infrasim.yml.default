@@ -20,22 +20,25 @@
 type: quanta_d51
 
 node:
-    #Set node cpu num, the default value is 2
-    #
-    vcpu: 2
+    cpu:
+        #Set node cpu num, the default value is 2
+        #
+        quantities: 2
 
-    #Set node cpu type, the default value is Haswell
-    #Supported vcpu_type:
-    #	core2duo:  Intel(R) Core(TM)2 Duo CPU     T7700  @ 2.40GHz
-    #	coreduo:   Genuine Intel(R) CPU           T2600  @ 2.16GHz
-    #	Nehalem:   Intel Core i7 9xx (Nehalem Class Core i7)
-    #	Westmere:  Westmere E56xx/L56xx/X56xx (Nehalem-C)
-    #	SandyBridge:  Intel Xeon E312xx (Sandy Bridge)
-    #	IvyBridge:  Intel Xeon E3-12xx v2 (Ivy Bridge)
-    #	Haswell:  Intel Core Processor (Haswell)
-    #	Broadwell:  Intel Core Processor (Broadwell)
-    #
-    cpu: Haswell
+        #Set node cpu type, the default value is Haswell
+        #Supported type:
+        #	core2duo:  Intel(R) Core(TM)2 Duo CPU     T7700  @ 2.40GHz
+        #	coreduo:   Genuine Intel(R) CPU           T2600  @ 2.16GHz
+        #	Nehalem:   Intel Core i7 9xx (Nehalem Class Core i7)
+        #	Westmere:  Westmere E56xx/L56xx/X56xx (Nehalem-C)
+        #	SandyBridge:  Intel Xeon E312xx (Sandy Bridge)
+        #	IvyBridge:  Intel Xeon E3-12xx v2 (Ivy Bridge)
+        #	Haswell:  Intel Core Processor (Haswell)
+        #	Broadwell:  Intel Core Processor (Broadwell)
+        #   host:  default, KVM processor with all supported host features
+        #          (only available in KVM mode)
+        #
+        type: Haswell
 
     #Set node memory size, the unit is MB.
     #The default vaule is 512MB
