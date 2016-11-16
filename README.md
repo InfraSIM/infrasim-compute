@@ -22,50 +22,62 @@ Installation
 
 1. Ensure sources.list integrity then install dependency:
 
-    **sudo apt-get update**
-
-    **sudo apt-get install python-pip libpython-dev libssl-dev**
+    ```
+    sudo apt-get update
+    sudo apt-get install python-pip libpython-dev libssl-dev
+    ```
 
 2. Upgrade pip and install setuptools:
 
-    **sudo pip install --upgrade pip**
-
-    **sudo pip install setuptools**
+    ```
+    sudo pip install --upgrade pip
+    sudo pip install setuptools
+    ```
 
 3. Two ways to install infrasim:
 
     * install infrasim from source code:
 
-        **git clone https://github.com/InfraSIM/infrasim-compute.git**
+        ```
+        git clone https://github.com/InfraSIM/infrasim-compute.git
 
-        **cd infrasim-compute**
+        cd infrasim-compute
 
-        **sudo pip install -r requirements.txt**
+        sudo pip install -r requirements.txt
 
-        **sudo python setup.py install**
+        sudo python setup.py install
+        ```
 
     * install infrasim from python library:
 
-        **sudo pip install infrasim-compute**
+        ```
+        sudo pip install infrasim-compute
+        ```
 
 Start Infrasim Service
 ----------------------
 
 1. Initialization (you need do it once)
 
-    **sudo infrasim-init**
+    ```
+    sudo infrasim-init
+    ```
 
 2. Start Infrasim Service
 
-    **sudo infrasim-main start**
+    ```
+    sudo infrasim-main start
+    ```
 
 3. Stop Infrasim Service
 
-    **sudo infrasim-main stop**
+    ``` 
+    sudo infrasim-main stop
+    ```
 
 **Notice: You can use VNC to access the emulated legacy hardware, the default VNC port is 5901**
 
 Configure Infrasim
 -------------------
 
-You can configure your own legacy hardware through **/etc/infrasim/infrasim.yml**.
+You can configure your own legacy hardware through **/usr/local/infrasim/etc/infrasim.yml**.
