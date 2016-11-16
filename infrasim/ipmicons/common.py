@@ -103,7 +103,7 @@ def init_env(instance):
             if ip == "::" or ip == "0.0.0.0":
                 env.VBMC_IP = "localhost"
             else:
-                env.VBMC_IP = "ip"
+                env.VBMC_IP = ip
             logger.info("VBMC_IP: {}".format(env.VBMC_IP))
             env.VBMC_PORT = int(s_vbmc.group("vbmc_port"))
             logger.info("VBMC_PORT: {}".format(env.VBMC_PORT))

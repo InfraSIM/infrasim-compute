@@ -128,6 +128,7 @@ bmc:
     historyfru: 20
     config_file: <path/to/your config file>
     emu_file: chassis/node1/quanta_d51.emu
+    ipmi_over_lan_port: 623
 
 # SSH to this port to visit ipmi-console
 ipmi_console_ssh: 9300
