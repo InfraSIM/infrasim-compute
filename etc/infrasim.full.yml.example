@@ -117,10 +117,7 @@ compute:
             device: vmxnet3
             mac: 00:60:16:9e:a8:e9
         -
-            network_mode: bridge
-            network_name: br0
-            device: vmxnet3
-            mac: 00:60:16:9e:a8:f9
+            network_mode: nat
     ipmi:
         interface: bt
         chardev:
@@ -137,7 +134,6 @@ compute:
             server: on
             wait: off
             path: <path/to/your/sock file>
-    vnc_display: 1
     # set vnc display <X>
     vnc_display: 1
 bmc:
