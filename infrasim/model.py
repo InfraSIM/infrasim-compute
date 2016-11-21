@@ -1890,7 +1890,7 @@ class CNode(object):
         if 'name' in self.__node:
             self.set_node_name(self.__node['name'])
 
-        self.__sol_enabled = self.__node['sol'] if 'sol' in self.__node else True
+        self.__sol_enabled = self.__node['sol_enable'] if 'sol_enable' in self.__node else True
 
         # If user specify "network_mode" as "bridge" but without MAC
         # address, generate one for this network.
