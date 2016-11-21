@@ -5,15 +5,15 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 import subprocess
 import os
-import sys
 import time
 import threading
 import telnetlib
 import logging
-
 import socket
 import Queue
 import re
+import env
+import traceback
 
 lock = threading.Lock()
 
@@ -39,6 +39,7 @@ def init_logger():
     # create console handler with a higher log level
     # ch = logging.StreamHandler()
     # ch.setLevel(logging.ERROR)
+    logger.setLevel(logging.INFO)
 
     # create formatter and add it to the handlers
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -46,6 +47,82 @@ def init_logger():
 
     # add the handlers to the logger
     logger.addHandler(fh)
+
+
+def init_env(instance):
+    """
+    This is to sync ipmi-console with runtime vBMC configuration.
+    Initial version capture infrasim instance name by infrasim-main status, while we
+    have a plan to give instance name to ipmi-console so that it can be attached to
+    target vBMC instance.
+    """
+    logger.info("Init ipmi-console environment for infrasim instance: {}".
+                format(instance))
+
+    # Get runtime vbmc.conf
+    vbmc_conf_path = os.path.join(os.environ["HOME"], ".infrasim", instance, "data", "vbmc.conf")
+    if not os.path.exists(vbmc_conf_path):
+        msg = "{} vBMC configuration is not defined at {}".format(instance, vbmc_conf_path)
+        logger.error(msg)
+        raise Exception(msg)
+    else:
+        msg = "Target vbmc to attach is: {}".format(vbmc_conf_path)
+        logger.info(msg)
+
+    # Get runtime infrasim.yml
+    infrasim_yml_path = os.path.join(os.environ["HOME"], ".infrasim", instance, "data", "infrasim.yml")
+    if not os.path.exists(infrasim_yml_path):
+        msg = "{} infrasim instance is not defined at {}".format(instance, infrasim_yml_path)
+        logger.error(msg)
+        raise Exception(msg)
+    else:
+        msg = "Target infrasim instance to attach is: {}".format(infrasim_yml_path)
+        logger.info(msg)
+
+    # Get variable and set to ipmi-console env
+    # - PORT_TELNET_TO_VBMC
+    # - VBMC_IP
+    # - VBMC_PORT
+    with open(vbmc_conf_path, 'r') as fp:
+        conf = fp.read()
+
+        p_telnet = re.compile(r"^\s*console\s*[\d:\.]+\s+(?P<port_telnet_to_vbmc>\d+)",
+                              re.MULTILINE)
+        s_telnet = p_telnet.search(conf)
+        if s_telnet:
+            env.PORT_TELNET_TO_VBMC = int(s_telnet.group("port_telnet_to_vbmc"))
+            logger.info("PORT_TELNET_TO_VBMC: {}".format(env.PORT_TELNET_TO_VBMC))
+        else:
+            raise Exception("PORT_TELNET_TO_VBMC is not found")
+
+        p_vbmc = re.compile(r"^\s*addr\s*(?P<vbmc_ip>[\d:\.]+)\s*(?P<vbmc_port>\d+)",
+                            re.MULTILINE)
+        s_vbmc = p_vbmc.search(conf)
+        if s_vbmc:
+            ip = s_vbmc.group("vbmc_ip")
+            if ip == "::" or ip == "0.0.0.0":
+                env.VBMC_IP = "localhost"
+            else:
+                env.VBMC_IP = ip
+            logger.info("VBMC_IP: {}".format(env.VBMC_IP))
+            env.VBMC_PORT = int(s_vbmc.group("vbmc_port"))
+            logger.info("VBMC_PORT: {}".format(env.VBMC_PORT))
+        else:
+            raise Exception("VBMC_IP and VBMC_PORT is not found")
+
+    # Get variable and set to ipmi-console env
+    # - PORT_SSH_FOR_CLIENT
+    with open(infrasim_yml_path, 'r') as fp:
+        conf = fp.read()
+
+        p_port = re.compile(r"^\s*ipmi_console_ssh:\s*(?P<port_ssh_for_client>\d+)",
+                            re.MULTILINE)
+        s_port = p_port.search(conf)
+        if s_port:
+            env.PORT_SSH_FOR_CLIENT = int(s_port.group("port_ssh_for_client"))
+        else:
+            env.PORT_SSH_FOR_CLIENT = 9300
+        logger.info("PORT_SSH_FOR_CLIENT: {}".format(env.PORT_SSH_FOR_CLIENT))
 
 
 def get_logger():
@@ -79,14 +156,15 @@ def send_ipmi_sim_command(command):
     logger.info("send IPMI SIM command: " + command.strip())
     result = ""
     try:
-        tn.open('localhost', '9000')
+        tn.open('localhost', env.PORT_TELNET_TO_VBMC)
         tn.write(command)
         time.sleep(0.1)
         result = tn.read_some()
         tn.close()
         logger.info("IPMI SIM command result: " + result)
     except socket.error as se:
-        logger.error("Unable to connect lanserv at 9000: {0}".format(se))
+        logger.error("Unable to connect lanserv at {0}: {1}".
+                     format(env.PORT_TELNET_TO_VBMC, se))
     finally:
         lock.release()
 
@@ -115,15 +193,22 @@ def send_ipmitool_command(*cmds):
 
     lock.acquire()
     dst_cmd = ["ipmitool",
-               "-I", "lan", "-H", 'localhost', "-U", vbmc_user, "-P", vbmc_pass]
+               "-I", "lan",
+               "-H", env.VBMC_IP,
+               "-U", vbmc_user,
+               "-P", vbmc_pass,
+               "-p", str(env.VBMC_PORT)]
     for cmd in cmds:
         dst_cmd.append(cmd)
-    child = subprocess.Popen(dst_cmd,
-            stdout=subprocess.PIPE,
-            stdin=subprocess.PIPE,
-            stderr=subprocess.PIPE
-            )
-    (stdout, stderr) = child.communicate()
+    try:
+        child = subprocess.Popen(dst_cmd,
+                                 stdout=subprocess.PIPE,
+                                 stdin=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        (stdout, stderr) = child.communicate()
+    except:
+        logger.error(traceback.format_exc())
+        raise
     child.wait()
     logger.info("ipmitool command: " + ' '.join(dst_cmd))
     logger.info("ipmitool command stdout: " + stdout.strip())

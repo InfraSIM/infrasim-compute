@@ -80,4 +80,4 @@ Start Infrasim Service
 Configure Infrasim
 -------------------
 
-You can configure your own legacy hardware through **/usr/local/infrasim/etc/infrasim.yml**.
+You can configure your virtual server through **/usr/local/infrasim/etc/infrasim/infrasim.yml**; and new configuration will take effect with restarting service.

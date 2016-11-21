@@ -7,6 +7,7 @@ import unittest
 import os
 import time
 import yaml
+import hashlib
 from infrasim import model
 import paramiko
 from test import fixtures
@@ -31,15 +32,17 @@ class test_kcs(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
+        MD5_KCS_IMG = "cfdf7d855d2f69c67c6e16cc9b53f0da"
         test_img_file = "{}/kcs.img".\
             format(os.environ['HOME'])
-        if os.path.exists(test_img_file) is False:
+        if os.path.exists(test_img_file) is False or \
+                        hashlib.md5(open(test_img_file, "rb").read()).hexdigest() != MD5_KCS_IMG:
             os.system("wget -c \
                 https://github.com/InfraSIM/test/raw/master/image/kcs.img \
                 -O {}".format(test_img_file))
 
         if os.path.exists(test_img_file) is False:
-            return
+            assert False
 
         fake_config = fixtures.FakeConfig()
         self.conf = fake_config.get_node_info()
