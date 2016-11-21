@@ -56,9 +56,9 @@ def setup_module():
 
 
 def teardown_module():
-    # if os.path.exists(test_img_file):
-    #     os.unlink(test_img_file)
-    pass
+    if os.path.exists(test_img_file):
+        os.unlink(test_img_file)
+
 
 def start_node(node_type):
     global conf
