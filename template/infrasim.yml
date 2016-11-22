@@ -11,7 +11,7 @@
 #	s2600kp
 #	s2600tp
 #	s2600wtt
-type: quanta_d51
+type: {{ node_type }}
 
 compute:
 
