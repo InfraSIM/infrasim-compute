@@ -63,7 +63,7 @@ class test_version_command(unittest.TestCase):
             )
             self.assertIsNotNone(
                 re.search(
-                    'infrasim-compute version (\d+.){2}\d',
+                    'infrasim-compute version .*(\d+.){2}\d',
                     version_list[5]
                 ),
                 "infrasim-compute version is '{}', not expected".format(
