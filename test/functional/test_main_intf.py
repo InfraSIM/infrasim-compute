@@ -16,7 +16,7 @@ import unittest
 import re
 
 from infrasim import run_command
-from infrasim import main
+from infrasim import helper
 
 
 class test_start_intf(unittest.TestCase):
@@ -32,7 +32,7 @@ class test_start_intf(unittest.TestCase):
         ip_list = []
 
         try:
-            test_ip_list = main.ip4_addresses()
+            test_ip_list = helper.ip4_addresses()
 
             assert test_ip_list
 
