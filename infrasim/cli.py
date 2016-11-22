@@ -4,9 +4,9 @@ import argparse
 import config
 import model
 from yaml_loader import YAMLLoader
-import netifaces
 from init import infrasim_init
 from version import version
+import helper
 
 
 def args(*args, **kwargs):
@@ -17,13 +17,6 @@ def args(*args, **kwargs):
 
 
 class NodeCommands(object):
-    def _ip4_addresses(self):
-        ip_list = []
-        for interface in netifaces.interfaces():
-            for link in netifaces.ifaddresses(interface).get(netifaces.AF_INET, ()):
-                ip_list.append(link['addr'])
-        return ip_list
-
     def _get_node(self, config_file=None):
         node_config = config_file or config.infrasim_initial_config
         with open(node_config, "r") as f:
@@ -47,7 +40,7 @@ class NodeCommands(object):
             "VNC port: 5901 \n" \
             "Either host IP: {} \n" \
             "depending on host in which network VNC viewer is running". \
-            format(node.get_node_name(), self._ip4_addresses())
+            format(node.get_node_name(), helper.ip4_addresses())
 
     @args("-c", "--config-file", action="store", dest="config_file", help="Node configuration file")
     def stop(self, config_file=None):
