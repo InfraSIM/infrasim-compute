@@ -14,6 +14,18 @@ from test import fixtures
 
 
 """
+For each node type, do a test to verify KCS function and SMBIOS data integrity.
+Node type includes:
+    - dell_c6320
+    - dell_r630
+    - dell_r730
+    - dell_r730xd
+    - quanta_d51
+    - quanta_t41
+    - s2600kp
+    - s2600tp
+    - s2600wtt
+
 Test KCS function
     - local fru can work
     - local lan can work
@@ -26,195 +38,487 @@ Test SMBIOS data
 """
 
 
-class test_kcs(unittest.TestCase):
+test_img_file = "{}/kcs.img".format(os.environ['HOME'])
+conf = {}
+tmp_conf_file = "/tmp/test.yml"
 
-    TMP_CONF_FILE = "/tmp/test.yml"
 
-    @classmethod
-    def setUpClass(self):
-        MD5_KCS_IMG = "cfdf7d855d2f69c67c6e16cc9b53f0da"
-        test_img_file = "{}/kcs.img".\
-            format(os.environ['HOME'])
-        if os.path.exists(test_img_file) is False or \
-                        hashlib.md5(open(test_img_file, "rb").read()).hexdigest() != MD5_KCS_IMG:
-            os.system("wget -c \
-                https://github.com/InfraSIM/test/raw/master/image/kcs.img \
-                -O {}".format(test_img_file))
+def setup_module():
+    MD5_KCS_IMG = "cfdf7d855d2f69c67c6e16cc9b53f0da"
+    if not os.path.exists(test_img_file) or \
+                    hashlib.md5(open(test_img_file, "rb").read()).hexdigest() != MD5_KCS_IMG:
+        os.system("wget -c \
+            https://github.com/InfraSIM/test/raw/master/image/kcs.img \
+            -O {}".format(test_img_file))
 
-        if os.path.exists(test_img_file) is False:
+    if os.path.exists(test_img_file) is False:
+        return
+
+
+def teardown_module():
+    if os.path.exists(test_img_file):
+        os.unlink(test_img_file)
+
+
+def start_node(node_type):
+    global conf
+    global tmp_conf_file
+
+    fake_config = fixtures.FakeConfig()
+    conf = fake_config.get_node_info()
+    conf["type"] = node_type
+    conf["compute"]["storage_backend"] = [{
+        "controller": {
+            "type": "ahci",
+            "max_drive_per_controller": 6,
+            "drives": [{"size": 8, "file": test_img_file}]
+        }
+    }]
+
+    with open(tmp_conf_file, "w") as yaml_file:
+        yaml.dump(conf, yaml_file, default_flow_style=False)
+
+    node = model.CNode(conf)
+    node.init()
+    node.precheck()
+    node.start()
+
+    time.sleep(3)
+    import telnetlib
+    tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
+    tn.read_until("(qemu)")
+    tn.write("hostfwd_add ::2222-:22\n")
+    tn.read_until("(qemu)")
+    tn.close()
+
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    paramiko.util.log_to_file("filename.log")
+    while True:
+        try:
+            ssh.connect("127.0.0.1", port=2222, username="root",
+                        password="root", timeout=120)
+            ssh.close()
+            break
+        except paramiko.SSHException:
+            time.sleep(1)
+            continue
+        except Exception:
             assert False
 
-        fake_config = fixtures.FakeConfig()
-        self.conf = fake_config.get_node_info()
+    time.sleep(5)
 
-        self.conf["compute"]["storage_backend"] = [{
-            "controller": {
-                "type": "ahci",
-                "max_drive_per_controller": 6,
-                "drives": [{"size": 8, "file": test_img_file}]
-            }
-        }]
 
-        with open(self.TMP_CONF_FILE, "w") as yaml_file:
-            yaml.dump(self.conf, yaml_file, default_flow_style=False)
+def stop_node():
+    global conf
+    global tmp_conf_file
 
-        node = model.CNode(self.conf)
-        node.init()
-        node.precheck()
-        node.start()
+    node = model.CNode(conf)
+    node.init()
+    node.stop()
+    node.terminate_workspace()
+    conf = {}
+    if os.path.exists(tmp_conf_file):
+        os.unlink(tmp_conf_file)
 
-        time.sleep(3)
-        import telnetlib
-        tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
-        tn.read_until("(qemu)")
-        tn.write("hostfwd_add ::2222-:22\n")
-        tn.read_until("(qemu)")
-        tn.close()
+    time.sleep(5)
 
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        paramiko.util.log_to_file("filename.log")
-        while True:
-            try:
-                ssh.connect("127.0.0.1", port=2222, username="root",
-                            password="root", timeout=120)
-                ssh.close()
-                break
-            except paramiko.SSHException:
-                time.sleep(1)
-                continue
-            except Exception:
-                assert False
 
-        time.sleep(3)
+def verify_qemu_local_fru(expect):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect("127.0.0.1", port=2222, username="root",
+                password="root", timeout=10)
+    stdin, stdout, stderr = ssh.exec_command("ipmitool fru print")
+    while not stdout.channel.exit_status_ready():
+        pass
+    lines = stdout.channel.recv(4096)
+    print lines
+    ssh.close()
+    assert expect in lines
+
+
+def verify_qemu_local_lan(expect):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect("127.0.0.1", port=2222, username="root",
+                password="root", timeout=10)
+    stdin, stdout, stderr = ssh.exec_command("ipmitool lan print")
+    while not stdout.channel.exit_status_ready():
+        pass
+    lines = stdout.channel.recv(2048)
+    print lines
+    ssh.close()
+    assert expect in lines
+
+
+def verify_qemu_local_sensor(expect):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect("127.0.0.1", port=2222, username="root",
+                password="root", timeout=10)
+    stdin, stdout, stderr = ssh.exec_command("ipmitool sensor list")
+    while not stdout.channel.exit_status_ready():
+        pass
+    lines = stdout.channel.recv(20480)
+    print lines
+    ssh.close()
+    assert expect in lines
+
+
+def verify_qemu_local_sdr(expect):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect("127.0.0.1", port=2222, username="root",
+                password="root", timeout=10)
+    stdin, stdout, stderr = ssh.exec_command("ipmitool sdr list")
+    while not stdout.channel.exit_status_ready():
+        pass
+    lines = stdout.channel.recv(20480)
+    print lines
+    ssh.close()
+    assert expect in lines
+
+
+def verify_qemu_local_sel(expect):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect("127.0.0.1", port=2222, username="root",
+                password="root", timeout=10)
+    stdin, stdout, stderr = ssh.exec_command("ipmitool sel list")
+    while not stdout.channel.exit_status_ready():
+        pass
+    lines = stdout.channel.recv(20480)
+    print lines
+    ssh.close()
+    assert expect in lines
+
+
+def verify_qemu_local_user(expect):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect("127.0.0.1", port=2222, username="root",
+                password="root", timeout=10)
+    stdin, stdout, stderr = ssh.exec_command("ipmitool user list")
+    while not stdout.channel.exit_status_ready():
+        pass
+    lines = stdout.channel.recv(2048)
+    print lines
+    ssh.close()
+    assert expect in lines
+
+
+def verify_smbios_data(expect_mfg, expect_product_name):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect("127.0.0.1", port=2222, username="root",
+                password="root", timeout=10)
+    stdin, stdout, stderr = ssh.exec_command("dmidecode -t1")
+    while not stdout.channel.exit_status_ready():
+        pass
+
+    lines = stdout.channel.recv(2048)
+    print lines
+
+    ssh.close()
+
+    assert expect_mfg in lines
+    assert expect_product_name in lines
+
+
+class test_quanta_d51(unittest.TestCase):
 
     @classmethod
-    def tearDownClass(self):
-        test_img_file = "{}/kcs.img".\
-            format(os.environ['HOME'])
-        node = model.CNode(self.conf)
-        node.init()
-        node.stop()
-        node.terminate_workspace()
-        self.conf = None
-        if os.path.exists(self.TMP_CONF_FILE):
-            os.unlink(self.TMP_CONF_FILE)
+    def setUpClass(cls):
+        start_node(node_type="quanta_d51")
 
-        if os.path.exists(test_img_file):
-            os.unlink(test_img_file)
+    @classmethod
+    def tearDownClass(cls):
+        stop_node()
 
     def test_qemu_local_fru(self):
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root",
-                    password="root", timeout=10)
-        stdin, stdout, stderr = ssh.exec_command("ipmitool fru print")
-        while not stdout.channel.exit_status_ready():
-            pass
-        lines = stdout.channel.recv(2048)
-        print lines
-        ssh.close()
-        assert "QTFCJ052806D1" in lines
+        verify_qemu_local_fru(expect="QTFCJ052806D1")
 
     def test_qemu_local_lan(self):
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root",
-                    password="root", timeout=10)
-        stdin, stdout, stderr = ssh.exec_command("ipmitool lan print")
-        while not stdout.channel.exit_status_ready():
-            pass
-        lines = stdout.channel.recv(2048)
-        print lines
-        ssh.close()
-        assert "Auth Type" in lines
+        verify_qemu_local_lan(expect="Auth Type")
 
     def test_qemu_local_sensor(self):
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root",
-                    password="root", timeout=10)
-        stdin, stdout, stderr = ssh.exec_command("ipmitool sensor list")
-        while not stdout.channel.exit_status_ready():
-            pass
-        lines = stdout.channel.recv(2048)
-        print lines
-        ssh.close()
-        assert "CPU_0" in lines
+        verify_qemu_local_sensor(expect="Temp_PCI_Inlet1")
 
     def test_qemu_local_sdr(self):
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root",
-                    password="root", timeout=10)
-        stdin, stdout, stderr = ssh.exec_command("ipmitool sdr list")
-        while not stdout.channel.exit_status_ready():
-            pass
-        lines = stdout.channel.recv(2048)
-        print lines
-        ssh.close()
-        assert "CPU_0" in lines
+        verify_qemu_local_sdr(expect="Temp_PCI_Inlet1")
 
     def test_qemu_local_sel(self):
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root",
-                    password="root", timeout=10)
-        stdin, stdout, stderr = ssh.exec_command("ipmitool sel list")
-        while not stdout.channel.exit_status_ready():
-            pass
-        lines = stdout.channel.recv(2048)
-        print lines
-        ssh.close()
-        assert "Pre-Init" in lines
+        verify_qemu_local_sel(expect="Log area reset/cleared")
 
     def test_qemu_local_user(self):
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root",
-                    password="root", timeout=10)
-        stdin, stdout, stderr = ssh.exec_command("ipmitool user list")
-        while not stdout.channel.exit_status_ready():
-            pass
-        lines = stdout.channel.recv(2048)
-        print lines
-        ssh.close()
-        assert "admin" in lines
+        verify_qemu_local_user(expect="ADMINISTRATOR")
 
     def test_smbios_data(self):
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root",
-                    password="root", timeout=10)
-        stdin, stdout, stderr = ssh.exec_command("dmidecode -t1")
-        while not stdout.channel.exit_status_ready():
-            pass
+        verify_smbios_data(expect_mfg="Manufacturer: Quanta Computer Inc",
+                           expect_product_name="Product Name: D51B-2U (dual 10G LoM)")
 
-        lines = stdout.channel.recv(2048)
-        print lines
 
-        ssh.close()
-        with open(self.TMP_CONF_FILE, "r") as yml_file:
-            self.conf = yaml.load(yml_file)
+class test_quanta_t41(unittest.TestCase):
 
-        if self.conf["type"] == "quanta_d51":
-            assert "Manufacturer: Quanta Computer Inc" in lines
-            assert "Product Name: D51B-2U (dual 10G LoM)" in lines
-        if self.conf["type"] == "quanta_t41":
-            assert "Manufacturer: QuantaPlex Computer Inc" in lines
-            assert "Product Name: QuantaPlex T41S-2U" in lines
-        if self.conf["type"] == "dell_c6320":
-            assert "Manufacturer: Dell Inc" in lines
-            assert "Product Name: PowerEdge C6320" in lines
-        if self.conf["type"] == "dell_r630":
-            assert "Manufacturer: Dell Inc" in lines
-            assert "Product Name: PowerEdge R630" in lines
-        if self.conf["type"] == "s2600kp":
-            assert "Manufacturer: EMC" in lines
-            assert "Product Name: S2600KP" in lines
-        if self.conf["type"] == "s2600tp":
-            assert "Manufacturer: EMC" in lines
-            assert "Product Name: S2600TP" in lines
-        if self.conf["type"] == "s2600wtt":
-            assert "Manufacturer: EMC" in lines
-            assert "Product Name: S2600WTT" in lines
+    @classmethod
+    def setUpClass(cls):
+        start_node(node_type="quanta_t41")
+
+    @classmethod
+    def tearDownClass(cls):
+        stop_node()
+
+    def test_qemu_local_fru(self):
+        verify_qemu_local_fru(expect="WKJ51100867")
+
+    def test_qemu_local_lan(self):
+        verify_qemu_local_lan(expect="Auth Type")
+
+    def test_qemu_local_sensor(self):
+        verify_qemu_local_sensor(expect="Pwr_Node")
+
+    def test_qemu_local_sdr(self):
+        verify_qemu_local_sdr(expect="Pwr_Node")
+
+    def test_qemu_local_sel(self):
+        verify_qemu_local_sel(expect="Log area reset/cleared")
+
+    def test_qemu_local_user(self):
+        verify_qemu_local_user(expect="ADMINISTRATOR")
+
+    def test_smbios_data(self):
+        verify_smbios_data(expect_mfg="Manufacturer: Quanta Computer Inc",
+                           expect_product_name="Product Name: QuantaPlex T41S-2U")
+
+
+class test_s2600kp(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        start_node(node_type="s2600kp")
+
+    @classmethod
+    def tearDownClass(cls):
+        stop_node()
+
+    def test_qemu_local_fru(self):
+        verify_qemu_local_fru(expect="BQKP41700055")
+
+    def test_qemu_local_lan(self):
+        verify_qemu_local_lan(expect="Auth Type")
+
+    def test_qemu_local_sensor(self):
+        verify_qemu_local_sensor(expect="P1 DTS Therm Mgn")
+
+    def test_qemu_local_sdr(self):
+        verify_qemu_local_sdr(expect="P1 DTS Therm Mgn")
+
+    def test_qemu_local_sel(self):
+        verify_qemu_local_sel(expect="Log area reset/cleared")
+
+    def test_qemu_local_user(self):
+        verify_qemu_local_user(expect="ADMINISTRATOR")
+
+    def test_smbios_data(self):
+        verify_smbios_data(expect_mfg="Manufacturer: EMC",
+                           expect_product_name="Product Name: S2600KP")
+
+
+class test_s2600tp(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        start_node(node_type="s2600tp")
+
+    @classmethod
+    def tearDownClass(cls):
+        stop_node()
+
+    def test_qemu_local_fru(self):
+        verify_qemu_local_fru(expect="BQTP50400232")
+
+    def test_qemu_local_lan(self):
+        verify_qemu_local_lan(expect="Auth Type")
+
+    def test_qemu_local_sensor(self):
+        verify_qemu_local_sensor(expect="LSI3008 Temp")
+
+    def test_qemu_local_sdr(self):
+        verify_qemu_local_sdr(expect="LSI3008 Temp")
+
+    def test_qemu_local_sel(self):
+        verify_qemu_local_sel(expect="Log area reset/cleared")
+
+    def test_qemu_local_user(self):
+        verify_qemu_local_user(expect="ADMINISTRATOR")
+
+    def test_smbios_data(self):
+        verify_smbios_data(expect_mfg="Manufacturer: EMC",
+                           expect_product_name="Product Name: S2600TP")
+
+
+class test_s2600wtt(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        start_node(node_type="s2600wtt")
+
+    @classmethod
+    def tearDownClass(cls):
+        stop_node()
+
+    def test_qemu_local_fru(self):
+        verify_qemu_local_fru(expect="BQWL50151054")
+
+    def test_qemu_local_lan(self):
+        verify_qemu_local_lan(expect="Auth Type")
+
+    def test_qemu_local_sensor(self):
+        verify_qemu_local_sensor(expect="FP NMI Diag Int")
+
+    def test_qemu_local_sdr(self):
+        verify_qemu_local_sdr(expect="FP NMI Diag Int")
+
+    def test_qemu_local_sel(self):
+        verify_qemu_local_sel(expect="Log area reset/cleared")
+
+    def test_qemu_local_user(self):
+        verify_qemu_local_user(expect="ADMINISTRATOR")
+
+    def test_smbios_data(self):
+        verify_smbios_data(expect_mfg="Manufacturer: EMC",
+                           expect_product_name="Product Name: S2600WTT")
+
+
+class test_dell_c6320(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        start_node(node_type="dell_c6320")
+
+    @classmethod
+    def tearDownClass(cls):
+        stop_node()
+
+    def test_qemu_local_fru(self):
+        verify_qemu_local_fru(expect="CN7475157G0541")
+
+    def test_qemu_local_lan(self):
+        verify_qemu_local_lan(expect="Auth Type")
+
+    def test_qemu_local_sensor(self):
+        verify_qemu_local_sensor(expect="1.1V PG")
+
+    def test_qemu_local_sdr(self):
+        verify_qemu_local_sdr(expect="1.1V PG")
+
+    def test_qemu_local_sel(self):
+        verify_qemu_local_sel(expect="Log area reset/cleared")
+
+    def test_qemu_local_user(self):
+        verify_qemu_local_user(expect="ADMINISTRATOR")
+
+    def test_smbios_data(self):
+        verify_smbios_data(expect_mfg="Manufacturer: Dell Inc",
+                           expect_product_name="Product Name: PowerEdge C6320")
+
+
+class test_dell_r630(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        start_node(node_type="dell_r630")
+
+    @classmethod
+    def tearDownClass(cls):
+        stop_node()
+
+    def test_qemu_local_fru(self):
+        verify_qemu_local_fru(expect="CN7475157N0560")
+
+    def test_qemu_local_lan(self):
+        verify_qemu_local_lan(expect="Auth Type")
+
+    def test_qemu_local_sensor(self):
+        verify_qemu_local_sensor(expect="NonFatalSSDError")
+
+    def test_qemu_local_sdr(self):
+        verify_qemu_local_sdr(expect="NonFatalSSDError")
+
+    def test_qemu_local_sel(self):
+        verify_qemu_local_sel(expect="Log area reset/cleared")
+
+    def test_qemu_local_user(self):
+        verify_qemu_local_user(expect="ADMINISTRATOR")
+
+    def test_smbios_data(self):
+        self.skipTest("\033[93mDell R630 Manufacturer and Product Name is not ready yet.\033[0m")
+        verify_smbios_data(expect_mfg="Manufacturer: Dell Inc",
+                           expect_product_name="Product Name: PowerEdge R630")
+
+
+class test_dell_r730(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        start_node(node_type="dell_r730")
+
+    @classmethod
+    def tearDownClass(cls):
+        stop_node()
+
+    def test_qemu_local_fru(self):
+        verify_qemu_local_fru(expect="CN7792163H023V")
+
+    def test_qemu_local_lan(self):
+        verify_qemu_local_lan(expect="Auth Type")
+
+    def test_qemu_local_sensor(self):
+        verify_qemu_local_sensor(expect="Fan1  ")
+
+    def test_qemu_local_sdr(self):
+        verify_qemu_local_sdr(expect="Fan1  ")
+
+    def test_qemu_local_sel(self):
+        verify_qemu_local_sel(expect="Log area reset/cleared")
+
+    def test_qemu_local_user(self):
+        verify_qemu_local_user(expect="ADMINISTRATOR")
+
+    def test_smbios_data(self):
+        verify_smbios_data(expect_mfg="Manufacturer: Dell Inc.",
+                           expect_product_name="Product Name: PowerEdge R730")
+
+
+class test_dell_r730xd(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        start_node(node_type="dell_r730xd")
+
+    @classmethod
+    def tearDownClass(cls):
+        stop_node()
+
+    def test_qemu_local_fru(self):
+        verify_qemu_local_fru(expect="CN779215A5018M")
+
+    def test_qemu_local_lan(self):
+        verify_qemu_local_lan(expect="Auth Type")
+
+    def test_qemu_local_sensor(self):
+        verify_qemu_local_sensor(expect="Fan1 RPM")
+
+    def test_qemu_local_sdr(self):
+        verify_qemu_local_sdr(expect="Fan1 RPM")
+
+    def test_qemu_local_sel(self):
+        verify_qemu_local_sel(expect="Log area reset/cleared")
+
+    def test_qemu_local_user(self):
+        verify_qemu_local_user(expect="ADMINISTRATOR")
+
+    def test_smbios_data(self):
+        verify_smbios_data(expect_mfg="Manufacturer:",
+                           expect_product_name="Product Name: R730 Base")
