@@ -169,7 +169,11 @@ def command_handler():
                              help="Target infrasim home foler, default $HOME/.infrasim")
     exclusive_group = init_parser.add_mutually_exclusive_group()
     exclusive_group.add_argument("-c", "--config-file", action="store", help="Node configuration file")
-    exclusive_group.add_argument("-t", "--type", action="store", default="quanta_d51", help="Node type")
+    exclusive_group.add_argument("-t", "--type", action="store", default="quanta_d51", help="Node type test for")
+
+
+    # just for test exclusive_group.add_argument("-t", "--type", action="store", default="quanta_d51",
+    # help="Node type test for")
 
     # version command
     version_parser = subparsers.add_parser("version", help="check version of infrasim and dependencies")
