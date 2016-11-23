@@ -172,7 +172,7 @@ def command_handler():
     exclusive_group.add_argument("-t", "--type", action="store", default="quanta_d51", help="Node type")
 
     # version command
-    version_parser = subparsers.add_parser("version", help="check version of infrasim and dependencies for test")
+    version_parser = subparsers.add_parser("version", help="check version of infrasim and dependencies")
     version_parser.set_defaults(version="version")
 
     args = parser.parse_args(sys.argv[1:])
