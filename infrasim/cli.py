@@ -157,7 +157,7 @@ def add_command_parsers(subparser):
 def command_handler():
     parser = argparse.ArgumentParser()
 
-    subparsers = parser.add_subparsers(title="InfraSIM Commands:")
+    subparsers = parser.add_subparsers(title="InfraSIM Commands for infrasim node:")
     add_command_parsers(subparsers)
 
     # for init command
