@@ -154,7 +154,6 @@ def add_command_parsers(subparser):
 
 
 
-
 def command_handler():
     parser = argparse.ArgumentParser()
 
