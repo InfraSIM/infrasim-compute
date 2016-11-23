@@ -174,6 +174,7 @@ def command_handler():
 
     # just for test exclusive_group.add_argument("-t", "--type", action="store", default="quanta_d51",
     # help="Node type test for")
+    # just for test exclusive_group.add_argument("-t", "--type", action="store", default="quanta_d51",
 
     # version command
     version_parser = subparsers.add_parser("version", help="check version of infrasim and dependencies")
