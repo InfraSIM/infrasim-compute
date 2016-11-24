@@ -31,7 +31,7 @@ def create_infrasim_directories():
     os.mkdir(config.infrasim_logdir)
 
 
-def init_infrasim_conf(node_type):
+def init_infrasim_conf():
 
     # Prepare default network
     networks = []
@@ -49,7 +49,7 @@ def init_infrasim_conf(node_type):
     with open(config.infrasim_config_template, "r") as f:
         infrasim_conf = f.read()
     template = jinja2.Template(infrasim_conf)
-    infrasim_conf = template.render(node_type=node_type, disks=disks, networks=networks)
+    infrasim_conf = template.render(disks=disks, networks=networks)
     with open(config.infrasim_initial_config, "w") as f:
         f.write(infrasim_conf)
 
@@ -73,22 +73,13 @@ def update_bridge_cfg():
         f.write("allow all")
 
 
-def infrasim_init(node_type="quanta_d51", skip_installation=False, target_home=None, config_file=None):
+def infrasim_init():
     try:
         create_infrasim_directories()
-        if not skip_installation:
-            install_packages()
-            update_bridge_cfg()
-            config_library_link()
-
-        if config_file:
-            if os.path.exists(config_file):
-                shutil.copy2(config_file, config.infrasim_etc)
-            else:
-                raise Exception("{} not found.".format(config_file))
-        else:
-            init_infrasim_conf(node_type)
-
+        install_packages()
+        init_infrasim_conf()
+        config_library_link()
+        update_bridge_cfg()
         get_socat()
         get_ipmi()
         get_qemu()

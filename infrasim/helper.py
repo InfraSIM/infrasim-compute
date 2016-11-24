@@ -30,11 +30,3 @@ def get_interface_ip(interface):
         return ""
 
     return ip
-
-
-def ip4_addresses():
-    ip_list = []
-    for interface in netifaces.interfaces():
-        for link in netifaces.ifaddresses(interface).get(netifaces.AF_INET, ()):
-            ip_list.append(link['addr'])
-    return ip_list

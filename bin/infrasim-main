@@ -1,0 +1,12 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import sys
+from infrasim import main
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print "{} start|stop|status|restart|version".format(sys.argv[0])
+        sys.exit(0)
+
+    main.infrasim_main(sys.argv[1])

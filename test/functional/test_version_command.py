@@ -7,7 +7,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 # -*- coding: utf-8 -*-
 
 """
-Test version command to check the output
+Test infrasim-main version command to check the output
 matches the correct format
 """
 
@@ -15,7 +15,7 @@ import unittest
 import re
 
 from infrasim import run_command
-from infrasim import version
+from infrasim import main
 
 
 class test_version_command(unittest.TestCase):
@@ -29,7 +29,7 @@ class test_version_command(unittest.TestCase):
 
     def test_infrasim_ver(self):
         try:
-            str_output = version.version()
+            str_output = main.version()
             if 'failed' in str_output:
                 assert False
             version_list = str_output.split('\n')
