@@ -1138,6 +1138,10 @@ class CCompute(Task, CElement):
         # Node wise attributes
         self.__port_qemu_ipmi = 9002
         self.__port_serial = 9003
+        self.__sol_enabled = False
+
+    def enable_sol(self, enabled):
+        self.__sol_enabled = enabled
 
     def set_numactl(self, numactl_obj):
         self.__numactl_obj = numactl_obj
@@ -1329,7 +1333,7 @@ class CCompute(Task, CElement):
         if self.__cdrom_file:
             self.add_option("-cdrom {}".format(self.__cdrom_file))
 
-        if self.__port_serial:
+        if self.__port_serial and self.__sol_enabled:
             chardev = CCharDev({
                 "backend": "udp",
                 "host": "127.0.0.1",
@@ -1383,6 +1387,10 @@ class CBMC(Task):
         self.__port_ipmi_console = 9000
         self.__port_qemu_ipmi = 9002
         self.__sol_device = ""
+        self.__sol_enabled = False
+
+    def enable_sol(self, enabled):
+        self.__sol_enabled = enabled
 
     def set_type(self, vendor_type):
         self.__vendor_type = vendor_type
@@ -1531,7 +1539,8 @@ class CBMC(Task):
                                    poweroff_wait=self.__poweroff_wait,
                                    kill_wait=self.__kill_wait,
                                    startnow=self.__startnow,
-                                   historyfru=self.__historyfru)
+                                   historyfru=self.__historyfru,
+                                   sol_enabled=self.__sol_enabled)
 
         with open(dst, "w") as f:
             f.write(bmc_conf)
@@ -1686,6 +1695,7 @@ class CNode(object):
         self.__node_name = "node-0"
         self.__numactl_obj = None
         self.workspace = ""
+        self.__sol_enabled = None
 
     def set_numactl(self, numactl_obj):
         self.__numactl_obj = numactl_obj
@@ -1840,6 +1850,7 @@ class CNode(object):
                 bmc_obj.set_port_qemu_ipmi(self.__node["bmc_connection_port"])
 
             bmc_obj.set_workspace(self.workspace)
+            bmc_obj.enable_sol(self.__sol_enabled)
             bmc_obj.init()
             bmc_obj.write_bmc_config(os.path.join(self.workspace,
                                                   "data",
@@ -1879,6 +1890,8 @@ class CNode(object):
         if 'name' in self.__node:
             self.set_node_name(self.__node['name'])
 
+        self.__sol_enabled = self.__node['sol_enable'] if 'sol_enable' in self.__node else True
+
         # If user specify "network_mode" as "bridge" but without MAC
         # address, generate one for this network.
         for network in self.__node['compute']['networks']:
@@ -1892,20 +1905,25 @@ class CNode(object):
 
         self.init_workspace()
 
-        socat_obj = CSocat()
-        socat_obj.set_priority(0)
-        socat_obj.set_task_name("{}-socat".format(self.__node_name))
-        self.__tasks_list.append(socat_obj)
+        if self.__sol_enabled:
+            socat_obj = CSocat()
+            socat_obj.set_priority(0)
+            socat_obj.set_task_name("{}-socat".format(self.__node_name))
+            self.__tasks_list.append(socat_obj)
 
-        bmc_obj = CBMC(self.__node.get('bmc', {}))
+        bmc_info = self.__node.get('bmc', {})
+        bmc_obj = CBMC(bmc_info)
         bmc_obj.set_priority(1)
         bmc_obj.set_task_name("{}-bmc".format(self.__node_name))
+        bmc_obj.enable_sol(self.__sol_enabled)
         bmc_obj.set_log_path("/var/log/infrasim/{}/openipmi.log".
                              format(self.__node_name))
         self.__tasks_list.append(bmc_obj)
 
         compute_obj = CCompute(self.__node['compute'])
-        compute_obj.set_asyncronous(True)
+        asyncr = bmc_info['startnow'] if 'startnow' in bmc_info else True
+        compute_obj.set_asyncronous(asyncr)
+        compute_obj.enable_sol(self.__sol_enabled)
         compute_obj.set_priority(2)
         compute_obj.set_task_name("{}-node".format(self.__node_name))
         compute_obj.set_log_path("/var/log/infrasim/{}/qemu.log".
@@ -1919,11 +1937,11 @@ class CNode(object):
             bmc_obj.set_type(self.__node['type'])
             compute_obj.set_type(self.__node['type'])
 
-        if "sol_device" in self.__node:
+        if "sol_device" in self.__node and self.__sol_enabled:
             socat_obj.set_sol_device(self.__node["sol_device"])
             bmc_obj.set_sol_device(self.__node["sol_device"])
 
-        if "serial_port" in self.__node:
+        if "serial_port" in self.__node and self.__sol_enabled:
             socat_obj.set_port_serial(self.__node["serial_port"])
             compute_obj.set_port_serial(self.__node["serial_port"])
 

@@ -294,6 +294,7 @@ class test_connection(unittest.TestCase):
     def test_set_sol_device(self):
         temp_sol_device = "{}/.infrasim/pty_test".format(os.environ['HOME'])
         self.conf["sol_device"] = temp_sol_device
+        self.conf["sol"] = True
 
         node = model.CNode(self.conf)
         node.init()
@@ -341,6 +342,7 @@ class test_connection(unittest.TestCase):
         assert "port=9102" in str_result
 
     def test_set_serial_port(self):
+        self.conf["sol"] = True
         self.conf["serial_port"] = 9103
 
         node = model.CNode(self.conf)
