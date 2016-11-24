@@ -468,6 +468,7 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.set_workspace(self.__class__.WORKSPACE)
+        bmc.enable_sol(True)
         bmc.init()
         bmc.write_bmc_config()
         bmc.precheck()

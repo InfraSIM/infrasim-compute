@@ -60,7 +60,10 @@ def start_qemu(conf_file=config.infrasim_initial_config):
         if not os.path.isdir(path_log):
             os.mkdir(path_log)
 
+        sol_enabled = conf["sol"] if "sol" in conf else True
+
         # Set attributes
+        compute.enable_sol(sol_enabled)
         compute.set_task_name("{}-node".format(node_name))
         compute.set_log_path("/var/log/infrasim/{}/qemu.log".
                              format(node_name))
