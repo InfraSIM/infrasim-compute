@@ -1,12 +1,16 @@
 import sys
 import time
 import argparse
-import config
-import model
-from yaml_loader import YAMLLoader
-from init import infrasim_init
-from version import version
-import helper
+import infrasim.config as config
+import infrasim.model as model
+from infrasim.yaml_loader import YAMLLoader
+from infrasim.init import infrasim_init
+from infrasim.version import version
+import infrasim.helper as helper
+from infrasim.config_manager import NodeMap
+from infrasim import InfraSimError
+
+nm = NodeMap()
 
 
 def args(*args, **kwargs):
@@ -14,6 +18,37 @@ def args(*args, **kwargs):
         func.__dict__.setdefault('args', []).insert(0, (args, kwargs))
         return func
     return _decorator
+
+
+class ConfigCommands(object):
+    @args("node_name", help="Node Name")
+    @args("config_file", help="Node Config File Path")
+    def add(self, node_name, config_file):
+        try:
+            nm.add(node_name, config_file)
+        except InfraSimError, e:
+            print e.value
+
+    @args("node_name", help="Node Name")
+    def delete(self, node_name):
+        try:
+            nm.delete(node_name)
+        except InfraSimError, e:
+            print e.value
+
+    @args("node_name", help="Node Name")
+    @args("config_file", help="Node Config File Path")
+    def update(self, node_name, config_file):
+        try:
+            nm.update(node_name, config_file)
+        except InfraSimError, e:
+            print e.value
+
+    def list(self):
+        try:
+            nm.list()
+        except InfraSimError, e:
+            print e.value
 
 
 class NodeCommands(object):
@@ -129,7 +164,8 @@ def get_func_args(func, matchargs):
 
 CATEGORIES = {
     'node': NodeCommands,
-    'chassis': ChassisCommands
+    'chassis': ChassisCommands,
+    'config': ConfigCommands
 }
 
 

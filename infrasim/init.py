@@ -25,10 +25,13 @@ def create_infrasim_directories():
     if os.path.exists(config.infrasim_home):
         shutil.rmtree(config.infrasim_home)
     os.mkdir(config.infrasim_home)
+    os.mkdir(config.infrasim_node_config_map)
 
     if os.path.exists(config.infrasim_logdir):
         shutil.rmtree(config.infrasim_logdir)
     os.mkdir(config.infrasim_logdir)
+
+
 
 
 def init_infrasim_conf(node_type):

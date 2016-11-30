@@ -22,15 +22,19 @@ infrasim_data = os.path.join(get_infrasim_root(), "data")
 # the initial configuration file will be put there
 infrasim_etc = os.path.join(get_infrasim_root(), "etc")
 
-# inital configuration file after running infrasim-init
-# and this is a copy for all the other nodes
-infrasim_initial_config = os.path.join(infrasim_etc, "infrasim.yml")
-
 # infrasim configuration file template, infrasim-init will render this template
 infrasim_config_template = os.path.join(infrasim_template, "infrasim.yml")
 
 # This is the infrasim home directory, most data and configuration file will be put here
 infrasim_home = os.path.join(os.environ['HOME'], ".infrasim")
 
+# This is the infrasim node map directory, every node mapping is restored here
+infrasim_node_config_map = os.path.join(infrasim_home, ".node_map")
+
+# inital configuration file after running infrasim-init
+# and this is a copy for all the other nodes
+infrasim_initial_config = os.path.join(infrasim_node_config_map, "default.yml")
+
 # Log
 infrasim_logdir = "/var/log/infrasim"
+
