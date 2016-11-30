@@ -47,7 +47,7 @@ def stop_macvtap(eth):
         raise e
 
 
-def start_qemu(conf_file=config.infrasim_initial_config):
+def start_qemu(conf_file=config.infrasim_default_config):
     try:
         with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
@@ -98,7 +98,7 @@ def start_qemu(conf_file=config.infrasim_initial_config):
         raise e
 
 
-def stop_qemu(conf_file=config.infrasim_initial_config):
+def stop_qemu(conf_file=config.infrasim_default_config):
     try:
         with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)

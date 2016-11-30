@@ -23,7 +23,9 @@ import stat
 import config
 import json
 import helper
-from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
+from infrasim.yaml_loader import YAMLLoader
+from workspace import Workspace
+from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option, NodeAlreadyRunning
 
 """
 This module majorly defines infrasim element models.
@@ -983,7 +985,7 @@ class Task(object):
         # |High |                | Low |
         # +-----+-----+-----+----+-----+
         self.__task_priority = None
-        self.__workspace = ""
+        self.__workspace = None
         self.__task_name = None
         self.__debug = False
         self.__log_path = ""
@@ -1053,7 +1055,7 @@ class Task(object):
                 print "[ {} ] {} fail to start".\
                     format("ERROR", self.__task_name)
             else:
-                print "[ {:<6} ] {} is runnning".format(self.get_task_pid(), self.__task_name)
+                print "[ {:<6} ] {} is running".format(self.get_task_pid(), self.__task_name)
             return
 
         if self.__debug:
@@ -1084,18 +1086,20 @@ class Task(object):
         pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
         try:
             if task_pid > 0:
-                print "[ {:<6} ] {} stop".format(task_pid, self.__task_name)
                 os.kill(int(task_pid), signal.SIGTERM)
+                print "[ {:<6} ] {} stop".format(task_pid, self.__task_name)
                 time.sleep(1)
                 if os.path.exists("/proc/{}".format(task_pid)):
                     os.system("kill -9 {}".format(task_pid))
-                if os.path.exists(pid_file):
-                    os.remove(pid_file)
+            else:
+                print "[ {:<6} ] {} is stopped".format("", self.__task_name)
+            if os.path.exists(pid_file):
+                os.remove(pid_file)
         except OSError:
             if os.path.exists(pid_file):
                 os.remove(pid_file)
             if not os.path.exists("/proc/{}".format(task_pid)):
-                pass
+                print "[ {:<6} ] {} is stopped".format(task_pid, self.__task_name)
             else:
                 print("[ {:<6} ] {} stop failed.".
                       format(task_pid, self.__task_name))
@@ -1387,7 +1391,7 @@ class CBMC(Task):
         self.__port_ipmi_console = 9000
         self.__port_qemu_ipmi = 9002
         self.__sol_device = ""
-        self.__sol_enabled = False
+        self.__sol_enabled = True
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -1689,12 +1693,12 @@ class CSocat(Task):
 
 
 class CNode(object):
-    def __init__(self, node_info):
+    def __init__(self, node_info=None):
         self.__tasks_list = []
         self.__node = node_info
-        self.__node_name = "node-0"
+        self.__node_name = ""
         self.__numactl_obj = None
-        self.workspace = ""
+        self.workspace = None
         self.__sol_enabled = None
 
     def set_numactl(self, numactl_obj):
@@ -1706,6 +1710,9 @@ class CNode(object):
     def set_node_name(self, name):
         self.__node_name = name
 
+    def get_node_info(self):
+        return self.__node
+
     def precheck(self):
         for task in self.__tasks_list:
             try:
@@ -1714,183 +1721,36 @@ class CNode(object):
                 raise e
 
     def init_workspace(self):
-        """
-        Create workspace: <HOME>/.infrasim/<node_name>
-        .infrasim/<node_name>    # Root folder
-            data                 # Data folder
-                infrasim.yml     # Save runtime infrasim.yml
-                vbmc.conf        # Render template with data from infrasim.yml
-                vbmc.emu         # Emulation data
-                bios.bin         # BIOS
-            script               # Script folder
-                chassiscontrol
-                lancontrol
-                startcmd
-                stopcmd
-                resetcmd
-            .pty0                # Serial device, created by socat, not here
-            .<node_name>-socat   # pid file of socat
-            .<node_name>-ipmi    # pid file of ipmi
-            .<node_name>-qemu    # pid file of qemu
-        What's done here:
-            I. Create workspace
-            II. Create log folder
-            III. Create sub folder
-            IV. Save infrasim.yml
-            V. Render vbmc.conf, render scripts
-            VI. Move emulation data, update identifiers, e.g. S/N
-            VII. Move bios.bin
-        """
-        # I. Create workspace
-        # if workspace exists, just do nothing and return
-        self.workspace = "{}/.infrasim/{}".\
-            format(os.environ["HOME"], self.get_node_name())
-        if os.path.exists(self.workspace):
-            return
-        os.mkdir(self.workspace)
-
-        # II. Create log folder
-        path_log = "/var/log/infrasim/{}".format(self.get_node_name())
-        if not os.path.exists(path_log):
-            os.mkdir(path_log)
-
-        # III. Create sub folder
-        os.mkdir(os.path.join(self.workspace, "data"))
-        os.mkdir(os.path.join(self.workspace, "script"))
-
-        # IV. Save infrasim.yml
-        yml_file = os.path.join(self.workspace, "data", "infrasim.yml")
-        with open(yml_file, 'w') as fp:
-            yaml.dump(self.__node, fp, default_flow_style=False)
-
-        # V. Render vbmc.conf
-        # and prepare bmc scripts
-        if has_option(self.__node, "bmc", "config_file"):
-            shutil.copy(self.__node["bmc"]["config_file"],
-                        os.path.join(self.workspace, "data", "vbmc.conf"))
-        else:
-            bmc_obj = CBMC(self.__node.get("bmc", {}))
-
-            # Render sctipts: startcmd, stopcmd, resetcmd, chassiscontrol
-            # Copy scripts: lancontrol
-
-            for target in ["startcmd", "stopcmd", "resetcmd"]:
-                if not has_option(self.__node, "bmc", target):
-                    src = os.path.join(config.infrasim_template, target)
-                    dst = os.path.join(self.workspace, "script", target)
-                    with open(src, "r")as f:
-                        src_text = f.read()
-                    template = jinja2.Template(src_text)
-                    dst_text = template.render(yml_file=yml_file)
-                    with open(dst, "w") as f:
-                        f.write(dst_text)
-                    os.chmod(dst, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-
-            if not has_option(self.__node, "bmc", "startcmd"):
-                path_startcmd = os.path.join(self.workspace,
-                                             "script",
-                                             "startcmd")
-                bmc_obj.set_startcmd_script(path_startcmd)
-
-            if not has_option(self.__node, "bmc", "chassiscontrol"):
-                path_startcmd = os.path.join(self.workspace,
-                                             "script",
-                                             "startcmd")
-                path_stopcmd = os.path.join(self.workspace,
-                                            "script",
-                                            "stopcmd")
-                path_resetcmd = os.path.join(self.workspace,
-                                             "script",
-                                             "resetcmd")
-                path_bootdev = os.path.join(self.workspace,
-                                            "", "bootdev")
-                path_qemu_pid = os.path.join(self.workspace,
-                                             ".{}-node.pid".
-                                             format(self.get_node_name()))
-                src = os.path.join(config.infrasim_template, "chassiscontrol")
-                dst = os.path.join(self.workspace, "script", "chassiscontrol")
-                with open(src, "r") as f:
-                    src_text = f.read()
-                template = jinja2.Template(src_text)
-                dst_text = template.render(startcmd=path_startcmd,
-                                           stopcmd=path_stopcmd,
-                                           resetcmd=path_resetcmd,
-                                           qemu_pid_file=path_qemu_pid,
-                                           bootdev=path_bootdev)
-                with open(dst, "w") as f:
-                    f.write(dst_text)
-                os.chmod(dst, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-
-                path_chassiscontrol = dst
-                bmc_obj.set_chassiscontrol_script(path_chassiscontrol)
-
-            if not has_option(self.__node, "bmc", "lancontrol"):
-                os.symlink(os.path.join(config.infrasim_template,
-                                        "lancontrol"),
-                           os.path.join(self.workspace,
-                                        "script",
-                                        "lancontrol"))
-
-                path_lancontrol = os.path.join(self.workspace,
-                                               "script",
-                                               "lancontrol")
-                bmc_obj.set_lancontrol_script(path_lancontrol)
-
-            # Render connection port/device
-            if has_option(self.__node, "type"):
-                bmc_obj.set_type(self.__node["type"])
-
-            if has_option(self.__node, "sol_device"):
-                bmc_obj.set_sol_device(self.__node["sol_device"])
-
-            if has_option(self.__node, "ipmi_console_port"):
-                bmc_obj.set_port_ipmi_console(self.__node["ipmi_console_port"])
-
-            if has_option(self.__node, "bmc_connection_port"):
-                bmc_obj.set_port_qemu_ipmi(self.__node["bmc_connection_port"])
-
-            bmc_obj.set_workspace(self.workspace)
-            bmc_obj.enable_sol(self.__sol_enabled)
-            bmc_obj.init()
-            bmc_obj.write_bmc_config(os.path.join(self.workspace,
-                                                  "data",
-                                                  "vbmc.conf"))
-
-        # VI. Move emulation data
-        # Update identifier accordingly
-        path_emu_dst = os.path.join(self.workspace, "data")
-        if has_option(self.__node, "bmc", "emu_file"):
-            shutil.copy(self.__node["bmc"]["emu_file"], path_emu_dst)
-        else:
-            node_type = self.__node["type"]
-            path_emu_src = os.path.join(config.infrasim_data, "{0}/{0}.emu".format(node_type))
-            shutil.copy(path_emu_src, os.path.join(path_emu_dst, "{}.emu".
-                                                   format(node_type)))
-
-        # VII. Move bios.bin
-        path_bios_dst = os.path.join(self.workspace, "data")
-        if has_option(self.__node, "compute", "smbios"):
-            shutil.copy(self.__node["compute"]["smbios"], path_bios_dst)
-        else:
-            node_type = self.__node["type"]
-            path_bios_src = os.path.join(config.infrasim_data,
-                                         "{0}/{0}_smbios.bin".format(node_type))
-            shutil.copy(path_bios_src, os.path.join(path_emu_dst,
-                                                    "{}_smbios.bin".
-                                                    format(node_type)))
-        # Place holder to sync serial number
+        self.workspace = Workspace()
+        self.workspace.set_node_info(self.__node)
+        # FIXME: Check pid file in workspace is not a proper way to check if node is running
+        if not self.__is_running():
+            self.workspace.init()
 
     def terminate_workspace(self):
-        os.system("rm -rf {}".format(self.workspace))
+        if Workspace.check_workspace_exists(self.__node_name):
+            shutil.rmtree(self.workspace.get_workspace())
+        print "Node {} runtime workspace is destroyed.".format(self.__node_name)
 
     def init(self):
+        """
+        1. Prepare CNode attributes:
+            - self.__node
+        2. Then use this information to init workspace
+        3. Use this information to init sub module
+        """
+
         if self.__node['compute'] is None:
             raise Exception("No compute information")
 
         if 'name' in self.__node:
             self.set_node_name(self.__node['name'])
+        else:
+            raise ArgsNotCorrect("No node name is given in node information.")
 
-        self.__sol_enabled = self.__node['sol_enable'] if 'sol_enable' in self.__node else True
+        if 'sol_enable' not in self.__node:
+            self.__node['sol_enable'] = True
+        self.__sol_enabled = self.__node['sol_enable']
 
         # If user specify "network_mode" as "bridge" but without MAC
         # address, generate one for this network.
@@ -1903,6 +1763,7 @@ class CNode(object):
                     str3 = str(uuid_val)[-6:-4]
                     network['mac'] = ":".join(["52:54:BE", str1, str2, str3])
 
+        # Update config to workspace
         self.init_workspace()
 
         if self.__sol_enabled:
@@ -1954,7 +1815,7 @@ class CNode(object):
             compute_obj.set_port_qemu_ipmi(self.__node["bmc_connection_port"])
 
         for task in self.__tasks_list:
-            task.set_workspace(self.workspace)
+            task.set_workspace(self.workspace.get_workspace())
             task.init()
 
     # Run tasks list as the priority
@@ -1975,6 +1836,16 @@ class CNode(object):
     def status(self):
         for task in self.__tasks_list:
             task.status()
+
+    def __is_running(self):
+        try:
+            filenames = os.listdir(os.path.join(config.infrasim_home, self.__node_name))
+        except Exception:
+            return False
+        for filename in filenames:
+            if filename.endswith(".pid"):
+                return True
+        return False
 
 
 class NumaCtl(object):

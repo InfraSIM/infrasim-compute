@@ -22,7 +22,8 @@ class test_node_config_manager(unittest.TestCase):
     test_config = os.path.join(config.infrasim_node_config_map, "test.yml")
     fake_name = "fake"
     fake_config = "fake.yml"
-    init_config = config.infrasim_initial_config
+    tmp_config = "/tmp/abc.yml"
+    init_config = config.infrasim_default_config
 
     nm = NodeMap()
 
@@ -57,14 +58,14 @@ class test_node_config_manager(unittest.TestCase):
             self.fail("Add duplicated name has no error.")
 
     def test_add_invalid_config(self):
-        os.system("echo abc > abc.yml")
+        os.system("echo abc > {}".format(self.tmp_config))
         try:
-            self.nm.add(self.test_name, "abc.yml")
+            self.nm.add(self.test_name, self.tmp_config)
         except InfraSimError, e:
-            os.system("rm abc.yml")
+            os.system("rm {}".format(self.tmp_config))
             assert "is an invalid yaml file" in e.value
         else:
-            os.system("rm abc.yml")
+            os.system("rm {}".format(self.tmp_config))
             self.fail("Add invalid config has no error.")
 
     def test_add_non_exist_config(self):
@@ -93,15 +94,17 @@ class test_node_config_manager(unittest.TestCase):
         self.nm.add(self.test_name, self.init_config)
         self.assertTrue(os.path.exists(self.test_config))
         new_info = FakeConfig().get_node_info()
+        new_info["name"] = "didi"
         new_info["type"] = "dell_r730"
-        with open("abc.yml", "w") as fp:
+        with open(self.tmp_config, "w") as fp:
             yaml.dump(new_info, fp, default_flow_style=False)
 
-        self.nm.update(self.test_name, "abc.yml")
+        self.nm.update(self.test_name, self.tmp_config)
         with open(self.test_config) as fp:
             node_info = YAMLLoader(fp).get_data()
             assert node_info["type"] == "dell_r730"
-        os.remove("abc.yml")
+            assert node_info["name"] == "test"
+        os.remove(self.tmp_config)
 
     def test_update_non_exist_name(self):
         self.nm.add(self.test_name, self.init_config)
@@ -126,12 +129,12 @@ class test_node_config_manager(unittest.TestCase):
     def test_update_invalid_config(self):
         self.nm.add(self.test_name, self.init_config)
         self.assertTrue(os.path.exists(self.test_config))
-        os.system("echo abc > abc.yml")
+        os.system("echo abc > {}".format(self.tmp_config))
         try:
-            self.nm.update(self.test_name, "abc.yml")
+            self.nm.update(self.test_name, self.tmp_config)
         except InfraSimError, e:
-            os.system("rm abc.yml")
+            os.system("rm {}".format(self.tmp_config))
             assert "is an invalid yaml file" in e.value
         else:
-            os.system("rm abc.yml")
+            os.system("rm {}".format(self.tmp_config))
             self.fail("Add invalid config has no error.")

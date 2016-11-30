@@ -33,7 +33,7 @@ infrasim_node_config_map = os.path.join(infrasim_home, ".node_map")
 
 # inital configuration file after running infrasim-init
 # and this is a copy for all the other nodes
-infrasim_initial_config = os.path.join(infrasim_node_config_map, "default.yml")
+infrasim_default_config = os.path.join(infrasim_node_config_map, "default.yml")
 
 # Log
 infrasim_logdir = "/var/log/infrasim"

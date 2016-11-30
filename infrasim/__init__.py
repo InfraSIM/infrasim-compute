@@ -84,3 +84,7 @@ class CommandRunFailed(InfraSimError):
 class ArgsNotCorrect(InfraSimError):
     pass
 
+
+class NodeAlreadyRunning(InfraSimError):
+    pass
+

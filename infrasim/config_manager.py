@@ -96,16 +96,17 @@ class NodeMap(object):
 
         dst = os.path.join(self.__mapping_folder, "{}.yml".format(node_name))
         try:
+            node_info["name"] = node_name
             with open(dst, 'w') as fp:
                 yaml.dump(node_info, fp, default_flow_style=False)
             os.chmod(dst, 0664)
         except IOError:
             raise InfraSimError("Node {}'s configuration failed to be updated. Check file mode of {}.".format(node_name, dst))
-        print "Node {}'s configuration mapping updated".format(node_name)
+        print "Node {}'s configuration mapping is updated".format(node_name)
 
     def list(self):
         """
-        List all mappings in the map folder
+        List all mapping in the map folder
         """
         self.load()
 
@@ -127,3 +128,13 @@ class NodeMap(object):
 
     def get_name_list(self):
         return self.__name_list
+
+    def get_node_info(self, node_name):
+        src = os.path.join(self.__mapping_folder, "{}.yml".format(node_name))
+        if not os.path.exists(src):
+            raise InfraSimError("Node {0}'s configuration is not defined.\n"
+                                "Please add config mapping with command:\n"
+                                "    infrasim config add {0} [your_config_path]".format(node_name))
+        with open(src, 'r') as fp:
+            node_info = YAMLLoader(fp).get_data()
+            return node_info
