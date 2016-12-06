@@ -1,12 +1,19 @@
 import sys
 import time
 import argparse
-import config
-import model
-from yaml_loader import YAMLLoader
-from init import infrasim_init
-from version import version
-import helper
+from functools import wraps
+import inspect
+import infrasim.config as config
+import infrasim.model as model
+from infrasim.yaml_loader import YAMLLoader
+from infrasim.init import infrasim_init
+from infrasim.version import version
+import infrasim.helper as helper
+from infrasim.config_manager import NodeMap
+from infrasim import InfraSimError
+from infrasim.workspace import Workspace
+
+nm = NodeMap()
 
 
 def args(*args, **kwargs):
@@ -16,21 +23,78 @@ def args(*args, **kwargs):
     return _decorator
 
 
-class NodeCommands(object):
-    def _get_node(self, config_file=None):
-        node_config = config_file or config.infrasim_initial_config
-        with open(node_config, "r") as f:
-            node_info = YAMLLoader(f).get_data()
+def node_workspace_exists(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        frame = inspect.currentframe()
+        frame_args, _, _, values = inspect.getargvalues(frame)
+        node_name = values["args"][1]
+        if not Workspace.check_workspace_exists(node_name):
+            print "Node {} runtime workspace doesn't exist".format(node_name)
+            return
+        return func(*args, **kwargs)
+    return wrapper
 
-        return model.CNode(node_info)
+
+class ConfigCommands(object):
+    @args("node_name", help="Specify node name to add configuration mapping")
+    @args("config_file", help="Node Config File Path")
+    def add(self, node_name, config_file):
+        try:
+            nm.add(node_name, config_file)
+        except InfraSimError, e:
+            print e.value
+
+    @args("node_name", help="Specify node name to delete configuration mapping")
+    def delete(self, node_name):
+        try:
+            nm.delete(node_name)
+        except InfraSimError, e:
+            print e.value
+
+    @args("node_name", help="Specify node name to update configuration mapping")
+    @args("config_file", help="Node Config File Path")
+    def update(self, node_name, config_file):
+        try:
+            nm.update(node_name, config_file)
+        except InfraSimError, e:
+            print e.value
+
+        if Workspace.check_workspace_exists(node_name):
+            print "Node {0} runtime workspace exists.\n" \
+                  "If you want to apply updated configuration, please destroy node runtime workspace first.\n" \
+                  "You can run commands: \n" \
+                  "    infrasim node destroy {0}\n" \
+                  "    infrasim node start {0}".format(node_name)
+
+    def list(self):
+        try:
+            nm.list()
+        except InfraSimError, e:
+            print e.value
+
+
+class NodeCommands(object):
 
     def _node_preinit(self, node):
         node.init()
         node.precheck()
 
-    @args("-c", "--config-file", action="store", dest="config_file", help="Node configuration file")
-    def start(self, config_file=None):
-        node = self._get_node(config_file)
+    @args("node_name", nargs='?', default="default", help="Specify node name to start")
+    def start(self, node_name):
+        if Workspace.check_workspace_exists(node_name):
+            try:
+                node_info = Workspace.get_node_info_in_workspace(node_name)
+            except InfraSimError, e:
+                print e.value
+                return
+        else:
+            try:
+                node_info = nm.get_node_info(node_name)
+            except InfraSimError, e:
+                print e.value
+                return
+        node = model.CNode(node_info)
         self._node_preinit(node)
         node.start()
 
@@ -42,50 +106,81 @@ class NodeCommands(object):
             "depending on host in which network VNC viewer is running". \
             format(node.get_node_name(), helper.ip4_addresses())
 
-    @args("-c", "--config-file", action="store", dest="config_file", help="Node configuration file")
-    def stop(self, config_file=None):
-        node = self._get_node(config_file)
-        self._node_preinit(node)
+    @node_workspace_exists
+    @args("node_name", nargs='?', default="default", help="Specify node name to stop")
+    def stop(self, node_name):
+        try:
+            node_info = Workspace.get_node_info_in_workspace(node_name)
+        except InfraSimError, e:
+            print e.value
+            return
+
+        node = model.CNode(node_info)
+        node.init()
         node.stop()
 
-    @args("-c", "--config-file", action="store", dest="config_file", help="Node configuration file")
-    def restart(self, config_file=None):
-        self.stop()
+    @node_workspace_exists
+    @args("node_name", nargs='?', default="default", help="Specify node name to restart")
+    def restart(self, node_name):
+        self.stop(node_name)
         time.sleep(0.5)
-        self.start()
+        self.start(node_name)
 
-    @args("-c", "--config-file", action="store", dest="config_file", help="Node configuration file")
-    def status(self, config_file=None):
-        node = self._get_node(config_file)
+    @node_workspace_exists
+    @args("node_name", nargs='?', default="default", help="Specify node name to check status")
+    def status(self, node_name):
+        try:
+            node_info = Workspace.get_node_info_in_workspace(node_name)
+        except InfraSimError, e:
+            print e.value
+            return
+
+        node = model.CNode(node_info)
         self._node_preinit(node)
         node.status()
 
-    @args("-c", "--config-file", action="store", dest="config_file", help="Node configuration file")
-    def destroy(self, config_file=None):
-        node = self._get_node(config_file)
+    @args("node_name", nargs='?', default="default", help="Specify node name to destroy")
+    def destroy(self, node_name):
+        if Workspace.check_workspace_exists(node_name):
+            try:
+                node_info = Workspace.get_node_info_in_workspace(node_name)
+            except InfraSimError, e:
+                print e.value
+                return
+        else:
+            print "Node {} runtime workspace is not found, destroy action is not applied.".\
+                format(node_name)
+            return
+        node = model.CNode(node_info)
         self._node_preinit(node)
         node.stop()
         node.terminate_workspace()
 
-    @args("-t", "--type", action="store_true", dest="type", help="Query node info")
-    def info(self, type=True):
-        pass
+    @node_workspace_exists
+    @args("node_name", nargs='?', default="default", help="Specify node name to get information")
+    def info(self, node_name, type=True):
+        try:
+            node_info = Workspace.get_node_info_in_workspace(node_name)
+        except InfraSimError, e:
+            print e.value
+            return
+
 
 
 class ChassisCommands(object):
-    @args("-n", "--node-name", action="store", dest="node_name", help="Node name")
+    @args("node_name", nargs='?', help="Node name")
     def start(self, node_name=None):
         print node_name
 
-    @args("-n", "--node-name", action="store", dest="node_name", help="Node name")
+    @args("node_name", nargs='?', help="Node name")
     def stop(self, node_name=None):
         print node_name
 
-    @args("-n", "--node-name", action="store", dest="node_name", help="Node name")
+    @args("node_name", nargs='?', help="Node name")
     def restart(self, node_name=None):
         print node_name
 
-    @args("-n", "--node-name", action="store", dest="node_name", help="Node name")
+    @args("node_name", nargs='?', help="Node name")
     def destroy(self, node_name=None):
         print node_name
 
@@ -129,7 +224,8 @@ def get_func_args(func, matchargs):
 
 CATEGORIES = {
     'node': NodeCommands,
-    'chassis': ChassisCommands
+    'chassis': ChassisCommands,
+    'config': ConfigCommands
 }
 
 
@@ -148,6 +244,7 @@ def add_command_parsers(subparser):
             action_kwargs = []
             for args, kwargs in getattr(action_fn, 'args', []):
                 parser.add_argument(*args, **kwargs)
+                parser.set_defaults(dest="dest")
 
             parser.set_defaults(action_fn=action_fn)
             parser.set_defaults(action_kwargs=action_kwargs)
@@ -183,6 +280,7 @@ def command_handler():
         print version()
     else:
         fn = args.action_fn
+
         fn_args = get_func_args(fn, args)
 
         # Handle the command

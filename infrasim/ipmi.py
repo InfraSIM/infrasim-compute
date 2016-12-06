@@ -28,15 +28,17 @@ def status_ipmi():
         print "Infrasim IPMI service is stopped"
 
 
-def start_ipmi(conf_file=config.infrasim_initial_config):
+def start_ipmi(conf_file=config.infrasim_default_config):
     try:
         with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
 
-        node = CNode(conf)
+        node = CNode(node_info=conf)
         if "name" in conf:
             node.set_node_name(conf["name"])
-        node.init_workspace()
+
+        node.init()
+
 
         bmc = CBMC(conf.get('bmc', {}))
         node_name = conf["name"] if "name" in conf else "node-0"
@@ -44,7 +46,7 @@ def start_ipmi(conf_file=config.infrasim_initial_config):
         bmc.set_log_path("/var/log/infrasim/{}/openipmi.log".
                          format(node_name))
         bmc.set_type(conf["type"])
-        bmc.set_workspace(node.workspace)
+        bmc.set_workspace(node.workspace.get_workspace())
         bmc.init()
         bmc.write_bmc_config()
         bmc.precheck()
@@ -61,7 +63,7 @@ def start_ipmi(conf_file=config.infrasim_initial_config):
         raise e
 
 
-def stop_ipmi(conf_file=config.infrasim_initial_config):
+def stop_ipmi(conf_file=config.infrasim_default_config):
     ipmi_stop_cmd = "pkill ipmi_sim"
     try:
         run_command(ipmi_stop_cmd, True, None, None)

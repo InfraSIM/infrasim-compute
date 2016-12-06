@@ -29,7 +29,7 @@ def status_socat():
         print "Inrasim Socat service is stopped"
 
 
-def start_socat(conf_file=config.infrasim_initial_config):
+def start_socat(conf_file=config.infrasim_default_config):
     try:
         with open(conf_file, 'r') as f_yml:
             conf = yaml.load(f_yml)
@@ -37,7 +37,8 @@ def start_socat(conf_file=config.infrasim_initial_config):
         node = CNode(conf)
         if "name" in conf:
             node.set_node_name(conf["name"])
-        node.init_workspace()
+
+        node.init()
 
         socat = CSocat()
         # Read SOL device, serial port from conf
@@ -47,7 +48,7 @@ def start_socat(conf_file=config.infrasim_initial_config):
         if "serial_port" in conf:
             socat.set_port_serial(conf["serial_port"])
 
-        socat.set_workspace(node.workspace)
+        socat.set_workspace(node.workspace.get_workspace())
         socat.init()
         socat.precheck()
         cmd = socat.get_commandline()
@@ -56,10 +57,11 @@ def start_socat(conf_file=config.infrasim_initial_config):
         time.sleep(3)
         logger.info("socat start")
     except CommandRunFailed as e:
+        logger.error(e.value)
         raise e
 
 
-def stop_socat(conf_file=config.infrasim_initial_config):
+def stop_socat(conf_file=config.infrasim_default_config):
     socat_stop_cmd = "pkill socat"
     try:
         run_command(socat_stop_cmd, True, None, None)

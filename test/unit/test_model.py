@@ -246,7 +246,7 @@ class qemu_functions(unittest.TestCase):
             assert False
 
     def test_set_smbios(self):
-        with open(config.infrasim_initial_config, "r") as f_yml:
+        with open(config.infrasim_default_config, "r") as f_yml:
             compute_info = yaml.load(f_yml)["compute"]
         compute_info["smbios"] = "/tmp/test.smbios"
 
@@ -255,7 +255,7 @@ class qemu_functions(unittest.TestCase):
         assert compute.get_smbios() == "/tmp/test.smbios"
 
     def test_set_smbios_without_workspace(self):
-        with open(config.infrasim_initial_config, "r") as f_yml:
+        with open(config.infrasim_default_config, "r") as f_yml:
             compute_info = yaml.load(f_yml)["compute"]
 
         compute = model.CCompute(compute_info)
@@ -265,7 +265,7 @@ class qemu_functions(unittest.TestCase):
             "{}/s2600kp/s2600kp_smbios.bin".format(config.infrasim_data)
 
     def test_set_smbios_with_type_and_workspace(self):
-        with open(config.infrasim_initial_config, "r") as f_yml:
+        with open(config.infrasim_default_config, "r") as f_yml:
             compute_info = yaml.load(f_yml)["compute"]
         workspace = os.path.join(os.environ["HOME"], ".infrasim", ".test")
 

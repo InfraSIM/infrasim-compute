@@ -1,5 +1,6 @@
 ---
 #This file is used as InfraSIM configuration file
+name: default
 
 #Node type of your infrasim compute, this will determine the
 #bmc emulation data and bios binary to use.

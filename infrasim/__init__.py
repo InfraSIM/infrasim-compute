@@ -71,7 +71,7 @@ class CommandNotFound(InfraSimError):
     pass
 
 
-class PackageNotFound(InfraSimError):
+class DirectoryNotFound(InfraSimError):
     pass
 
 
@@ -83,3 +83,8 @@ class CommandRunFailed(InfraSimError):
 
 class ArgsNotCorrect(InfraSimError):
     pass
+
+
+class NodeAlreadyRunning(InfraSimError):
+    pass
+

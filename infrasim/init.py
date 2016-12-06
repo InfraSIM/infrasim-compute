@@ -25,10 +25,13 @@ def create_infrasim_directories():
     if os.path.exists(config.infrasim_home):
         shutil.rmtree(config.infrasim_home)
     os.mkdir(config.infrasim_home)
+    os.mkdir(config.infrasim_node_config_map)
 
     if os.path.exists(config.infrasim_logdir):
         shutil.rmtree(config.infrasim_logdir)
     os.mkdir(config.infrasim_logdir)
+
+
 
 
 def init_infrasim_conf(node_type):
@@ -50,7 +53,7 @@ def init_infrasim_conf(node_type):
         infrasim_conf = f.read()
     template = jinja2.Template(infrasim_conf)
     infrasim_conf = template.render(node_type=node_type, disks=disks, networks=networks)
-    with open(config.infrasim_initial_config, "w") as f:
+    with open(config.infrasim_default_config, "w") as f:
         f.write(infrasim_conf)
 
 
