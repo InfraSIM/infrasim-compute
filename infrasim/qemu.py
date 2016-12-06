@@ -60,7 +60,7 @@ def start_qemu(conf_file=config.infrasim_default_config):
         if not os.path.isdir(path_log):
             os.mkdir(path_log)
 
-        sol_enabled = conf["sol"] if "sol" in conf else True
+        sol_enabled = conf["sol_enable"] if "sol_enable" in conf else True
 
         # Set attributes
         compute.enable_sol(sol_enabled)
