@@ -1143,6 +1143,8 @@ class CCompute(Task, CElement):
         self.__port_qemu_ipmi = 9002
         self.__port_serial = 9003
         self.__sol_enabled = False
+        self.__kernel = None
+        self.__initrd = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -1176,6 +1178,12 @@ class CCompute(Task, CElement):
         if not os.path.isfile(self.__smbios):
             raise ArgsNotCorrect("Target SMBIOS file doesn't exist: {}".
                                  format(self.__smbios))
+
+        if self.__kernel and os.path.exists(self.__kernel) is False:
+            raise ArgsNotCorrect( "Kernel {} does not exist.".format(self.__kernel))
+
+        if self.__initrd and os.path.exists(self.__initrd) is False:
+            raise ArgsNotCorrect( "Kernel {} does not exist.".format(self.__initrd))
 
         # check sub-elements
         for element in self.__element_list:
@@ -1223,6 +1231,12 @@ class CCompute(Task, CElement):
 
         self.__display = self.__compute['vnc_display'] \
             if 'vnc_display' in self.__compute else 1
+
+        if 'kernel' in self.__compute:
+            self.__kernel = self.__compute['kernel']
+
+        if 'initrd' in self.__compute:
+            self.__initrd = self.__compute['initrd']
 
         cpu_obj = CCPU(self.__compute['cpu'])
         self.__element_list.append(cpu_obj)
@@ -1352,6 +1366,9 @@ class CCompute(Task, CElement):
             self.add_option("-device isa-serial,chardev={}".format(chardev.get_id()))
 
         self.add_option("-uuid {}".format(str(uuid.uuid4())))
+
+        if self.__kernel and self.__initrd:
+            self.add_option("-kernel {} -initrd {}".format(self.__kernel, self.__initrd))
 
         for element_obj in self.__element_list:
             element_obj.handle_parms()
