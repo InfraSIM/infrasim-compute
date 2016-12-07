@@ -15,7 +15,7 @@ from test.fixtures import FakeConfig
 import infrasim.model as model
 from infrasim.workspace import Workspace
 old_path = os.environ.get("PATH")
-new_path = "{}:{}".format(os.environ.get("PYTHONPATH"), old_path)
+new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
 
 def setup_module():
