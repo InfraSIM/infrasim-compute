@@ -53,30 +53,93 @@ Installation
         sudo pip install infrasim-compute
         ```
 
+
 Start Infrasim Service
 ----------------------
 
 1. Initialization (you need do it once)
 
     ```
-    sudo infrasim-init
+    sudo infrasim init
+    ```
+    
+    Optional arguments:
+    
+    * -s, --skip-installation
+        Ignore qemu/openipmi package installation
+    
+    * -c [CONFIG_FILE], --config-file [CONFIG_FILE]
+        Use customized yaml file for the default node
+        
+    * -t [TYPE], --type [TYPE]
+        Render specified node type for the default node
+    
+2. Infrasim Service Version:
+
+    ```
+    sudo infrasim version
     ```
 
-2. Start Infrasim Service
+3. Infrasim Node Configuration Management:
 
+    * Add configuration mapping to a node
+    
     ```
-    sudo infrasim-main start
+    sudo infrasim config add <node name> <config path>
+    ```
+    
+    * Delete configuration mapping of a node
+    
+    ```
+    sudo infrasim config delete <node name>
+    ```
+    
+    * Update configuration mapping of a node
+    
+    ```
+    sudo infrasim config update <node name> <config path>
+    ```
+    
+    * List all configuration mappings
+    
+    ```
+    sudo infrasim config list
     ```
 
-3. Stop Infrasim Service
+4. Infrasim Service Node Commands
+
+    * Start a node
 
     ``` 
-    sudo infrasim-main stop
+    sudo infrasim node start [node name]
     ```
+    
+    * Check node status
+    
+    ```
+    sudo infrasim node status [node name]
+    ```
+    
+    * Stop a node
+    
+    ```
+    sudo infrasim node stop [node name]
+    ```
+    
+    * Restart a node
+    
+    ```
+    sudo infrasim node restart [node name]
+    ```
+    
+    * Stop a node and detroy its runtime workspace
+    
+    ```
+    sudo infrasim node destroy [node name]
+    ```
+    
+    The default node configuration is already added to configuration mapping during **infrasim init**.
+    In node commands, argument [node name] is optional. If it's not specified, it's treated as node "default".
 
 **Notice: You can use VNC to access the emulated legacy hardware, the default VNC port is 5901**
 
-Configure Infrasim
--------------------
-
-You can configure your virtual server through **/usr/local/infrasim/etc/infrasim/infrasim.yml**; and new configuration will take effect with restarting service.
