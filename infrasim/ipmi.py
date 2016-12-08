@@ -39,7 +39,6 @@ def start_ipmi(conf_file=config.infrasim_default_config):
 
         node.init()
 
-
         bmc = CBMC(conf.get('bmc', {}))
         node_name = conf["name"] if "name" in conf else "node-0"
         bmc.set_task_name("{}-bmc".format(node_name))

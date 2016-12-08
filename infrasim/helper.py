@@ -5,6 +5,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 import os
 import netifaces
+import socket
 
 
 def check_kvm_existence():
@@ -38,3 +39,14 @@ def ip4_addresses():
         for link in netifaces.ifaddresses(interface).get(netifaces.AF_INET, ()):
             ip_list.append(link['addr'])
     return ip_list
+
+
+def check_if_port_in_use(address, port):
+    s = socket.socket()
+    try:
+        s.connect((address, port))
+        s.close()
+        return True
+    except socket.error:
+        s.close()
+        return False

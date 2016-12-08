@@ -91,7 +91,6 @@ class test_ipmi_console_default_env(unittest.TestCase):
 
         node = CNode(node_info)
         node.init()
-        node.precheck()
         node.stop()
 
         if os.path.exists(cls.TMP_CONF_FILE):
@@ -146,7 +145,6 @@ class test_ipmi_console_customized_env(unittest.TestCase):
 
         node = CNode(node_info)
         node.init()
-        node.precheck()
         node.stop()
 
         if os.path.exists(cls.TMP_CONF_FILE):

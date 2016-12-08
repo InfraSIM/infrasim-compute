@@ -15,7 +15,6 @@ class Workspace(object):
     It creates or update the node's workspace.
     """
 
-
     @staticmethod
     def check_workspace_exists(node_name):
         return os.path.exists(os.path.join(config.infrasim_home, node_name))
