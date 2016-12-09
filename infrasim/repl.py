@@ -12,6 +12,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 from __future__ import print_function
 from functools import wraps
+from os import linesep
 import inspect
 import traceback
 import sys
@@ -183,6 +184,8 @@ class REPL(object):
         else:
             fn_list = self.commands
 
+        lines = []
+
         for fn in sorted(fn_list):
             func = self.commands[fn]
             try:
@@ -191,7 +194,9 @@ class REPL(object):
                 simple_doc = ""
             except AttributeError:
                 simple_doc = ""
-            self.output("\t{:<12}{}".format(fn, simple_doc))
+            lines.append("\t{:<12}{}".format(fn, simple_doc))
+
+        return linesep.join(lines)
 
 if __name__ == "__main__":
     repl = REPL()

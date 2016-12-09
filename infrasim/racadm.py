@@ -11,7 +11,7 @@ import threading
 import re
 import paramiko
 from . import sshim
-from .repl import REPL, register
+from .repl import REPL, register, parse
 
 
 def auth(username, password):
@@ -55,23 +55,29 @@ class iDRACConsole(threading.Thread):
         while True:
             self.script.write(self.PROMPT)
             groups = self.script.expect(re.compile('(?P<cmd>.*)')).groupdict()
+            cmds = groups["cmd"].split()
 
-            if groups["cmd"] == "racadm":
+            if len(cmds) == 0:
+                pass
+            elif cmds[0] == "racadm" and len(cmds) == 1:
                 racadm = RacadmConsole()
                 racadm.set_input(self.repl_input)
                 racadm.set_output(self.repl_output)
                 racadm.run()
-            elif groups["cmd"] == "help":
-                self.script.writeline("Support commands:\n")
+            elif cmds[0] == "racadm":
+                racadm = RacadmConsole()
+                racadm.set_output(self.repl_output)
+                racadm_cmd = parse(" ".join(cmds[1:]))
+                racadm.output(racadm.do(racadm_cmd))
+            elif cmds[0].lower() in ["exit", "quit"]:
+                self.script.writeline("Good bye from {}".format(self.__class__.__name__))
+                return
+            else:
+                self.script.writeline("Support commands:")
                 self.script.writeline("\thelp")
                 self.script.writeline("\tracadm")
                 self.script.writeline("\texit")
                 self.script.writeline("\tquit")
-            elif "exit" in groups["cmd"].lower() or "quit" in groups["cmd"].lower():
-                self.script.writeline("Good bye from {}".format(self.__class__.__name__))
-                return
-            else:
-                pass
 
 
 class RacadmConsole(REPL):
@@ -82,8 +88,7 @@ class RacadmConsole(REPL):
 
     @register
     def hwinventory(self, ctx, args):
-        self.output("hwinventory is not implemented yet")
-        return None
+        return "hwinventory is not implemented yet"
 
 
 class iDRACHandler(sshim.Handler):
