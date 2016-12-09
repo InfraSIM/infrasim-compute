@@ -38,21 +38,13 @@ class Workspace(object):
                                 format(node_name))
         return node_info
 
-    def __init__(self):
-        self.__workspace_name = None
-        self.__node_info = None
-        self.__workspace = None
+    def __init__(self, node_info):
+        self.__node_info = node_info
+        self.__workspace_name = node_info["name"]
+        self.__workspace = os.path.join(config.infrasim_home, node_info["name"])
 
     def get_workspace(self):
         return self.__workspace
-
-    def get_node_info(self):
-        return self.__node_info
-
-    def set_node_info(self, node_info):
-        self.__node_info = node_info
-        self.__workspace_name = self.__node_info["name"]
-        self.__workspace = os.path.join(config.infrasim_home, self.__node_info["name"])
 
     def init(self):
         """

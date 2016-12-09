@@ -1031,7 +1031,7 @@ class Task(object):
 
         return pid
 
-    def __task_is_running(self):
+    def _task_is_running(self):
         pid = self.get_task_pid()
         if pid > 0 and os.path.exists("/proc/{}".format(pid)):
             return True
@@ -1041,13 +1041,13 @@ class Task(object):
         if self.__asyncronous:
             start = time.time()
             while True:
-                if self.__task_is_running():
+                if self._task_is_running():
                     break
 
                 if time.time()-start > 10:
                     break
 
-            if not self.__task_is_running():
+            if not self._task_is_running():
                 print "[ {} ] {} fail to start".\
                     format("ERROR", self.__task_name)
             else:
@@ -1060,7 +1060,7 @@ class Task(object):
 
         pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
 
-        if self.__task_is_running():
+        if self._task_is_running():
             print "[ {:<6} ] {} is already running".format(
                 self.get_task_pid(), self.__task_name)
             return
@@ -1795,13 +1795,6 @@ class CNode(object):
             except ArgsNotCorrect as e:
                 raise e
 
-    def init_workspace(self):
-        self.workspace = Workspace()
-        self.workspace.set_node_info(self.__node)
-        # FIXME: Check pid file in workspace is not a proper way to check if node is running
-        if not self.__is_running():
-            self.workspace.init()
-
     def terminate_workspace(self):
         if Workspace.check_workspace_exists(self.__node_name):
             shutil.rmtree(self.workspace.get_workspace())
@@ -1837,9 +1830,6 @@ class CNode(object):
                     str2 = str(uuid_val)[-4:-2]
                     str3 = str(uuid_val)[-6:-4]
                     network['mac'] = ":".join(["52:54:BE", str1, str2, str3])
-
-        # Update config to workspace
-        self.init_workspace()
 
         if self.__sol_enabled:
             socat_obj = CSocat()
@@ -1899,8 +1889,15 @@ class CNode(object):
             bmc_obj.set_port_qemu_ipmi(self.__node["bmc_connection_port"])
             compute_obj.set_port_qemu_ipmi(self.__node["bmc_connection_port"])
 
+        self.workspace = Workspace(self.__node)
+
         for task in self.__tasks_list:
             task.set_workspace(self.workspace.get_workspace())
+
+        if not self.__is_running():
+            self.workspace.init()
+
+        for task in self.__tasks_list:
             task.init()
 
     # Run tasks list as the priority
@@ -1923,14 +1920,11 @@ class CNode(object):
             task.status()
 
     def __is_running(self):
-        try:
-            filenames = os.listdir(os.path.join(config.infrasim_home, self.__node_name))
-        except Exception:
-            return False
-        for filename in filenames:
-            if filename.endswith(".pid"):
-                return True
-        return False
+        state = False
+        for task in self.__tasks_list:
+            state |= task._task_is_running()
+
+        return state
 
 
 class NumaCtl(object):

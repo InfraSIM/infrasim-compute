@@ -35,7 +35,6 @@ def setUp():
     conf = fake_config.get_node_info()
     node = model.CNode(conf)
     node.set_node_name(conf['name'])
-    node.init_workspace()
     with open(tmp_conf_file, "w") as f:
         yaml.dump(conf, f, default_flow_style=False)
 
