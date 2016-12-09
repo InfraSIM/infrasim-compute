@@ -2,7 +2,7 @@ import unittest
 from test import fixtures
 from infrasim import model
 from infrasim import ArgsNotCorrect
-from nose.tools import raises
+from nose.tools import raises, assert_raises
 import time
 
 
@@ -45,3 +45,20 @@ class test_node_ports(unittest.TestCase):
             if isinstance(task, model.CCompute):
                 task.precheck()
                 break
+
+    def test_start_node1_then_start_node2(self):
+        old_name = self.node_info['name']
+        self.node_info['name'] = "test1"
+        node1 = model.CNode(self.node_info)
+        node1.init()
+        node1.precheck()
+        node1.start()
+        time.sleep(2)
+
+        self.node_info['name'] = "test2"
+        node2 = model.CNode(self.node_info)
+        node2.init()
+        assert_raises(ArgsNotCorrect, node2.precheck)
+        node1.stop()
+        node1.terminate_workspace()
+        node2.terminate_workspace()
