@@ -17,15 +17,12 @@ import signal
 import jinja2
 import netifaces
 import math
-import yaml
 import shutil
-import stat
 import config
 import json
 import helper
-from infrasim.yaml_loader import YAMLLoader
 from workspace import Workspace
-from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option, NodeAlreadyRunning
+from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
 
 """
 This module majorly defines infrasim element models.
@@ -798,7 +795,6 @@ class CIPMI(CElement):
         if 'irq' in self.__ipmi:
             self.__irq = self.__ipmi['irq']
 
-
     def handle_parms(self):
         self.__chardev_obj.handle_parms()
         chardev_option = self.__chardev_obj.get_option()
@@ -1185,6 +1181,10 @@ class CCompute(Task, CElement):
         if self.__initrd and os.path.exists(self.__initrd) is False:
             raise ArgsNotCorrect( "Kernel {} does not exist.".format(self.__initrd))
 
+        # check if VNC port is in use
+        if helper.check_if_port_in_use("0.0.0.0", self.__display + 5900):
+            raise ArgsNotCorrect("VNC port {} is already in use.".format(self.__display + 5900))
+
         # check sub-elements
         for element in self.__element_list:
             try:
@@ -1475,7 +1475,12 @@ class CBMC(Task):
             raise ArgsNotCorrect("startcmd script {} doesn\'t exist".
                                  format(self.__chassiscontrol_script))
 
-        # check ports are not in use
+        # check if self.__port_qemu_ipmi in use
+        if helper.check_if_port_in_use("0.0.0.0", self.__port_qemu_ipmi):
+            raise ArgsNotCorrect("Port {} is already in use.".format(self.__port_qemu_ipmi))
+
+        if helper.check_if_port_in_use("0.0.0.0", self.__port_ipmi_console):
+            raise ArgsNotCorrect("Port {} is already in use.".format(self.__port_ipmi_console))
 
         # check lan interface exists
         if self.__lan_interface not in netifaces.interfaces():
@@ -1666,7 +1671,7 @@ class CSocat(Task):
     def __init__(self):
         super(CSocat, self).__init__()
 
-        self.__bin = None
+        self.__bin = "socat"
 
         # Node wise attributes
         self.__port_serial = 9003
@@ -1686,8 +1691,6 @@ class CSocat(Task):
             self.__bin = socat_cmd.strip(os.linesep)
         except CommandRunFailed:
             raise CommandNotFound("socat")
-
-        # check ports are in use
 
         # check workspace
         if not self.__sol_device and not self.get_workspace():
@@ -1718,6 +1721,9 @@ class CNode(object):
         self.workspace = None
         self.__sol_enabled = None
 
+    def get_task_list(self):
+        return self.__tasks_list
+
     def set_numactl(self, numactl_obj):
         self.__numactl_obj = numactl_obj
 
@@ -1731,6 +1737,9 @@ class CNode(object):
         return self.__node
 
     def precheck(self):
+        if self.__is_running():
+            return
+
         for task in self.__tasks_list:
             try:
                 task.precheck()

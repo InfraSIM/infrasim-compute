@@ -3,9 +3,7 @@ import time
 import argparse
 from functools import wraps
 import inspect
-import infrasim.config as config
 import infrasim.model as model
-from infrasim.yaml_loader import YAMLLoader
 from infrasim.init import infrasim_init
 from infrasim.version import version
 import infrasim.helper as helper
@@ -164,7 +162,6 @@ class NodeCommands(object):
         except InfraSimError, e:
             print e.value
             return
-
 
 
 class ChassisCommands(object):
