@@ -48,7 +48,6 @@ def start_ipmi(conf_file=config.infrasim_default_config):
         bmc.enable_sol(False)
         bmc.set_workspace(node.workspace.get_workspace())
         bmc.init()
-        bmc.write_bmc_config()
         bmc.precheck()
         cmd = bmc.get_commandline()
         logger.debug(cmd)

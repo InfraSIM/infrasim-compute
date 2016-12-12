@@ -297,7 +297,7 @@ class test_connection(unittest.TestCase):
         fake_config = fixtures.FakeConfig()
         self.conf = fake_config.get_node_info()
         self.bmc_conf = os.path.join(os.environ["HOME"], ".infrasim",
-                                     "test", "data", "vbmc.conf")
+                                     "test", "etc", "vbmc.conf")
 
     def tearDown(self):
         node = model.CNode(self.conf)

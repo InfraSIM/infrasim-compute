@@ -21,6 +21,7 @@ import shutil
 import config
 import json
 import helper
+import stat
 from workspace import Workspace
 from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
 from infrasim.helper import run_in_namespace
@@ -1428,6 +1429,7 @@ class CBMC(Task):
         self.__port_qemu_ipmi = 9002
         self.__sol_device = ""
         self.__sol_enabled = True
+        self.__node_name = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -1456,23 +1458,8 @@ class CBMC(Task):
     def set_emu_file(self, path):
         self.__emu_file = path
 
-    def set_startcmd_script(self, path):
-        self.__startcmd_script = path
-
-    def get_startcmd_script(self):
-        return self.__startcmd_script
-
-    def set_chassiscontrol_script(self, path):
-        self.__chassiscontrol_script = path
-
-    def get_chassiscontrol_script(self):
-        return self.__chassiscontrol_script
-
-    def set_lancontrol_script(self, path):
-        self.__lancontrol_script = path
-
-    def get_lancontrol_script(self):
-        return self.__lancontrol_script
+    def set_node_name(self, node_name):
+        self.__node_name = node_name
 
     @run_in_namespace
     def precheck(self):
@@ -1559,6 +1546,61 @@ class CBMC(Task):
         if not os.path.isfile(self.__config_file):
             raise ArgsNotCorrect("Target config file doesn't exist: {}".
                                  format(self.__config_file))
+
+    def __render_template(self):
+        for target in ["startcmd", "stopcmd", "resetcmd"]:
+            if not has_option(self.__bmc, target):
+                src = os.path.join(config.infrasim_template, target)
+                dst = os.path.join(self.get_workspace(), "script", target)
+                with open(src, "r")as f:
+                    src_text = f.read()
+                template = jinja2.Template(src_text)
+                dst_text = template.render(
+                    yml_file=os.path.join(self.get_workspace(),
+                                          "etc/infrasim.yml")
+                )
+                with open(dst, "w") as f:
+                    f.write(dst_text)
+                os.chmod(dst, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+        if not has_option(self.__bmc, "startcmd"):
+            self.__startcmd_script = os.path.join(self.get_workspace(),
+                                                  "script", "startcmd")
+
+        if not has_option(self.__bmc, "chassiscontrol"):
+            path_startcmd = os.path.join(self.get_workspace(),
+                                         "script/startcmd")
+            path_stopcmd = os.path.join(self.get_workspace(),
+                                        "script/stopcmd")
+            path_resetcmd = os.path.join(self.get_workspace(),
+                                         "script/resetcmd")
+            path_bootdev = os.path.join(self.get_workspace(), "bootdev")
+            path_qemu_pid = os.path.join(self.get_workspace(),
+                                         ".{}-node.pid".format(self.__node_name))
+            src = os.path.join(config.infrasim_template, "chassiscontrol")
+            dst = os.path.join(self.get_workspace(),
+                               "script/chassiscontrol")
+            with open(src, "r") as f:
+                src_text = f.read()
+            template = jinja2.Template(src_text)
+            dst_text = template.render(startcmd=path_startcmd,
+                                       stopcmd=path_stopcmd,
+                                       resetcmd=path_resetcmd,
+                                       qemu_pid_file=path_qemu_pid,
+                                       bootdev=path_bootdev)
+            with open(dst, "w") as f:
+                f.write(dst_text)
+            os.chmod(dst, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+            self.__chassiscontrol_script = dst
+
+        if not has_option(self.__bmc, "lancontrol"):
+            shutil.copy(os.path.join(config.infrasim_template, "lancontrol"),
+                        os.path.join(self.get_workspace(),
+                                     "script", "lancontrol"))
+
+            self.__lancontrol_script = os.path.join(self.get_workspace(),
+                                                    "script", "lancontrol")
 
     def write_bmc_config(self, dst=None):
         if dst is None:
@@ -1658,21 +1700,10 @@ class CBMC(Task):
             self.__emu_file = self.__bmc['emu_file']
         elif self.get_workspace():
             self.__emu_file = os.path.join(self.get_workspace(),
-                                           "data",
-                                           "{}.emu".
-                                           format(self.__vendor_type))
+                                           "data/{}.emu".format(self.__vendor_type))
         else:
             self.__emu_file = os.path.join(config.infrasim_data,
                                            "{0}/{0}.emu".format(self.__vendor_type))
-
-        if 'config_file' in self.__bmc:
-            self.__config_file = self.__bmc['config_file']
-        elif self.get_workspace():
-            self.__config_file = os.path.join(self.get_workspace(),
-                                              "data",
-                                              "vbmc.conf")
-        else:
-            raise Exception("Couldn't find vbmc.conf!")
 
         if self.__sol_device:
             pass
@@ -1680,6 +1711,22 @@ class CBMC(Task):
             self.__sol_device = os.path.join(self.get_workspace(), ".pty0")
         else:
             self.__sol_device = os.path.join(config.infrasim_etc, "pty0")
+
+
+        if 'config_file' in self.__bmc:
+            self.__config_file = self.__bmc['config_file']
+            if os.path.exists(self.__config_file):
+                shutil.copy(self.__config_file,
+                            os.path.join(self.get_workspace(), "etc/vbmc.conf"))
+        elif self.get_workspace() and not self._task_is_running():
+            # render template
+            self.__render_template()
+            self.write_bmc_config(os.path.join(self.get_workspace(), "etc/vbmc.conf"))
+        elif os.path.exists(os.path.join(self.get_workspace(), "etc/vbmc.conf")):
+            self.__config_file = os.path.join(self.get_workspace(), "etc/vbmc.conf")
+        else:
+            raise Exception("Couldn't find vbmc.conf!")
+
 
     def get_commandline(self):
         ipmi_cmd_str = "{0} -c {1} -f {2} -n -s /var/tmp".\
@@ -1874,6 +1921,7 @@ class CNode(object):
         bmc_obj.enable_sol(self.__sol_enabled)
         bmc_obj.set_log_path("/var/log/infrasim/{}/openipmi.log".
                              format(self.__node_name))
+        bmc_obj.set_node_name(self.__node['name'])
         self.__tasks_list.append(bmc_obj)
 
         compute_obj = CCompute(self.__node['compute'])

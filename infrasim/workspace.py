@@ -1,10 +1,7 @@
 import os
 import yaml
 import shutil
-import jinja2
-import stat
 import config
-import model
 from yaml_loader import YAMLLoader
 from . import has_option, InfraSimError
 
@@ -21,10 +18,8 @@ class Workspace(object):
 
     @staticmethod
     def get_node_info_in_workspace(node_name):
-        node_yml_path = os.path.join(config.infrasim_home,
-                                     node_name,
-                                     "data",
-                                     "infrasim.yml")
+        node_yml_path = os.path.join(config.infrasim_home, node_name,
+                                     "etc/infrasim.yml")
         node_info = None
         try:
             with open(node_yml_path, 'r') as fp:
@@ -87,110 +82,14 @@ class Workspace(object):
         # III. Create sub folder
         os.mkdir(os.path.join(self.__workspace, "data"))
         os.mkdir(os.path.join(self.__workspace, "script"))
+        os.mkdir(os.path.join(self.__workspace, "etc"))
 
         # IV. Save infrasim.yml
-        yml_file = os.path.join(self.__workspace, "data", "infrasim.yml")
-        # self.update_node_configuration(self.__node)
+        yml_file = os.path.join(self.__workspace, "etc/infrasim.yml")
         with open(yml_file, 'w') as fp:
             yaml.dump(self.__node_info, fp, default_flow_style=False)
 
-        # V. Render vbmc.conf
-        # and prepare bmc scripts
-        if has_option(self.__node_info, "bmc", "config_file"):
-            shutil.copy(self.__node_info["bmc"]["config_file"],
-                        os.path.join(self.__workspace, "data", "vbmc.conf"))
-        else:
-            bmc_obj = model.CBMC(self.__node_info.get("bmc", {}))
-
-            # Render sctipts: startcmd, stopcmd, resetcmd, chassiscontrol
-            # Copy scripts: lancontrol
-
-            for target in ["startcmd", "stopcmd", "resetcmd"]:
-                if not has_option(self.__node_info, "bmc", target):
-                    src = os.path.join(config.infrasim_template, target)
-                    dst = os.path.join(self.__workspace, "script", target)
-                    with open(src, "r")as f:
-                        src_text = f.read()
-                    template = jinja2.Template(src_text)
-                    dst_text = template.render(yml_file=yml_file)
-                    with open(dst, "w") as f:
-                        f.write(dst_text)
-                    os.chmod(dst, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-
-            if not has_option(self.__node_info, "bmc", "startcmd"):
-                path_startcmd = os.path.join(self.__workspace,
-                                             "script",
-                                             "startcmd")
-                bmc_obj.set_startcmd_script(path_startcmd)
-
-            if not has_option(self.__node_info, "bmc", "chassiscontrol"):
-                path_startcmd = os.path.join(self.__workspace,
-                                             "script",
-                                             "startcmd")
-                path_stopcmd = os.path.join(self.__workspace,
-                                            "script",
-                                            "stopcmd")
-                path_resetcmd = os.path.join(self.__workspace,
-                                             "script",
-                                             "resetcmd")
-                path_bootdev = os.path.join(self.__workspace,
-                                            "", "bootdev")
-                path_qemu_pid = os.path.join(self.__workspace,
-                                             ".{}-node.pid".
-                                             format(self.__workspace_name))
-                src = os.path.join(config.infrasim_template, "chassiscontrol")
-                dst = os.path.join(self.__workspace, "script", "chassiscontrol")
-                with open(src, "r") as f:
-                    src_text = f.read()
-                template = jinja2.Template(src_text)
-                dst_text = template.render(startcmd=path_startcmd,
-                                           stopcmd=path_stopcmd,
-                                           resetcmd=path_resetcmd,
-                                           qemu_pid_file=path_qemu_pid,
-                                           bootdev=path_bootdev)
-                with open(dst, "w") as f:
-                    f.write(dst_text)
-                os.chmod(dst, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-
-                path_chassiscontrol = dst
-                bmc_obj.set_chassiscontrol_script(path_chassiscontrol)
-
-            if not has_option(self.__node_info, "bmc", "lancontrol"):
-                os.symlink(os.path.join(config.infrasim_template,
-                                        "lancontrol"),
-                           os.path.join(self.__workspace,
-                                        "script",
-                                        "lancontrol"))
-
-                path_lancontrol = os.path.join(self.__workspace,
-                                               "script",
-                                               "lancontrol")
-                bmc_obj.set_lancontrol_script(path_lancontrol)
-
-            # Render connection port/device
-            if has_option(self.__node_info, "type"):
-                bmc_obj.set_type(self.__node_info["type"])
-
-            if has_option(self.__node_info, "sol_device"):
-                bmc_obj.set_sol_device(self.__node_info["sol_device"])
-
-            if has_option(self.__node_info, "ipmi_console_port"):
-                bmc_obj.set_port_ipmi_console(self.__node_info["ipmi_console_port"])
-
-            if has_option(self.__node_info, "bmc_connection_port"):
-                bmc_obj.set_port_qemu_ipmi(self.__node_info["bmc_connection_port"])
-
-            if has_option(self.__node_info, "sol_enable"):
-                bmc_obj.enable_sol(self.__node_info["sol_enable"])
-
-            bmc_obj.set_workspace(self.__workspace)
-            bmc_obj.netns = self.__node_info.get("namespace")
-            bmc_obj.init()
-            bmc_obj.write_bmc_config(os.path.join(self.__workspace,
-                                                  "data",
-                                                  "vbmc.conf"))
-
-        # VI. Move emulation data
+        # V. Move emulation data
         # Update identifier accordingly
         path_emu_dst = os.path.join(self.__workspace, "data")
         if has_option(self.__node_info, "bmc", "emu_file"):
@@ -201,7 +100,7 @@ class Workspace(object):
             shutil.copy(path_emu_src, os.path.join(path_emu_dst, "{}.emu".
                                                    format(node_type)))
 
-        # VII. Move bios.bin
+        # VI. Move bios.bin
         path_bios_dst = os.path.join(self.__workspace, "data")
         if has_option(self.__node_info, "compute", "smbios"):
             shutil.copy(self.__node_info["compute"]["smbios"], path_bios_dst)
