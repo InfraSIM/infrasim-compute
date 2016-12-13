@@ -86,13 +86,18 @@ class REPL(object):
 
         func = self.commands[cmd[0]]
         try:
-            return func(self, self.context, cmd)
+            rsp = func(self, self.context, cmd)
+            if rsp is None:
+                return linesep
+            else:
+                return str(rsp)+linesep
         except QuitREPL:
             raise
         except Exception:
-            return traceback.format_exc()
+            return traceback.format_exc()+linesep
 
     def run(self):
+        self.welcome()
         while True:
             # READ
             inp = self.input(self.prompt)
@@ -111,7 +116,8 @@ class REPL(object):
                 self.output(out)
 
     def welcome(self):
-        self.output("Welcome to {}".format(self.__class__.__name__))
+        self.output("Welcome to {}{}".
+                    format(self.__class__.__name__, linesep))
 
     def set_prompt(self, prompt="> "):
         self.prompt = prompt
@@ -137,8 +143,7 @@ class REPL(object):
         """
         Print a variable's value in context
         """
-        self.output(ctx[args[1]])
-        return None
+        return ctx[args[1]]
 
     @register
     def define(self, ctx, args):
@@ -162,7 +167,8 @@ class REPL(object):
         """
         Exit this console
         """
-        self.output("Exit {} console, good bye!".format(self.__class__.__name__))
+        self.output("Exit {} console, good bye!{}".
+                    format(self.__class__.__name__, linesep))
         raise QuitREPL()
 
     @register
@@ -170,7 +176,8 @@ class REPL(object):
         """
         Quit this console
         """
-        self.output("Quit {} console, good bye!".format(self.__class__.__name__))
+        self.output("Quit {} console, good bye!{}".
+                    format(self.__class__.__name__, linesep))
         raise QuitREPL()
 
     @register
