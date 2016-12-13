@@ -11,15 +11,17 @@ import threading
 import re
 import paramiko
 from os import linesep
-from . import sshim
+from . import sshim, logger
 from .repl import REPL, register, parse
+
+auth_map = {}
 
 
 def auth(username, password):
-    CREDENTIAL = {"ru": "rp"}
-    if username in CREDENTIAL and CREDENTIAL[username] == password:
+    global auth_map
+    if username in auth_map and auth_map[username] == password:
         return paramiko.AUTH_SUCCESSFUL
-    elif username in CREDENTIAL:
+    elif username in auth_map:
         return paramiko.AUTH_PARTIALLY_SUCCESSFUL
     else:
         return paramiko.AUTH_FAILED
@@ -29,7 +31,7 @@ class RacadmConsole(REPL):
 
     def __init__(self):
         super(RacadmConsole, self).__init__()
-        self.prompt = "racadm>>"
+        self.prompt = "racadmsim>>"
 
     @register
     def hwinventory(self, ctx, args):
@@ -52,7 +54,7 @@ class iDRACConsole(REPL):
     @register
     def racadm(self, ctx, args):
         """
-        Enter racadm console or call racadm sub command
+        Enter racadmsim console or call racadmsim sub command
         """
         if len(args) == 1:
             racadm = RacadmConsole()
@@ -78,9 +80,9 @@ class iDRACHandler(sshim.Handler):
         cmds = command.split()
 
         with channel:
-            # If commands is racadm, go to racadm console
-            if cmds == ["racadm"]:
-                channel.send("SSH to iDRAC {}:{} then go to racadm console.{}".
+            # If commands is racadmsim, go to racadmsim console
+            if cmds == ["racadmsim"]:
+                channel.send("SSH to iDRAC {}:{} then go to racadmsim console.{}".
                              format(self.address, self.server.port, linesep))
             # else, execute command and response
             else:
@@ -112,13 +114,27 @@ class iDRACServer(threading.Thread):
             self.script.writeline(line)
 
     def run(self):
-        self.script.write("Exception here")
-        raise Exception("Here")
         idrac = iDRACConsole()
         idrac.set_input(self.repl_input)
         idrac.set_output(self.repl_output)
         idrac.run()
 
+
+def start(instance="default",
+          ipaddr="",
+          port=22,
+          username="admin",
+          password="admin"):
+    # Init environment
+    global auth_map
+    auth_map[username] = password
+
+    server = sshim.Server(iDRACServer,
+                          address=ipaddr,
+                          port=int(port),
+                          handler=iDRACHandler)
+    logger.info("{}-racadm start".format(instance))
+    server.run()
 
 if __name__ == "__main__":
     server = sshim.Server(iDRACServer, port=10022, handler=iDRACHandler)

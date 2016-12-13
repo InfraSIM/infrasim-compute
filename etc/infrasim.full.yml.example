@@ -153,6 +153,15 @@ bmc:
     emu_file: chassis/node1/quanta_d51.emu
     ipmi_over_lan_port: 623
 
+# racadm is a segment of attributes defined only for dell server
+racadm:
+    # Network to start racadm service
+    interface: br0
+    port: 10022
+    # Credential to access
+    username: admin
+    password: admin
+
 # SSH to this port to visit ipmi-console
 ipmi_console_ssh: 9300
 

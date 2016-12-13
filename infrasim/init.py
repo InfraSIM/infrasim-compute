@@ -32,8 +32,6 @@ def create_infrasim_directories():
     os.mkdir(config.infrasim_logdir)
 
 
-
-
 def init_infrasim_conf(node_type):
 
     # Prepare default network

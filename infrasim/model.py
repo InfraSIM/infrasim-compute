@@ -1072,7 +1072,7 @@ class Task(object):
         pid = Utility.execute_command(self.get_commandline(),
                                       log_path=self.__log_path)
 
-        print "[ {:<6} ] {} starts to run.".format(pid, self.__task_name)
+        print "[ {:<6} ] {} starts to run".format(pid, self.__task_name)
 
         with open(pid_file, "w") as f:
             f.write("{}".format(pid))
@@ -1712,6 +1712,55 @@ class CSocat(Task):
         return socat_str
 
 
+class CRacadm(Task):
+    def __init__(self, racadm_info):
+        super(CRacadm, self).__init__()
+
+        self.__bin = "racadmsim"
+
+        self.__racadm_info = racadm_info
+
+        self.__node_name = ""
+        self.__port_idrac = None
+        self.__username = ""
+        self.__password = ""
+        self.__interface = None
+        self.__ip = ""
+
+    def precheck(self):
+        if not self.__ip:
+            raise ArgsNotCorrect("Specified racadm interface {} doesn\'t exist".
+                                 format(self.__interface))
+
+        if helper.check_if_port_in_use(self.__ip, self.__port_idrac):
+            raise ArgsNotCorrect("Racadm port {}:{} is already in use.".
+                                 format(self.__ip,
+                                        self.__port_idrac))
+
+    def init(self):
+        if "interface" in self.__racadm_info:
+            self.__interface = self.__racadm_info.get("interface", "")
+            self.__ip = helper.get_interface_ip(self.__interface)
+        else:
+            self.__ip = "0.0.0.0"
+        self.__port_idrac = self.__racadm_info.get("port", 10022)
+        self.__username = self.__racadm_info.get("username", "admin")
+        self.__password = self.__racadm_info.get("password", "admin")
+
+    def set_node_name(self, name):
+        self.__node_name = name
+
+    def get_commandline(self):
+        racadmsim_str = "{} {} {} {} {} {}".\
+            format(self.__bin,
+                   self.__node_name,
+                   self.__ip,
+                   self.__port_idrac,
+                   self.__username,
+                   self.__password)
+        return racadmsim_str
+
+
 class CNode(object):
     def __init__(self, node_info=None):
         self.__tasks_list = []
@@ -1816,6 +1865,16 @@ class CNode(object):
         compute_obj.set_log_path("/var/log/infrasim/{}/qemu.log".
                                  format(self.__node_name))
         self.__tasks_list.append(compute_obj)
+
+        if "type" in self.__node and "dell" in self.__node["type"]:
+            racadm_info = self.__node.get("racadm", {})
+            racadm_obj = CRacadm(racadm_info)
+            racadm_obj.set_priority(3)
+            racadm_obj.set_node_name(self.__node_name)
+            racadm_obj.set_task_name("{}-racadm".format(self.__node_name))
+            racadm_obj.set_log_path("/var/log/infrasim/{}/racadm.log".
+                                    format(self.__node_name))
+            self.__tasks_list.append(racadm_obj)
 
         # Set interface
         if "type" not in self.__node:
