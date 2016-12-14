@@ -41,6 +41,8 @@ Test SMBIOS data
 test_img_file = "{}/kcs.img".format(os.environ['HOME'])
 conf = {}
 tmp_conf_file = "/tmp/test.yml"
+old_path = os.environ.get("PATH")
+new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
 
 def setup_module():
@@ -54,10 +56,14 @@ def setup_module():
     if os.path.exists(test_img_file) is False:
         return
 
+    os.environ["PATH"] = new_path
+
 
 def teardown_module():
     if os.path.exists(test_img_file):
         os.unlink(test_img_file)
+
+    os.environ["PATH"] = old_path
 
 
 def start_node(node_type):

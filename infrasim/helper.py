@@ -42,6 +42,9 @@ def ip4_addresses():
 
 
 def check_if_port_in_use(address, port):
+    """
+    True if port in use, false if not in use
+    """
     s = socket.socket()
     try:
         s.connect((address, port))

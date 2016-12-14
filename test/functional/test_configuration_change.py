@@ -11,14 +11,17 @@ import unittest
 import subprocess
 import os
 import yaml
+import time
 import netifaces
 import hashlib
+import paramiko
 from infrasim import model
 from test import fixtures
 
 PS_QEMU = "ps ax | grep qemu"
 PS_IPMI = "ps ax | grep ipmi"
 PS_SOCAT = "ps ax | grep socat"
+PS_RACADM = "ps ax | grep racadmsim"
 
 TMP_CONF_FILE = "/tmp/test.yml"
 
@@ -31,6 +34,20 @@ def run_command(cmd="", shell=True, stdout=None, stderr=None):
     if cmd_return_code != 0:
         return -1, cmd_result[1]
     return 0, cmd_result[0]
+
+
+def read_buffer(channel):
+    while not channel.recv_ready():
+        continue
+    str_output = ''
+    str_read = ''
+    while True:
+        str_read = str(channel.recv(40960))
+        str_output += str_read
+        if str_output.find('/admin1-> \n'):
+            break
+        time.sleep(1)
+    return str_output
 
 
 class test_compute_configuration_change(unittest.TestCase):
@@ -377,3 +394,202 @@ class test_connection(unittest.TestCase):
                                  subprocess.PIPE, subprocess.PIPE)[1]
         assert "-f {}/.infrasim/test/data/dell_c6320.emu".\
             format(os.environ["HOME"]) in str_result
+
+
+class test_racadm_configuration_change(unittest.TestCase):
+
+    ssh = paramiko.SSHClient()
+    channel = None
+
+    def setUp(self):
+        fake_config = fixtures.FakeConfig()
+        self.conf = fake_config.get_node_info()
+        self.conf["type"] = "dell_c6320"
+
+    def tearDown(self):
+        if self.channel:
+            self.channel.send('quit\n')
+            self.channel.close()
+        self.ssh.close()
+
+        node = model.CNode(self.conf)
+        node.init()
+        node.stop()
+        node.terminate_workspace()
+        if os.path.exists(TMP_CONF_FILE):
+            os.unlink(TMP_CONF_FILE)
+        self.conf = None
+
+    def test_default_config(self):
+        # Start service
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        # Check process
+        str_result = run_command(PS_RACADM, True,
+                                 subprocess.PIPE, subprocess.PIPE)[1]
+        assert "racadmsim test 0.0.0.0 10022 admin admin" in str_result
+
+        # Prepare SSH channel
+        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.ssh.connect('127.0.0.1',
+                         username='admin',
+                         password='admin',
+                         port=10022)
+        self.channel = self.ssh.invoke_shell()
+
+        # Test 1
+        self.channel.send("help"+chr(13))
+        time.sleep(1)
+        str_output = read_buffer(self.channel)
+        assert "racadm" in str_output
+
+        # Test 2
+        self.channel.send("racadm help"+chr(13))
+        time.sleep(1)
+        str_output = read_buffer(self.channel)
+        assert "hwinventory" in str_output
+
+    def test_set_credential(self):
+        self.conf["racadm"] = {}
+        self.conf["racadm"]["username"] = "admin"
+        self.conf["racadm"]["password"] = "fake"
+
+        # Start service
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        # Check process
+        str_result = run_command(PS_RACADM, True,
+                                 subprocess.PIPE, subprocess.PIPE)[1]
+        assert "racadmsim test 0.0.0.0 10022 admin fake" in str_result
+
+        # Connect with wrong credential
+        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            self.ssh.connect('127.0.0.1',
+                             username='admin',
+                             password='admin',
+                             port=10022)
+        except paramiko.AuthenticationException:
+            assert True
+        else:
+            assert False
+
+        # Connect with correct credential
+        self.ssh.connect('127.0.0.1',
+                         username='admin',
+                         password='fake',
+                         port=10022)
+        self.channel = self.ssh.invoke_shell()
+
+        # Test racadmsim is working
+        self.channel.send("racadm help"+chr(13))
+        time.sleep(1)
+        str_output = read_buffer(self.channel)
+        assert "hwinventory" in str_output
+
+    def test_set_port(self):
+        self.conf["racadm"] = {}
+        self.conf["racadm"]["port"] = 10023
+
+        # Start service
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        # Check process
+        str_result = run_command(PS_RACADM, True,
+                                 subprocess.PIPE, subprocess.PIPE)[1]
+        assert "racadmsim test 0.0.0.0 10023 admin admin" in str_result
+
+        # Connect with wrong port
+        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            self.ssh.connect('127.0.0.1',
+                             username='admin',
+                             password='admin',
+                             port=10022)
+        except paramiko.ssh_exception.NoValidConnectionsError:
+            assert True
+        else:
+            assert False
+
+        # Connect with correct port
+        self.ssh.connect('127.0.0.1',
+                         username='admin',
+                         password='admin',
+                         port=10023)
+        self.channel = self.ssh.invoke_shell()
+
+        # Test racadmsim is working
+        self.channel.send("racadm help"+chr(13))
+        time.sleep(1)
+        str_output = read_buffer(self.channel)
+        assert "hwinventory" in str_output
+
+    def test_command_in_line(self):
+
+        str_result = run_command("which sshpass", True,
+                                 subprocess.PIPE, subprocess.PIPE)
+        if str_result[0] != 0:
+            self.skipTest("Need sshpass to test inline ssh command")
+
+        # Start service
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        # Test help in iDrac console
+        cmd_help = "sshpass -p 'admin' " \
+                   "ssh admin@127.0.0.1 " \
+                   "-p 10022 " \
+                   "-o StrictHostKeyChecking=no " \
+                   "help"
+        child = subprocess.Popen(cmd_help, shell=True,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        cmd_result = child.communicate()
+        assert "racadm" in cmd_result[0]
+
+        # Test help in racadm console
+        cmd_help = "sshpass -p 'admin' " \
+                   "ssh admin@127.0.0.1 " \
+                   "-p 10022 " \
+                   "-o StrictHostKeyChecking=no " \
+                   "racadm help"
+        child = subprocess.Popen(cmd_help, shell=True,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        cmd_result = child.communicate()
+        assert "hwinventory" in cmd_result[0]
+
+        # Test wrong username fail
+        cmd_help = "sshpass -p 'admin' " \
+                   "ssh fake@127.0.0.1 " \
+                   "-p 10022 " \
+                   "-o StrictHostKeyChecking=no " \
+                   "racadm help"
+        child = subprocess.Popen(cmd_help, shell=True,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        cmd_result = child.communicate()
+        assert "Permission denied" in cmd_result[1]
+
+        # Test wrong password fail
+        cmd_help = "sshpass -p 'fake' " \
+                   "ssh admin@127.0.0.1 " \
+                   "-p 10022 " \
+                   "-o StrictHostKeyChecking=no " \
+                   "racadm help"
+        child = subprocess.Popen(cmd_help, shell=True,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        cmd_result = child.communicate()
+        assert "Permission denied" in cmd_result[1]

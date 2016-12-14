@@ -1720,7 +1720,7 @@ class CRacadm(Task):
 
         self.__racadm_info = racadm_info
 
-        self.__node_name = ""
+        self.__node_name = "default"
         self.__port_idrac = None
         self.__username = ""
         self.__password = ""
