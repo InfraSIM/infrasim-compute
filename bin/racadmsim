@@ -1,0 +1,10 @@
+#!/usr/bin/python
+import sys
+from infrasim import racadmsim
+
+if __name__ == '__main__':
+    racadmsim.start(instance=sys.argv[1],
+                    ipaddr=sys.argv[2],
+                    port=sys.argv[3],
+                    username=sys.argv[4],
+                    password=sys.argv[5])
