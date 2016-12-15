@@ -45,6 +45,7 @@ def start_ipmi(conf_file=config.infrasim_default_config):
         bmc.set_log_path("/var/log/infrasim/{}/openipmi.log".
                          format(node_name))
         bmc.set_type(conf["type"])
+        bmc.enable_sol(False)
         bmc.set_workspace(node.workspace.get_workspace())
         bmc.init()
         bmc.write_bmc_config()
