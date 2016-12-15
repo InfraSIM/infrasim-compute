@@ -23,6 +23,8 @@ import json
 import helper
 from workspace import Workspace
 from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
+from infrasim.helper import run_in_namespace
+import sys
 
 """
 This module majorly defines infrasim element models.
@@ -1037,9 +1039,11 @@ class Task(object):
             return True
         return False
 
+    @run_in_namespace
     def run(self):
         if self.__asyncronous:
             start = time.time()
+            logger.info("Checking qemu is running or not.")
             while True:
                 if self._task_is_running():
                     break
@@ -1176,10 +1180,10 @@ class CCompute(Task, CElement):
                                  format(self.__smbios))
 
         if self.__kernel and os.path.exists(self.__kernel) is False:
-            raise ArgsNotCorrect( "Kernel {} does not exist.".format(self.__kernel))
+            raise ArgsNotCorrect("Kernel {} does not exist.".format(self.__kernel))
 
         if self.__initrd and os.path.exists(self.__initrd) is False:
-            raise ArgsNotCorrect( "Kernel {} does not exist.".format(self.__initrd))
+            raise ArgsNotCorrect("Kernel {} does not exist.".format(self.__initrd))
 
         # check if VNC port is in use
         if helper.check_if_port_in_use("0.0.0.0", self.__display + 5900):
@@ -1192,6 +1196,7 @@ class CCompute(Task, CElement):
             except Exception as e:
                 raise e
 
+    @run_in_namespace
     def init(self):
 
         if 'kvm_enabled' in self.__compute and not helper.check_kvm_existence():
@@ -1571,6 +1576,7 @@ class CBMC(Task):
         with open(dst, "w") as f:
             f.write(bmc_conf)
 
+    @run_in_namespace
     def init(self):
         if 'address' in self.__bmc:
             self.__address = self.__bmc['address']
@@ -1785,6 +1791,7 @@ class CNode(object):
     def get_node_info(self):
         return self.__node
 
+    @run_in_namespace
     def precheck(self):
         if self.__is_running():
             return
@@ -1819,6 +1826,8 @@ class CNode(object):
         if 'sol_enable' not in self.__node:
             self.__node['sol_enable'] = True
         self.__sol_enabled = self.__node['sol_enable']
+
+        sys.modules['__builtin__'].__dict__["netns"] = self.__node.get("namespace")
 
         # If user specify "network_mode" as "bridge" but without MAC
         # address, generate one for this network.

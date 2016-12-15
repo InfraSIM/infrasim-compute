@@ -6,6 +6,12 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import os
 import netifaces
 import socket
+from functools import wraps
+import sys
+from ctypes import cdll
+
+libc = cdll.LoadLibrary('libc.so.6')
+setns = libc.setns
 
 
 def check_kvm_existence():
@@ -14,6 +20,20 @@ def check_kvm_existence():
     return False
 
 
+def run_in_namespace(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        namespace = sys.modules['__builtin__'].__dict__.get("netns")
+        if namespace:
+            with Namespace(nsname=namespace):
+                ret = func(*args, **kwargs)
+        else:
+            ret = func(*args, **kwargs)
+        return ret
+    return wrapper
+
+
+@run_in_namespace
 def get_interface_ip(interface):
     """
     Get IP address given a interface name
@@ -33,6 +53,7 @@ def get_interface_ip(interface):
     return ip
 
 
+@run_in_namespace
 def ip4_addresses():
     ip_list = []
     for interface in netifaces.interfaces():
@@ -53,3 +74,32 @@ def check_if_port_in_use(address, port):
     except socket.error:
         s.close()
         return False
+
+
+def get_ns_path(nspath=None, nsname=None, nspid=None):
+    if nsname:
+        nspath = '/var/run/netns/%s' % nsname
+    elif nspid:
+        nspath = '/proc/%d/ns/net' % nspid
+
+    return nspath
+
+
+class Namespace(object):
+    def __init__(self, nsname=None, nspath=None, nspid=None):
+        self.mypath = get_ns_path(nspid=os.getpid())
+        self.targetpath = get_ns_path(nspath,
+                                      nsname=nsname,
+                                      nspid=nspid)
+
+        if not self.targetpath:
+            raise ValueError('invalid namespace')
+
+    def __enter__(self):
+        self.myns = open(self.mypath)
+        with open(self.targetpath) as fd:
+            setns(fd.fileno(), 0)
+
+    def __exit__(self, *args):
+        setns(self.myns.fileno(), 0)
+        self.myns.close()

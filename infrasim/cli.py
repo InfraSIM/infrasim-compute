@@ -74,8 +74,12 @@ class ConfigCommands(object):
 
 class NodeCommands(object):
 
-    def _node_preinit(self, node):
+    def _node_preinit(self, node, ignore_check=False):
         node.init()
+
+        if ignore_check:
+            return
+
         node.precheck()
 
     @args("node_name", nargs='?', default="default", help="Specify node name to start")
@@ -114,7 +118,7 @@ class NodeCommands(object):
             return
 
         node = model.CNode(node_info)
-        node.init()
+        self._node_preinit(node, ignore_check=True)
         node.stop()
 
     @node_workspace_exists
@@ -134,7 +138,7 @@ class NodeCommands(object):
             return
 
         node = model.CNode(node_info)
-        self._node_preinit(node)
+        self._node_preinit(node, ignore_check=True)
         node.status()
 
     @args("node_name", nargs='?', default="default", help="Specify node name to destroy")
@@ -150,7 +154,7 @@ class NodeCommands(object):
                 format(node_name)
             return
         node = model.CNode(node_info)
-        self._node_preinit(node)
+        self._node_preinit(node, ignore_check=True)
         node.stop()
         node.terminate_workspace()
 
