@@ -74,6 +74,9 @@ class iDRACHandler(sshim.Handler):
     def check_auth_password(self, username, password):
         return auth(username, password)
 
+    def check_auth_publickey(self, username, key):
+        return paramiko.AUTH_FAILED
+
     def check_channel_exec_request(self, channel, command):
         cmds = command.split()
 
