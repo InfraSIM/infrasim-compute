@@ -106,7 +106,7 @@ class NodeCommands(object):
             "VNC port: 5901 \n" \
             "Either host IP: {} \n" \
             "depending on host in which network VNC viewer is running". \
-            format(node.get_node_name(), helper.ip4_addresses())
+            format(node.get_node_name(), helper.ip4_addresses(netns=node_info.get("namespace")))
 
     @node_workspace_exists
     @args("node_name", nargs='?', default="default", help="Specify node name to stop")

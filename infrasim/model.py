@@ -24,7 +24,6 @@ import helper
 from workspace import Workspace
 from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
 from infrasim.helper import run_in_namespace
-import sys
 
 """
 This module majorly defines infrasim element models.
@@ -992,6 +991,15 @@ class Task(object):
         # this task shall only be maintained with information
         # no actual run shall be taken
         self.__asyncronous = False
+        self.__netns = None
+
+    @property
+    def netns(self):
+        return self.__netns
+
+    @netns.setter
+    def netns(self, ns):
+        self.__netns = ns
 
     def set_priority(self, priority):
         self.__task_priority = priority
@@ -1775,6 +1783,11 @@ class CNode(object):
         self.__numactl_obj = None
         self.workspace = None
         self.__sol_enabled = None
+        self.__netns = None
+
+    @property
+    def netns(self):
+        return self.__netns
 
     def get_task_list(self):
         return self.__tasks_list
@@ -1827,7 +1840,7 @@ class CNode(object):
             self.__node['sol_enable'] = True
         self.__sol_enabled = self.__node['sol_enable']
 
-        sys.modules['__builtin__'].__dict__["netns"] = self.__node.get("namespace")
+        self.__netns = self.__node.get("namespace")
 
         # If user specify "network_mode" as "bridge" but without MAC
         # address, generate one for this network.
@@ -1905,6 +1918,10 @@ class CNode(object):
 
         if not self.__is_running():
             self.workspace.init()
+
+        if self.__netns:
+            for task in self.__tasks_list:
+                task.netns = self.__netns
 
         for task in self.__tasks_list:
             task.init()

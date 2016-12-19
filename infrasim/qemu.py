@@ -11,7 +11,6 @@ import time
 import config
 from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect
 from model import CCompute
-import sys
 
 
 def get_qemu():
@@ -63,7 +62,7 @@ def start_qemu(conf_file=config.infrasim_default_config):
 
         sol_enabled = conf["sol_enable"] if "sol_enable" in conf else True
 
-        sys.modules['__builtin__'].__dict__['netns'] = conf.get('namespace')
+        compute.netns = conf.get("namespace")
 
         # Set attributes
         compute.enable_sol(sol_enabled)

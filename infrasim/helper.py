@@ -7,7 +7,6 @@ import os
 import netifaces
 import socket
 from functools import wraps
-import sys
 from ctypes import cdll
 
 libc = cdll.LoadLibrary('libc.so.6')
@@ -23,7 +22,12 @@ def check_kvm_existence():
 def run_in_namespace(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        namespace = sys.modules['__builtin__'].__dict__.get("netns")
+        namespace = None
+        if args:
+            namespace = getattr(args[0], "netns")
+        else:
+            namespace = kwargs.get("netns")
+
         if namespace:
             with Namespace(nsname=namespace):
                 ret = func(*args, **kwargs)
@@ -54,7 +58,7 @@ def get_interface_ip(interface):
 
 
 @run_in_namespace
-def ip4_addresses():
+def ip4_addresses(netns=None):
     ip_list = []
     for interface in netifaces.interfaces():
         for link in netifaces.ifaddresses(interface).get(netifaces.AF_INET, ()):
