@@ -137,9 +137,9 @@ class CCPU(CElement):
     def __init__(self, cpu_info, socket_in_smbios=None):
         super(CCPU, self).__init__()
         self.__cpu = cpu_info
-        self.__type = "host"
-        self.__features = "+vmx"
-        self.__quantities = 2
+        self.__type = None
+        self.__features = None
+        self.__quantities = None
         self.__socket = socket_in_smbios
 
     def get_cpu_quantities(self):
@@ -160,14 +160,9 @@ class CCPU(CElement):
                 format(self.__quantities, self.__socket))
 
     def init(self):
-        if 'type' in self.__cpu:
-            self.__type = self.__cpu['type']
-
-        if 'quantities' in self.__cpu:
-            self.__quantities = self.__cpu['quantities']
-
-        if 'features' in self.__cpu:
-            self.__features = self.__cpu['features']
+        self.__type = self.__cpu.get("type", "host")
+        self.__quantities = self.__cpu.get('quantities', 2)
+        self.__features = self.__cpu.get('features', "+vmx")
 
         if self.__socket is None:
             self.__socket = 2
@@ -192,11 +187,11 @@ class CCharDev(CElement):
         super(CCharDev, self).__init__()
         self.__chardev = chardev
         self.__id = None
-        self.__is_server = False
-        self.__wait = True
+        self.__is_server = None
+        self.__wait = None
         self.__path = None
         self.__backend_type = None  # should be socket/pipe/file/pty/stdio/ringbuffer/...
-        self.__reconnect = 10
+        self.__reconnect = None
         self.__host = None
         self.__port = None
 
@@ -220,20 +215,15 @@ class CCharDev(CElement):
         if 'backend' not in self.__chardev:
             raise Exception("Backend should be set.")
 
-        self.__backend_type = self.__chardev['backend']
+        self.__backend_type = self.__chardev.get('backend')
 
-        self.__is_server = self.__chardev['server'] if 'server' in self.__chardev else self.__is_server
+        self.__is_server = self.__chardev.get('server', False)
 
-        self.__host = self.__chardev['host'] if 'host' in self.__chardev else self.__host
-        self.__port = self.__chardev['port'] if 'port' in self.__chardev else self.__port
-        self.__wait = self.__chardev['wait'] if 'wait' in self.__chardev else self.__wait
-
-        self.__path = self.__chardev['path'] if 'path' in self.__chardev else self.__path
-
-        if self.__is_server is False:
-            self.__reconnect = self.__chardev['reconnect'] if 'reconnect' in self.__chardev else self.__reconnect
-        else:
-            self.__reconnect = None
+        self.__host = self.__chardev.get('host')
+        self.__port = self.__chardev.get('port', self.__port)
+        self.__wait = self.__chardev.get('wait', True)
+        self.__path = self.__chardev.get('path')
+        self.__reconnect = self.__chardev.get('reconnect', 10)
 
     def handle_parms(self):
         chardev_option_list = []
@@ -275,13 +265,11 @@ class CMemory(CElement):
         """
         Check if the memory size exceeds the system available size
         """
-        pass
+        if self.__memory_size is None:
+            raise ArgsNotCorrect("Please set memory size.")
 
     def init(self):
-        if 'size' in self.__memory:
-            self.__memory_size = self.__memory['size']
-        else:
-            raise Exception("ERROR: please set the memory size")
+        self.__memory_size = self.__memory.get('size')
 
     def handle_parms(self):
         memory_option = "-m {}".format(self.__memory_size)
@@ -299,14 +287,14 @@ class CDrive(CElement):
         self.__product = None
         self.__version = None
         self.__bootindex = None
-        self.__cache = "writeback"  # none/writeback/writethrough
+        self.__cache = None  # none/writeback/writethrough
         self.__aio = None  # threads/native
         self.__file = None
         self.__rotation = None
         self.__type = "file"
-        self.__format = "qcow2"
+        self.__format = None
         self.__bus_address = None
-        self.__size = 8
+        self.__size = None
         self.__controller_type = None
         self.__wwn = None
         self.__port_index = None
@@ -338,45 +326,25 @@ class CDrive(CElement):
         pass
 
     def init(self):
-        if 'bootindex' in self.__drive:
-            self.__bootindex = self.__drive['bootindex']
+        self.__bootindex = self.__drive.get('bootindex')
 
         # for ide-hd drive, there is no vendor properties
         if self.__controller_type == "megasas" or \
                 self.__controller_type == "megasas-gen2":
-            self.__vendor = self.__drive['vendor'] if \
-                'vendor' in self.__drive else None
+            self.__vendor = self.__drive.get('vendor')
 
         if self.__controller_type == "ahci":
-            self.__model = self.__drive['model'] if \
-                'model' in self.__drive else None
+            self.__model = self.__drive.get('model')
 
-        if 'serial' in self.__drive:
-            self.__serial = self.__drive['serial']
-
-        if 'model' in self.__drive:
-            self.__model = self.__drive['model']
-
-        if 'product' in self.__drive:
-            self.__product = self.__drive['product']
-
-        if 'version' in self.__drive:
-            self.__version = self.__drive['version']
-
-        if 'rotation' in self.__drive:
-            self.__rotation = self.__drive['rotation']
-
-        if 'format' in self.__drive:
-            self.__format = self.__drive['format']
-
-        if 'cache' in self.__drive:
-            self.__cache = self.__drive['cache']
-
-        if 'aio' in self.__drive:
-            self.__aio = self.__drive['aio']
-
-        if 'size' in self.__drive:
-            self.__size = self.__drive['size']
+        self.__serial = self.__drive.get('serial')
+        self.__model = self.__drive.get('model')
+        self.__product = self.__drive.get('product')
+        self.__version = self.__drive.get('version')
+        self.__rotation = self.__drive.get('rotation')
+        self.__format = self.__drive.get('format', "qcow2")
+        self.__cache = self.__drive.get('cache', "writeback")
+        self.__aio = self.__drive.get('aio')
+        self.__size = self.__drive.get('size', 8)
 
         # If user announce drive file in config, use it
         # else create for them.
@@ -405,19 +373,13 @@ class CDrive(CElement):
                     raise e
             self.__file = disk_file
 
-        self.__wwn = self.__drive['wwn'] if 'wwn' in self.__drive else None
-
-        self.__port_index = self.__drive['port_index'] if 'port_index' in self.__drive else None
-
-        self.__port_wwn = self.__drive['port_wwn'] if 'port_wwn' in self.__drive else None
-
-        self.__channel = self.__drive['channel'] if 'channel' in self.__drive else None
-
-        self.__scsi_id = self.__drive['scsi-id'] if 'scsi-id' in self.__drive else None
-
-        self.__lun = self.__drive['lun'] if 'lun' in self.__drive else None
-
-        self.__slot_number = self.__drive['slot_number'] if 'slot_number' in self.__drive else None
+        self.__wwn = self.__drive.get('wwn')
+        self.__port_index = self.__drive.get('port_index')
+        self.__port_wwn = self.__drive.get('port_wwn')
+        self.__channel = self.__drive.get('channel')
+        self.__scsi_id = self.__drive.get('scsi-id')
+        self.__lun = self.__drive.get('lun')
+        self.__slot_number = self.__drive.get('slot_number')
 
     def handle_parms(self):
         host_option = ""
@@ -537,31 +499,26 @@ class CStorageController(CElement):
             drive_obj.precheck()
 
     def init(self):
-        self.__max_drive_per_controller = \
-            self.__controller_info['controller']['max_drive_per_controller']
-        self.__controller_type = self.__controller_info['controller']['type']
-        self.__sas_address = self.__controller_info['controller']['sas_address'] \
-            if 'sas_address' in self.__controller_info['controller'] else None
-        self.__max_cmds = self.__controller_info['controller']['max_cmds'] \
-            if 'max_cmds' in self.__controller_info['controller'] else self.__max_cmds
-        self.__max_sge = self.__controller_info['controller']['max_sge'] \
-            if 'max_sge' in self.__controller_info['controller'] else self.__max_sge
+        self.__max_drive_per_controller = self.__controller_info['controller'].get('max_drive_per_controller')
+        self.__controller_type = self.__controller_info['controller'].get('type')
+        self.__sas_address = self.__controller_info['controller'].get('sas_address')
+        self.__max_cmds = self.__controller_info['controller'].get('max_cmds')
+        self.__max_sge = self.__controller_info['controller'].get('max_sge')
 
         if self.__controller_type == "ahci":
             prefix = "sata"
         else:
             prefix = "scsi"
 
-        self.__use_msi = self.__controller_info['controller']['use_msi'] \
-            if 'use_msi' in self.__controller_info['controller'] else None
+        self.__use_msi = self.__controller_info['controller'].get('use_msi')
 
         if 'use_jbod' in self.__controller_info['controller'] and \
                 self.__controller_type.startswith("megasas"):
-            self.__use_jbod = self.__controller_info['controller']['use_jbod']
+            self.__use_jbod = self.__controller_info['controller'].get('use_jbod')
 
         drive_index = 0
         controller_index = 0
-        for drive_info in self.__controller_info['controller']['drives']:
+        for drive_info in self.__controller_info['controller'].get('drives'):
             drive_obj = CDrive(drive_info)
             drive_obj.owner = self
             drive_obj.set_index(drive_index)
@@ -581,8 +538,7 @@ class CStorageController(CElement):
 
     def handle_params(self):
         controller_option_list = []
-        drive_quantities = \
-            len(self.__controller_info['controller']['drives'])
+        drive_quantities = len(self.__controller_info['controller'].get('drives'))
         controller_quantities = \
             int(math.ceil(float(drive_quantities) / self.__max_drive_per_controller))
         if self.__controller_type == "ahci":
@@ -597,7 +553,7 @@ class CStorageController(CElement):
             controller_option_list = []
             controller_option_list.append(
                 "-device {}".format(
-                    self.__controller_info['controller']['type']))
+                    self.__controller_info['controller'].get('type')))
             controller_option_list.append(
                 "id={}{}".format(prefix, controller_index))
             if self.__use_jbod is not None:
@@ -668,7 +624,7 @@ class CNetwork(CElement):
         super(CNetwork, self).__init__()
         self.__network = network_info
         self.__network_list = []
-        self.__network_mode = "nat"
+        self.__network_mode = None
         self.__bridge_name = None
         self.__nic_name = None
         self.__mac_address = None
@@ -705,17 +661,10 @@ class CNetwork(CElement):
                                              format(self.__mac_address))
 
     def init(self):
-        if 'network_mode' in self.__network:
-            self.__network_mode = self.__network['network_mode']
-
-        if 'network_name' in self.__network:
-            self.__bridge_name = self.__network['network_name']
-
-        if 'device' in self.__network:
-            self.__nic_name = self.__network['device']
-
-        if 'mac' in self.__network:
-            self.__mac_address = self.__network['mac']
+        self.__network_mode = self.__network.get('network_mode', "nat")
+        self.__bridge_name = self.__network.get('network_name')
+        self.__nic_name = self.__network.get('device')
+        self.__mac_address = self.__network.get('mac')
 
     def handle_parms(self):
         if self.__network_mode == "bridge":
@@ -805,8 +754,7 @@ class CIPMI(CElement):
             raise Exception("-chardev should set.")
 
     def init(self):
-        if 'interface' in self.__ipmi:
-            self.__interface = self.__ipmi['interface']
+        self.__interface = self.__ipmi.get('interface')
 
         if 'chardev' in self.__ipmi:
             self.__chardev_obj = CCharDev(self.__ipmi['chardev'])
@@ -815,11 +763,8 @@ class CIPMI(CElement):
             self.__chardev_obj.set_port(self.__bmc_connection_port)
             self.__chardev_obj.init()
 
-        if 'ioport' in self.__ipmi:
-            self.__ioport = self.__ipmi['ioport']
-
-        if 'irq' in self.__ipmi:
-            self.__irq = self.__ipmi['irq']
+        self.__ioport = self.__ipmi.get('ioport')
+        self.__irq = self.__ipmi.get('irq')
 
     def handle_parms(self):
         self.__chardev_obj.handle_parms()
@@ -872,25 +817,15 @@ class CPCIBridge(CElement):
         return self.__parent
 
     def precheck(self):
-        pass
+        if self.__current_bridge_deivce is None:
+            raise ArgsNotCorrect("bridge device is required.")
 
     def init(self):
-        if 'device' in self.__bridge_info:
-            self.__current_bridge_device = self.__bridge_info['device']
-        else:
-            raise Exception("bridge device is required.")
-
-        if 'addr' in self.__bridge_info:
-            self.__addr = self.__bridge_info['addr']
-
-        if 'chassis_nr' in self.__bridge_info:
-            self.__chassis_nr = self.__bridge_info['chassis_nr']
-
-        if 'msi' in self.__bridge_info:
-            self.__msi = self.__bridge_info['msi']
-
-        if 'multifunction' in self.__bridge_info:
-            self.__multifunction = self.__bridge_info['multifunction']
+        self.__current_bridge_device = self.__bridge_info.get('device')
+        self.__addr = self.__bridge_info.get('addr')
+        self.__chassis_nr = self.__bridge_info.get('chassis_nr')
+        self.__msi = self.__bridge_info.get('msi')
+        self.__multifunction = self.__bridge_info.get('multifunction')
 
         if 'downstream_bridge' not in self.__bridge_info:
             return
@@ -990,7 +925,7 @@ class CMonitor(CElement):
             raise e
 
     def init(self):
-        self.__mode = self.__monitor['mode'] if 'mode' in self.__monitor else self.__mode
+        self.__mode = self.__monitor.get('mode', "readline")
         if 'chardev' in self.__monitor:
             self.__chardev = CCharDev(self.__monitor['chardev'])
             self.__chardev.set_id("monitorchardev")
@@ -1166,7 +1101,7 @@ class CCompute(Task, CElement):
         self.__enable_kvm = True
         self.__smbios = None
         self.__bios = None
-        self.__boot_order = "ncd"
+        self.__boot_order = None
         self.__qemu_bin = "qemu-system-x86_64"
         self.__cdrom_file = None
         self.__vendor_type = None
@@ -1256,14 +1191,9 @@ class CCompute(Task, CElement):
             self.__smbios = os.path.join(config.infrasim_data,
                                          "{0}/{0}_smbios.bin".format(self.__vendor_type))
 
-        if 'bios' in self.__compute:
-            self.__bios = self.__compute['bios']
-
-        if 'boot_order' in self.__compute:
-            self.__boot_order = self.__compute['boot_order']
-
-        if 'cdrom' in self.__compute:
-            self.__cdrom_file = self.__compute['cdrom']
+        self.__bios = self.__compute.get('bios')
+        self.__boot_order = self.__compute.get('boot_order', "ncd")
+        self.__cdrom_file = self.__compute.get('cdrom')
 
         if 'numa_control' in self.__compute \
                 and self.__compute['numa_control']:
@@ -1275,14 +1205,9 @@ class CCompute(Task, CElement):
                 logger.info('[model:compute] infrasim can\'t '
                             'find numactl in this environment')
 
-        self.__display = self.__compute['vnc_display'] \
-            if 'vnc_display' in self.__compute else 1
-
-        if 'kernel' in self.__compute:
-            self.__kernel = self.__compute['kernel']
-
-        if 'initrd' in self.__compute:
-            self.__initrd = self.__compute['initrd']
+        self.__display = self.__compute.get('vnc_display', 1)
+        self.__kernel = self.__compute.get('kernel')
+        self.__initrd = self.__compute.get('initrd')
 
         self.__cmdline = self.__compute.get("cmdline")
 
@@ -1438,21 +1363,21 @@ class CBMC(Task):
         super(CBMC, self).__init__()
 
         self.__bmc = bmc_info
-        self.__address = 0x20
-        self.__channel = 1
+        self.__address = None
+        self.__channel = None
         self.__lan_interface = None
         self.__lancontrol_script = ""
         self.__chassiscontrol_script = ""
         self.__startcmd_script = ""
-        self.__startnow = "true"
-        self.__poweroff_wait = 5
-        self.__kill_wait = 1
-        self.__username = "admin"
-        self.__password = "admin"
+        self.__startnow = None
+        self.__poweroff_wait = None
+        self.__kill_wait = None
+        self.__username = None
+        self.__password = None
         self.__emu_file = None
         self.__config_file = ""
         self.__bin = "ipmi_sim"
-        self.__port_iol = 623
+        self.__port_iol = None
         self.__ipmi_listen_range = "::"
         self.__intf_not_exists = False
         self.__intf_no_ip = False
@@ -1679,11 +1604,8 @@ class CBMC(Task):
 
     @run_in_namespace
     def init(self):
-        if 'address' in self.__bmc:
-            self.__address = self.__bmc['address']
-
-        if 'channel' in self.__bmc:
-            self.__channel = self.__bmc['channel']
+        self.__address = self.__bmc.get('address', 0x20)
+        self.__channel = self.__bmc.get('channel', 1)
 
         if 'interface' in self.__bmc:
             self.__lan_interface = self.__bmc['interface']
@@ -1720,29 +1642,13 @@ class CBMC(Task):
                                                   "script",
                                                   "startcmd")
 
-        if 'startnow' in self.__bmc:
-            if self.__bmc['startnow']:
-                self.__startnow = "true"
-            else:
-                self.__startnow = "false"
-
-        if 'poweroff_wait' in self.__bmc:
-            self.__poweroff_wait = self.__bmc['poweroff_wait']
-
-        if 'kill_wait' in self.__bmc:
-            self.__kill_wait = self.__bmc['kill_wait']
-
-        if 'username' in self.__bmc:
-            self.__username = self.__bmc['username']
-
-        if 'password' in self.__bmc:
-            self.__password = self.__bmc['password']
-
-        if 'ipmi_over_lan_port' in self.__bmc:
-            self.__port_iol = self.__bmc['ipmi_over_lan_port']
-
-        if 'historyfru' in self.__bmc:
-            self.__historyfru = self.__bmc['historyfru']
+        self.__startnow = self.__bmc.get("startnow") or "true"
+        self.__poweroff_wait = self.__bmc.get('poweroff_wait', 5)
+        self.__kill_wait = self.__bmc.get('kill_wait', 1)
+        self.__username = self.__bmc.get('username', "admin")
+        self.__password = self.__bmc.get('password', "admin")
+        self.__port_iol = self.__bmc.get('ipmi_over_lan_port', 623)
+        self.__historyfru = self.__bmc.get('historyfru', 99)
 
         if 'emu_file' in self.__bmc:
             self.__emu_file = self.__bmc['emu_file']
@@ -1985,7 +1891,7 @@ class CNode(object):
         self.__tasks_list.append(bmc_obj)
 
         compute_obj = CCompute(self.__node['compute'])
-        asyncr = bmc_info['startnow'] if 'startnow' in bmc_info else True
+        asyncr = bmc_info.get("startnow", True)
         compute_obj.set_asyncronous(asyncr)
         compute_obj.enable_sol(self.__sol_enabled)
         compute_obj.set_priority(2)
