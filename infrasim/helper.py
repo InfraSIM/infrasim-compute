@@ -37,7 +37,6 @@ def run_in_namespace(func):
     return wrapper
 
 
-@run_in_namespace
 def get_interface_ip(interface):
     """
     Get IP address given a interface name

@@ -1153,6 +1153,7 @@ class CCompute(Task, CElement):
         self.__sol_enabled = False
         self.__kernel = None
         self.__initrd = None
+        self.__mem_path = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -1175,6 +1176,7 @@ class CCompute(Task, CElement):
     def get_smbios(self):
         return self.__smbios
 
+    @run_in_namespace
     def precheck(self):
         # check if qemu-system-x86_64 exists
         try:
@@ -1250,6 +1252,8 @@ class CCompute(Task, CElement):
 
         if 'initrd' in self.__compute:
             self.__initrd = self.__compute['initrd']
+
+        self.__mem_path = self.__compute.get("mem_path")
 
         cpu_obj = CCPU(self.__compute['cpu'])
         self.__element_list.append(cpu_obj)
@@ -1339,6 +1343,9 @@ class CCompute(Task, CElement):
 
         if self.__bios:
             self.add_option("-bios {}".format(self.__bios))
+
+        if self.__mem_path:
+            self.add_option("-mem-path {}".format(self.__mem_path))
 
         if self.__boot_order:
             boot_param = ""
@@ -1468,6 +1475,7 @@ class CBMC(Task):
     def get_lancontrol_script(self):
         return self.__lancontrol_script
 
+    @run_in_namespace
     def precheck(self):
         # check if ipmi_sim exists
         try:
@@ -1751,6 +1759,7 @@ class CRacadm(Task):
                                  format(self.__ip,
                                         self.__port_idrac))
 
+    @run_in_namespace
     def init(self):
         if "interface" in self.__racadm_info:
             self.__interface = self.__racadm_info.get("interface", "")

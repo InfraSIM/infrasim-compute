@@ -184,6 +184,7 @@ class Workspace(object):
                 bmc_obj.enable_sol(self.__node_info["sol_enable"])
 
             bmc_obj.set_workspace(self.__workspace)
+            bmc_obj.netns = self.__node_info.get("namespace")
             bmc_obj.init()
             bmc_obj.write_bmc_config(os.path.join(self.__workspace,
                                                   "data",
