@@ -1051,7 +1051,6 @@ class Task(object):
     def run(self):
         if self.__asyncronous:
             start = time.time()
-            logger.info("Checking qemu is running or not.")
             while True:
                 if self._task_is_running():
                     break
