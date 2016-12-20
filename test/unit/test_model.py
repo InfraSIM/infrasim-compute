@@ -7,10 +7,12 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import os
 import unittest
 import yaml
+import netifaces
 from infrasim import ArgsNotCorrect
 from infrasim import model
 from infrasim import socat
 from infrasim import config
+from infrasim import helper
 from test import fixtures
 
 TMP_CONF_FILE = "/tmp/test.yml"
@@ -740,3 +742,64 @@ class socat_configuration(unittest.TestCase):
 
         assert "pty,link={}/pty0,waitslave".format(config.infrasim_etc) in cmd
         assert "udp-listen:9003,reuseaddr" in cmd
+
+
+class racadm_configuration(unittest.TestCase):
+
+    def test_default_racadm(self):
+        racadm_obj = model.CRacadm({})
+
+        racadm_obj.init()
+        racadm_obj.precheck()
+        cmd = racadm_obj.get_commandline()
+
+        assert "racadmsim default 0.0.0.0 10022 admin admin" in cmd
+
+    def test_updated_racadm_info(self):
+        racadm_info = {
+            "interface": "lo",
+            "port": 10023,
+            "username": "fakeusername",
+            "password": "fakepassword"
+        }
+
+        racadm_obj = model.CRacadm(racadm_info)
+
+        racadm_obj.init()
+        racadm_obj.precheck()
+        cmd = racadm_obj.get_commandline()
+
+        assert "racadmsim default 127.0.0.1 10023 fakeusername fakepassword" \
+               in cmd
+
+    def test_conflict_port(self):
+        if not helper.check_if_port_in_use("0.0.0.0", 22):
+            self.skipTest("Port 22 is not in use, skip port conflict test")
+
+        racadm_info = {
+            "port": 22
+        }
+
+        racadm_obj = model.CRacadm(racadm_info)
+
+        racadm_obj.init()
+        try:
+            racadm_obj.precheck()
+        except ArgsNotCorrect, e:
+            assert ":22 is already in use" in str(e)
+
+    def test_non_exist_interface(self):
+        fake_interface = "fake"+netifaces.interfaces()[0]
+
+        racadm_info = {
+            "interface": fake_interface
+        }
+
+        racadm_obj = model.CRacadm(racadm_info)
+
+        racadm_obj.init()
+        try:
+            racadm_obj.precheck()
+        except ArgsNotCorrect, e:
+            assert "Specified racadm interface {} doesn\'t exist".\
+                       format(fake_interface) in str(e)

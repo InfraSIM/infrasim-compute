@@ -21,8 +21,6 @@ def auth(username, password):
     global auth_map
     if username in auth_map and auth_map[username] == password:
         return paramiko.AUTH_SUCCESSFUL
-    elif username in auth_map:
-        return paramiko.AUTH_PARTIALLY_SUCCESSFUL
     else:
         return paramiko.AUTH_FAILED
 
@@ -76,6 +74,9 @@ class iDRACHandler(sshim.Handler):
     def check_auth_password(self, username, password):
         return auth(username, password)
 
+    def check_auth_publickey(self, username, key):
+        return paramiko.AUTH_FAILED
+
     def check_channel_exec_request(self, channel, command):
         cmds = command.split()
 
@@ -122,7 +123,7 @@ class iDRACServer(threading.Thread):
 
 def start(instance="default",
           ipaddr="",
-          port=22,
+          port=10022,
           username="admin",
           password="admin"):
     # Init environment

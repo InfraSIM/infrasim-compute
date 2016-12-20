@@ -26,6 +26,7 @@ def teardown_module():
     os.system("pkill socat")
     os.system("pkill ipmi")
     os.system("pkill qemu")
+    os.environ["PATH"] = old_path
 
 
 class test_node_cli(unittest.TestCase):
