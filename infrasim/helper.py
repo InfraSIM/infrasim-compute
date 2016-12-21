@@ -4,13 +4,20 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
 import os
-import netifaces
 import socket
 from functools import wraps
 from ctypes import cdll
+import fcntl
+import struct
+from infrasim import run_command
 
 libc = cdll.LoadLibrary('libc.so.6')
 setns = libc.setns
+
+# From linux/socket.h
+AF_UNIX = 1
+
+SIOCGIFADDR = 0x8915
 
 
 def check_kvm_existence():
@@ -23,9 +30,9 @@ def run_in_namespace(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         namespace = None
-        if args:
+        try:
             namespace = getattr(args[0], "netns")
-        else:
+        except Exception:
             namespace = kwargs.get("netns")
 
         if namespace:
@@ -37,31 +44,44 @@ def run_in_namespace(func):
     return wrapper
 
 
-def get_interface_ip(interface):
+def get_interface_ip(ifname):
     """
     Get IP address given a interface name
     :param interface: interface name
     :return: empty string if no such interface, else IP address
     """
     try:
-        addr = netifaces.ifaddresses(interface)
-    except ValueError:
-        return ""
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        ifreq = struct.pack('16sH14s', ifname, AF_UNIX, '\x00'*14)
+        res = fcntl.ioctl(s.fileno(), SIOCGIFADDR, ifreq)
+        ip = struct.unpack('16sH2x4s8x', res)[2]
+        s.close()
+        return socket.inet_ntoa(ip)
+    except Exception:
+        return None
 
-    try:
-        ip = addr[netifaces.AF_INET][0]["addr"]
-    except KeyError:
-        return ""
 
-    return ip
+def _get_nic_interfaces(netns=None):
+    if netns is not None:
+        _, output = run_command("ip netns exec {} ls /sys/class/net".format(netns))
+        return output.strip().split()
+    else:
+        return os.listdir("/sys/class/net")
 
 
 @run_in_namespace
 def ip4_addresses(netns=None):
     ip_list = []
-    for interface in netifaces.interfaces():
-        for link in netifaces.ifaddresses(interface).get(netifaces.AF_INET, ()):
-            ip_list.append(link['addr'])
+    for intf_name in _get_nic_interfaces(netns=netns):
+        if intf_name.startswith("ovs"):
+            continue
+
+        ip_addr = get_interface_ip(intf_name)
+        if ip_addr is None:
+            continue
+
+        ip_list.append(ip_addr)
+
     return ip_list
 
 
