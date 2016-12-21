@@ -3,12 +3,28 @@ from infrasim import run_command
 from infrasim.model import CNode
 import unittest
 import time
+import os
 from nose.tools import assert_raises
-from infrasim import ArgsNotCorrect
+from infrasim import ArgsNotCorrect, CommandRunFailed
 
 
 class test_net_namespace(unittest.TestCase):
     dummy_intf_name = "eth0"
+
+    @classmethod
+    def tearDownClass(cls):
+        # Trying to clean up the environment
+        try:
+            _, output = run_command("ip netns")
+            netns_list = output.strip().split(os.linesep)
+            for netns in netns_list:
+                run_command("ip netns delete {}".format(netns))
+
+            run_command("pkill ipmi_sim")
+            run_command("pkill socat")
+            run_command("pkill qemu-system-x86_64")
+        except CommandRunFailed:
+            pass
 
     def _setup_netns(self, netns):
         # Create net namespace "test"
@@ -40,8 +56,11 @@ class test_net_namespace(unittest.TestCase):
     def _start_node(self, node_info):
         fake_node_obj = CNode(node_info)
         fake_node_obj.init()
-        fake_node_obj.precheck()
-        fake_node_obj.start()
+        try:
+            fake_node_obj.precheck()
+            fake_node_obj.start()
+        except Exception as e:
+            raise e
         return fake_node_obj
 
     def _stop_node(self, node_obj):
@@ -61,7 +80,6 @@ class test_net_namespace(unittest.TestCase):
 
         self._stop_node(fake_node_obj)
         self._teardown_netns("test")
-
 
     def test_two_nodes_running_in_different_net_namespace(self):
         self._setup_netns("test1")
@@ -114,11 +132,10 @@ class test_net_namespace(unittest.TestCase):
 
         fake_node["namespace"] = "test2"
         fake_node_obj_2 = CNode(fake_node)
+        fake_node_obj_2.precheck()
         for task in fake_node_obj_2.get_task_list():
             assert task.get_task_pid() > 0
 
         self._stop_node(fake_node_obj_1)
         self._teardown_netns("test1")
         self._teardown_netns("test2")
-
-
