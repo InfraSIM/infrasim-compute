@@ -23,6 +23,7 @@ import json
 import helper
 from workspace import Workspace
 from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
+from infrasim.helper import run_in_namespace
 
 """
 This module majorly defines infrasim element models.
@@ -990,6 +991,15 @@ class Task(object):
         # this task shall only be maintained with information
         # no actual run shall be taken
         self.__asyncronous = False
+        self.__netns = None
+
+    @property
+    def netns(self):
+        return self.__netns
+
+    @netns.setter
+    def netns(self, ns):
+        self.__netns = ns
 
     def set_priority(self, priority):
         self.__task_priority = priority
@@ -1031,23 +1041,24 @@ class Task(object):
 
         return pid
 
-    def __task_is_running(self):
+    def _task_is_running(self):
         pid = self.get_task_pid()
         if pid > 0 and os.path.exists("/proc/{}".format(pid)):
             return True
         return False
 
+    @run_in_namespace
     def run(self):
         if self.__asyncronous:
             start = time.time()
             while True:
-                if self.__task_is_running():
+                if self._task_is_running():
                     break
 
                 if time.time()-start > 10:
                     break
 
-            if not self.__task_is_running():
+            if not self._task_is_running():
                 print "[ {} ] {} fail to start".\
                     format("ERROR", self.__task_name)
             else:
@@ -1060,7 +1071,7 @@ class Task(object):
 
         pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
 
-        if self.__task_is_running():
+        if self._task_is_running():
             print "[ {:<6} ] {} is already running".format(
                 self.get_task_pid(), self.__task_name)
             return
@@ -1141,6 +1152,7 @@ class CCompute(Task, CElement):
         self.__sol_enabled = False
         self.__kernel = None
         self.__initrd = None
+        self.__mem_path = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -1163,6 +1175,7 @@ class CCompute(Task, CElement):
     def get_smbios(self):
         return self.__smbios
 
+    @run_in_namespace
     def precheck(self):
         # check if qemu-system-x86_64 exists
         try:
@@ -1176,10 +1189,10 @@ class CCompute(Task, CElement):
                                  format(self.__smbios))
 
         if self.__kernel and os.path.exists(self.__kernel) is False:
-            raise ArgsNotCorrect( "Kernel {} does not exist.".format(self.__kernel))
+            raise ArgsNotCorrect("Kernel {} does not exist.".format(self.__kernel))
 
         if self.__initrd and os.path.exists(self.__initrd) is False:
-            raise ArgsNotCorrect( "Kernel {} does not exist.".format(self.__initrd))
+            raise ArgsNotCorrect("Kernel {} does not exist.".format(self.__initrd))
 
         # check if VNC port is in use
         if helper.check_if_port_in_use("0.0.0.0", self.__display + 5900):
@@ -1192,6 +1205,7 @@ class CCompute(Task, CElement):
             except Exception as e:
                 raise e
 
+    @run_in_namespace
     def init(self):
 
         if 'kvm_enabled' in self.__compute and not helper.check_kvm_existence():
@@ -1237,6 +1251,8 @@ class CCompute(Task, CElement):
 
         if 'initrd' in self.__compute:
             self.__initrd = self.__compute['initrd']
+
+        self.__mem_path = self.__compute.get("mem_path")
 
         cpu_obj = CCPU(self.__compute['cpu'])
         self.__element_list.append(cpu_obj)
@@ -1326,6 +1342,9 @@ class CCompute(Task, CElement):
 
         if self.__bios:
             self.add_option("-bios {}".format(self.__bios))
+
+        if self.__mem_path:
+            self.add_option("-mem-path {}".format(self.__mem_path))
 
         if self.__boot_order:
             boot_param = ""
@@ -1455,6 +1474,7 @@ class CBMC(Task):
     def get_lancontrol_script(self):
         return self.__lancontrol_script
 
+    @run_in_namespace
     def precheck(self):
         # check if ipmi_sim exists
         try:
@@ -1571,6 +1591,7 @@ class CBMC(Task):
         with open(dst, "w") as f:
             f.write(bmc_conf)
 
+    @run_in_namespace
     def init(self):
         if 'address' in self.__bmc:
             self.__address = self.__bmc['address']
@@ -1737,6 +1758,7 @@ class CRacadm(Task):
                                  format(self.__ip,
                                         self.__port_idrac))
 
+    @run_in_namespace
     def init(self):
         if "interface" in self.__racadm_info:
             self.__interface = self.__racadm_info.get("interface", "")
@@ -1769,6 +1791,11 @@ class CNode(object):
         self.__numactl_obj = None
         self.workspace = None
         self.__sol_enabled = None
+        self.__netns = None
+
+    @property
+    def netns(self):
+        return self.__netns
 
     def get_task_list(self):
         return self.__tasks_list
@@ -1785,6 +1812,7 @@ class CNode(object):
     def get_node_info(self):
         return self.__node
 
+    @run_in_namespace
     def precheck(self):
         if self.__is_running():
             return
@@ -1794,13 +1822,6 @@ class CNode(object):
                 task.precheck()
             except ArgsNotCorrect as e:
                 raise e
-
-    def init_workspace(self):
-        self.workspace = Workspace()
-        self.workspace.set_node_info(self.__node)
-        # FIXME: Check pid file in workspace is not a proper way to check if node is running
-        if not self.__is_running():
-            self.workspace.init()
 
     def terminate_workspace(self):
         if Workspace.check_workspace_exists(self.__node_name):
@@ -1827,6 +1848,8 @@ class CNode(object):
             self.__node['sol_enable'] = True
         self.__sol_enabled = self.__node['sol_enable']
 
+        self.__netns = self.__node.get("namespace")
+
         # If user specify "network_mode" as "bridge" but without MAC
         # address, generate one for this network.
         for network in self.__node['compute']['networks']:
@@ -1837,9 +1860,6 @@ class CNode(object):
                     str2 = str(uuid_val)[-4:-2]
                     str3 = str(uuid_val)[-6:-4]
                     network['mac'] = ":".join(["52:54:BE", str1, str2, str3])
-
-        # Update config to workspace
-        self.init_workspace()
 
         if self.__sol_enabled:
             socat_obj = CSocat()
@@ -1899,8 +1919,19 @@ class CNode(object):
             bmc_obj.set_port_qemu_ipmi(self.__node["bmc_connection_port"])
             compute_obj.set_port_qemu_ipmi(self.__node["bmc_connection_port"])
 
+        self.workspace = Workspace(self.__node)
+
         for task in self.__tasks_list:
             task.set_workspace(self.workspace.get_workspace())
+
+        if not self.__is_running():
+            self.workspace.init()
+
+        if self.__netns:
+            for task in self.__tasks_list:
+                task.netns = self.__netns
+
+        for task in self.__tasks_list:
             task.init()
 
     # Run tasks list as the priority
@@ -1923,14 +1954,11 @@ class CNode(object):
             task.status()
 
     def __is_running(self):
-        try:
-            filenames = os.listdir(os.path.join(config.infrasim_home, self.__node_name))
-        except Exception:
-            return False
-        for filename in filenames:
-            if filename.endswith(".pid"):
-                return True
-        return False
+        state = False
+        for task in self.__tasks_list:
+            state |= task._task_is_running()
+
+        return state
 
 
 class NumaCtl(object):

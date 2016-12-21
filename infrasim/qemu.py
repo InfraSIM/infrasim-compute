@@ -62,6 +62,8 @@ def start_qemu(conf_file=config.infrasim_default_config):
 
         sol_enabled = conf["sol_enable"] if "sol_enable" in conf else True
 
+        compute.netns = conf.get("namespace")
+
         # Set attributes
         compute.enable_sol(sol_enabled)
         compute.set_task_name("{}-node".format(node_name))

@@ -292,7 +292,6 @@ class bmc_configuration(unittest.TestCase):
 
         cls.node = model.CNode(cls.conf)
         cls.node.set_node_name(cls.conf['name'])
-        cls.node.init_workspace()
         socat.start_socat(conf_file=TMP_CONF_FILE)
 
     @classmethod
