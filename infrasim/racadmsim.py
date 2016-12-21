@@ -12,7 +12,7 @@ import re
 import paramiko
 from os import linesep
 from . import sshim, logger
-from .repl import REPL, register, parse
+from .repl import REPL, register, parse, QuitREPL
 
 auth_map = {}
 
@@ -31,9 +31,44 @@ class RacadmConsole(REPL):
         super(RacadmConsole, self).__init__()
         self.prompt = "racadmsim>>"
 
+    def refine_cmd(self, cmd):
+        """
+        For racadm console, it allows write racadm as prefix.
+        So when you enter `racadm getled`, you actually run
+        `getled`, the cmd need to be revised.
+        """
+        while True:
+            if cmd and cmd[0] == "racadm":
+                del cmd[0]
+            else:
+                return cmd
+
     @register
     def hwinventory(self, ctx, args):
         return "hwinventory is not implemented yet"
+
+    def run(self):
+        self.welcome()
+        while True:
+            # READ
+            inp = self.input(self.prompt)
+
+            # EVAL
+            cmd = self.refine_cmd(parse(inp))
+
+            try:
+                out = self.do(cmd)
+            except EOFError:
+                return
+            except QuitREPL:
+                return
+
+            # PRINT
+            self.output(linesep)
+            self.output(" ".join(["racadm"]+cmd))
+            if out is not None:
+                self.output(out)
+                self.output(linesep)
 
 
 class iDRACConsole(REPL):
@@ -52,7 +87,7 @@ class iDRACConsole(REPL):
     @register
     def racadm(self, ctx, args):
         """
-        Enter racadmsim console or call racadmsim sub command
+        Enter racadmsim console or call sub commands
         """
         if len(args) == 1:
             racadm = RacadmConsole()
