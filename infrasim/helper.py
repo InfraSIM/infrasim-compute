@@ -9,7 +9,9 @@ from functools import wraps
 from ctypes import cdll
 import fcntl
 import struct
+import array
 from infrasim import run_command
+from infrasim import logger
 
 libc = cdll.LoadLibrary('libc.so.6')
 setns = libc.setns
@@ -17,6 +19,7 @@ setns = libc.setns
 # From linux/socket.h
 AF_UNIX = 1
 
+SIOCGIFCONF = 0x8912
 SIOCGIFADDR = 0x8915
 
 
@@ -61,18 +64,26 @@ def get_interface_ip(ifname):
         return None
 
 
-def _get_nic_interfaces(netns=None):
-    if netns is not None:
-        _, output = run_command("ip netns exec {} ls /sys/class/net".format(netns))
-        return output.strip().split()
-    else:
-        return os.listdir("/sys/class/net")
+def get_all_interfaces():
+    bytes = 128 * 32
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    interface_names = array.array('B', '\0' * bytes)
+    inbytes = struct.pack('iL', bytes, interface_names.buffer_info()[0])
+    res = fcntl.ioctl(s.fileno(), SIOCGIFCONF, inbytes)
+    returned_bytes = struct.unpack('iL', res)[0]
+    interface_names_str = interface_names.tostring()
+    intf_list = []
+    for i in range(0, returned_bytes, 40):
+        intfn = interface_names_str[i:i+16].split('\0', 1)[0]
+        intf_list.append(intfn)
+    logger.info(intf_list)
+    return intf_list
 
 
 @run_in_namespace
 def ip4_addresses(netns=None):
     ip_list = []
-    for intf_name in _get_nic_interfaces(netns=netns):
+    for intf_name in get_all_interfaces():
         if intf_name.startswith("ovs"):
             continue
 
