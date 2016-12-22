@@ -206,7 +206,7 @@ class iDRACHandler(sshim.Handler):
             # else, execute command and response
             else:
                 idrac = iDRACConsole()
-                idrac.set_output(channel.send)
+                idrac.set_output(channel.sendall)
                 idrac.output(idrac.do(cmds))
 
         return True
