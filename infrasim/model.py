@@ -15,7 +15,6 @@ import os
 import uuid
 import signal
 import jinja2
-import netifaces
 import math
 import shutil
 import config
@@ -659,10 +658,10 @@ class CNetwork(CElement):
         # bridge exists?
         if self.__network_mode == "bridge":
             if self.__bridge_name is None:
-                if "br0" not in netifaces.interfaces():
+                if "br0" not in helper.get_all_interfaces():
                     raise ArgsNotCorrect("ERROR: network_name(br0) is not exists")
             else:
-                if self.__bridge_name not in netifaces.interfaces():
+                if self.__bridge_name not in helper.get_all_interfaces():
                     raise ArgsNotCorrect("ERROR: network_name({}) is not exists".
                                          format(self.__bridge_name))
             if "mac" not in self.__network:
@@ -1490,7 +1489,7 @@ class CBMC(Task):
             raise ArgsNotCorrect("Port {} is already in use.".format(self.__port_ipmi_console))
 
         # check lan interface exists
-        if self.__lan_interface not in netifaces.interfaces():
+        if self.__lan_interface not in helper.get_all_interfaces():
             raise ArgsNotCorrect("Specified BMC interface {} doesn\'t exist".
                                  format(self.__lan_interface))
         if not self.__ipmi_listen_range:
@@ -1645,8 +1644,8 @@ class CBMC(Task):
             self.__lan_interface = self.__bmc['interface']
             self.__ipmi_listen_range = helper.get_interface_ip(self.__lan_interface)
         else:
-            nics_list = netifaces.interfaces()
-            self.__lan_interface = filter(lambda x: 'e' in x, nics_list)[0]
+            nics_list = helper.get_all_interfaces()
+            self.__lan_interface = filter(lambda x: x is not "lo", nics_list)[0]
 
         if 'lancontrol' in self.__bmc:
             self.__lancontrol_script = self.__bmc['lancontrol']
