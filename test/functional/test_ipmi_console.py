@@ -304,7 +304,7 @@ class test_ipmi_console_config_change(unittest.TestCase):
         node_info["ipmi_console_port"] = 9100
         node_info["ipmi_console_ssh"] = 9400
         cls.bmc_conf = os.path.join(os.environ["HOME"], ".infrasim",
-                                    node_info["name"], "data", "vbmc.conf")
+                                    node_info["name"], "etc", "vbmc.conf")
 
         with open(cls.TMP_CONF_FILE, "w") as f:
             yaml.dump(node_info, f, default_flow_style=False)

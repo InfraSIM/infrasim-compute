@@ -227,7 +227,7 @@ class test_node_cli(unittest.TestCase):
 class test_config_cli_with_runtime_node(unittest.TestCase):
     test_name = "test"
     test_workspace = os.path.join(config.infrasim_home, test_name)
-    test_runtime_yml = os.path.join(test_workspace, "data", "infrasim.yml")
+    test_runtime_yml = os.path.join(test_workspace, "etc", "infrasim.yml")
     test_config_path = "test.yml"
 
     def setUp(self):
@@ -282,7 +282,7 @@ class test_config_cli_with_runtime_node(unittest.TestCase):
 class test_config_cli_without_runtime_node(unittest.TestCase):
     test_name = "test"
     test_workspace = os.path.join(config.infrasim_home, test_name)
-    test_runtime_yml = os.path.join(test_workspace, "data", "infrasim.yml")
+    test_runtime_yml = os.path.join(test_workspace, "etc", "infrasim.yml")
     test_config_path = "test.yml"
 
     def setUp(self):
