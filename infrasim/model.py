@@ -1747,6 +1747,7 @@ class CRacadm(Task):
         self.__password = ""
         self.__interface = None
         self.__ip = ""
+        self.__data_src = ""
 
     def precheck(self):
         if not self.__ip:
@@ -1768,18 +1769,20 @@ class CRacadm(Task):
         self.__port_idrac = self.__racadm_info.get("port", 10022)
         self.__username = self.__racadm_info.get("username", "admin")
         self.__password = self.__racadm_info.get("password", "admin")
+        self.__data_src = self.__racadm_info.get("data", "auto")
 
     def set_node_name(self, name):
         self.__node_name = name
 
     def get_commandline(self):
-        racadmsim_str = "{} {} {} {} {} {}".\
+        racadmsim_str = "{} {} {} {} {} {} {}".\
             format(self.__bin,
                    self.__node_name,
                    self.__ip,
                    self.__port_idrac,
                    self.__username,
-                   self.__password)
+                   self.__password,
+                   self.__data_src)
         return racadmsim_str
 
 
