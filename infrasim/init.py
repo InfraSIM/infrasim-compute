@@ -8,7 +8,7 @@ from infrasim.socat import get_socat
 from infrasim.ipmi import get_ipmi
 from infrasim.qemu import get_qemu
 from infrasim.package_install import package_install
-import netifaces
+from infrasim import helper
 import config
 
 mac_base = "00:60:16:"
@@ -36,8 +36,8 @@ def init_infrasim_conf(node_type):
 
     # Prepare default network
     networks = []
-    nics_list = netifaces.interfaces()
-    eth_nic = filter(lambda x: 'e' in x, nics_list)[0]
+    nics_list = helper.get_all_interfaces()
+    eth_nic = filter(lambda x: x != "lo", nics_list)[0]
     mac = create_mac_address()
     networks.append({"nic": eth_nic, "mac": mac})
 
