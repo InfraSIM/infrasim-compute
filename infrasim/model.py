@@ -1645,7 +1645,7 @@ class CBMC(Task):
             self.__ipmi_listen_range = helper.get_interface_ip(self.__lan_interface)
         else:
             nics_list = helper.get_all_interfaces()
-            self.__lan_interface = filter(lambda x: x is not "lo", nics_list)[0]
+            self.__lan_interface = filter(lambda x: x != "lo", nics_list)[0]
 
         if 'lancontrol' in self.__bmc:
             self.__lancontrol_script = self.__bmc['lancontrol']
