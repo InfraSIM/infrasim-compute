@@ -74,9 +74,9 @@ compute:
             network_name: {{ network['nic'] }}
 
             #Set network device for qemu. The options should be:
-            #	vmxnet3 --default
-            #   e1000
-            device: vmxnet3
+            #	vmxnet3 
+            #   e1000       --default
+            device: e1000
 
             #Set MAC for this network, this MAC is generated with
             #datetime as random seed, but you can specify yours
