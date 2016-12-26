@@ -7,7 +7,6 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import os
 import unittest
 import yaml
-import netifaces
 from infrasim import ArgsNotCorrect
 from infrasim import model
 from infrasim import socat
@@ -788,7 +787,7 @@ class racadm_configuration(unittest.TestCase):
             assert ":22 is already in use" in str(e)
 
     def test_non_exist_interface(self):
-        fake_interface = "fake"+netifaces.interfaces()[0]
+        fake_interface = "fake0"
 
         racadm_info = {
             "interface": fake_interface
