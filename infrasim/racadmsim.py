@@ -173,18 +173,32 @@ class iDRACConsole(REPL):
         Enter racadmsim console or call sub commands
         """
         if len(args) == 1:
-            racadm = RacadmConsole()
-            racadm.set_input(self.input)
-            racadm.set_output(self.output)
-            racadm.run()
+            self.output("Not supported yet.")
+            return
+            # racadm = RacadmConsole()
+            # racadm.set_input(self.input)
+            # racadm.set_output(self.output)
+            # racadm.run()
         else:
             racadm = RacadmConsole()
             racadm.set_output(self.output)
             racadm_cmd = parse(" ".join(args[1:]))
-            racadm.output(racadm.do(racadm_cmd).strip(linesep))
+            rsp = racadm.do(racadm_cmd)
+            if rsp:
+                racadm.output(rsp.strip(linesep))
+            else:
+                racadm.output(linesep)
 
 
 class iDRACHandler(sshim.Handler):
+    def __init__(self, server, connection):
+        # paramiko.ServerInterface.start_server() raise exception
+        # and make server instance quite.
+        # Here the exception is captured in case of a service stop
+        try:
+            super(iDRACHandler, self).__init__(server, connection)
+        except Exception:
+            pass
 
     def check_auth_none(self, username):
         return paramiko.AUTH_FAILED
@@ -260,5 +274,8 @@ def start(instance="default",
     server.run()
 
 if __name__ == "__main__":
+    # Try to run this from code root directory, with command:
+    #     python -m infrasim.racadmsim
+    auth_map["admin"] = "admin"
     server = sshim.Server(iDRACServer, port=10022, handler=iDRACHandler)
     server.run()

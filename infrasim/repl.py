@@ -81,7 +81,7 @@ class REPL(object):
             return None
 
         if cmd[0] not in self.commands:
-            self.output('Unknown command, run "help" for detail')
+            self.output('Unknown command, run "help" for detail'+linesep)
             return None
 
         func = self.commands[cmd[0]]
