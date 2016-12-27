@@ -53,6 +53,8 @@ class test_racadm_robust(unittest.TestCase):
         fake_config = fixtures.FakeConfig()
         self.conf = fake_config.get_node_info()
         self.conf["type"] = "dell_c6320"
+        self.old_path = os.environ.get("PATH")
+        os.environ["PATH"] = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), self.old_path)
 
     def tearDown(self):
         if self.channel:
@@ -67,6 +69,7 @@ class test_racadm_robust(unittest.TestCase):
         if os.path.exists(TMP_CONF_FILE):
             os.unlink(TMP_CONF_FILE)
         self.conf = None
+        os.environ["PATH"] = self.old_path
 
     def test_server_live_after_inline_wrong_password(self):
 
