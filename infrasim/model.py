@@ -707,18 +707,19 @@ class CNetwork(CElement):
             netdev_option = ",".join(['bridge', 'id=netdev{}'.format(self.__index),
                                       'br={}'.format(self.__bridge_name),
                                       'helper={}'.format(bridge_helper)])
-            nic_option = ",".join(["{}".format(self.__nic_name),
-                                   "netdev=netdev{}".format(self.__index),
-                                   "mac={}".format(self.__mac_address)])
 
-            network_option = " ".join(["-netdev {}".format(netdev_option),
-                                       "-device {}".format(nic_option)])
         elif self.__network_mode == "nat":
-            network_option = "-net user -net nic"
+            netdev_option = ",".join(["user", "id=netdev{}".format(self.__index)])
         else:
             raise Exception("ERROR: {} is not supported now.".
                             format(self.__network_mode))
 
+        nic_option = ",".join(["{}".format(self.__nic_name),
+                                "netdev=netdev{}".format(self.__index),
+                                "mac={}".format(self.__mac_address)])
+
+        network_option = " ".join(["-netdev {}".format(netdev_option),
+                                    "-device {}".format(nic_option)])
         self.add_option(network_option)
 
 
@@ -1086,7 +1087,8 @@ class Task(object):
         print "[ {:<6} ] {} starts to run".format(pid, self.__task_name)
 
         with open(pid_file, "w") as f:
-            f.write("{}".format(pid))
+            if os.path.exists("/proc/{}".format(pid)):
+                f.write("{}".format(pid))
 
     def terminate(self):
         task_pid = self.get_task_pid()
@@ -1097,9 +1099,10 @@ class Task(object):
                 print "[ {:<6} ] {} stop".format(task_pid, self.__task_name)
                 time.sleep(1)
                 if os.path.exists("/proc/{}".format(task_pid)):
-                    os.system("kill -9 {}".format(task_pid))
+                    os.kill(int(task_pid), signal.SIGKILL)
             else:
                 print "[ {:<6} ] {} is stopped".format("", self.__task_name)
+
             if os.path.exists(pid_file):
                 os.remove(pid_file)
         except OSError:
@@ -1908,13 +1911,12 @@ class CNode(object):
         # If user specify "network_mode" as "bridge" but without MAC
         # address, generate one for this network.
         for network in self.__node['compute']['networks']:
-            if network['network_mode'] == 'bridge':
-                if 'mac' not in network:
-                    uuid_val = uuid.uuid4()
-                    str1 = str(uuid_val)[-2:]
-                    str2 = str(uuid_val)[-4:-2]
-                    str3 = str(uuid_val)[-6:-4]
-                    network['mac'] = ":".join(["52:54:BE", str1, str2, str3])
+            if 'mac' not in network:
+                uuid_val = uuid.uuid4()
+                str1 = str(uuid_val)[-2:]
+                str2 = str(uuid_val)[-4:-2]
+                str3 = str(uuid_val)[-6:-4]
+                network['mac'] = ":".join(["52:54:BE", str1, str2, str3])
 
         if self.__sol_enabled:
             socat_obj = CSocat()
