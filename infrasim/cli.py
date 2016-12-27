@@ -100,13 +100,15 @@ class NodeCommands(object):
         self._node_preinit(node)
         node.start()
 
+        vnc_port = node_info["compute"].get("vnc_display", 1) + 5900
+
         # get IP address
         print "Infrasim service started.\n" \
             "Node {} graphic interface accessible via: \n" \
-            "VNC port: 5901 \n" \
+            "VNC port: {} \n" \
             "Either host IP: {} \n" \
             "depending on host in which network VNC viewer is running". \
-            format(node.get_node_name(), helper.ip4_addresses(netns=node_info.get("namespace")))
+            format(node.get_node_name(), vnc_port, helper.ip4_addresses(netns=node_info.get("namespace")))
 
     @node_workspace_exists
     @args("node_name", nargs='?', default="default", help="Specify node name to stop")
