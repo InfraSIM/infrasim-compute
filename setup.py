@@ -40,25 +40,26 @@ def load_version(filename):
                 break
     return version
 
-ver = load_version("template/version.yml")
-if ver is not None:
-    for line in fileinput.input("setup.cfg", inplace=True):
-        if line.startswith("version ="):
-            continue
 
-        print line,
-        if line.startswith("summary"):
-            print "version =", ver
-else:
-    r = requests.get("https://api.github.com/repos/InfraSIM/infrasim-compute/releases/latest")
-    if r.ok:
-        data = json.loads(r.content)
-        ver = data['tag_name']
+r = requests.get("https://api.github.com/repos/InfraSIM/infrasim-compute/releases/latest")
+if r.ok:
+    data = json.loads(r.content)
+    ver = data['tag_name']
     for line in fileinput.input("template/version.yml", inplace=True):
         if line.startswith("version"):
             print "version: ", ver,
         else:
             print line,
+else:
+    ver = load_version("template/version.yml")
+    if ver is not None:
+        for line in fileinput.input("setup.cfg", inplace=True):
+            if line.startswith("version ="):
+                continue
+
+            print line,
+            if line.startswith("summary"):
+                print "version =", ver
 
 setuptools.setup(
     setup_requires=['pbr'],
