@@ -10,7 +10,7 @@ import time
 import yaml
 import config
 from infrasim.model import CSocat, CNode
-from . import run_command, logger, CommandNotFound, CommandRunFailed
+from . import run_command, logger, CommandNotFound, CommandRunFailed, InfraSimError
 
 
 def get_socat():
@@ -57,6 +57,9 @@ def start_socat(conf_file=config.infrasim_default_config):
         time.sleep(3)
         logger.info("socat start")
     except CommandRunFailed as e:
+        logger.error(e.value)
+        raise e
+    except InfraSimError as e:
         logger.error(e.value)
         raise e
 

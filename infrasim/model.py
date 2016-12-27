@@ -1981,8 +1981,11 @@ class CNode(object):
             for task in self.__tasks_list:
                 task.netns = self.__netns
 
-        for task in self.__tasks_list:
-            task.init()
+        try:
+            for task in self.__tasks_list:
+                task.init()
+        except Exception, e:
+            raise e
 
     # Run tasks list as the priority
     def start(self):

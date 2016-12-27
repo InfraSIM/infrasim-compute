@@ -9,7 +9,7 @@ import os
 import yaml
 import time
 import config
-from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect
+from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect, InfraSimError
 from model import CCompute
 
 
@@ -96,6 +96,9 @@ def start_qemu(conf_file=config.infrasim_default_config):
         logger.error(e.value)
         raise e
     except ArgsNotCorrect as e:
+        logger.error(e.value)
+        raise e
+    except InfraSimError as e:
         logger.error(e.value)
         raise e
 

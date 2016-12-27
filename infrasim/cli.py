@@ -84,20 +84,17 @@ class NodeCommands(object):
 
     @args("node_name", nargs='?', default="default", help="Specify node name to start")
     def start(self, node_name):
-        if Workspace.check_workspace_exists(node_name):
-            try:
+        try:
+            if Workspace.check_workspace_exists(node_name):
                 node_info = Workspace.get_node_info_in_workspace(node_name)
-            except InfraSimError, e:
-                print e.value
-                return
-        else:
-            try:
+            else:
                 node_info = nm.get_node_info(node_name)
-            except InfraSimError, e:
-                print e.value
-                return
-        node = model.CNode(node_info)
-        self._node_preinit(node)
+            node = model.CNode(node_info)
+            self._node_preinit(node)
+        except InfraSimError, e:
+            print e.value
+            return
+
         node.start()
 
         vnc_port = node_info["compute"].get("vnc_display", 1) + 5900
@@ -115,13 +112,12 @@ class NodeCommands(object):
     def stop(self, node_name):
         try:
             node_info = Workspace.get_node_info_in_workspace(node_name)
+            node = model.CNode(node_info)
+            self._node_preinit(node, ignore_check=True)
+            node.stop()
         except InfraSimError, e:
             print e.value
             return
-
-        node = model.CNode(node_info)
-        self._node_preinit(node, ignore_check=True)
-        node.stop()
 
     @node_workspace_exists
     @args("node_name", nargs='?', default="default", help="Specify node name to restart")
@@ -135,13 +131,11 @@ class NodeCommands(object):
     def status(self, node_name):
         try:
             node_info = Workspace.get_node_info_in_workspace(node_name)
+            node = model.CNode(node_info)
+            self._node_preinit(node, ignore_check=True)
+            node.status()
         except InfraSimError, e:
             print e.value
-            return
-
-        node = model.CNode(node_info)
-        self._node_preinit(node, ignore_check=True)
-        node.status()
 
     @args("node_name", nargs='?', default="default", help="Specify node name to destroy")
     def destroy(self, node_name):
@@ -156,8 +150,11 @@ class NodeCommands(object):
                 format(node_name)
             return
         node = model.CNode(node_info)
-        self._node_preinit(node, ignore_check=True)
-        node.stop()
+        try:
+            self._node_preinit(node, ignore_check=True)
+            node.stop()
+        except InfraSimError, e:
+            print e.value
         node.terminate_workspace()
 
     @node_workspace_exists
