@@ -10,7 +10,7 @@ from ctypes import cdll
 import fcntl
 import struct
 import array
-from infrasim import run_command
+from infrasim import run_command, InfraSimError
 
 libc = cdll.LoadLibrary('libc.so.6')
 setns = libc.setns
@@ -40,6 +40,7 @@ def run_in_namespace(func):
         if namespace:
             with Namespace(nsname=namespace):
                 ret = func(*args, **kwargs)
+
         else:
             ret = func(*args, **kwargs)
         return ret
@@ -124,8 +125,8 @@ class Namespace(object):
                                       nsname=nsname,
                                       nspid=nspid)
 
-        if not self.targetpath:
-            raise ValueError('invalid namespace')
+        if not os.path.exists(self.targetpath):
+            raise InfraSimError('invalid namespace {}'.format(nsname))
 
     def __enter__(self):
         self.myns = open(self.mypath)
