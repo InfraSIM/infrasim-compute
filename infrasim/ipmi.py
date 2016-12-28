@@ -8,7 +8,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import os
 import yaml
 import config
-from . import run_command, logger, ArgsNotCorrect, CommandNotFound, CommandRunFailed
+from . import run_command, logger, ArgsNotCorrect, CommandNotFound, CommandRunFailed, InfraSimError
 from model import CBMC, CNode
 
 
@@ -58,6 +58,9 @@ def start_ipmi(conf_file=config.infrasim_default_config):
         logger.error(e.value)
         raise e
     except ArgsNotCorrect as e:
+        logger.error(e.value)
+        raise e
+    except InfraSimError as e:
         logger.error(e.value)
         raise e
 
