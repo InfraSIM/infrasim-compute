@@ -12,11 +12,11 @@ import subprocess
 import os
 import yaml
 import time
-import netifaces
 import hashlib
 import paramiko
 from infrasim import model
 from test import fixtures
+from infrasim import helper
 
 PS_QEMU = "ps ax | grep qemu"
 PS_IPMI = "ps ax | grep ipmi"
@@ -250,15 +250,8 @@ class test_bmc_configuration_change(unittest.TestCase):
         # [{"interface":"ens160","ip":"192.168.190.9"}, {}]
         # If the list has no less than 2 interface, do this test
         valid_nic = []
-        for interface in netifaces.interfaces():
-            try:
-                addr = netifaces.ifaddresses(interface)
-            except ValueError:
-                continue
-            try:
-                ip = addr[netifaces.AF_INET][0]["addr"]
-            except KeyError:
-                ip = ""
+        for interface in helper.get_all_interfaces():
+            ip = helper.get_interface_ip(interface)
             if ip:
                 valid_nic.append({"interface": interface, "ip": ip})
 
@@ -298,6 +291,8 @@ class test_connection(unittest.TestCase):
         self.conf = fake_config.get_node_info()
         self.bmc_conf = os.path.join(os.environ["HOME"], ".infrasim",
                                      "test", "etc", "vbmc.conf")
+        self.old_path = os.environ.get("PATH")
+        os.environ["PATH"] = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), self.old_path)
 
     def tearDown(self):
         node = model.CNode(self.conf)
@@ -307,6 +302,7 @@ class test_connection(unittest.TestCase):
         if os.path.exists(TMP_CONF_FILE):
             os.unlink(TMP_CONF_FILE)
         self.conf = None
+        os.environ["PATH"] = self.old_path
 
     def test_set_sol_device(self):
         temp_sol_device = "{}/.infrasim/pty_test".format(os.environ['HOME'])
@@ -405,6 +401,8 @@ class test_racadm_configuration_change(unittest.TestCase):
         fake_config = fixtures.FakeConfig()
         self.conf = fake_config.get_node_info()
         self.conf["type"] = "dell_c6320"
+        self.old_path = os.environ.get("PATH")
+        os.environ["PATH"] = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), self.old_path)
 
     def tearDown(self):
         if self.channel:
@@ -419,6 +417,7 @@ class test_racadm_configuration_change(unittest.TestCase):
         if os.path.exists(TMP_CONF_FILE):
             os.unlink(TMP_CONF_FILE)
         self.conf = None
+        os.environ["PATH"] = self.old_path
 
     def test_default_config(self):
         # Start service

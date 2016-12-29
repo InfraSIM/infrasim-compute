@@ -1152,6 +1152,7 @@ class CCompute(Task, CElement):
         self.__sol_enabled = False
         self.__kernel = None
         self.__initrd = None
+        self.__cmdline = None
         self.__mem_path = None
 
     def enable_sol(self, enabled):
@@ -1251,6 +1252,8 @@ class CCompute(Task, CElement):
 
         if 'initrd' in self.__compute:
             self.__initrd = self.__compute['initrd']
+
+        self.__cmdline = self.__compute.get("cmdline")
 
         self.__mem_path = self.__compute.get("mem_path")
 
@@ -1388,6 +1391,9 @@ class CCompute(Task, CElement):
 
         if self.__kernel and self.__initrd:
             self.add_option("-kernel {} -initrd {}".format(self.__kernel, self.__initrd))
+
+        if self.__cmdline:
+            self.add_option("--append \"{}\"".format(self.__cmdline))
 
         for element_obj in self.__element_list:
             element_obj.handle_parms()

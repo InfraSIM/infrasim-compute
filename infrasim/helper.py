@@ -11,7 +11,6 @@ import fcntl
 import struct
 import array
 from infrasim import run_command, InfraSimError
-from infrasim import logger
 
 libc = cdll.LoadLibrary('libc.so.6')
 setns = libc.setns
@@ -77,7 +76,6 @@ def get_all_interfaces():
     for i in range(0, returned_bytes, 40):
         intfn = interface_names_str[i:i+16].split('\0', 1)[0]
         intf_list.append(intfn)
-    logger.info(intf_list)
     return intf_list
 
 
