@@ -11,12 +11,15 @@ import threading
 import re
 import paramiko
 import os
+import logging
 from os import linesep
 from . import sshim, logger
 from .repl import REPL, register, parse, QuitREPL
+from infrasim import config
 
 auth_map = {}
 racadm_data = None
+r_log = None
 
 
 def auth(username, password):
@@ -38,6 +41,26 @@ def fake_data(name):
         return rsp
     else:
         return None
+
+
+def init_log(instance="default"):
+    """
+    Create log folder, prepare handler and recording level
+    """
+    global r_log
+
+    r_log = logging.getLogger(__name__)
+
+    log_folder = os.path.join(config.infrasim_logdir, instance)
+    if not os.path.exists(log_folder):
+        os.mkdir(log_folder)
+    log_path = os.path.join(log_folder, "racadmsim.log")
+
+    r_hdl = logging.FileHandler(log_path)
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    r_hdl.setFormatter(formatter)
+    r_log.addHandler(r_hdl)
+    r_log.setLevel(logging.NOTSET)
 
 
 class RacadmConsole(REPL):
@@ -138,17 +161,21 @@ class RacadmConsole(REPL):
 
             # EVAL
             cmd = self.refine_cmd(parse(inp))
+            r_log.info("[req][repl] {}".format(inp))
 
             try:
                 out = self.do(cmd)
             except EOFError:
+                r_log.warning("[rsp][repl] EOFError")
                 return
             except QuitREPL:
+                r_log.info("[rsp][repl] Quite REPL")
                 return
 
             # PRINT
             self.output(linesep)
             self.output(" ".join(["racadm"]+cmd))
+            r_log.info("[rsp][repl]{}{}".format(linesep, out))
             if out is not None:
                 self.output(out)
                 self.output(linesep)
@@ -173,17 +200,17 @@ class iDRACConsole(REPL):
         Enter racadmsim console or call sub commands
         """
         if len(args) == 1:
-            self.output("Not supported yet.")
-            return
-            # racadm = RacadmConsole()
-            # racadm.set_input(self.input)
-            # racadm.set_output(self.output)
-            # racadm.run()
+            racadm = RacadmConsole()
+            racadm.set_input(self.input)
+            racadm.set_output(self.output)
+            racadm.run()
         else:
+            r_log.info("[req][inline] {}".format(" ".join(args)))
             racadm = RacadmConsole()
             racadm.set_output(self.output)
             racadm_cmd = parse(" ".join(args[1:]))
             rsp = racadm.do(racadm_cmd)
+            r_log.info("[rsp][inline]{}{}".format(linesep, rsp))
             if rsp:
                 racadm.output(rsp.strip(linesep))
             else:
@@ -214,14 +241,15 @@ class iDRACHandler(sshim.Handler):
 
         with channel:
             # If commands is racadmsim, go to racadmsim console
-            if cmds == ["racadmsim"]:
+            if cmds == ["racadm"]:
                 channel.send("SSH to iDRAC {}:{} then go to racadmsim console.{}".
                              format(self.address, self.server.port, linesep))
             # else, execute command and response
             else:
                 idrac = iDRACConsole()
                 idrac.set_output(channel.sendall)
-                idrac.output(idrac.do(cmds))
+                rsp = idrac.do(cmds)
+                idrac.output(rsp)
 
         return True
 
@@ -265,17 +293,21 @@ def start(instance="default",
     auth_map[username] = password
     if os.path.exists(data_src):
         racadm_data = data_src
+    init_log(instance)
 
     server = sshim.Server(iDRACServer,
                           address=ipaddr,
                           port=int(port),
                           handler=iDRACHandler)
-    logger.info("{}-racadm start".format(instance))
+    logger.info("{}-racadm start on ip: {}, port: {}".
+                format(instance, ipaddr, port))
     server.run()
 
 if __name__ == "__main__":
     # Try to run this from code root directory, with command:
     #     python -m infrasim.racadmsim
     auth_map["admin"] = "admin"
+    init_log("default")
+
     server = sshim.Server(iDRACServer, port=10022, handler=iDRACHandler)
     server.run()
