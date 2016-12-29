@@ -218,3 +218,46 @@ class test_racadm_robust(unittest.TestCase):
         time.sleep(1)
         str_output = read_buffer(self.channel)
         assert "hwinventory" in str_output
+
+    def test_login_and_exit_racadm_repl(self):
+        # Start service
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        # Prepare SSH channel
+        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.ssh.connect('127.0.0.1',
+                         username='admin',
+                         password='admin',
+                         port=10022)
+        self.channel = self.ssh.invoke_shell()
+
+        # Go to iDRAC console
+        self.channel.send("help"+chr(13))
+        time.sleep(1)
+        str_output = read_buffer(self.channel)
+        assert "racadm" in str_output
+
+        # Go to racadm console
+        self.channel.send("racadm"+chr(13))
+        time.sleep(1)
+        str_output = read_buffer(self.channel)
+        assert "Welcome to RacadmConsole" in str_output
+
+        self.channel.send(chr(13))
+        time.sleep(1)
+        str_output = read_buffer(self.channel)
+        assert "racadmsim>>" in str_output
+
+        # Exit racadm console
+        self.channel.send("exit"+chr(13))
+        time.sleep(1)
+        str_output = read_buffer(self.channel)
+        assert "Exit RacadmConsole console" in str_output
+
+        self.channel.send(chr(13))
+        time.sleep(1)
+        str_output = read_buffer(self.channel)
+        assert "/admin1->" in str_output
