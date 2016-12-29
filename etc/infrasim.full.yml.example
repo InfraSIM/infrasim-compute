@@ -31,6 +31,7 @@ compute:
     boot_order: ncd
     kvm_enabled: true
     numa_control: true
+    cmdline: API_CB=192.168.1.1:8000 BASEFS=base.trusty.3.16.0-25-generic.squashfs.img OVERLAYFS=discovery.overlay.cpio.gz BOOTIF=52-54-BF-11-22-33
     cpu:
         model: host
         features: +vmx
