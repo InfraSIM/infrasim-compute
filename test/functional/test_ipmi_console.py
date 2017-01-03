@@ -130,6 +130,12 @@ class test_ipmi_console(unittest.TestCase):
         if os.path.exists(workspace):
             shutil.rmtree(workspace)
 
+    def test_start(self):
+        ipmi_start_cmd = 'ps ax | grep ipmi-console'
+        returncode, output = run_command(ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertEqual(returncode, 0)
+        assert 'ipmi-console start' in output
+
     def test_sensor_accessibility(self):
         self.channel.send('sensor info\n')
         time.sleep(1)
