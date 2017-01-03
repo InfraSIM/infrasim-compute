@@ -144,16 +144,12 @@ def start(instance="default"):
     daemon.daemonize("{}/{}/.ipmi_console.pid".format(config.infrasim_home, instance))
     # initialize logging
     common.init_logger(instance)
-
     # initialize environment
     common.init_env(instance)
-
     # parse the sdrs and build all sensors
     sdr.parse_sdrs()
-
     # running thread for each threshold based sensor
     _spawn_sensor_thread()
-
     _start_console()
 
 
@@ -177,11 +173,11 @@ def stop(instance="default"):
 
 def console_main(instance="default"):
     if len(sys.argv) < 2:
-        print "ipmi-console [ start | stop ] ( node_name )"
+        print "ipmi-console [ start | stop ]"
         sys.exit(1)
     if len(sys.argv) >= 3:
         if sys.argv[3] == "-h":
-            print "ipmi-console [ start | stop ] ( node_name )"
+            print "ipmi-console [ start | stop ] [ node_name ]"
             sys.exit(1)
         else:
             instance = sys.argv[3]
