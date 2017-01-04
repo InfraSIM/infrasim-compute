@@ -148,8 +148,7 @@ class test_compute_configuration_change(unittest.TestCase):
 
     def test_qemu_boot_from_disk_img(self):
         MD5_CIRROS_IMG = "ee1eca47dc88f4879d8a229cc70a07c6"
-        test_img_file = "{}/cirros-0.3.4-x86_64-disk.img".\
-            format(os.environ['HOME'])
+        test_img_file = "/tmp/cirros-0.3.4-x86_64-disk.img"
         if os.path.exists(test_img_file) is False \
                 or hashlib.md5(open(test_img_file, "rb").read()).hexdigest() != MD5_CIRROS_IMG:
             os.system("wget -c \
@@ -199,7 +198,6 @@ class test_compute_configuration_change(unittest.TestCase):
                 assert False
                 return
 
-        os.system("rm -rf {}".format(test_img_file))
         assert True
 
 

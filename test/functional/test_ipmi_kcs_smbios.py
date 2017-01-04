@@ -38,7 +38,7 @@ Test SMBIOS data
 """
 
 
-test_img_file = "{}/kcs.img".format(os.environ['HOME'])
+test_img_file = "/tmp/kcs.img"
 conf = {}
 tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
@@ -60,9 +60,6 @@ def setup_module():
 
 
 def teardown_module():
-    if os.path.exists(test_img_file):
-        os.unlink(test_img_file)
-
     os.environ["PATH"] = old_path
 
 

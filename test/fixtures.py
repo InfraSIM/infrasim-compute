@@ -31,7 +31,7 @@ class FakeConfig(object):
                 "networks": [
                     {
                         "network_mode": "nat",
-                        "device": "vmxnet3"
+                        "device": "e1000"
                     }
                 ]
             }
