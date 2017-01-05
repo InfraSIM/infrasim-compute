@@ -499,26 +499,26 @@ class CStorageController(CElement):
             drive_obj.precheck()
 
     def init(self):
-        self.__max_drive_per_controller = self.__controller_info['controller'].get('max_drive_per_controller')
-        self.__controller_type = self.__controller_info['controller'].get('type')
-        self.__sas_address = self.__controller_info['controller'].get('sas_address')
-        self.__max_cmds = self.__controller_info['controller'].get('max_cmds')
-        self.__max_sge = self.__controller_info['controller'].get('max_sge')
+        self.__max_drive_per_controller = self.__controller_info.get('max_drive_per_controller', 1)
+        self.__controller_type = self.__controller_info.get('type', "ahci")
+        self.__sas_address = self.__controller_info.get('sas_address')
+        self.__max_cmds = self.__controller_info.get('max_cmds')
+        self.__max_sge = self.__controller_info.get('max_sge')
 
         if self.__controller_type == "ahci":
             prefix = "sata"
         else:
             prefix = "scsi"
 
-        self.__use_msi = self.__controller_info['controller'].get('use_msi')
+        self.__use_msi = self.__controller_info.get('use_msi')
 
-        if 'use_jbod' in self.__controller_info['controller'] and \
+        if 'use_jbod' in self.__controller_info and \
                 self.__controller_type.startswith("megasas"):
-            self.__use_jbod = self.__controller_info['controller'].get('use_jbod')
+            self.__use_jbod = self.__controller_info.get('use_jbod')
 
         drive_index = 0
         controller_index = 0
-        for drive_info in self.__controller_info['controller'].get('drives'):
+        for drive_info in self.__controller_info.get('drives', []):
             drive_obj = CDrive(drive_info)
             drive_obj.owner = self
             drive_obj.set_index(drive_index)
@@ -538,9 +538,9 @@ class CStorageController(CElement):
 
     def handle_params(self):
         controller_option_list = []
-        drive_quantities = len(self.__controller_info['controller'].get('drives'))
+        drive_quantities = len(self.__controller_info.get('drives', []))
         controller_quantities = \
-            int(math.ceil(float(drive_quantities) / self.__max_drive_per_controller))
+            int(math.ceil(float(drive_quantities) / self.__max_drive_per_controller)) or 1
         if self.__controller_type == "ahci":
             prefix = "sata"
         else:
@@ -553,7 +553,7 @@ class CStorageController(CElement):
             controller_option_list = []
             controller_option_list.append(
                 "-device {}".format(
-                    self.__controller_info['controller'].get('type')))
+                    self.__controller_info.get('type')))
             controller_option_list.append(
                 "id={}{}".format(prefix, controller_index))
             if self.__use_jbod is not None:
@@ -586,6 +586,20 @@ class CStorageController(CElement):
         for drive_obj in self.__drive_list:
             self.add_option(drive_obj.get_option())
 
+class LSISASController(CStorageController):
+    pass
+
+class MegaSASContoller(CStorageController):
+    pass
+
+class AHCISATAController(CStorageController):
+    pass
+
+class SCSIDrive(CDrive):
+    pass
+
+class ATADrive(CDrive):
+    pass
 
 class CBackendStorage(CElement):
     def __init__(self, backend_storage_info):
@@ -1102,7 +1116,7 @@ class CCompute(Task, CElement):
         self.__smbios = None
         self.__bios = None
         self.__boot_order = None
-        self.__qemu_bin = "qemu-system-x86_64"
+        self.__qemu_bin = "/home/robert/github/InfraSIM/qemu/x86_64-softmmu/qemu-system-x86_64"
         self.__cdrom_file = None
         self.__vendor_type = None
         # remember cpu object
