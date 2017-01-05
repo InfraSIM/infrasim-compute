@@ -21,6 +21,7 @@ from ipmicons import sdr, common
 import daemon
 from infrasim import config
 import signal
+from infrasim import run_command
 
 server = None
 
@@ -93,6 +94,7 @@ def _start_console():
     try:
         logger.info("ipmi-console start")
         server.run()
+
     except KeyboardInterrupt:
         server.stop()
 
@@ -133,16 +135,15 @@ def _free_resource():
         thread.join()
 
 
-def start(instance="node-0"):
+def start(instance="default"):
     """
     Attach ipmi-console to target instance specified by
     its name
     :param instance: infrasim instance name
     """
     daemon.daemonize("{}/{}/.ipmi_console.pid".format(config.infrasim_home, instance))
-
     # initialize logging
-    common.init_logger()
+    common.init_logger(instance)
     # initialize environment
     common.init_env(instance)
     # parse the sdrs and build all sensors
@@ -152,7 +153,7 @@ def start(instance="node-0"):
     _start_console()
 
 
-def stop(instance="node-0"):
+def stop(instance="default"):
     """
     Stop ipmi-console of target instance specified by
     its name
@@ -170,11 +171,16 @@ def stop(instance="node-0"):
         pass
 
 
-def console_main(instance="node-0"):
+def console_main(instance="default"):
     if len(sys.argv) < 2:
         print "ipmi-console [ start | stop ]"
         sys.exit(1)
-
+    if len(sys.argv) >= 3:
+        if sys.argv[3] == "-h":
+            print "ipmi-console [ start | stop ] [ node_name ]"
+            sys.exit(1)
+        else:
+            instance = sys.argv[3]
     if sys.argv[1] == "start":
         start(instance)
     elif sys.argv[1] == "stop":

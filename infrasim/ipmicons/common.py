@@ -14,12 +14,14 @@ import Queue
 import re
 import env
 import traceback
+from infrasim import config
+
 
 lock = threading.Lock()
 
 # logger
-logger = logging.getLogger("ipmi_sim")
-LOG_FILE = '/var/log/ipmi_sim.log'
+logger = logging.getLogger("ipmi-console")
+
 
 # telnet to vBMC
 tn = telnetlib.Telnet()
@@ -27,14 +29,20 @@ tn = telnetlib.Telnet()
 msg_queue = Queue.Queue()
 
 
-def init_logger():
+def init_logger(instance="default"):
+
     logger.setLevel(logging.ERROR)
 
-    if os.path.isfile(LOG_FILE) is True:
-        os.remove(LOG_FILE)
+    log_folder = os.path.join(config.infrasim_logdir, instance)
+    if not os.path.exists(log_folder):
+        os.mkdir(log_folder)
+    log_path = os.path.join(log_folder, "ipmi-console.log")
+
+    if os.path.isfile(log_path) is True:
+        os.remove(log_path)
 
     # create file handler which logs even debug messages
-    fh = logging.FileHandler(LOG_FILE)
+    fh = logging.FileHandler(log_path)
 
     # create console handler with a higher log level
     # ch = logging.StreamHandler()
