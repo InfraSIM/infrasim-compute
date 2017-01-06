@@ -37,7 +37,7 @@ For each element class, they need to implement methods:
         Parse information dict, assign to all attribute;
     - precheck()
         Validate attribute integrity and environment compatibility;
-    - handle_params()
+    - handle_parms()
         Add all attributes to command line options list;
     - get_option()
         Compose all options in list to a command line string;
@@ -116,7 +116,7 @@ class CElement(object):
     def handle_parms(self):
         raise NotImplementedError("handle_parms is not implemented")
 
-    def add_option(self, option):
+    def add_option(self, option, pos=1):
         if option is None:
             return
 
@@ -124,7 +124,10 @@ class CElement(object):
             print "Warning: option {} already added.".format(option)
             return
 
-        self.__option_list.append(option)
+        if pos == 0:
+            self.__option_list.insert(0, option)
+        else:
+            self.__option_list.append(option)
 
     def get_option(self):
         if len(self.__option_list) == 0:
@@ -276,330 +279,435 @@ class CMemory(CElement):
         self.add_option(memory_option)
 
 
-class CDrive(CElement):
-    def __init__(self, drive_info):
-        super(CDrive, self).__init__()
-        self.__drive = drive_info
-        self.__index = None
-        self.__vendor = None
-        self.__model = None
-        self.__serial = None
-        self.__product = None
-        self.__version = None
-        self.__bootindex = None
-        self.__cache = None  # none/writeback/writethrough
-        self.__aio = None  # threads/native
-        self.__file = None
-        self.__rotation = None
-        self.__type = "file"
-        self.__format = None
-        self.__bus_address = None
-        self.__size = None
-        self.__controller_type = None
-        self.__wwn = None
-        self.__port_index = None
-        self.__port_wwn = None
-        self.__scsi_id = None
-        self.__lun = None
-        self.__slot_number = None
+class CBaseStorageController(CElement):
+    def __init__(self):
+        super(CBaseStorageController, self).__init__()
+        self._max_drive_per_controller = None
+        self._drive_list = []
+        self._pci_bus_nr = None
+        self._ptm = None
+        self._controller_info = None
+        self._model = None
+        self._attributes = {}
+        self.__controller_index = 0
+        self._start_idx = 0
 
-    def set_index(self, index):
-        self.__index = index
+    @property
+    def controller_index(self):
+        return self.__controller_index
 
-    def get_index(self):
-        return self.__index
+    @controller_index.setter
+    def controller_index(self, idx):
+        self.__controller_index = idx
 
-    def get_controller_type(self):
-        return self.__controller_type
+    def set_pci_bus_nr(self, nr):
+        self._pci_bus_nr = nr
 
-    def set_controller_type(self, controller_type):
-        self.__controller_type = controller_type
-
-    def set_bus(self, addr):
-        self.__bus_address = addr
+    def set_pci_topology_mrg(self, ptm):
+        self._ptm = ptm
 
     def precheck(self):
-        """
-        Check if the parition or drive file exists
-        Check if the cache/aio parameters are valid
-        """
+        for drive_obj in self._drive_list:
+            drive_obj.precheck()
+
+    def init(self):
+        self._model = self._controller_info.get('type')
+        self._max_drive_per_controller = self._controller_info.get("max_drive_per_controller", 6)
+
+    def _build_one_controller(self, *args, **kwargs):
+        name = args[0]
+        controller_option_list = []
+        controller_option_list.append("-device {}".format(name))
+        for k, v in kwargs.items():
+            controller_option_list.append("{}={}".format(k, v))
+        print controller_option_list
+        return ",".join(controller_option_list)
+
+    def handle_parms(self):
+        if len(self._drive_list) == 0:
+            return
+
+        # handle drive options
+        for drive_obj in self._drive_list:
+            drive_obj.handle_parms()
+
+        for drive_obj in self._drive_list:
+            self.add_option(drive_obj.get_option())
+
+        # controller attributes
+
+
+class LSISASController(CBaseStorageController):
+    def __init__(self, controller_info):
+        super(LSISASController, self).__init__()
+        self._controller_info = controller_info
+
+    def init(self):
+        super(LSISASController, self).init()
+
+        self._start_idx = self.controller_index
+        idx = 0
+        for drive_info in self._controller_info.get("drives", []):
+            sd_obj = SCSIDrive(drive_info)
+            sd_obj.index = idx
+            sd_obj.set_bus(self.controller_index + idx / self._max_drive_per_controller)
+            sd_obj.set_scsi_id(idx % self._max_drive_per_controller)
+            self._drive_list.append(sd_obj)
+            idx += 1
+
+        for drive_obj in self._drive_list:
+            drive_obj.init()
+
+        # Update controller index
+        self.controller_index += (idx / self._max_drive_per_controller)
+        logger.info("LSISASController: update controller index: {}".format(self.controller_index))
+
+    def handle_parms(self):
+        super(LSISASController, self).handle_parms()
+
+        drive_nums = len(self._drive_list)
+        cntrl_nums = int(math.ceil(float(drive_nums)/self._max_drive_per_controller)) or 1
+        for cntrl_index in range(0, cntrl_nums):
+            self._attributes["id"] = "scsi{}".format(self._start_idx + cntrl_index)
+            self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)
+
+
+class MegaSASController(CBaseStorageController):
+    def __init__(self, controller_info):
+        super(MegaSASController, self).__init__()
+        self.__use_jbod = None
+        self.__sas_address = None
+        self.__use_msi = None
+        self.__use_msix = None
+        self.__max_cmds = None
+        self.__max_sge = None
+        self._controller_info = controller_info
+
+    def precheck(self):
+        # call parent precheck()
+        super(MegaSASController, self).precheck()
+
+    def init(self):
+        # Call parent init()
+        super(MegaSASController, self).init()
+
+        self.__sas_address = self._controller_info.get('sas_address')
+        self.__max_cmds = self._controller_info.get('max_cmds')
+        self.__max_sge = self._controller_info.get('max_sge')
+
+        self._start_idx = self.controller_index
+        idx = 0
+        for drive_info in self._controller_info.get("drives", []):
+            sd_obj = SCSIDrive(drive_info)
+            sd_obj.index = idx
+            sd_obj.set_bus(self.controller_index + idx / self._max_drive_per_controller)
+            sd_obj.set_scsi_id(idx % self._max_drive_per_controller)
+            self._drive_list.append(sd_obj)
+            idx += 1
+
+        for drive_obj in self._drive_list:
+            drive_obj.init()
+
+        # Update controller index
+        self.controller_index += (idx / self._max_drive_per_controller)
+
+    def handle_parms(self):
+        super(MegaSASController, self).handle_parms()
+
+        drive_nums = len(self._drive_list)
+        cntrl_nums = int(math.ceil(float(drive_nums)/self._max_drive_per_controller)) or 1
+
+        bus_nr_generator = None
+
+        if self._ptm:
+            bus_nr_generator = self._ptm.get_available_bus()
+
+        for cntrl_index in range(0, cntrl_nums):
+            self._attributes["id"] = "scsi{}".format(self._start_idx + cntrl_index)
+            if self.__use_jbod:
+                self._attributes["use_jbod"] = self.__use_jbod
+
+            if self.__sas_address:
+                self._attributes["sas_address"] = self.__sas_address
+
+            if self.__use_msi:
+                self._attributes["use_msi"] = self.__use_msi
+
+            if self.__max_cmds:
+                self._attributes["max_cmds"] = self.__max_cmds
+
+            if self.__max_sge:
+                self._attributes["max_sge"] = self.__max_sge
+
+            if bus_nr_generator:
+                self._attributes["bus"] = "pci.{}".format(bus_nr_generator.next())
+                self._attributes["addr"] = 0x1
+
+            self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)
+
+
+class AHCIController(CBaseStorageController):
+    def __init__(self, controller_info):
+        super(AHCIController, self).__init__()
+        self._controller_info = controller_info
+        self.__unit = 0
+
+    def init(self):
+        super(AHCIController, self).init()
+
+        self._start_idx = self.controller_index
+        idx = 0
+        for drive_info in self._controller_info.get("drives", []):
+            ide_obj = IDEDrive(drive_info)
+            ide_obj.index = idx
+            ide_obj.set_bus(self.controller_index + idx / self._max_drive_per_controller)
+            ide_obj.set_scsi_id(idx % self._max_drive_per_controller)
+            self._drive_list.append(ide_obj)
+            idx += 1
+
+        for drive_obj in self._drive_list:
+            drive_obj.init()
+
+        # Update controller index
+        self.controller_index += (idx / self._max_drive_per_controller)
+
+    def handle_parms(self):
+        super(AHCIController, self).handle_parms()
+
+        drive_nums = len(self._drive_list)
+        cntrl_nums = int(math.ceil(float(drive_nums)/self._max_drive_per_controller)) or 1
+        for cntrl_index in range(0, cntrl_nums):
+            self._attributes["id"] = "sata{}".format(self._start_idx + cntrl_index)
+            self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)
+
+
+class CBaseDrive(CElement):
+    def __init__(self):
+        super(CBaseDrive, self).__init__()
+        # protected
+        self._name = None
+        self._drive_info = None
+        self._dev_attrs = {}
+        self.prefix = None
+
+        # private
+
+        # device option
+        self.__index = 0
+        self.__serial = None
+        self.__wwn = None
+        self.__drive_file = None
+        self.__bootindex = None
+        self.__bus_address = None
+        self.__version = None
+
+        # host option
+        self.__cache = None
+        self.__aio = None
+        self.__drive_file = None
+        self.__format = None
+
+        # other option
+        self.__size = None
+
+        # identify a drive on which controller
+        self.__bus = 0
+        self._scsi_id = 0
+        self._channel = 0
+        self._lun = 0
+
+    @property
+    def index(self):
+        return self.__index
+
+    @index.setter
+    def index(self, idx):
+        self.__index = idx
+
+    # controller index
+    def set_bus(self, bus):
+        self.__bus = bus
+
+    def set_scsi_id(self, scsi_id):
+        self._scsi_id = scsi_id
+
+    def precheck(self):
         pass
 
     def init(self):
-        self.__bootindex = self.__drive.get('bootindex')
+        self.__boot_index = self._drive_info.get("bootindex")
+        self.__serial = self._drive_info.get("serial")
+        self.__version = self._drive_info.get("version")
+        self.__format = self._drive_info.get("format", "qcow2")
+        self.__cache = self._drive_info.get("cache", "writeback")
+        self.__aio = self._drive_info.get("aio")
+        self.__size = self._drive_info.get("size", 8)
+        self.__drive_file = self._drive_info.get("file")
 
-        # for ide-hd drive, there is no vendor properties
-        if self.__controller_type == "megasas" or \
-                self.__controller_type == "megasas-gen2":
-            self.__vendor = self.__drive.get('vendor')
+        # assume the files starts with "/dev/" are block device
+        # all the block devices are assumed to be raw format
+        if self.__drive_file and self.__drive_file.startswith("/dev/"):
+            self.__format = "raw"
+        elif self.__drive_file is None:
+            # If user announce drive file in config, use it
+            # else create for them.
+            disk_file_base = os.environ['HOME'] + '/.infrasim/'
+            disk_file = disk_file_base + "sd{0}.img".format(chr(97+self.__index))
 
-        if self.__controller_type == "ahci":
-            self.__model = self.__drive.get('model')
-
-        self.__serial = self.__drive.get('serial')
-        self.__model = self.__drive.get('model')
-        self.__product = self.__drive.get('product')
-        self.__version = self.__drive.get('version')
-        self.__rotation = self.__drive.get('rotation')
-        self.__format = self.__drive.get('format', "qcow2")
-        self.__cache = self.__drive.get('cache', "writeback")
-        self.__aio = self.__drive.get('aio')
-        self.__size = self.__drive.get('size', 8)
-
-        # If user announce drive file in config, use it
-        # else create for them.
-        if 'file' in self.__drive:
-            self.__file = self.__drive['file']
-            # assume the files starts with "/dev/" are block device
-            # all the block devices are assumed to be raw format
-            if self.__file.startswith("/dev/"):
-                self.__format = "raw"
-        else:
-            parent = self.owner
-            while parent and not hasattr(parent, "get_workspace"):
-                parent = parent.owner
-            ws = None
-            if hasattr(parent, "get_workspace"):
-                ws = parent.get_workspace()
-            if ws is None or not os.path.exists(ws):
-                ws = ""
-            disk_file_base = os.path.join(config.infrasim_home, ws)
-            disk_file = os.path.join(disk_file_base, "sd{0}.img".format(chr(97+self.__index)))
             if not os.path.exists(disk_file):
                 command = "qemu-img create -f qcow2 {0} {1}G".format(disk_file, self.__size)
                 try:
                     run_command(command)
                 except CommandRunFailed as e:
                     raise e
-            self.__file = disk_file
+            self.__drive_file = disk_file
 
-        self.__wwn = self.__drive.get('wwn')
-        self.__port_index = self.__drive.get('port_index')
-        self.__port_wwn = self.__drive.get('port_wwn')
-        self.__channel = self.__drive.get('channel')
-        self.__scsi_id = self.__drive.get('scsi-id')
-        self.__lun = self.__drive.get('lun')
-        self.__slot_number = self.__drive.get('slot_number')
+    def build_host_option(self, *args, **kwargs):
+        host_opt_list = []
+        for k, v in kwargs.items():
+            host_opt_list.append("{}={}".format(k, v))
+
+        return "-drive {}".format(",".join(host_opt_list))
+
+    def build_device_option(self, *args, **kwargs):
+        name = args[0]
+        device_opt_list = []
+        device_opt_list.append("-device {}".format(name))
+        for k, v in kwargs.items():
+            device_opt_list.append("{}={}".format(k, v))
+
+        return ",".join(device_opt_list)
 
     def handle_parms(self):
-        host_option = ""
-        if self.__file:
-            host_option = "file={}".format(self.__file)
-        else:
-            raise Exception("Please specify the file option for disk.")
+        # handle host option
+        host_opt = {}
+        if self.__drive_file:
+            host_opt["file"] = self.__drive_file
 
         if self.__format:
-            host_option = ",".join([host_option, "format={}".format(self.__format)])
+            host_opt["format"] = self.__format
 
-        if self.__controller_type == "ahci":
-            prefix = "sata"
-        else:
-            prefix = "scsi"
-
-        host_option = ",".join([host_option, "if={}".format("none")])
-        host_option = ",".join([host_option, "id={}-drive{}".format(prefix, self.__index)])
+        host_opt["if"] = "none"
+        host_opt["id"] = "{}{}-{}-{}-{}".format(self.prefix, self.__bus, self._channel, self._scsi_id, self._lun)
 
         if self.__cache:
-            host_option = ",".join([host_option, "cache={}".format(self.__cache)])
+            host_opt["cache"] = self.__cache
 
         if self.__aio and self.__cache == "none":
-            host_option = ",".join([host_option, "aio={}".format(self.__aio)])
+            host_opt["aio"] = self.__aio
 
-        device_option = ""
+        self.add_option(self.build_host_option(**host_opt))
 
-        if self.__controller_type == "ahci":
-            device_option = "ide-hd"
-        elif self.__controller_type.startswith("megasas") or \
-                self.__controller_type.startswith("lsi"):
-            device_option = "scsi-hd"
-        else:
-            device_option = "ide-hd"
-
-        if self.__vendor:
-            device_option = ",".join([device_option, "vendor={}".format(self.__vendor)])
-
-        if self.__model:
-            device_option = ",".join([device_option, "model={}".format(self.__model)])
-
-        if self.__product:
-            device_option = ",".join([device_option, "product={}".format(self.__product)])
-
+        # handle device options
         if self.__serial:
-            device_option = ",".join([device_option, "serial={}".format(self.__serial)])
-
-        if self.__version:
-            device_option = ",".join([device_option, "ver={}".format(self.__version)])
-
-        if self.__bootindex:
-            device_option = ",".join([device_option, "bootindex={}".format(self.__bootindex)])
-
-        if self.__rotation is not None:
-            device_option = ",".join([device_option, "rotation={}".format(self.__rotation)])
-
-        if self.__bus_address:
-            device_option = ",".join([device_option, "bus={}".format(self.__bus_address)])
+            self._dev_attrs["serial"] = self.__serial
 
         if self.__wwn:
-            device_option = ",".join([device_option, "wwn={0:#10x}".format(self.__wwn)])
+            self._dev_attrs["wwn"] = self.__wwn
 
-        if self.__port_index:
-            device_option = ",".join([device_option, "port_index={}".format(self.__port_index)])
+        if self.__version:
+            self._dev_attrs["ver"] = self.__version
 
-        if self.__port_wwn:
-            device_option = ",".join([device_option, "port_wwn={0:#10x}".format(self.__port_wwn)])
+        if self.__bus_address is None:
+            self.__bus_address = "{}{}.{}".format(self.prefix, self.__bus, self._channel)
 
-        if self.__channel:
-            device_option = ",".join([device_option, "channel={0:#02x}".format(self.__channel)])
+        self._dev_attrs["bus"] = self.__bus_address
 
-        if self.__scsi_id:
-            device_option = ",".join([device_option, "scsi-id={0:#02x}".format(self.__scsi_id)])
-
-        if self.__lun:
-            device_option = ",".join([device_option, "lun={0:#02x}".format(self.__lun)])
-
-        if self.__slot_number is not None:
-            device_option = ",".join([device_option, "slot_number={}".format(self.__slot_number)])
-
-        device_option = ",".join([device_option, "drive={}-drive{}".format(prefix, self.__index)])
-
-        drive_option = " ".join(["-drive", host_option,
-                                "-device", device_option])
-
-        self.add_option(drive_option)
+        self._dev_attrs["drive"] = "{}{}-{}-{}-{}".format(self.prefix, self.__bus,
+                                                          self._channel, self._scsi_id, self._lun)
 
 
-class CStorageController(CElement):
-    def __init__(self, controller_info):
-        super(CStorageController, self).__init__()
-        self.__controller_info = controller_info
-        self.__max_drive_per_controller = None
-        self.__controller_type = None
-        self.__drive_list = []
-        # Only used for raid controller (megasas)
-        self.__use_jbod = None
-        self.__sas_address = None
-        # self.__has_serial = False
-        self.__pci_bus_nr = None
-        self.__ptm = None
-        self.__use_msi = None
-        self.__max_cmds = None
-        self.__max_sge = None
+class SCSIDrive(CBaseDrive):
+    def __init__(self, drive_info):
+        super(SCSIDrive, self).__init__()
+        self._name = "scsi-hd"
+        self.prefix = "scsi"
+        self._drive_info = drive_info
 
-    def set_pci_bus_nr(self, nr):
-        self.__pci_bus_nr = nr
-
-    def set_pci_topology_mgr(self, ptm):
-        self.__ptm = ptm
+        self.__rotation = None
+        self.__port_wwn = None
+        self.__slot_number = None
+        self.__product = None
+        self.__vendor = None
+        self.__port_index = None
 
     def precheck(self):
-        # Check controller params
-
-        # check each drive params
-        for drive_obj in self.__drive_list:
-            drive_obj.precheck()
+        super(SCSIDrive, self).precheck()
 
     def init(self):
-        self.__max_drive_per_controller = self.__controller_info.get('max_drive_per_controller', 1)
-        self.__controller_type = self.__controller_info.get('type', "ahci")
-        self.__sas_address = self.__controller_info.get('sas_address')
-        self.__max_cmds = self.__controller_info.get('max_cmds')
-        self.__max_sge = self.__controller_info.get('max_sge')
+        super(SCSIDrive, self).init()
 
-        if self.__controller_type == "ahci":
-            prefix = "sata"
-        else:
-            prefix = "scsi"
+        self.__port_index = self._drive_info.get('port_index')
+        self.__port_wwn = self._drive_info.get('port_wwn')
+        self._channel = self._drive_info.get('channel', self._channel)
+        self._scsi_id = self._drive_info.get('scsi-id', self._scsi_id)
+        self._lun = self._drive_info.get('lun', self._lun)
+        self.__slot_number = self._drive_info.get('slot_number')
+        self.__product = self._drive_info.get('product')
+        self.__vendor = self._drive_info.get('vendor')
+        self.__rotation = self._drive_info.get('rotation')
 
-        self.__use_msi = self.__controller_info.get('use_msi')
+    def handle_parms(self):
+        super(SCSIDrive, self).handle_parms()
 
-        if 'use_jbod' in self.__controller_info and \
-                self.__controller_type.startswith("megasas"):
-            self.__use_jbod = self.__controller_info.get('use_jbod')
+        if self.__vendor:
+            self._dev_attrs["vendor"] = self.__vendor
 
-        drive_index = 0
-        controller_index = 0
-        for drive_info in self.__controller_info.get('drives', []):
-            drive_obj = CDrive(drive_info)
-            drive_obj.owner = self
-            drive_obj.set_index(drive_index)
-            if drive_index > self.__max_drive_per_controller - 1:
-                controller_index += 1
-            drive_obj.set_controller_type(self.__controller_type)
-            if self.__controller_type == "ahci":
-                unit = drive_index
-            else:
-                unit = 0
-            drive_obj.set_bus("{}{}.{}".format(prefix, controller_index, unit))
-            self.__drive_list.append(drive_obj)
-            drive_index += 1
+        if self.__product:
+            self._dev_attrs["product"] = self.__product
 
-        for drive_obj in self.__drive_list:
-            drive_obj.init()
+        if self.__rotation:
+            self._dev_attrs["rotation"] = self.__rotation
 
-    def handle_params(self):
-        controller_option_list = []
-        drive_quantities = len(self.__controller_info.get('drives', []))
-        controller_quantities = \
-            int(math.ceil(float(drive_quantities) / self.__max_drive_per_controller)) or 1
-        if self.__controller_type == "ahci":
-            prefix = "sata"
-        else:
-            prefix = "scsi"
+        if self._channel is not None:
+            self._dev_attrs["channel"] = self._channel
 
-        bus_nr_gen = None
-        if self.__controller_type.startswith("megasas") and self.__ptm:
-            bus_nr_gen = self.__ptm.get_available_bus()
-        for controller_index in range(0, controller_quantities):
-            controller_option_list = []
-            controller_option_list.append(
-                "-device {}".format(
-                    self.__controller_info.get('type')))
-            controller_option_list.append(
-                "id={}{}".format(prefix, controller_index))
-            if self.__use_jbod is not None:
-                controller_option_list.append(
-                    "use_jbod={}".format(self.__use_jbod))
-            if self.__sas_address is not None:
-                controller_option_list.append("sas_address={}".format(self.__sas_address))
+        if self._scsi_id is not None:
+            self._dev_attrs["scsi-id"] = self._scsi_id
 
-            if self.__use_msi is not None:
-                controller_option_list.append("use_msi={}".format(self.__use_msi))
+        if self._lun is not None:
+            self._dev_attrs["lun"] = self._lun
 
-            if self.__max_cmds is not None:
-                controller_option_list.append("max_cmds={}".format(self.__max_cmds))
+        if self.__port_index:
+            self._dev_attrs["port_index"] = self.__port_index
 
-            if self.__max_sge is not None:
-                controller_option_list.append("max_sge={}".format(self.__max_sge))
-            # random serial number
-            # if self.__has_serial:
-            #     uuid_val = uuid.uuid4()
-            #     controller_option_list.append("hba_serial=LSIMEGARAID{}".format(str(uuid_val)[0:6]))
-            if bus_nr_gen:
-                pci_bus_nr = bus_nr_gen.next()
-                controller_option_list.append("bus=pci.{},addr=0x1".format(pci_bus_nr))
+        if self.__port_wwn:
+            self._dev_attrs["port_wwn"] = self.__port_wwn
 
-            self.add_option("{}".format(",".join(controller_option_list)))
+        if self.__slot_number is not None:
+            self._dev_attrs["slot_number"] = self.__slot_number
 
-        for drive_obj in self.__drive_list:
-            drive_obj.handle_parms()
+        self.add_option(self.build_device_option(self._name, **self._dev_attrs))
 
-        for drive_obj in self.__drive_list:
-            self.add_option(drive_obj.get_option())
 
-class LSISASController(CStorageController):
-    pass
+class IDEDrive(CBaseDrive):
+    def __init__(self, drive_info):
+        super(IDEDrive, self).__init__()
+        self._name = "ide-hd"
+        self.prefix = "sata"
+        self._drive_info = drive_info
+        self.__model = None
+        self.__unit = None
 
-class MegaSASContoller(CStorageController):
-    pass
+    def set_unit(self, unit):
+        self.__unit = unit
 
-class AHCISATAController(CStorageController):
-    pass
+    def init(self):
+        super(IDEDrive, self).init()
 
-class SCSIDrive(CDrive):
-    pass
+        self.__model = self._drive_info.get("model")
 
-class ATADrive(CDrive):
-    pass
+    def handle_parms(self):
+        super(IDEDrive, self).handle_parms()
+
+        if self.__model:
+            self._dev_attrs["model"] = self.__model
+
+        if self.__unit is not None:
+            self._dev_attrs["unit"] = self.__unit
+
+        self.add_option(self.build_device_option(self._name, **self._dev_attrs))
+
 
 class CBackendStorage(CElement):
     def __init__(self, backend_storage_info):
@@ -607,6 +715,8 @@ class CBackendStorage(CElement):
         self.__backend_storage_info = backend_storage_info
         self.__controller_list = []
         self.__pci_topology_manager = None
+        self.__sata_controller_index = 0
+        self.__scsi_controller_index = 0
 
     def set_pci_topology_mgr(self, ptm):
         self.__pci_topology_manager = ptm
@@ -615,19 +725,47 @@ class CBackendStorage(CElement):
         for controller_obj in self.__controller_list:
             controller_obj.precheck()
 
+    def __create_controller(self, controller_info):
+        controller_obj = None
+        model = controller_info.get("type")
+        if model.startswith("megasas"):
+            controller_obj = MegaSASController(controller_info)
+        elif model.startswith("lsi"):
+            controller_obj = LSISASController(controller_info)
+        elif "ahci" in model:
+            controller_obj = AHCIController(controller_info)
+        else:
+            raise Exception("Unsupported controller type.")
+
+        return controller_obj
+
     def init(self):
         for controller in self.__backend_storage_info:
-            controller_obj = CStorageController(controller)
-            controller_obj.set_pci_topology_mgr(self.__pci_topology_manager)
-            controller_obj.owner = self
+            # controller_obj = CStorageController(controller)
+            controller_obj = self.__create_controller(controller)
+            if self.__pci_topology_manager:
+                controller_obj.set_pci_topology_mgr(self.__pci_topology_manager)
             self.__controller_list.append(controller_obj)
 
         for controller_obj in self.__controller_list:
+            if isinstance(controller_obj, AHCIController):
+                controller_obj.controller_index = self.__sata_controller_index
+            else:
+                controller_obj.controller_index = self.__scsi_controller_index
+
             controller_obj.init()
+
+            if isinstance(controller_obj, AHCIController):
+                self.__sata_controller_index = controller_obj.controller_index + 1
+            else:
+                self.__scsi_controller_index = controller_obj.controller_index + 1
+
+        logger.info("Total scsi controller number: {}".format(self.__scsi_controller_index))
+        logger.info("Total sata controller number: {}".format(self.__sata_controller_index))
 
     def handle_parms(self):
         for controller_obj in self.__controller_list:
-            controller_obj.handle_params()
+            controller_obj.handle_parms()
 
         for controller_obj in self.__controller_list:
             self.add_option(controller_obj.get_option())
@@ -702,11 +840,11 @@ class CNetwork(CElement):
                             format(self.__network_mode))
 
         nic_option = ",".join(["{}".format(self.__nic_name),
-                                "netdev=netdev{}".format(self.__index),
-                                "mac={}".format(self.__mac_address)])
+                               "netdev=netdev{}".format(self.__index),
+                               "mac={}".format(self.__mac_address)])
 
         network_option = " ".join(["-netdev {}".format(netdev_option),
-                                    "-device {}".format(nic_option)])
+                                   "-device {}".format(nic_option)])
         self.add_option(network_option)
 
 
@@ -1047,6 +1185,7 @@ class Task(object):
             print self.get_commandline()
             return
 
+        logger.info(self.get_commandline())
         pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
 
         if self._task_is_running():
@@ -1680,7 +1819,6 @@ class CBMC(Task):
         else:
             self.__sol_device = os.path.join(config.infrasim_etc, "pty0")
 
-
         if 'config_file' in self.__bmc:
             self.__config_file = self.__bmc['config_file']
             if os.path.exists(self.__config_file):
@@ -1694,7 +1832,6 @@ class CBMC(Task):
             self.__config_file = os.path.join(self.get_workspace(), "etc/vbmc.conf")
         else:
             raise Exception("Couldn't find vbmc.conf!")
-
 
     def get_commandline(self):
         path = os.path.join(self.get_workspace(), "data")
