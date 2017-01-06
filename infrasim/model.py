@@ -289,7 +289,11 @@ class CBaseStorageController(CElement):
         self._controller_info = None
         self._model = None
         self._attributes = {}
+        # record the controller index inside this instance
         self.__controller_index = 0
+
+        # remember the start index for the first controller
+        # managed by this class
         self._start_idx = 0
 
     @property
@@ -334,13 +338,19 @@ class CBaseStorageController(CElement):
         for drive_obj in self._drive_list:
             self.add_option(drive_obj.get_option())
 
-        # controller attributes
+        # controller attributes if there are some
+        # common attributes for all controllers
+        # add them into self._attributes here.
 
 
 class LSISASController(CBaseStorageController):
     def __init__(self, controller_info):
         super(LSISASController, self).__init__()
         self._controller_info = controller_info
+
+    def precheck(self):
+        # call parent precheck()
+        super(LSISASController, self).precheck()
 
     def init(self):
         super(LSISASController, self).init()
@@ -358,9 +368,9 @@ class LSISASController(CBaseStorageController):
         for drive_obj in self._drive_list:
             drive_obj.init()
 
-        # Update controller index
+        # Update controller index, tell CBackendStorage what the controller index
+        # should be for the next
         self.controller_index += (idx / self._max_drive_per_controller)
-        logger.info("LSISASController: update controller index: {}".format(self.controller_index))
 
     def handle_parms(self):
         super(LSISASController, self).handle_parms()
@@ -452,6 +462,10 @@ class AHCIController(CBaseStorageController):
         self._controller_info = controller_info
         self.__unit = 0
 
+    def precheck(self):
+        # call parent precheck()
+        super(AHCIController, self).precheck()
+
     def init(self):
         super(AHCIController, self).init()
 
@@ -477,7 +491,7 @@ class AHCIController(CBaseStorageController):
         drive_nums = len(self._drive_list)
         cntrl_nums = int(math.ceil(float(drive_nums)/self._max_drive_per_controller)) or 1
         for cntrl_index in range(0, cntrl_nums):
-            self._attributes["id"] = "sata{}".format(self._start_idx + cntrl_index)
+            self._attributes["id"] = "ata{}".format(self._start_idx + cntrl_index)
             self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)
 
 
@@ -511,6 +525,8 @@ class CBaseDrive(CElement):
         self.__size = None
 
         # identify a drive on which controller
+
+        # self.__bus is controller index
         self.__bus = 0
         self._scsi_id = 0
         self._channel = 0
@@ -608,8 +624,11 @@ class CBaseDrive(CElement):
         if self.__version:
             self._dev_attrs["ver"] = self.__version
 
+        # for ATA controller, one bus should only have one target, AHCI could support at most 6 target devices
+        # for SCSI controller, one controller only one Bus which could support at most 8 target devices
         if self.__bus_address is None:
-            self.__bus_address = "{}{}.{}".format(self.prefix, self.__bus, self._channel)
+            b = self._scsi_id if self.prefix == "ata" else self._channel
+            self.__bus_address = "{}{}.{}".format(self.prefix, self.__bus, b)
 
         self._dev_attrs["bus"] = self.__bus_address
 
@@ -684,7 +703,7 @@ class IDEDrive(CBaseDrive):
     def __init__(self, drive_info):
         super(IDEDrive, self).__init__()
         self._name = "ide-hd"
-        self.prefix = "sata"
+        self.prefix = "ata"
         self._drive_info = drive_info
         self.__model = None
         self.__unit = None
@@ -759,9 +778,6 @@ class CBackendStorage(CElement):
                 self.__sata_controller_index = controller_obj.controller_index + 1
             else:
                 self.__scsi_controller_index = controller_obj.controller_index + 1
-
-        logger.info("Total scsi controller number: {}".format(self.__scsi_controller_index))
-        logger.info("Total sata controller number: {}".format(self.__sata_controller_index))
 
     def handle_parms(self):
         for controller_obj in self.__controller_list:
