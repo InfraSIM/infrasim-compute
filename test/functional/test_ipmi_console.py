@@ -92,6 +92,26 @@ class test_ipmi_console_start_stop(unittest.TestCase):
         self.assertEqual(returncode1, 0)
         assert 'ipmi-console start' not in output1
 
+    def test_start_stop_specified_ipmi_console(self):
+        self.node_name = "test_"
+        self.node_workspace = os.path.join(config.infrasim_home, self.node_name)
+        node_config_path = "test.yml"
+        node_info = FakeConfig().get_node_info()
+        with open(node_config_path, "w") as fp:
+            yaml.dump(node_info, fp, default_flow_style=False)
+        os.system("infrasim config add {} {}".format(self.node_name, node_config_path))
+        os.system("infrasim node start {}".format(self.node_name))
+        os.system("ipmi-console start {}".format(self.node_name))
+        ipmi_start_cmd = 'ps ax | grep ipmi-console'
+        returncode, output = run_command(ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        os.system("ipmi-console stop {}".format(self.node_name))
+        ipmi_stop_cmd = 'ps ax | grep ipmi-console'
+        returncode1, output1 = run_command(ipmi_stop_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertEqual(returncode, 0)
+        self.assertEqual(returncode, 0)
+        assert 'ipmi-console start {}'.format(self.node_name) in output
+        self.assertEqual(returncode1, 0)
+        assert 'ipmi-console start {}'.format(self.node_name) not in output1
 
 class test_ipmi_console(unittest.TestCase):
 
