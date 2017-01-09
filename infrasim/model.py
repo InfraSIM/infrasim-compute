@@ -1277,7 +1277,7 @@ class CCompute(Task, CElement):
         self.__smbios = None
         self.__bios = None
         self.__boot_order = None
-        self.__qemu_bin = "/home/robert/github/InfraSIM/qemu/x86_64-softmmu/qemu-system-x86_64"
+        self.__qemu_bin = "qemu-system-x86_64"
         self.__cdrom_file = None
         self.__vendor_type = None
         # remember cpu object
