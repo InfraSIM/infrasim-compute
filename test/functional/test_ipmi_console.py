@@ -22,6 +22,7 @@ import shutil
 import telnetlib
 import socket
 import signal
+from test.fixtures import FakeConfig
 
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
@@ -66,35 +67,30 @@ def reset_console(channel, timeout=10):
             raise RuntimeError('ipmi-console reset expires {}s'.
                                format(timeout))
 
-class test_ipmi_start_stop(unittest.TestCase):
-    node_name = "default"
-    node_workspace = os.path.join(config.infrasim_home, node_name)
 
-    def test_start_stop(self):
-        os.system("sudo ipmi-console stop")
-        os.system("sudo infrasim node destroy")
+class test_ipmi_console_start_stop(unittest.TestCase):
+
+    def tearDown(self):
+        os.system("infrasim node destroy {}".format(self.node_name))
         os.system("rm -rf {}".format(self.node_workspace))
         os.system("pkill socat")
         os.system("pkill ipmi")
         os.system("pkill qemu")
-        os.system("sudo infrasim node start")
-        os.system("sudo ipmi-console start")
+
+    def test_start_stop_default_ipmi_console(self):
+        self.node_name = "default"
+        self.node_workspace = os.path.join(config.infrasim_home, self.node_name)
+        os.system("infrasim node start")
+        os.system("ipmi-console start")
         ipmi_start_cmd = 'ps ax | grep ipmi-console'
         returncode, output = run_command(ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        os.system("sudo ipmi-console stop")
+        os.system("ipmi-console stop")
         ipmi_stop_cmd = 'ps ax | grep ipmi-console'
         returncode1, output1 = run_command(ipmi_stop_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        os.system("sudo infrasim node destroy")
-        os.system("rm -rf {}".format(self.node_workspace))
-        os.system("pkill socat")
-        os.system("pkill ipmi")
-        os.system("pkill qemu")
-
         self.assertEqual(returncode, 0)
         assert 'ipmi-console start' in output
         self.assertEqual(returncode1, 0)
         assert 'ipmi-console start' not in output1
-
 
 
 class test_ipmi_console(unittest.TestCase):

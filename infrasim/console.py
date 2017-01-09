@@ -176,11 +176,11 @@ def console_main(instance="default"):
         print "ipmi-console [ start | stop ]"
         sys.exit(1)
     if len(sys.argv) >= 3:
-        if sys.argv[3] == "-h":
+        if sys.argv[2] == "-h":
             print "ipmi-console [ start | stop ] [ node_name ]"
             sys.exit(1)
         else:
-            instance = sys.argv[3]
+            instance = sys.argv[2]
     if sys.argv[1] == "start":
         start(instance)
     elif sys.argv[1] == "stop":
