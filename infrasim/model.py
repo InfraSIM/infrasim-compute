@@ -324,7 +324,6 @@ class CBaseStorageController(CElement):
         controller_option_list.append("-device {}".format(name))
         for k, v in kwargs.items():
             controller_option_list.append("{}={}".format(k, v))
-        print controller_option_list
         return ",".join(controller_option_list)
 
     def handle_parms(self):
@@ -491,16 +490,23 @@ class AHCIController(CBaseStorageController):
         drive_nums = len(self._drive_list)
         cntrl_nums = int(math.ceil(float(drive_nums)/self._max_drive_per_controller)) or 1
         for cntrl_index in range(0, cntrl_nums):
-            self._attributes["id"] = "ata{}".format(self._start_idx + cntrl_index)
+            self._attributes["id"] = "sata{}".format(self._start_idx + cntrl_index)
             self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)
 
 
 class CBaseDrive(CElement):
+    '''
+    for most of the drive, the host options '-drive ...' are the same, so handle them in CBaseDrive,
+    for the device option '-device ...', handle those options in the sub class according to the drive
+    type, since different drives have the different attributes.
+    '''
     def __init__(self):
         super(CBaseDrive, self).__init__()
         # protected
         self._name = None
         self._drive_info = None
+
+        # store drive device option
         self._dev_attrs = {}
         self.prefix = None
 
@@ -614,6 +620,8 @@ class CBaseDrive(CElement):
 
         self.add_option(self.build_host_option(**host_opt))
 
+        # The following options are common for all kind of drives.
+
         # handle device options
         if self.__serial:
             self._dev_attrs["serial"] = self.__serial
@@ -627,7 +635,7 @@ class CBaseDrive(CElement):
         # for ATA controller, one bus should only have one target, AHCI could support at most 6 target devices
         # for SCSI controller, one controller only one Bus which could support at most 8 target devices
         if self.__bus_address is None:
-            b = self._scsi_id if self.prefix == "ata" else self._channel
+            b = self._scsi_id if self.prefix == "sata" else self._channel
             self.__bus_address = "{}{}.{}".format(self.prefix, self.__bus, b)
 
         self._dev_attrs["bus"] = self.__bus_address
@@ -703,7 +711,7 @@ class IDEDrive(CBaseDrive):
     def __init__(self, drive_info):
         super(IDEDrive, self).__init__()
         self._name = "ide-hd"
-        self.prefix = "ata"
+        self.prefix = "sata"
         self._drive_info = drive_info
         self.__model = None
         self.__unit = None
@@ -734,6 +742,8 @@ class CBackendStorage(CElement):
         self.__backend_storage_info = backend_storage_info
         self.__controller_list = []
         self.__pci_topology_manager = None
+
+        # Global controller index managed by CBackendStorage
         self.__sata_controller_index = 0
         self.__scsi_controller_index = 0
 
@@ -754,13 +764,12 @@ class CBackendStorage(CElement):
         elif "ahci" in model:
             controller_obj = AHCIController(controller_info)
         else:
-            raise Exception("Unsupported controller type.")
+            raise ArgsNotCorrect("Unsupported controller type.")
 
         return controller_obj
 
     def init(self):
         for controller in self.__backend_storage_info:
-            # controller_obj = CStorageController(controller)
             controller_obj = self.__create_controller(controller)
             if self.__pci_topology_manager:
                 controller_obj.set_pci_topology_mgr(self.__pci_topology_manager)
@@ -1116,7 +1125,6 @@ class Task(object):
         self.__task_priority = None
         self.__workspace = None
         self.__task_name = None
-        self.__debug = False
         self.__log_path = ""
 
         # If any task set the __asyncronous to True,
@@ -1197,11 +1205,10 @@ class Task(object):
                 print "[ {:<6} ] {} is running".format(self.get_task_pid(), self.__task_name)
             return
 
-        if self.__debug:
-            print self.get_commandline()
-            return
+        cmdline = self.get_commandline()
 
-        logger.info(self.get_commandline())
+        logger.info(cmdline)
+
         pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
 
         if self._task_is_running():
@@ -1213,8 +1220,7 @@ class Task(object):
             # created, but actually the qemu died.
             os.remove(pid_file)
 
-        pid = Utility.execute_command(self.get_commandline(),
-                                      log_path=self.__log_path)
+        pid = Utility.execute_command(cmdline, log_path=self.__log_path)
 
         print "[ {:<6} ] {} starts to run".format(pid, self.__task_name)
 
@@ -1538,7 +1544,7 @@ class CBMC(Task):
         self.__lancontrol_script = ""
         self.__chassiscontrol_script = ""
         self.__startcmd_script = ""
-        self.__startnow = None
+        self.__startnow = "true"
         self.__poweroff_wait = None
         self.__kill_wait = None
         self.__username = None
@@ -1811,7 +1817,9 @@ class CBMC(Task):
                                                   "script",
                                                   "startcmd")
 
-        self.__startnow = self.__bmc.get("startnow") or "true"
+        if self.__bmc.get("startnow") is False:
+            self.__startnow = "false"
+
         self.__poweroff_wait = self.__bmc.get('poweroff_wait', 5)
         self.__kill_wait = self.__bmc.get('kill_wait', 1)
         self.__username = self.__bmc.get('username', "admin")

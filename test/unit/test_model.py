@@ -13,6 +13,7 @@ from infrasim import socat
 from infrasim import config
 from infrasim import helper
 from test import fixtures
+from nose.tools import raises
 
 TMP_CONF_FILE = "/tmp/test.yml"
 
@@ -102,11 +103,9 @@ class qemu_functions(unittest.TestCase):
     def test_set_ahci_storage_controller(self):
         try:
             backend_storage_info = [{
-                "controller": {
-                    "type": "ahci",
-                    "max_drive_per_controller": 6,
-                    "drives": [{"size": 8, "file": "/tmp/sda.img"}]
-                }
+                "type": "ahci",
+                "max_drive_per_controller": 6,
+                "drives": [{"size": 8}]
             }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
@@ -116,50 +115,70 @@ class qemu_functions(unittest.TestCase):
         except:
             assert False
 
-    def test_set_scsi_storage_controller(self):
+    def test_set_lsi_storage_controller(self):
         try:
             backend_storage_info = [{
-                "controller": {
-                    "type": "scsi",
-                    "max_drive_per_controller": 8,
-                    "drives": [{"size": 8, "file": "/tmp/sda.img"}]
-                }
+                "type": "lsi",
+                "max_drive_per_controller": 6,
+                "drives": [{"size": 8}]
             }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
             storage.precheck()
             storage.handle_parms()
-            assert "-device scsi" in storage.get_option()
+            assert "-device lsi" in storage.get_option()
         except:
             assert False
+
+    def test_set_megasas_storage_controller(self):
+        try:
+            backend_storage_info = [{
+                "type": "megasas",
+                "max_drive_per_controller": 6,
+                "drives": [{"size": 8}]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "-device megasas" in storage.get_option()
+        except:
+            assert False
+
+    @raises(ArgsNotCorrect)
+    def test_unsupported_storage_controller(self):
+        backend_storage_info = [{
+            "type": "scsi",
+            "max_drive_per_controller": 8,
+            "drives": [{"size": 8}]
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "-device scsi" in storage.get_option()
 
     def test_set_ahci_storage_controller_2x(self):
         try:
             backend_storage_info = [{
-                "controller": {
-                    "type": "ahci",
-                    "max_drive_per_controller": 2,
-                    "drives": [{"size": 8, "file": "/tmp/sda.img"},
-                               {"size": 8, "file": "/tmp/sda.img"},
-                               {"size": 8, "file": "/tmp/sda.img"}]
-                }
+                "type": "ahci",
+                "max_drive_per_controller": 2,
+                "drives": [{"size": 8}, {"size": 8}, {"size": 8}]
             }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
             storage.precheck()
             storage.handle_parms()
-            assert "sata1.2" in storage.get_option()
+            assert "sata1.0" in storage.get_option()
         except:
             assert False
 
     def test_set_ahci_drive_model(self):
         try:
             backend_storage_info = [{
-                "controller": {
-                    "type": "ahci",
-                    "max_drive_per_controller": 6,
-                    "drives": [{"size": 8, "file": "/tmp/sda.img", "model": "SATADOM"}]
-                }
+                "type": "ahci",
+                "max_drive_per_controller": 6,
+                "drives": [{"size": 8, "model": "SATADOM"}]
             }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
@@ -172,14 +191,11 @@ class qemu_functions(unittest.TestCase):
     def test_set_ahci_drive_serial(self):
         try:
             backend_storage_info = [{
-                "controller": {
-                    "type": "ahci",
-                    "max_drive_per_controller": 6,
-                    "drives": [
-                        {"size": 8, "file": "/tmp/sda.img",
-                         "model": "SATADOM", "serial": "HUSMM442"}
-                    ]
-                }
+                "type": "ahci",
+                "max_drive_per_controller": 6,
+                "drives": [
+                    {"size": 8, "model": "SATADOM", "serial": "HUSMM442"}
+                ]
             }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
@@ -192,14 +208,11 @@ class qemu_functions(unittest.TestCase):
     def test_set_scsi_drive_vender(self):
         try:
             backend_storage_info = [{
-                "controller": {
-                    "type": "megasas-gen2",
-                    "max_drive_per_controller": 6,
-                    "drives": [
-                        {"size": 8, "file": "/tmp/sda.img",
-                         "serial": "HUSMM442", "model": "SATADOM",
-                         "vendor": "Hitachi"}],
-                }
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [
+                    {"size": 8, "serial": "HUSMM442",
+                        "model": "SATADOM", "vendor": "Hitachi"}],
             }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
@@ -212,15 +225,13 @@ class qemu_functions(unittest.TestCase):
     def test_set_scsi_drive_rotation(self):
         try:
             backend_storage_info = [{
-                "controller": {
-                    "type": "megasas-gen2",
-                    "max_drive_per_controller": 6,
-                    "drives": [{
-                        "size": 8, "file": "/tmp/sda.img",
-                        "model": "SATADOM", "serial": "HUSMM442",
-                        "vendor": "Hitachi", "rotation": 1
-                    }]
-                }
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [{
+                    "size": 8, "model": "SATADOM",
+                    "serial": "HUSMM442", "vendor": "Hitachi",
+                    "rotation": 1
+                }]
             }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
@@ -233,15 +244,12 @@ class qemu_functions(unittest.TestCase):
     def test_set_scsi_drive_product(self):
         try:
             backend_storage_info = [{
-                "controller": {
-                    "type": "megasas-gen2",
-                    "max_drive_per_controller": 6,
-                    "drives": [{
-                        "size": 8, "file": "/tmp/sda.img",
-                        "model": "SATADOM", "serial": "HUSMM442",
-                        "vendor": "Hitachi", "rotation": 1,
-                        "product": "Quanta"}]
-                }
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [{
+                        "size": 8, "model": "SATADOM",
+                        "serial": "HUSMM442", "vendor": "Hitachi",
+                        "rotation": 1, "product": "Quanta"}]
             }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()

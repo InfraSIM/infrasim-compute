@@ -72,11 +72,9 @@ def start_node(node_type):
     conf = fake_config.get_node_info()
     conf["type"] = node_type
     conf["compute"]["storage_backend"] = [{
-        "controller": {
-            "type": "ahci",
-            "max_drive_per_controller": 6,
-            "drives": [{"size": 8, "file": test_img_file}]
-        }
+        "type": "ahci",
+        "max_drive_per_controller": 6,
+        "drives": [{"size": 8, "file": test_img_file}]
     }]
 
     with open(tmp_conf_file, "w") as yaml_file:

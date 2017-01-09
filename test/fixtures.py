@@ -17,15 +17,13 @@ class FakeConfig(object):
                 },
                 "storage_backend": [
                     {
-                        "controller": {
-                            "type": "ahci",
-                            "max_drive_per_controller": 8,
-                            "drives": [
-                                {
-                                    "size": 8
-                                }
-                            ]
-                        }
+                        "type": "ahci",
+                        "max_drive_per_controller": 6,
+                        "drives": [
+                            {
+                                "size": 8
+                            }
+                        ]
                     }
                 ],
                 "networks": [
