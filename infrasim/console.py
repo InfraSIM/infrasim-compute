@@ -141,17 +141,20 @@ def start(instance="default"):
     its name
     :param instance: infrasim instance name
     """
-    daemon.daemonize("{}/{}/.ipmi_console.pid".format(config.infrasim_home, instance))
-    # initialize logging
-    common.init_logger(instance)
-    # initialize environment
-    common.init_env(instance)
-    # parse the sdrs and build all sensors
-    sdr.parse_sdrs()
-    # running thread for each threshold based sensor
-    _spawn_sensor_thread()
-    _start_console()
-
+    output = run_command("infrasim node status")
+    if output[0] == 0 and "stop" not in output[1]:
+        daemon.daemonize("{}/{}/.ipmi_console.pid".format(config.infrasim_home, instance))
+        # initialize logging
+        common.init_logger(instance)
+        # initialize environment
+        common.init_env(instance)
+        # parse the sdrs and build all sensors
+        sdr.parse_sdrs()
+        # running thread for each threshold based sensor
+        _spawn_sensor_thread()
+        _start_console()
+    else:
+        print "Warning: have not started BMC. Please start a node first."
 
 def stop(instance="default"):
     """
