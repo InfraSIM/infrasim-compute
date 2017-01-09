@@ -359,6 +359,7 @@ class LSISASController(CBaseStorageController):
         for drive_info in self._controller_info.get("drives", []):
             sd_obj = SCSIDrive(drive_info)
             sd_obj.index = idx
+            sd_obj.owner = self
             sd_obj.set_bus(self.controller_index + idx / self._max_drive_per_controller)
             sd_obj.set_scsi_id(idx % self._max_drive_per_controller)
             self._drive_list.append(sd_obj)
@@ -408,6 +409,7 @@ class MegaSASController(CBaseStorageController):
         idx = 0
         for drive_info in self._controller_info.get("drives", []):
             sd_obj = SCSIDrive(drive_info)
+            sd_obj.owner = self
             sd_obj.index = idx
             sd_obj.set_bus(self.controller_index + idx / self._max_drive_per_controller)
             sd_obj.set_scsi_id(idx % self._max_drive_per_controller)
@@ -473,6 +475,7 @@ class AHCIController(CBaseStorageController):
         for drive_info in self._controller_info.get("drives", []):
             ide_obj = IDEDrive(drive_info)
             ide_obj.index = idx
+            ide_obj.owner = self
             ide_obj.set_bus(self.controller_index + idx / self._max_drive_per_controller)
             ide_obj.set_scsi_id(idx % self._max_drive_per_controller)
             self._drive_list.append(ide_obj)
@@ -571,11 +574,15 @@ class CBaseDrive(CElement):
         if self.__drive_file and self.__drive_file.startswith("/dev/"):
             self.__format = "raw"
         elif self.__drive_file is None:
+
+            parent = self.owner
+            while parent and not isinstance(parent, CCompute):
+                parent = parent.owner
+
             # If user announce drive file in config, use it
             # else create for them.
-            disk_file_base = os.environ['HOME'] + '/.infrasim/'
-            disk_file = disk_file_base + "sd{0}.img".format(chr(97+self.__index))
-
+            disk_file_base = os.path.join(config.infrasim_home, parent.get_workspace())
+            disk_file = os.path.join(disk_file_base, "sd{0}.img".format(chr(97+self.__index)))
             if not os.path.exists(disk_file):
                 command = "qemu-img create -f qcow2 {0} {1}G".format(disk_file, self.__size)
                 try:
@@ -766,6 +773,8 @@ class CBackendStorage(CElement):
         else:
             raise ArgsNotCorrect("Unsupported controller type.")
 
+        # set owner
+        controller_obj.owner = self
         return controller_obj
 
     def init(self):
@@ -1407,6 +1416,7 @@ class CCompute(Task, CElement):
         backend_storage_obj.owner = self
         if pci_topology_manager_obj:
             backend_storage_obj.set_pci_topology_mgr(pci_topology_manager_obj)
+        backend_storage_obj.owner = self
         self.__element_list.append(backend_storage_obj)
 
         backend_network_obj = CBackendNetwork(self.__compute['networks'])
