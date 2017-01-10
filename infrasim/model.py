@@ -1426,6 +1426,8 @@ class CBMC(Task):
         self.__bin = "ipmi_sim"
         self.__port_iol = 623
         self.__ipmi_listen_range = "::"
+        self.__intf_not_exists = False
+        self.__intf_no_ip = False
 
         # Be careful with updating this number, it could cause FRU index confliction
         # on particular platform, e.g. onr FRU of s2600wtt already occupied index 10
@@ -1499,11 +1501,15 @@ class CBMC(Task):
 
         # check lan interface exists
         if self.__lan_interface not in helper.get_all_interfaces():
-            raise ArgsNotCorrect("Specified BMC interface {} doesn\'t exist".
+            print "Specified BMC interface {} doesn\'t exist, but BMC will still start."\
+                .format(self.__lan_interface)
+            logger.warning("Specified BMC interface {} doesn\'t exist.".
                                  format(self.__lan_interface))
-        if not self.__ipmi_listen_range:
-            raise ArgsNotCorrect("No IP is found on interface {}, BMC can\'t listen".
-                                 format(self.__lan_interface))
+
+        # check if lan interface has IP address
+        elif not self.__ipmi_listen_range:
+            print "No IP is found on interface {}, but BMC will still start.".format(self.__lan_interface)
+            logger.warning("No IP is found on BMC interface {}.".format(self.__lan_interface))
 
         # check attribute
         if self.__poweroff_wait < 0:
@@ -1624,6 +1630,8 @@ class CBMC(Task):
         bmc_conf = template.render(startcmd_script=self.__startcmd_script,
                                    chassis_control_script=self.__chassiscontrol_script,
                                    lan_control_script=self.__lancontrol_script,
+                                   intf_not_exists=self.__intf_not_exists,
+                                   intf_no_ip=self.__intf_no_ip,
                                    lan_interface=self.__lan_interface,
                                    ipmi_listen_range=self.__ipmi_listen_range,
                                    username=self.__username,
@@ -1652,6 +1660,10 @@ class CBMC(Task):
         if 'interface' in self.__bmc:
             self.__lan_interface = self.__bmc['interface']
             self.__ipmi_listen_range = helper.get_interface_ip(self.__lan_interface)
+            if self.__lan_interface not in helper.get_all_interfaces():
+                self.__intf_not_exists = True
+            elif not self.__ipmi_listen_range:
+                self.__intf_no_ip = True
         else:
             nics_list = helper.get_all_interfaces()
             self.__lan_interface = filter(lambda x: x != "lo", nics_list)[0]
