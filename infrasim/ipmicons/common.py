@@ -15,6 +15,8 @@ import re
 import env
 import traceback
 from infrasim import config
+from infrasim import run_command
+from infrasim.workspace import Workspace
 
 
 lock = threading.Lock()
@@ -27,6 +29,14 @@ logger = logging.getLogger("ipmi-console")
 tn = telnetlib.Telnet()
 
 msg_queue = Queue.Queue()
+
+
+class IpmiError(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
 
 
 def init_logger(instance="default"):
@@ -64,6 +74,12 @@ def init_env(instance):
     have a plan to give instance name to ipmi-console so that it can be attached to
     target vBMC instance.
     """
+    if not Workspace.check_workspace_exists(instance):
+        raise IpmiError("Warning: there is no node {} workspace. Please start node {} first.".format(instance, instance))
+    output = run_command("infrasim node status")
+    if output[0] == 0 and "{}-bmc is stopped".format(instance) in output[1]:
+        raise IpmiError("Warning: node {} has not started BMC. Please start node {} first.".format(instance, instance))
+
     logger.info("Init ipmi-console environment for infrasim instance: {}".
                 format(instance))
 
