@@ -120,7 +120,10 @@ class test_compute_configuration_change(unittest.TestCase):
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",
             "max_drive_per_controller": 6,
-            "drives": [{"size": 8}, {"size": 8}]
+            "drives": [
+                {"size": 8, "file": "/tmp/sda.img"},
+                {"size": 8, "file": "/tmp/sdb.img"}
+            ]
         }]
         # with open(TMP_CONF_FILE, "w") as yaml_file:
         #    yaml.dump(self.conf, yaml_file, default_flow_style=False)
@@ -134,8 +137,8 @@ class test_compute_configuration_change(unittest.TestCase):
         qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
 
         assert "qemu-system-x86_64" in qemu_cmdline
-        assert ".infrasim/sda.img" in qemu_cmdline
-        assert ".infrasim/sdb.img" in qemu_cmdline
+        assert "/tmp/sda.img" in qemu_cmdline
+        assert "/tmp/sdb.img" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
 
     def test_qemu_boot_from_disk_img(self):

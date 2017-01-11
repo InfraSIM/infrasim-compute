@@ -76,6 +76,8 @@ def init_env(instance):
     have a plan to give instance name to ipmi-console so that it can be attached to
     target vBMC instance.
     """
+    cur_path = os.environ["PATH"]
+    os.environ["PATH"] = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), cur_path)
     if not Workspace.check_workspace_exists(instance):
         raise IpmiError("Warning: there is no node {} workspace. Please start node {} first.".format(instance, instance))
     output = run_command("infrasim node status")

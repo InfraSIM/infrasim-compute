@@ -576,20 +576,27 @@ class CBaseDrive(CElement):
         elif self.__drive_file is None:
 
             parent = self.owner
-            while parent and not isinstance(parent, CCompute):
+            while parent and not hasattr(parent, "get_workspace"):
                 parent = parent.owner
+
+            ws = None
+            if hasattr(parent, "get_workspace"):
+                ws = parent.get_workspace()
+
+            if ws is None or not os.path.exists(ws):
+                ws = ""
 
             # If user announce drive file in config, use it
             # else create for them.
-            disk_file_base = os.path.join(config.infrasim_home, parent.get_workspace())
-            disk_file = os.path.join(disk_file_base, "sd{0}.img".format(chr(97+self.__index)))
-            if not os.path.exists(disk_file):
-                command = "qemu-img create -f qcow2 {0} {1}G".format(disk_file, self.__size)
-                try:
-                    run_command(command)
-                except CommandRunFailed as e:
-                    raise e
-            self.__drive_file = disk_file
+            disk_file_base = os.path.join(config.infrasim_home, ws)
+            self.__drive_file = os.path.join(disk_file_base, "sd{0}.img".format(chr(97+self.__index)))
+
+        if not os.path.exists(self.__drive_file):
+            command = "qemu-img create -f qcow2 {0} {1}G".format(self.__drive_file, self.__size)
+            try:
+                run_command(command)
+            except CommandRunFailed as e:
+                raise e
 
     def build_host_option(self, *args, **kwargs):
         host_opt_list = []
