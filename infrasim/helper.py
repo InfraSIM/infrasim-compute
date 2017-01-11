@@ -17,6 +17,7 @@ from ctypes import (
 )
 import fcntl
 import struct
+import hashlib
 from infrasim import InfraSimError
 
 libc = cdll.LoadLibrary('libc.so.6')
@@ -33,6 +34,22 @@ def check_kvm_existence():
     if os.path.exists("/dev/kvm"):
         return True
     return False
+
+
+def fetch_image(url, checksum, dst):
+    """
+    :param url: Download link of the image file
+    :param checksum: MD5 checksum of the image
+    :param dst: Location to store the image
+    """
+    if os.path.exists(dst):
+        if hashlib.md5(open(dst, "rb").read()).hexdigest() == checksum:
+            return
+        else:
+            os.remove(dst)
+    os.system("wget -c {0} -O {1}".format(url, dst))
+    if hashlib.md5(open(dst, "rb").read()).hexdigest() != checksum:
+        raise InfraSimError("Fail to download image {}".format(dst.split('/')[-1]))
 
 
 def run_in_namespace(func):

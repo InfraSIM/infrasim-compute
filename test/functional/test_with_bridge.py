@@ -7,10 +7,13 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import os
 import unittest
 import re
+import time
+import paramiko
 from test import fixtures
 from infrasim import run_command
-from infrasim import CommandRunFailed
+from infrasim import CommandRunFailed, InfraSimError
 from infrasim import model
+from infrasim import helper
 
 """
 This is a test file for every possible operation with bridge.
@@ -196,3 +199,141 @@ class test_mac_persist_on_bridge(unittest.TestCase):
         # Verify mac address list remains the same
         assert sorted(macs_former) == sorted(macs_latter)
 
+
+class test_bmc_interface_with_bridge(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            helper.fetch_image(
+                "https://github.com/InfraSIM/test/raw/master/image/kcs.img",
+                "cfdf7d855d2f69c67c6e16cc9b53f0da", "/tmp/kcs.img")
+        except InfraSimError, e:
+            print e.value
+
+    def setUp(self):
+        fake_config = fixtures.FakeConfig()
+        self.conf = fake_config.get_node_info()
+        self.conf["compute"]["storage_backend"] = [{
+            "controller": {
+                "type": "ahci",
+                "max_drive_per_controller": 6,
+                "drives": [{"file": "/tmp/kcs.img"}]
+            }
+        }]
+
+    def tearDown(self):
+        node = model.CNode(self.conf)
+        node.init()
+        node.stop()
+        node.terminate_workspace()
+        self.conf = None
+
+    def set_port_forward(self):
+        time.sleep(3)
+        import telnetlib
+        tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
+        tn.read_until("(qemu)")
+        tn.write("hostfwd_add ::2222-:22\n")
+        tn.read_until("(qemu)")
+        tn.close()
+
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        paramiko.util.log_to_file("filename.log")
+        while True:
+            try:
+                ssh.connect("127.0.0.1", port=2222, username="root",
+                            password="root", timeout=120)
+                ssh.close()
+                break
+            except paramiko.SSHException:
+                time.sleep(1)
+                continue
+            except Exception:
+                assert False
+
+        time.sleep(5)
+
+    def verify_qemu_local_lan(self, expects):
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect("127.0.0.1", port=2222, username="root",
+                    password="root", timeout=10)
+
+        for key, val in expects.iteritems():
+            stdin, stdout, stderr = ssh.exec_command("ipmitool lan print | grep '{}'".format(key))
+            while not stdout.channel.exit_status_ready():
+                pass
+            lines = stdout.channel.recv(2048)
+            print lines
+            assert val in lines
+
+        ssh.close()
+
+    def test_bmc_intf_not_exists(self):
+        """
+        BMC will not bind to any interface if specified BMC interfaces doesn't exist
+        """
+        self.conf["bmc"] = {
+            "interface": "nonexists"
+        }
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        self.set_port_forward()
+        self.verify_qemu_local_lan({"IP Address": "0.0.0.0", "MAC Address":"00:00:00:00:00:00"})
+
+    def test_bmc_intf_exists_no_ip(self):
+        """
+        BMC will bind to specified interface with ip 0.0.0.0 if this interface has no ip address
+        """
+        self.conf["bmc"] = {
+            "interface": FAKE_BRIDGE
+        }
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        mac_addr = run_command("cat /sys/class/net/{}/address".format(FAKE_BRIDGE))[1]
+        self.set_port_forward()
+        self.verify_qemu_local_lan(
+            {"IP Address": "0.0.0.0", "MAC Address": "{}".format(mac_addr)})
+
+    def test_bmc_intf_exists_has_ip(self):
+        """
+        BMC will bind to specified interface and accessed through lanplus channel when interface has valid ip address
+        """
+        interface = None
+        interface_ip = None
+        intf_list = helper.get_all_interfaces()
+
+        # look up an interface with valid ip address
+        for intf in intf_list:
+            interface_ip = helper.get_interface_ip(intf)
+            if intf == "lo" or not interface_ip:
+                continue
+            interface = intf
+            break
+
+        # if no interface has ip, skip this test
+        if not interface:
+            self.skipTest("No interface has IP in the environment, skip this test.")
+        self.conf["bmc"] = {
+            "interface": interface
+        }
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        mac_addr = run_command(
+            "cat /sys/class/net/{}/address".format(interface))[1]
+
+        lan_print_rst = run_command(
+            "ipmitool -U admin -P admin -H {} lan print".format(interface_ip))[1]
+
+        assert mac_addr in lan_print_rst

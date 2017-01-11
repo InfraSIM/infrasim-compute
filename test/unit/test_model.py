@@ -366,9 +366,10 @@ class bmc_configuration(unittest.TestCase):
         try:
             bmc.precheck()
         except ArgsNotCorrect, e:
-            assert "Specified BMC interface fake_lan doesn\'t exist" in str(e)
-        else:
+            print e.value
             assert False
+        else:
+            assert True
 
     def test_set_startnow_true(self):
         bmc_info = {

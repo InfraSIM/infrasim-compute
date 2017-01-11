@@ -15,8 +15,9 @@ import time
 import hashlib
 import paramiko
 from infrasim import model
-from test import fixtures
 from infrasim import helper
+from infrasim import InfraSimError
+from test import fixtures
 
 PS_QEMU = "ps ax | grep qemu"
 PS_IPMI = "ps ax | grep ipmi"
@@ -134,15 +135,14 @@ class test_compute_configuration_change(unittest.TestCase):
 
     def test_qemu_boot_from_disk_img(self):
         MD5_CIRROS_IMG = "ee1eca47dc88f4879d8a229cc70a07c6"
+        DOWNLOAD_URL = "http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img"
         test_img_file = "/tmp/cirros-0.3.4-x86_64-disk.img"
-        if os.path.exists(test_img_file) is False \
-                or hashlib.md5(open(test_img_file, "rb").read()).hexdigest() != MD5_CIRROS_IMG:
-            os.system("wget -c \
-                http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img \
-                -O {}".format(test_img_file))
-
-        if os.path.exists(test_img_file) is False:
+        try:
+            helper.fetch_image(DOWNLOAD_URL, MD5_CIRROS_IMG, test_img_file)
+        except InfraSimError, e:
+            print e.value
             assert False
+
 
         self.conf["compute"]["storage_backend"] = [{
             "controller": {
