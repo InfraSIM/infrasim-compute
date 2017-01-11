@@ -21,7 +21,7 @@ from ipmicons import sdr, common
 import daemon
 from infrasim import config
 import signal
-from infrasim import run_command
+from .ipmicons.common import IpmiError
 
 server = None
 
@@ -88,11 +88,11 @@ class IPMI_CONSOLE(threading.Thread):
                 continue
 
 
-def _start_console():
+def _start_console(instance="default"):
     global server
     server = sshim.Server(IPMI_CONSOLE, port=env.PORT_SSH_FOR_CLIENT)
     try:
-        logger.info("ipmi-console start")
+        logger.info("ipmi-console start {}".format(instance))
         server.run()
 
     except KeyboardInterrupt:
@@ -141,16 +141,20 @@ def start(instance="default"):
     its name
     :param instance: infrasim instance name
     """
-    daemon.daemonize("{}/{}/.ipmi_console.pid".format(config.infrasim_home, instance))
     # initialize logging
     common.init_logger(instance)
     # initialize environment
-    common.init_env(instance)
+    try:
+        common.init_env(instance)
+    except IpmiError, e:
+        print e.value
+        return
+    daemon.daemonize("{}/{}/.ipmi_console.pid".format(config.infrasim_home, instance))
     # parse the sdrs and build all sensors
     sdr.parse_sdrs()
     # running thread for each threshold based sensor
     _spawn_sensor_thread()
-    _start_console()
+    _start_console(instance)
 
 
 def stop(instance="default"):
