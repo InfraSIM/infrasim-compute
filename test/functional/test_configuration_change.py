@@ -132,20 +132,6 @@ class test_compute_configuration_change(unittest.TestCase):
         assert ".infrasim/sda.img,format=qcow2" in str_result
         assert ".infrasim/sdb.img,format=qcow2" in str_result
 
-    def test_network_bridge_network(self):
-        self.conf["compute"]["networks"][0]["network_mode"] = "bridge"
-        self.conf["compute"]["networks"][0]["network_name"] = "fakebr0"
-        # with open(TMP_CONF_FILE, "w") as yaml_file:
-        #    yaml.dump(self.conf, yaml_file, default_flow_style=False)
-
-        try:
-            node = model.CNode(self.conf)
-            node.init()
-            node.precheck()
-            node.start()
-        except Exception:
-            assert True
-
     def test_qemu_boot_from_disk_img(self):
         MD5_CIRROS_IMG = "ee1eca47dc88f4879d8a229cc70a07c6"
         test_img_file = "/tmp/cirros-0.3.4-x86_64-disk.img"
