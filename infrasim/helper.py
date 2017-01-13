@@ -5,6 +5,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 import os
 import socket
+import multiprocessing
 from functools import wraps
 from ctypes import cdll
 from socket import AF_INET, AF_INET6, inet_ntop
@@ -15,9 +16,8 @@ from ctypes import (
     c_char_p, c_uint, c_uint16,
     c_uint32
 )
-import fcntl
-import struct
 import hashlib
+import sys
 from infrasim import InfraSimError
 
 libc = cdll.LoadLibrary('libc.so.6')
@@ -259,3 +259,53 @@ class Namespace(object):
     def __exit__(self, *args):
         setns(self.myns.fileno(), 0)
         self.myns.close()
+
+
+def double_fork(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        # Create a queue to receive wrapped function's return value
+        # and keep return to someone call the function
+        p_r, p_s = multiprocessing.Pipe(False)
+
+        # do the UNIX double-fork magic, see Stevens' "Advanced
+        # Programming in the UNIX Environment" for details (ISBN 0201563177)
+        try:
+            pid = os.fork()
+            if pid > 0:
+                rsp = p_r.recv()
+                if "ret" in rsp:
+                    return rsp["ret"]
+                elif "exception" in rsp:
+                    raise rsp["exception"]
+        except OSError, e:
+            print >>sys.stderr, "fork #1 failed: %d (%s)" % (e.errno, e.strerror)
+            sys.exit(1)
+
+        os.setsid()
+
+        # do second fork
+        try:
+            pid = os.fork()
+            if pid > 0:
+                # exit from second parent
+                os._exit(os.EX_OK)
+        except OSError, e:
+            print >>sys.stderr, "fork #2 failed: %d (%s)" % (e.errno, e.strerror)
+            sys.exit(1)
+
+        try:
+            ret = func(*args, **kwargs)
+        except Exception, e:
+            p_s.send({
+                "exception": e
+            })
+        else:
+            p_s.send({
+                "ret": ret
+            })
+
+        os._exit(os.EX_OK)
+
+    return wrapper
