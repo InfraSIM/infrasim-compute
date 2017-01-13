@@ -9,6 +9,8 @@ import time
 import yaml
 import hashlib
 from infrasim import model
+from infrasim import helper
+from infrasim import InfraSimError
 import paramiko
 from test import fixtures
 
@@ -46,15 +48,14 @@ new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
 
 def setup_module():
+    test_img_file = "/tmp/kcs.img"
+    DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
     MD5_KCS_IMG = "cfdf7d855d2f69c67c6e16cc9b53f0da"
-    if not os.path.exists(test_img_file) or \
-                    hashlib.md5(open(test_img_file, "rb").read()).hexdigest() != MD5_KCS_IMG:
-        os.system("wget -c \
-            https://github.com/InfraSIM/test/raw/master/image/kcs.img \
-            -O {}".format(test_img_file))
-
-    if os.path.exists(test_img_file) is False:
-        return
+    try:
+        helper.fetch_image(DOWNLOAD_URL, MD5_KCS_IMG, test_img_file)
+    except InfraSimError, e:
+        print e.value
+        assert False
 
     os.environ["PATH"] = new_path
 

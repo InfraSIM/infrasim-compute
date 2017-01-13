@@ -15,6 +15,7 @@ import paramiko
 from infrasim import console
 from infrasim import config
 from infrasim.model import CNode
+from infrasim.config_manager import NodeMap
 from test import fixtures
 import threading
 import yaml
@@ -93,7 +94,7 @@ class test_ipmi_console_start_stop(unittest.TestCase):
         assert 'ipmi-console start' not in output1
 
     def test_start_stop_specified_ipmi_console(self):
-        self.node_name = "test_"
+        self.node_name = "test"
         self.node_workspace = os.path.join(config.infrasim_home, self.node_name)
         node_config_path = "test.yml"
         node_info = FakeConfig().get_node_info()
@@ -112,6 +113,8 @@ class test_ipmi_console_start_stop(unittest.TestCase):
         assert 'ipmi-console start {}'.format(self.node_name) in output
         self.assertEqual(returncode1, 0)
         assert 'ipmi-console start {}'.format(self.node_name) not in output1
+        node_map = NodeMap()
+        node_map.delete(self.node_name)
 
     def test_start_ipmi_console_not_start_bmc(self):
         self.node_name = "default"
