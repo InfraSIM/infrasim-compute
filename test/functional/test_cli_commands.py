@@ -223,6 +223,47 @@ class test_node_cli(unittest.TestCase):
         assert "[        ] {}-bmc is stopped".format(self.node_name) in output_stop_2[1]
         assert "[        ] {}-socat is stopped".format(self.node_name) in output_stop_2[1]
 
+    def test_start_info_destroy_info(self):
+        """
+        CLI test: start and destroy a node, and get node_info respectively
+        """
+        output_info = {}
+        output_start = run_command("infrasim node start")
+        self.assertEqual(output_start[0], 0)
+        self.assertTrue(Workspace.check_workspace_exists(self.node_name))
+        output_info['start'] = run_command("infrasim node info")
+        self.assertEqual(output_info['start'][0], 0)
+
+        output_destroy = run_command("infrasim node destroy")
+        self.assertEqual(output_destroy[0], 0)
+        self.assertFalse(Workspace.check_workspace_exists(self.node_name))
+
+        output_info['destroy'] = run_command("infrasim node info")
+        self.assertEqual(output_info['destroy'][0], 0)
+
+        assert "{}-socat starts to run".format(self.node_name) in output_start[1]
+        assert "{}-bmc starts to run".format(self.node_name) in output_start[1]
+        assert "{}-node is running".format(self.node_name) in output_start[1]
+
+        assert "node name:          {}".format(self.node_name) in output_info['start'][1]
+        assert "type:" in output_info['start'][1]
+        assert "memory size:" in output_info['start'][1]
+        assert "sol_enable:" in output_info['start'][1]
+        assert "cpu quantities:" in output_info['start'][1]
+        assert "cpu type:" in output_info['start'][1]
+        assert "network(s):" in output_info['start'][1]
+        assert "device" in output_info['start'][1]
+        assert "mode" in output_info['start'][1]
+        assert "name " in output_info['start'][1]
+        assert "storage backend:" in output_info['start'][1]
+        assert "type " in output_info['start'][1]
+        assert "max drive" in output_info['start'][1]
+        assert "drive size" in output_info['start'][1]
+
+        assert "Node {} runtime workspace is destroyed".format(self.node_name) in output_destroy[1]
+
+        assert "Node {} runtime workspace doesn't exist".format(self.node_name) in output_info['destroy'][1]
+
 
 class test_config_cli_with_runtime_node(unittest.TestCase):
     test_name = "test"
