@@ -130,8 +130,8 @@ class test_compute_configuration_change(unittest.TestCase):
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
         assert "qemu-system-x86_64" in str_result
-        assert ".infrasim/sda.img,format=qcow2" in str_result
-        assert ".infrasim/sdb.img,format=qcow2" in str_result
+        assert ".infrasim/test/sda.img,format=qcow2" in str_result
+        assert ".infrasim/test/sdb.img,format=qcow2" in str_result
 
     def test_qemu_boot_from_disk_img(self):
         MD5_CIRROS_IMG = "ee1eca47dc88f4879d8a229cc70a07c6"

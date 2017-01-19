@@ -96,6 +96,15 @@ class Utility(object):
 class CElement(object):
     def __init__(self):
         self.__option_list = []
+        self.__owner = None
+
+    @property
+    def owner(self):
+        return self.__owner
+
+    @owner.setter
+    def owner(self, o):
+        self.__owner = o
 
     def precheck(self):
         raise NotImplementedError("precheck is not implemented")
@@ -372,11 +381,18 @@ class CDrive(CElement):
             if self.__file.startswith("/dev/"):
                 self.__format = "raw"
         else:
-            disk_file_base = os.environ['HOME'] + '/.infrasim/'
-            disk_file = disk_file_base + "sd{0}.img".format(chr(97+self.__index))
+            parent = self.owner
+            while parent and not hasattr(parent, "get_workspace"):
+                parent = parent.owner
+            ws = None
+            if hasattr(parent, "get_workspace"):
+                ws = parent.get_workspace()
+            if ws is None or not os.path.exists(ws):
+                ws = ""
+            disk_file_base = os.path.join(config.infrasim_home, ws)
+            disk_file = os.path.join(disk_file_base, "sd{0}.img".format(chr(97+self.__index)))
             if not os.path.exists(disk_file):
-                command = "qemu-img create -f qcow2 {0}sd{1}.img {2}G".\
-                    format(disk_file_base, chr(97+self.__index), self.__size)
+                command = "qemu-img create -f qcow2 {0} {1}G".format(disk_file, self.__size)
                 try:
                     run_command(command)
                 except CommandRunFailed as e:
@@ -541,6 +557,7 @@ class CStorageController(CElement):
         controller_index = 0
         for drive_info in self.__controller_info['controller']['drives']:
             drive_obj = CDrive(drive_info)
+            drive_obj.owner = self
             drive_obj.set_index(drive_index)
             if drive_index > self.__max_drive_per_controller - 1:
                 controller_index += 1
@@ -626,6 +643,7 @@ class CBackendStorage(CElement):
         for controller in self.__backend_storage_info:
             controller_obj = CStorageController(controller)
             controller_obj.set_pci_topology_mgr(self.__pci_topology_manager)
+            controller_obj.owner = self
             self.__controller_list.append(controller_obj)
 
         for controller_obj in self.__controller_list:
@@ -1278,6 +1296,7 @@ class CCompute(Task, CElement):
         backend_storage_obj = CBackendStorage(self.__compute['storage_backend'])
         if pci_topology_manager_obj:
             backend_storage_obj.set_pci_topology_mgr(pci_topology_manager_obj)
+        backend_storage_obj.owner = self
         self.__element_list.append(backend_storage_obj)
 
         backend_network_obj = CBackendNetwork(self.__compute['networks'])
