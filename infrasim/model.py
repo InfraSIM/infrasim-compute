@@ -1799,9 +1799,11 @@ class CSocat(Task):
         except CommandRunFailed:
             raise CommandNotFound("socat")
 
-        # check workspace
-        if not self.__sol_device and not self.get_workspace():
-            raise ArgsNotCorrect("No workspace and serial device are defined")
+        if not self.__sol_device:
+            raise ArgsNotCorrect("No SOL device is defined")
+
+        if not self.__socket_serial:
+            raise ArgsNotCorrect("No socket file for serial is defined")
 
     def init(self):
         if self.__sol_device:

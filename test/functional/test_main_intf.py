@@ -36,10 +36,12 @@ class test_start_intf(unittest.TestCase):
 
             assert test_ip_list
 
-            str_result = run_command('hostname -I', True, \
-                                 subprocess.PIPE, subprocess.PIPE)[1]
+            str_result = run_command(
+                'hostname -I', True, subprocess.PIPE, subprocess.PIPE)[1]
 
             host_ip = str_result.split()
+            # remove IPV6 addresses from host ip list
+            host_ip = [ip for ip in host_ip if ":" not in ip]
 
             # Verify IP address, except 127.0.0.1, both lists share
             # same set of ip address
