@@ -105,7 +105,7 @@ class qemu_functions(unittest.TestCase):
                 "controller": {
                     "type": "ahci",
                     "max_drive_per_controller": 6,
-                    "drives": [{"size": 8}]
+                    "drives": [{"size": 8, "file": "/tmp/sda.img"}]
                 }
             }]
             storage = model.CBackendStorage(backend_storage_info)
@@ -122,7 +122,7 @@ class qemu_functions(unittest.TestCase):
                 "controller": {
                     "type": "scsi",
                     "max_drive_per_controller": 8,
-                    "drives": [{"size": 8}]
+                    "drives": [{"size": 8, "file": "/tmp/sda.img"}]
                 }
             }]
             storage = model.CBackendStorage(backend_storage_info)
@@ -139,7 +139,9 @@ class qemu_functions(unittest.TestCase):
                 "controller": {
                     "type": "ahci",
                     "max_drive_per_controller": 2,
-                    "drives": [{"size": 8}, {"size": 8}, {"size": 8}]
+                    "drives": [{"size": 8, "file": "/tmp/sda.img"},
+                               {"size": 8, "file": "/tmp/sda.img"},
+                               {"size": 8, "file": "/tmp/sda.img"}]
                 }
             }]
             storage = model.CBackendStorage(backend_storage_info)
@@ -156,7 +158,7 @@ class qemu_functions(unittest.TestCase):
                 "controller": {
                     "type": "ahci",
                     "max_drive_per_controller": 6,
-                    "drives": [{"size": 8, "model": "SATADOM"}]
+                    "drives": [{"size": 8, "file": "/tmp/sda.img", "model": "SATADOM"}]
                 }
             }]
             storage = model.CBackendStorage(backend_storage_info)
@@ -174,7 +176,8 @@ class qemu_functions(unittest.TestCase):
                     "type": "ahci",
                     "max_drive_per_controller": 6,
                     "drives": [
-                        {"size": 8, "model": "SATADOM", "serial": "HUSMM442"}
+                        {"size": 8, "file": "/tmp/sda.img",
+                         "model": "SATADOM", "serial": "HUSMM442"}
                     ]
                 }
             }]
@@ -193,8 +196,9 @@ class qemu_functions(unittest.TestCase):
                     "type": "megasas-gen2",
                     "max_drive_per_controller": 6,
                     "drives": [
-                        {"size": 8, "serial": "HUSMM442",
-                         "model": "SATADOM", "vendor": "Hitachi"}],
+                        {"size": 8, "file": "/tmp/sda.img",
+                         "serial": "HUSMM442", "model": "SATADOM",
+                         "vendor": "Hitachi"}],
                 }
             }]
             storage = model.CBackendStorage(backend_storage_info)
@@ -212,9 +216,9 @@ class qemu_functions(unittest.TestCase):
                     "type": "megasas-gen2",
                     "max_drive_per_controller": 6,
                     "drives": [{
-                        "size": 8, "model": "SATADOM",
-                        "serial": "HUSMM442", "vendor": "Hitachi",
-                        "rotation": 1
+                        "size": 8, "file": "/tmp/sda.img",
+                        "model": "SATADOM", "serial": "HUSMM442",
+                        "vendor": "Hitachi", "rotation": 1
                     }]
                 }
             }]
@@ -233,9 +237,10 @@ class qemu_functions(unittest.TestCase):
                     "type": "megasas-gen2",
                     "max_drive_per_controller": 6,
                     "drives": [{
-                            "size": 8, "model": "SATADOM",
-                            "serial": "HUSMM442", "vendor": "Hitachi",
-                            "rotation": 1, "product": "Quanta"}]
+                        "size": 8, "file": "/tmp/sda.img",
+                        "model": "SATADOM", "serial": "HUSMM442",
+                        "vendor": "Hitachi", "rotation": 1,
+                        "product": "Quanta"}]
                 }
             }]
             storage = model.CBackendStorage(backend_storage_info)
@@ -249,9 +254,11 @@ class qemu_functions(unittest.TestCase):
     def test_set_smbios(self):
         with open(config.infrasim_default_config, "r") as f_yml:
             compute_info = yaml.load(f_yml)["compute"]
-        compute_info["smbios"] = "/tmp/test.smbios"
+        workspace = os.path.join(os.environ["HOME"], ".infrasim", ".test")
 
+        compute_info["smbios"] = "/tmp/test.smbios"
         compute = model.CCompute(compute_info)
+        compute.set_workspace(workspace)
         compute.init()
         assert compute.get_smbios() == "/tmp/test.smbios"
 
