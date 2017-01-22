@@ -1294,6 +1294,7 @@ class CCompute(Task, CElement):
             self.__element_list.append(pci_topology_manager_obj)
 
         backend_storage_obj = CBackendStorage(self.__compute['storage_backend'])
+        backend_storage_obj.owner = self
         if pci_topology_manager_obj:
             backend_storage_obj.set_pci_topology_mgr(pci_topology_manager_obj)
         self.__element_list.append(backend_storage_obj)
