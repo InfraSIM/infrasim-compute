@@ -10,6 +10,7 @@ import infrasim.helper as helper
 from infrasim.config_manager import NodeMap
 from infrasim import InfraSimError
 from infrasim.workspace import Workspace
+from texttable import Texttable
 
 nm = NodeMap()
 
@@ -162,6 +163,53 @@ class NodeCommands(object):
     def info(self, node_name, type=True):
         try:
             node_info = Workspace.get_node_info_in_workspace(node_name)
+            node_info_net = node_info['compute']['networks']
+            node_info_stor = node_info['compute']['storage_backend']
+
+            print "{:<20}{}\n" \
+                  "{:<20}{}\n" \
+                  "{:<20}{}\n" \
+                  "{:<20}{}\n" \
+                  "{:<20}{}\n" \
+                  "{:<20}{}" . \
+                format("node name:", node_name,
+                       "type:", node_info['type'],
+                       "memory size:", node_info['compute']['memory']['size'],
+                       "sol_enable:", node_info['sol_enable'],
+                       "cpu quantities:", node_info['compute']['cpu']['quantities'],
+                       "cpu type:", node_info['compute']['cpu']['type'])
+            print "{:<20}".format("network(s):") + "-" * 22
+            table = Texttable()
+            table_type = ~(Texttable.HEADER | Texttable.BORDER | Texttable.HLINES | Texttable.VLINES)
+            table.set_deco(table_type)
+            table.set_cols_align(["l", "l", "l", "l"])
+            row = []
+            row.append([" " * 17, "device", "mode", "name"])
+            for i in range(1, len(node_info_net) + 1):
+                net = node_info_net[i-1]
+                row.append([" " * 17, net['device'], net['network_mode'], net['network_name']])
+            table.add_rows(row)
+            print table.draw()
+
+            print "{:<20}".format("storage backend:") + "-" * 30
+            table = Texttable()
+            table.set_deco(table_type)
+            table.set_cols_align(["l", "l", "l", "l"])
+            row = []
+            row.append([" " * 17, "type", "max drive", "drive size"])
+            for i in range(1, len(node_info_stor) + 1):
+                stor = node_info_stor[i - 1]
+                node_info_drives = stor['controller']['drives']
+                for j in range(1, len(node_info_drives) + 1):
+                    drive = node_info_drives[j - 1]
+                    if j == 1:
+                        row.append([" " * 17, stor['controller']['type'],
+                                    stor['controller']['max_drive_per_controller'], drive['size']])
+                    else:
+                        row.append([" " * 17, "", "", drive['size']])
+            table.add_rows(row)
+            print table.draw()
+
         except InfraSimError, e:
             print e.value
             return
