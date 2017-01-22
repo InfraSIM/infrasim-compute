@@ -338,9 +338,9 @@ class test_connection(unittest.TestCase):
                                  subprocess.PIPE, subprocess.PIPE)[1]
         assert "port=9102" in str_result
 
-    def test_set_serial_port(self):
+    def test_set_serial_socket(self):
         self.conf["sol"] = True
-        self.conf["serial_port"] = 9103
+        self.conf["serial_socket"] = "/tmp/test_infrasim_set_serial_socket"
 
         node = model.CNode(self.conf)
         node.init()
@@ -349,12 +349,14 @@ class test_connection(unittest.TestCase):
 
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
-        assert "-chardev udp,host=127.0.0.1,port=9103,id=serial0,reconnect=10" in str_result
+        assert "-chardev socket,path=/tmp/test_infrasim_set_serial_socket," \
+               "id=serial0,reconnect=10" in str_result
         assert "-device isa-serial,chardev=serial0" in str_result
 
         str_result = run_command(PS_SOCAT, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
-        assert "udp-listen:9103,reuseaddr,fork" in str_result
+        assert "unix-listen:/tmp/test_infrasim_set_serial_socket," \
+               "fork" in str_result
 
     def test_set_node_type(self):
         self.conf["type"] = "dell_c6320"

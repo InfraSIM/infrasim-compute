@@ -45,8 +45,8 @@ def start_socat(conf_file=config.infrasim_default_config):
         # and set to socat
         if "sol_device" in conf:
             socat.set_sol_device(conf["sol_device"])
-        if "serial_port" in conf:
-            socat.set_port_serial(conf["serial_port"])
+        if "serial_socket" in conf:
+            socat.set_socket_serial(conf["serial_socket"])
 
         socat.set_workspace(node.workspace.get_workspace())
         socat.init()
