@@ -173,5 +173,5 @@ ipmi_console_port: 9000
 # Used by ipmi_sim and qemu
 bmc_connection_port: 9100
 
-# Used by socat and qemu
-serial_port: 9003
+# Socket file to bridge socat and qemu
+serial_socket: /tmp/serial

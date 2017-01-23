@@ -115,7 +115,6 @@ class test_node_ports_no_conflict(unittest.TestCase):
         self.node_info_2['ipmi_console_ssh'] = 9301
         self.node_info_2['ipmi_console_port'] = 9001
         self.node_info_2['bmc_connection_port'] = 9101
-        self.node_info_2['serial_port'] = 9004
         self.node_info_2['compute']['vnc_display'] = 2
         self.node_info_2['compute']['monitor'] = {
             'mode': 'readline',

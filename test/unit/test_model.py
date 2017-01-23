@@ -747,7 +747,27 @@ class socat_configuration(unittest.TestCase):
         cmd = socat_obj.get_commandline()
 
         assert "pty,link={}/pty0,waitslave".format(config.infrasim_etc) in cmd
-        assert "udp-listen:9003,reuseaddr" in cmd
+        assert "unix-listen:{}/serial,fork".format(config.infrasim_etc) in cmd
+
+    def test_change_sol_device(self):
+        socat_obj = model.CSocat()
+
+        socat_obj.set_sol_device("/tmp/sol_device")
+        socat_obj.init()
+        socat_obj.precheck()
+        cmd = socat_obj.get_commandline()
+
+        assert "pty,link=/tmp/sol_device,waitslave".format(config.infrasim_etc) in cmd
+
+    def test_change_serial_socket(self):
+        socat_obj = model.CSocat()
+
+        socat_obj.set_socket_serial("/tmp/serial_socket")
+        socat_obj.init()
+        socat_obj.precheck()
+        cmd = socat_obj.get_commandline()
+
+        assert "unix-listen:/tmp/serial_socket,fork".format(config.infrasim_etc) in cmd
 
 
 class racadm_configuration(unittest.TestCase):

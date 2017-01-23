@@ -79,8 +79,8 @@ def start_qemu(conf_file=config.infrasim_default_config):
         else:
             compute.set_type(conf['type'])
 
-        if "serial_port" in conf:
-            compute.set_port_serial(conf["serial_port"])
+        if "serial_socket" in conf:
+            compute.set_socket_serial(conf["serial_socket"])
 
         if "bmc_connection_port" in conf:
             compute.set_port_qemu_ipmi(conf["bmc_connection_port"])
@@ -124,8 +124,8 @@ def stop_qemu(conf_file=config.infrasim_default_config):
         else:
             compute.set_type(conf['type'])
 
-        if "serial_port" in conf:
-            compute.set_port_serial(conf["serial_port"])
+        if "serial_socket" in conf:
+            compute.set_socket_serial(conf["serial_socket"])
 
         if "bmc_connection_port" in conf:
             compute.set_port_qemu_ipmi(conf["bmc_connection_port"])

@@ -1169,7 +1169,7 @@ class CCompute(Task, CElement):
 
         # Node wise attributes
         self.__port_qemu_ipmi = 9002
-        self.__port_serial = 9003
+        self.__socket_serial = ""
         self.__sol_enabled = False
         self.__kernel = None
         self.__initrd = None
@@ -1188,8 +1188,8 @@ class CCompute(Task, CElement):
     def set_port_qemu_ipmi(self, port):
         self.__port_qemu_ipmi = port
 
-    def set_port_serial(self, port):
-        self.__port_serial = port
+    def set_socket_serial(self, o):
+        self.__socket_serial = o
 
     def set_smbios(self, smbios):
         self.__smbios = smbios
@@ -1294,9 +1294,9 @@ class CCompute(Task, CElement):
             self.__element_list.append(pci_topology_manager_obj)
 
         backend_storage_obj = CBackendStorage(self.__compute['storage_backend'])
+        backend_storage_obj.owner = self
         if pci_topology_manager_obj:
             backend_storage_obj.set_pci_topology_mgr(pci_topology_manager_obj)
-        backend_storage_obj.owner = self
         self.__element_list.append(backend_storage_obj)
 
         backend_network_obj = CBackendNetwork(self.__compute['networks'])
@@ -1395,12 +1395,11 @@ class CCompute(Task, CElement):
         if self.__cdrom_file:
             self.add_option("-cdrom {}".format(self.__cdrom_file))
 
-        if self.__port_serial and self.__sol_enabled:
+        if self.__socket_serial and self.__sol_enabled:
             chardev = CCharDev({
-                "backend": "udp",
-                "host": "127.0.0.1",
-                "wait": "off",
-                "port": self.__port_serial
+                "backend": "socket",
+                "path": self.__socket_serial,
+                "wait": "off"
             })
             chardev.set_id("serial0")
             chardev.init()
@@ -1781,11 +1780,11 @@ class CSocat(Task):
         self.__bin = "socat"
 
         # Node wise attributes
-        self.__port_serial = 9003
+        self.__socket_serial = ""
         self.__sol_device = ""
 
-    def set_port_serial(self, port):
-        self.__port_serial = port
+    def set_socket_serial(self, o):
+        self.__socket_serial = o
 
     def set_sol_device(self, device):
         self.__sol_device = device
@@ -1799,9 +1798,11 @@ class CSocat(Task):
         except CommandRunFailed:
             raise CommandNotFound("socat")
 
-        # check workspace
-        if not self.__sol_device and not self.get_workspace():
-            raise ArgsNotCorrect("No workspace and serial device are defined")
+        if not self.__sol_device:
+            raise ArgsNotCorrect("No SOL device is defined")
+
+        if not self.__socket_serial:
+            raise ArgsNotCorrect("No socket file for serial is defined")
 
     def init(self):
         if self.__sol_device:
@@ -1811,10 +1812,17 @@ class CSocat(Task):
         else:
             self.__sol_device = os.path.join(config.infrasim_etc, "pty0")
 
+        if self.__socket_serial:
+            pass
+        elif self.get_workspace():
+            self.__socket_serial = os.path.join(self.get_workspace(), ".serial")
+        else:
+            self.__socket_serial = os.path.join(config.infrasim_etc, "serial")
+
     def get_commandline(self):
         socat_str = "{0} pty,link={1},waitslave " \
-            "udp-listen:{2},reuseaddr,fork".\
-            format(self.__bin, self.__sol_device, self.__port_serial)
+            "unix-listen:{2},fork".\
+            format(self.__bin, self.__sol_device, self.__socket_serial)
 
         return socat_str
 
@@ -1992,13 +2000,17 @@ class CNode(object):
             bmc_obj.set_type(self.__node['type'])
             compute_obj.set_type(self.__node['type'])
 
-        if "sol_device" in self.__node and self.__sol_enabled:
-            socat_obj.set_sol_device(self.__node["sol_device"])
-            bmc_obj.set_sol_device(self.__node["sol_device"])
+        if self.__sol_enabled:
+            if "sol_device" in self.__node:
+                socat_obj.set_sol_device(self.__node["sol_device"])
+                bmc_obj.set_sol_device(self.__node["sol_device"])
 
-        if "serial_port" in self.__node and self.__sol_enabled:
-            socat_obj.set_port_serial(self.__node["serial_port"])
-            compute_obj.set_port_serial(self.__node["serial_port"])
+            if "serial_socket" not in self.__node:
+                self.__node["serial_socket"] = os.path.join(config.infrasim_home,
+                                                            self.__node["name"],
+                                                            ".serial")
+            socat_obj.set_socket_serial(self.__node["serial_socket"])
+            compute_obj.set_socket_serial(self.__node["serial_socket"])
 
         if "ipmi_console_port" in self.__node:
             bmc_obj.set_port_ipmi_console(self.__node["ipmi_console_port"])
