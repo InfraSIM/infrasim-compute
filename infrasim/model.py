@@ -228,7 +228,10 @@ class CCharDev(CElement):
 
         self.__path = self.__chardev['path'] if 'path' in self.__chardev else self.__path
 
-        self.__reconnect = self.__chardev['reconnect'] if 'reconnect' in self.__chardev else self.__reconnect
+        if self.__is_server is False:
+            self.__reconnect = self.__chardev['reconnect'] if 'reconnect' in self.__chardev else self.__reconnect
+        else:
+            self.__reconnect = None
 
     def handle_parms(self):
         chardev_option_list = []
@@ -253,7 +256,8 @@ class CCharDev(CElement):
         if self.__wait is False:
             chardev_option_list.append("nowait")
 
-        chardev_option_list.append("reconnect={}".format(self.__reconnect))
+        if self.__reconnect is not None:
+            chardev_option_list.append("reconnect={}".format(self.__reconnect))
 
         chardev_option = "-chardev {}".format(",".join(chardev_option_list))
         self.add_option(chardev_option)
