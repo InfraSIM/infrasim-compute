@@ -330,10 +330,16 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
         node.precheck()
         node.start()
 
+        # FIXME: ipmi_sim takes time to set lan configuration through lancontrol script,
+        # if lan info is accessed before configuration complete, ipmitool would fail to
+        # retrieve Ip Source data and then fail to close session, which would break the test.
+        # Need a solution to check if lan setting is complete.
+        time.sleep(2)
+
         mac_addr = run_command(
             "cat /sys/class/net/{}/address".format(interface))[1]
 
         lan_print_rst = run_command(
-            "ipmitool -U admin -P admin -H {} lan print".format(interface_ip))[1]
+            "ipmitool -I lanplus -U admin -P admin -H {} lan print".format(interface_ip))[1]
 
         assert mac_addr in lan_print_rst
