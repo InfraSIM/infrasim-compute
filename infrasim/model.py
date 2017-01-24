@@ -23,7 +23,7 @@ import helper
 import stat
 from workspace import Workspace
 from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
-from infrasim.helper import run_in_namespace
+from infrasim.helper import run_in_namespace, double_fork
 
 """
 This module majorly defines infrasim element models.
@@ -46,6 +46,7 @@ For each element class, they need to implement methods:
 
 class Utility(object):
     @staticmethod
+    @double_fork
     def execute_command(command, log_path=""):
         args = shlex.split(command)
         proc = subprocess.Popen(args, stdin=subprocess.PIPE,
