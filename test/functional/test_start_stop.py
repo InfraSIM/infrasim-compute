@@ -10,7 +10,7 @@ from infrasim import model
 from infrasim import config
 from infrasim import run_command
 from test import fixtures
-
+from infrasim.workspace import Workspace
 
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
@@ -22,6 +22,129 @@ def setup_module():
 
 def teardown_module():
     os.environ["PATH"] = old_path
+
+
+def check_node_start_workspace(node_name):
+
+    conf = Workspace.get_node_info_in_workspace(node_name)
+    node_root = os.path.join(config.infrasim_home, conf["name"])
+
+    # Check node data folder and files exist
+    node_type = conf["type"]
+    data_folder = os.path.join(node_root, "data")
+    node_emu = os.path.join(data_folder, "{}.emu".format(node_type))
+    node_bios = os.path.join(data_folder, "{}_smbios.bin".format(node_type))
+    assert os.path.exists(data_folder) is True
+    assert os.path.exists(node_emu) is True
+    assert os.path.exists(node_bios) is True
+
+    # Check node script folder and files exist
+    script_folder = os.path.join(node_root, "script")
+    script_chassiscontrol = os.path.join(script_folder, "chassiscontrol")
+    script_lancontrol = os.path.join(script_folder, "lancontrol")
+    script_startcmd = os.path.join(script_folder, "startcmd")
+    script_stopcmd = os.path.join(script_folder, "stopcmd")
+    script_resetcmd = os.path.join(script_folder, "resetcmd")
+    assert os.path.exists(script_folder) is True
+    assert os.path.exists(script_chassiscontrol) is True
+    assert os.path.exists(script_lancontrol) is True
+    assert os.path.exists(script_startcmd) is True
+    assert os.path.exists(script_stopcmd) is True
+    assert os.path.exists(script_resetcmd) is True
+
+    # Check etc folder and files exist
+    etc_folder = os.path.join(node_root, "etc")
+    etc_infrasim_yml = os.path.join(etc_folder, "infrasim.yml")
+    etc_vbmc_conf = os.path.join(etc_folder, "vbmc.conf")
+    assert os.path.exists(etc_folder) is True
+    assert os.path.exists(etc_infrasim_yml) is True
+    assert os.path.exists(etc_vbmc_conf) is True
+
+    # Check disk image exist
+    node_name = conf["name"]
+    node_drive = conf['compute']['storage_backend'][0]['controller']['drives']
+    for i in range(1, len(node_drive) + 1):
+        disk_file = os.path.join(node_root, "sd{0}.img".format(chr(96 + i)))
+        assert os.path.exists(disk_file) is True
+
+    # Check serial device exist
+    serial_dev = os.path.join(node_root, ".pty0")
+    assert os.path.exists(serial_dev) is True
+
+    # Check unix socket file
+    serial = os.path.join(node_root, ".serial")
+    assert os.path.exists(serial) is True
+
+    # Check node runtime pid file exist
+    node_socat = os.path.join(node_root, ".{}-socat.pid".format(node_name))
+    node_ipmi = os.path.join(node_root, ".{}-bmc.pid".format(node_name))
+    node_qemu = os.path.join(node_root, ".{}-node.pid".format(node_name))
+    assert os.path.exists(node_socat) is True
+    assert os.path.exists(node_ipmi) is True
+    assert os.path.exists(node_qemu) is True
+
+
+def check_node_stop_workspace(node_name):
+
+    conf = Workspace.get_node_info_in_workspace(node_name)
+    node_root = os.path.join(config.infrasim_home, conf["name"])
+
+    # Check node data folder and files exist
+    node_type = conf["type"]
+    data_folder = os.path.join(node_root, "data")
+    node_emu = os.path.join(data_folder, "{}.emu".format(node_type))
+    node_bios = os.path.join(data_folder, "{}_smbios.bin".format(node_type))
+    assert os.path.exists(data_folder) is True
+    assert os.path.exists(node_emu) is True
+    assert os.path.exists(node_bios) is True
+
+    # Check node script folder and files exist
+    script_folder = os.path.join(node_root, "script")
+    script_chassiscontrol = os.path.join(script_folder, "chassiscontrol")
+    script_lancontrol = os.path.join(script_folder, "lancontrol")
+    script_startcmd = os.path.join(script_folder, "startcmd")
+    script_stopcmd = os.path.join(script_folder, "stopcmd")
+    script_resetcmd = os.path.join(script_folder, "resetcmd")
+    assert os.path.exists(script_folder) is True
+    assert os.path.exists(script_chassiscontrol) is True
+    assert os.path.exists(script_lancontrol) is True
+    assert os.path.exists(script_startcmd) is True
+    assert os.path.exists(script_stopcmd) is True
+    assert os.path.exists(script_resetcmd) is True
+
+    # Check etc folder and files exist
+    etc_folder = os.path.join(node_root, "etc")
+    etc_infrasim_yml = os.path.join(etc_folder, "infrasim.yml")
+    etc_vbmc_conf = os.path.join(etc_folder, "vbmc.conf")
+    assert os.path.exists(etc_folder) is True
+    assert os.path.exists(etc_infrasim_yml) is True
+    assert os.path.exists(etc_vbmc_conf) is True
+
+    # Check disk image exist
+    node_name = conf["name"]
+    node_stor = conf['compute']['storage_backend']
+    disk_index = 0
+    for stor_control in node_stor:
+        for drive in stor_control:
+            disk_file = os.path.join(node_root, "sd{0}.img".format(chr(97 + disk_index)))
+            disk_index += 1
+            assert os.path.exists(disk_file) is True
+
+    # Check serial device exist
+    serial_dev = os.path.join(node_root, ".pty0")
+    assert os.path.exists(serial_dev) is False
+
+    # Check unix socket file
+    serial = os.path.join(node_root, ".serial")
+    assert os.path.exists(serial) is False
+
+    # Check node runtime pid file don't exist
+    node_socat = os.path.join(node_root, ".{}-socat.pid".format(node_name))
+    node_ipmi = os.path.join(node_root, ".{}-bmc.pid".format(node_name))
+    node_qemu = os.path.join(node_root, ".{}-node.pid".format(node_name))
+    assert os.path.exists(node_socat) is False
+    assert os.path.exists(node_ipmi) is False
+    assert os.path.exists(node_qemu) is False
 
 
 class test_control_by_lib(unittest.TestCase):
@@ -46,6 +169,9 @@ class test_control_by_lib(unittest.TestCase):
         node.precheck()
         node.start()
 
+        # Check workspace
+        check_node_start_workspace(self.conf["name"])
+
         # Check node runtime pid file exist
         node_name = self.conf["name"]
         node_socat = os.path.join(self.node_root, ".{}-socat.pid".format(node_name))
@@ -69,6 +195,10 @@ class test_control_by_lib(unittest.TestCase):
         node = model.CNode(self.conf)
         node.init()
         node.stop()
+
+        # Check workspace
+        check_node_stop_workspace(self.conf["name"])
+
         node.terminate_workspace()
 
         # Check node runtime pid file don't exist
@@ -98,6 +228,9 @@ class test_control_by_cli(unittest.TestCase):
 
         run_command("infrasim node start")
 
+        # Check workspace
+        check_node_start_workspace(self.node_name)
+
         # Check node runtime pid file exist
         node_socat = os.path.join(self.node_workspace, ".{}-socat.pid".format(self.node_name))
         node_ipmi = os.path.join(self.node_workspace, ".{}-bmc.pid".format(self.node_name))
@@ -118,6 +251,9 @@ class test_control_by_cli(unittest.TestCase):
             self.assertTrue(os.path.exists("/proc/{}".format(pid_qemu)))
 
         run_command("infrasim node stop")
+
+        # Check workspace
+        check_node_stop_workspace(self.node_name)
 
         # Check node runtime pid file don't exist
         self.assertFalse(os.path.exists(node_socat))
