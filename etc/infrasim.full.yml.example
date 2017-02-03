@@ -129,12 +129,13 @@ compute:
         irq: 10
     smbios: chassis/node1/quanta_d51_smbios.bin
     monitor:
-        mode: control
+        mode: readline
         chardev:
             backend: socket
-            server: on
-            wait: off
-            path: <path/to/your/sock file>
+            server: true
+            wait: false
+            host: 127.0.0.1
+            port: 2345
     # set vnc display <X>
     vnc_display: 1
 bmc:
