@@ -1,5 +1,6 @@
 import logging
 import subprocess
+import pkg_resources
 
 logger = logging.getLogger()
 hdlr = logging.FileHandler('/var/log/infrasim.log')
@@ -7,6 +8,12 @@ formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
 logger.setLevel(logging.NOTSET)
+
+
+try:
+    __version__ = pkg_resources.get_distribution('infrasim-compute').version
+except pkg_resources.DistributionNotFound:
+    __version__ = None
 
 
 def run_command(cmd="", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
