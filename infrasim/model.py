@@ -1384,11 +1384,11 @@ class CCompute(Task, CElement):
                     boot_param = f.readlines()
                 boot_param = boot_param[0].strip()
                 if boot_param == "default":
-                    self.__boot_order = "d"
+                    self.__boot_order = "c"
                 elif boot_param == "pxe":
                     self.__boot_order = "n"
                 elif boot_param == "cdrom":
-                    self.__boot_order = "c"
+                    self.__boot_order = "d"
                 else:
                     self.__boot_order = "ncd"
                 self.add_option("-boot {}".format(self.__boot_order))
