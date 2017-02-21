@@ -19,6 +19,7 @@ from ctypes import (
 import hashlib
 import sys
 from infrasim import InfraSimError
+from . import logger
 
 libc = cdll.LoadLibrary('libc.so.6')
 setns = libc.setns
@@ -187,9 +188,17 @@ def _get_all_interfaces():
             i = retval.get(name)
             if not i:
                 i = retval[name] = NetworkInterface(name)
-            family, addr = getfamaddr(ifa.ifa_addr.contents)
-            if addr:
-                i.addresses[family] = addr
+
+            try:
+                family, addr = getfamaddr(ifa.ifa_addr.contents)
+                if addr:
+                    i.addresses[family] = addr
+
+            except Exception as e:
+                logger.error(e)
+                logger.info("-------> {}".format(i))
+
+
         return retval.values()
     finally:
         libc.freeifaddrs(ifap)
