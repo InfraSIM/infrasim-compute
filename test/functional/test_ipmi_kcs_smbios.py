@@ -189,6 +189,10 @@ def verify_qemu_local_sel(expect):
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect("127.0.0.1", port=2222, username="root",
                 password="root", timeout=10)
+    stdin, stdout, stderr = ssh.exec_command("ipmitool sel clear")
+    while not stdout.channel.exit_status_ready():
+        pass
+    lines = stdout.channel.recv(20480)
     stdin, stdout, stderr = ssh.exec_command("ipmitool sel list")
     while not stdout.channel.exit_status_ready():
         pass
