@@ -26,8 +26,7 @@ name: node-0
 type: quanta_d51
 
 compute:
-    # n - Network (PXE); c - CD-ROM;
-    # d - Drive (bootindex in drive sections controls order of booting HDD)
+    # floppy (a), hard disk (c), CD-ROM (d), network (n)
     boot_order: ncd
     kvm_enabled: true
     numa_control: true
