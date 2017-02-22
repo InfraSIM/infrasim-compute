@@ -17,6 +17,8 @@ import traceback
 from infrasim import config
 from infrasim import run_command
 from infrasim.workspace import Workspace
+from infrasim import helper
+from infrasim import ArgsNotCorrect
 
 
 lock = threading.Lock()
@@ -148,6 +150,9 @@ def init_env(instance):
             env.PORT_SSH_FOR_CLIENT = 9300
         logger.info("PORT_SSH_FOR_CLIENT: {}".format(env.PORT_SSH_FOR_CLIENT))
 
+        # check if ipmi_console_ssh port is in use
+        if helper.check_if_port_in_use("0.0.0.0", env.PORT_SSH_FOR_CLIENT):
+            raise IpmiError("ssh port {} is already in use.".format(env.PORT_SSH_FOR_CLIENT))
 
 def get_logger():
     return logger
