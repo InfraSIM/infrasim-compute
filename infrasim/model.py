@@ -1772,8 +1772,9 @@ class CBMC(Task):
 
 
     def get_commandline(self):
-        ipmi_cmd_str = "{0} -c {1} -f {2} -n -s /var/tmp".\
-            format(self.__bin, self.__config_file, self.__emu_file)
+        path = os.path.join(self.get_workspace(), "data")
+        ipmi_cmd_str = "{0} -c {1} -f {2} -n -s {3}" .\
+            format(self.__bin, self.__config_file, self.__emu_file, path)
 
         return ipmi_cmd_str
 
