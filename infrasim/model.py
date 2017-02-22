@@ -48,6 +48,7 @@ class Utility(object):
     @staticmethod
     @double_fork
     def execute_command(command, log_path=""):
+
         args = shlex.split(command)
         proc = subprocess.Popen(args, stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE,
@@ -1772,8 +1773,9 @@ class CBMC(Task):
 
 
     def get_commandline(self):
-        ipmi_cmd_str = "{0} -c {1} -f {2} -n -s /var/tmp".\
-            format(self.__bin, self.__config_file, self.__emu_file)
+        path = os.path.join(config.infrasim_home, self.__node_name, "data")
+        ipmi_cmd_str = "{0} -c {1} -f {2} -n -s {3}".\
+            format(self.__bin, self.__config_file, self.__emu_file, path)
 
         return ipmi_cmd_str
 

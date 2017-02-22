@@ -317,10 +317,13 @@ class bmc_configuration(unittest.TestCase):
                           "s2600kp", "s2600tp", "s2600wtt"]:
             bmc.set_type(node_type)
             bmc.set_workspace(self.__class__.WORKSPACE)
+            bmc.set_node_name("test")
             bmc.init()
             cmd = bmc.get_commandline()
             assert "{0}.emu".format(node_type) \
                    in cmd
+            path = os.path.join(config.infrasim_home, "test", "data", "ipmi_sim")
+            os.system("rm -rf {}".format(path))
 
     def test_set_bmc_lan_interface(self):
         bmc_info = {
@@ -609,12 +612,15 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.set_workspace(self.__class__.WORKSPACE)
+        bmc.set_node_name("test")
         bmc.init()
         bmc.write_bmc_config()
         bmc.precheck()
 
         assert "-f {}".format(fn) in bmc.get_commandline()
         os.system("rm -rf {}".format(fn))
+        path = os.path.join(config.infrasim_home, "test", "data", "ipmi_sim")
+        os.system("rm -rf {}".format(path))
 
     def test_set_invalid_emu_file(self):
         fn = "/tmp/emu_test"
@@ -648,12 +654,15 @@ class bmc_configuration(unittest.TestCase):
         bmc = model.CBMC(bmc_info)
         bmc.set_type("quanta_d51")
         bmc.set_workspace(self.__class__.WORKSPACE)
+        bmc.set_node_name("test")
         bmc.init()
         bmc.write_bmc_config()
         bmc.precheck()
 
         assert "-c {}".format(fn) in bmc.get_commandline()
         os.system("rm -rf {}".format(fn))
+        path = os.path.join(config.infrasim_home, "test", "data", "ipmi_sim")
+        os.system("rm -rf {}".format(path))
 
     def test_set_invalid_config_file(self):
         fn = "/tmp/conf_test"
