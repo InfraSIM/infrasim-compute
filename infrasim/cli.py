@@ -1,6 +1,7 @@
 import sys
 import time
 import argparse
+import os
 from functools import wraps
 import inspect
 import infrasim.model as model
@@ -65,6 +66,22 @@ class ConfigCommands(object):
                   "You can run commands: \n" \
                   "    infrasim node destroy {0}\n" \
                   "    infrasim node start {0}".format(node_name)
+
+    @args("node_name", nargs='?', default="default",
+          help="Specify node name to open its configuration in editor")
+    def edit(self, node_name):
+        if node_name not in nm.get_name_list():
+            print "Fail to find node {0} configuration. It is not registered. Check by:\n" \
+                  "    infrasim config list".format(node_name)
+            return
+
+        editor = os.environ.get('EDITOR', 'vi')
+        config_path = os.path.join(nm.get_mapping_folder(),
+                                   "{}.yml".format(node_name))
+        try:
+            os.system("{} {}".format(editor, config_path))
+        except OSError, e:
+            print e
 
     def list(self):
         try:

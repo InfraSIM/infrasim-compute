@@ -9,6 +9,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import os
 import unittest
 import yaml
+import re
 import infrasim.config as config
 from infrasim import run_command
 from test.fixtures import FakeConfig
@@ -371,6 +372,46 @@ class test_config_cli_without_runtime_node(unittest.TestCase):
         assert "Node {}'s configuration is not defined.".format(self.test_name) in output_start[1]
 
 
+class test_command_navigation(unittest.TestCase):
 
+    def test_infrasim(self):
+        """
+        CLI test: "infrasim -h" navigates next level command usage
+        """
+        p = r'\{([a-zA-Z,]+)\}'
+        cmd_next_level = ["node", "chassis", "config", "init", "version"]
 
+        output = run_command("infrasim -h")[1]
+        r = re.compile(p)
+        m = r.search(output)
+        cmd = m.group(1)
+        cmd_list = cmd.split(',')
+        assert set(cmd_list) == set(cmd_next_level)
 
+    def test_infrasim_node(self):
+        """
+        CLI test: "infrasim node -h" navigates next level command usage
+        """
+        p = r'\{([a-zA-Z,]+)\}'
+        cmd_next_level = ["destroy", "info", "status", "start", "stop", "restart"]
+
+        output = run_command("infrasim node -h")[1]
+        r = re.compile(p)
+        m = r.search(output)
+        cmd = m.group(1)
+        cmd_list = cmd.split(',')
+        assert set(cmd_list) == set(cmd_next_level)
+
+    def test_infrasim_config(self):
+        """
+        CLI test: "infrasim config -h" navigates next level command usage
+        """
+        p = r'\{([a-zA-Z,]+)\}'
+        cmd_next_level = ["add", "delete", "edit", "list", "update"]
+
+        output = run_command("infrasim config -h")[1]
+        r = re.compile(p)
+        m = r.search(output)
+        cmd = m.group(1)
+        cmd_list = cmd.split(',')
+        assert set(cmd_list) == set(cmd_next_level)

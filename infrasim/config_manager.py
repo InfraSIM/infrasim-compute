@@ -127,6 +127,7 @@ class NodeMap(object):
         return self.__mapping_folder
 
     def get_name_list(self):
+        self.load()
         return self.__name_list
 
     def get_node_info(self, node_name):
