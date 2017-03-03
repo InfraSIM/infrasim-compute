@@ -83,7 +83,6 @@ class test_ipmi_sol(unittest.TestCase):
 
         # Start sol in a subprocess
         self.fw = open('/tmp/test_sol', 'wb')
-        self.fr = open('/tmp/test_sol', 'r')
         self.p_sol = subprocess.Popen("ipmitool -I lanplus -U admin -P admin "
                                       "-H 127.0.0.1 sol activate",
                                       shell=True,
@@ -93,8 +92,6 @@ class test_ipmi_sol(unittest.TestCase):
                                       bufsize=1)
 
     def tearDown(self):
-        self.fw.close()
-        self.fr.close()
         self.p_sol.stdin.write("~.")
         self.p_sol.kill()
         node = model.CNode(self.conf)
@@ -113,19 +110,22 @@ class test_ipmi_sol(unittest.TestCase):
 
         # Send ipmitool in shell within another sub process
         # and make sure it's sent correctly
-        p_power = subprocess.Popen("ipmitool -I lanplus -H admin -P admin "
+        p_power = subprocess.Popen("ipmitool -I lanplus -U admin -P admin "
                                    "-H 127.0.0.1 chassis power reset",
                                    shell=True,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
         p_power.communicate()
         p_power_ret = p_power.returncode
-        if p_power_ret != 1:
+        if p_power_ret != 0:
             raise self.fail("Fail to send chassis power reset command")
 
         # Check if sol session has get something
         time.sleep(10)
+        self.fw.close()
+        self.fr = open('/tmp/test_sol', 'r')
         sol_out = self.fr.read()
+        self.fr.close()
 
         # SOL will print a hint at first
         # After this hint message, any ASCII char indicates

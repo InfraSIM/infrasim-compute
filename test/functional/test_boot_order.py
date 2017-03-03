@@ -27,7 +27,7 @@ class test_boot_order(unittest.TestCase):
 
         # Start sol in a subprocess
         self.fw = open('/tmp/test_sol', 'wb')
-        self.fr = open('/tmp/test_sol', 'r')
+
         self.p_sol = subprocess.Popen("ipmitool -I lanplus -U admin -P admin "
                                       "-H 127.0.0.1 sol activate",
                                       shell=True,
@@ -37,8 +37,6 @@ class test_boot_order(unittest.TestCase):
                                       bufsize=0)
 
     def tearDown(self):
-        self.fw.close()
-        self.fr.close()
         self.p_sol.stdin.write("~.")
         self.p_sol.kill()
         node = model.CNode(self.conf)
@@ -50,19 +48,22 @@ class test_boot_order(unittest.TestCase):
         self.conf = None
 
     def test_boot_order_ncd(self):
-        p_power = subprocess.Popen("ipmitool -I lanplus -H admin -P admin "
+        p_power = subprocess.Popen("ipmitool -I lanplus -U admin -P admin "
                                    "-H 127.0.0.1 chassis power reset",
                                    shell=True,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
         p_power.communicate()
         p_power_ret = p_power.returncode
-        if p_power_ret != 1:
+        if p_power_ret != 0:
             raise self.fail("Fail to send chassis power reset command")
 
         # Check if sol session has get something
-        time.sleep(16)
-        sol_out = self.fr.read()
+        time.sleep(20)
+        self.fw.close()
+        fr = open('/tmp/test_sol', 'r')
+        sol_out = fr.read()
+        fr.close()
         # SOL will print a hint at first
         # After this hint message, any ASCII char indicates
         # the SOL receives something and it means SOL is alive
@@ -77,9 +78,5 @@ class test_boot_order(unittest.TestCase):
         network_index = sol_out.find('iPXE')
         disk_index = sol_out.find('Disk')
         cdrom_index = sol_out.find('DVD/CD')
-        boot_order = True if network_index < disk_index < cdrom_index else False
-
-        assert network_index is not -1
-        assert disk_index is not -1
-        assert cdrom_index is not -1
+        boot_order = True if((network_index < disk_index < cdrom_index) and (network_index is not -1))else False
         assert boot_order is True
