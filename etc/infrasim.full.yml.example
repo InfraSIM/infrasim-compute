@@ -162,6 +162,8 @@ racadm:
     # Credential to access
     username: admin
     password: admin
+    # Temporary data provider
+    data: /home/infrasim/racadm_data
 
 # SSH to this port to visit ipmi-console
 ipmi_console_ssh: 9300
