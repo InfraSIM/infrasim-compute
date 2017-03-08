@@ -213,7 +213,8 @@ class CCharDev(CElement):
         return self.__id
 
     def precheck(self):
-        pass
+        if helper.check_if_port_in_use("0.0.0.0", self.__port):
+            raise ArgsNotCorrect("Monitor port {} is already in use.".format(self.__port))
 
     def init(self):
         if 'backend' not in self.__chardev:
@@ -982,7 +983,11 @@ class CMonitor(CElement):
         self.__mode = "readline"
 
     def precheck(self):
-        pass
+        try:
+            self.__chardev.precheck()
+        except ArgsNotCorrect, e:
+            print e.value
+            raise e
 
     def init(self):
         self.__mode = self.__monitor['mode'] if 'mode' in self.__monitor else self.__mode
