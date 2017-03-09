@@ -62,7 +62,7 @@ def check_node_start_workspace(node_name):
 
     # Check disk image exist
     node_name = conf["name"]
-    node_drive = conf['compute']['storage_backend'][0]['controller']['drives']
+    node_drive = conf['compute']['storage_backend'][0]['drives']
     for i in range(1, len(node_drive) + 1):
         disk_file = os.path.join(node_root, "sd{0}.img".format(chr(96 + i)))
         assert os.path.exists(disk_file) is True
@@ -125,7 +125,7 @@ def check_node_stop_workspace(node_name):
     node_stor = conf['compute']['storage_backend']
     disk_index = 0
     for stor_control in node_stor:
-        for drive in stor_control:
+        for drive in stor_control["drives"]:
             disk_file = os.path.join(node_root, "sd{0}.img".format(chr(97 + disk_index)))
             disk_index += 1
             assert os.path.exists(disk_file) is True
@@ -134,9 +134,10 @@ def check_node_stop_workspace(node_name):
     serial_dev = os.path.join(node_root, ".pty0")
     assert os.path.exists(serial_dev) is False
 
+    # should __NOT__ check .serial, since it will not be removed automatically
     # Check unix socket file
-    serial = os.path.join(node_root, ".serial")
-    assert os.path.exists(serial) is False
+    # serial = os.path.join(node_root, ".serial")
+    # assert os.path.exists(serial) is False
 
     # Check node runtime pid file don't exist
     node_socat = os.path.join(node_root, ".{}-socat.pid".format(node_name))

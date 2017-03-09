@@ -69,33 +69,39 @@ class Workspace(object):
             VI. Move emulation data, update identifiers, e.g. S/N
             VII. Move bios.bin
         """
-        if os.path.exists(self.__workspace):
-            shutil.rmtree(self.__workspace)
+        if not os.path.exists(self.__workspace):
+            os.mkdir(self.__workspace)
 
-        # I. Create workspace
-        os.mkdir(self.__workspace)
         # II. Create log folder
         path_log = "/var/log/infrasim/{}".format(self.__workspace_name)
         if not os.path.exists(path_log):
             os.mkdir(path_log)
 
         # III. Create sub folder
-        os.mkdir(os.path.join(self.__workspace, "data"))
-        os.mkdir(os.path.join(self.__workspace, "script"))
-        os.mkdir(os.path.join(self.__workspace, "etc"))
+        data_path = os.path.join(self.__workspace, "data")
+        if not os.path.exists(data_path):
+            os.mkdir(data_path)
+
+        script_path = os.path.join(self.__workspace, "script")
+        if not os.path.exists(script_path):
+            os.mkdir(script_path)
+
+        etc_path = os.path.join(self.__workspace, "etc")
+        if not os.path.exists(etc_path):
+            os.mkdir(etc_path)
 
         # IV. Save infrasim.yml
         yml_file = os.path.join(self.__workspace, "etc/infrasim.yml")
         with open(yml_file, 'w') as fp:
             yaml.dump(self.__node_info, fp, default_flow_style=False)
 
+        node_type = self.__node_info["type"]
         # V. Move emulation data
         # Update identifier accordingly
         path_emu_dst = os.path.join(self.__workspace, "data")
         if has_option(self.__node_info, "bmc", "emu_file"):
             shutil.copy(self.__node_info["bmc"]["emu_file"], path_emu_dst)
-        else:
-            node_type = self.__node_info["type"]
+        elif not os.path.exists(os.path.join(self.__workspace, "{0}/{0}.emu".format(node_type))):
             path_emu_src = os.path.join(config.infrasim_data, "{0}/{0}.emu".format(node_type))
             shutil.copy(path_emu_src, os.path.join(path_emu_dst, "{}.emu".
                                                    format(node_type)))
@@ -104,8 +110,7 @@ class Workspace(object):
         path_bios_dst = os.path.join(self.__workspace, "data")
         if has_option(self.__node_info, "compute", "smbios"):
             shutil.copy(self.__node_info["compute"]["smbios"], path_bios_dst)
-        else:
-            node_type = self.__node_info["type"]
+        elif not os.path.exists(os.path.join(self.__workspace, "{0}/{0}_smbios.bin".format(node_type))):
             path_bios_src = os.path.join(config.infrasim_data,
                                          "{0}/{0}_smbios.bin".format(node_type))
             shutil.copy(path_bios_src, os.path.join(path_emu_dst,

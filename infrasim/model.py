@@ -568,6 +568,7 @@ class CBaseDrive(CElement):
         self.__aio = self._drive_info.get("aio")
         self.__size = self._drive_info.get("size", 8)
         self.__drive_file = self._drive_info.get("file")
+        self.__wwn = self._drive_info.get("wwn");
 
         # assume the files starts with "/dev/" are block device
         # all the block devices are assumed to be raw format
@@ -770,7 +771,7 @@ class CBackendStorage(CElement):
 
     def __create_controller(self, controller_info):
         controller_obj = None
-        model = controller_info.get("type")
+        model = controller_info.get("type", "ahci")
         if model.startswith("megasas"):
             controller_obj = MegaSASController(controller_info)
         elif model.startswith("lsi"):
@@ -1311,6 +1312,7 @@ class CCompute(Task, CElement):
         self.__initrd = None
         self.__cmdline = None
         self.__mem_path = None
+        self.__extra_option = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -1403,6 +1405,9 @@ class CCompute(Task, CElement):
         self.__cmdline = self.__compute.get("cmdline")
 
         self.__mem_path = self.__compute.get("mem_path")
+
+        self.__extra_option = self.__compute.get("extra_option")
+        self.__qemu_bin = self.__compute.get("qemu_bin", self.__qemu_bin)
 
         cpu_obj = CCPU(self.__compute['cpu'])
         self.__element_list.append(cpu_obj)
@@ -1497,6 +1502,9 @@ class CCompute(Task, CElement):
 
         if self.__mem_path:
             self.add_option("-mem-path {}".format(self.__mem_path))
+
+        if self.__extra_option:
+            self.add_option(self.__extra_option)
 
         if self.__boot_order:
             boot_param = ""
@@ -1927,6 +1935,11 @@ class CSocat(Task):
             self.__socket_serial = os.path.join(self.get_workspace(), ".serial")
         else:
             self.__socket_serial = os.path.join(config.infrasim_etc, "serial")
+
+    def terminate(self):
+        super(CSocat, self).terminate()
+        if os.path.exists(self.__socket_serial):
+            os.remove(self.__socket_serial);
 
     def get_commandline(self):
         socat_str = "{0} pty,link={1},waitslave " \
