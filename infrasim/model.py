@@ -590,9 +590,11 @@ class CBaseDrive(CElement):
             # If user announce drive file in config, use it
             # else create for them.
             disk_file_base = os.path.join(config.infrasim_home, ws)
-            self.__drive_file = os.path.join(disk_file_base, "sd{0}.img".format(chr(97+self.__index)))
+            self.__drive_file = os.path.join(disk_file_base, "disk{0}{1}.img".format(self.__bus, self.__index))
+
 
         if not os.path.exists(self.__drive_file):
+	    logger.info("Creating drive: ".format(self.__drive_file))
             command = "qemu-img create -f qcow2 {0} {1}G".format(self.__drive_file, self.__size)
             try:
                 run_command(command)
