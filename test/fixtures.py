@@ -23,13 +23,14 @@ class FakeConfig(object):
                             {
                                 "size": 8
                             }
-                        ]
+			]		
                     }
                 ],
                 "networks": [
                     {
                         "network_mode": "nat",
-                        "device": "e1000"
+                        "device": "e1000",
+			"network_name": "dummy0"
                     }
                 ]
             }
