@@ -225,6 +225,28 @@ class test_bmc_configuration_change(unittest.TestCase):
                                          stderr=subprocess.PIPE)
         assert returncode != 0
 
+    def test_set_bmc_lan_channel(self):
+        self.conf["bmc"] = {}
+        self.conf["bmc"]["channel"] = 3
+
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        # FIXME: ipmi_sim takes time to set lan configuration through lancontrol script.
+        time.sleep(2)
+
+        cmd = 'ipmitool -H 127.0.0.1 -U admin -P admin -I lanplus lan print {}'
+
+        assert run_command(cmd.format(self.conf["bmc"]["channel"]),
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)[0] == 0
+
+        assert run_command(cmd.format(1),
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)[0] != 0
+
     def test_set_bmc_interface(self):
         """
         Set BMC listen on specified interface and won't response to another

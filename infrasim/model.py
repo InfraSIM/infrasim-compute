@@ -1656,6 +1656,7 @@ class CBMC(Task):
             bmc_conf = f.read()
         template = jinja2.Template(bmc_conf)
         bmc_conf = template.render(startcmd_script=self.__startcmd_script,
+                                   lan_channel=self.__channel,
                                    chassis_control_script=self.__chassiscontrol_script,
                                    lan_control_script=self.__lancontrol_script,
                                    intf_not_exists=self.__intf_not_exists,
@@ -1759,7 +1760,6 @@ class CBMC(Task):
             self.__sol_device = os.path.join(self.get_workspace(), ".pty0")
         else:
             self.__sol_device = os.path.join(config.infrasim_etc, "pty0")
-
 
         if 'config_file' in self.__bmc:
             self.__config_file = self.__bmc['config_file']
