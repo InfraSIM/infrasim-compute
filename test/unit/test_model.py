@@ -180,7 +180,9 @@ class qemu_functions(unittest.TestCase):
             backend_storage_info = [{
                 "type": "ahci",
                 "max_drive_per_controller": 6,
-                "drives": [{"size": 8, "model": "SATADOM", "file": "/tmp/sda.img"}]
+                "drives": [{"size": 8, 
+                            "model": "SATADOM", 
+                            "file": "/tmp/sda.img"}]
             }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
@@ -270,7 +272,8 @@ class qemu_functions(unittest.TestCase):
 
         compute_info["smbios"] = "/tmp/test.smbios"
         compute = model.CCompute(compute_info)
-        compute.set_workspace("{}/{}".format(config.infrasim_home, node_info['name']))
+        compute.set_workspace("{}/{}".format(config.infrasim_home, 
+                                             node_info['name']))
         compute.init()
         assert compute.get_smbios() == "/tmp/test.smbios"
 

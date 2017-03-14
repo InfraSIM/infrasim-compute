@@ -185,7 +185,7 @@ class test_control_by_lib(unittest.TestCase):
         drives2.append({'size': 8, 'file': "{}/sdj.img".format(cls.node_root)})
         cls.conf['compute']['storage_backend'][2]['drives'].extend(drives2)
 
-        with open ('/tmp/test.yml', 'w') as outfile:
+        with open('/tmp/test.yml', 'w') as outfile:
             yaml.dump(cls.conf, outfile, default_flow_style=False)
 
         os.system("infrasim config add test /tmp/test.yml")
@@ -256,7 +256,7 @@ class test_control_by_cli(unittest.TestCase):
     test_config = fake_config.get_node_info()
     image_path =  "{}/{}".format(config.infrasim_home, node_name)
     
-    #Add several storage controllers/drives in node config file.
+    # Add several storage controllers/drives in node config file.
     drives = []
     drives.append({'size': 8, 'file': "{}/sdb.img".format(image_path)})
     drives.append({'size': 8, 'file': "{}/sdc.img".format(image_path)})
@@ -270,7 +270,6 @@ class test_control_by_cli(unittest.TestCase):
     controllers.append({'type': 'ahci', 'drives': [], 'max_drive_per_controller': 6})
     controllers.append({'type': 'ahci', 'drives': [], 'max_drive_per_controller': 6})
     test_config['compute']['storage_backend'].extend(controllers)
-    #print test_config['compute']['storage_backend']
 
     drives1 = []
     drives1.append({'size': 8, 'file': "{}/sdg.img".format(image_path)})
@@ -281,9 +280,8 @@ class test_control_by_cli(unittest.TestCase):
     drives2.append({'size': 8, 'file': "{}/sdi.img".format(image_path)})
     drives2.append({'size': 8, 'file': "{}/sdj.img".format(image_path)})
     test_config['compute']['storage_backend'][2]['drives'].extend(drives2)
-    #print test_config
 
-    with open ('/tmp/test.yml', 'w') as outfile:
+    with open('/tmp/test.yml', 'w') as outfile:
         yaml.dump(test_config, outfile, default_flow_style=False)
 
     os.system("infrasim config add test /tmp/test.yml")
@@ -291,14 +289,13 @@ class test_control_by_cli(unittest.TestCase):
 
 
     def tearDown(self):
-       	os.system("infrasim node destroy {}".format(self.node_name))
-	os.system("infrasim config delete {}".format(self.node_name))
+        os.system("infrasim node destroy {}".format(self.node_name))
+        os.system("infrasim config delete {}".format(self.node_name))
         os.system("rm -rf {}".format(self.node_workspace))
         os.system("pkill socat")
         os.system("pkill ipmi")
         os.system("pkill qemu")
 
-    
     def test_normal_start_stop(self):
 
         run_command("infrasim node start {}".format(self.node_name))
