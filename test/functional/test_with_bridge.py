@@ -215,11 +215,9 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
         fake_config = fixtures.FakeConfig()
         self.conf = fake_config.get_node_info()
         self.conf["compute"]["storage_backend"] = [{
-            "controller": {
-                "type": "ahci",
-                "max_drive_per_controller": 6,
-                "drives": [{"file": "/tmp/kcs.img"}]
-            }
+            "type": "ahci",
+            "max_drive_per_controller": 6,
+            "drives": [{"file": "/tmp/kcs.img"}]
         }]
 
     def tearDown(self):

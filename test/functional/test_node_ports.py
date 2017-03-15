@@ -1,6 +1,7 @@
 import unittest
 import subprocess
 import time
+import os
 from nose.tools import raises, assert_raises
 from test import fixtures
 from infrasim import model
@@ -12,7 +13,8 @@ from infrasim.ipmicons.common import IpmiError
 PS_QEMU = "ps ax | grep qemu"
 PS_IPMI = "ps ax | grep ipmi"
 PS_SOCAT = "ps ax | grep socat"
-
+old_path = os.environ.get("PATH")
+new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
 class test_node_ports(unittest.TestCase):
 
@@ -26,6 +28,7 @@ class test_node_ports(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         self.node_info = None
+        os.environ["PATH"] = old_path
 
     @raises(ArgsNotCorrect)
     def test_qemu_ipmi_port_in_use(self):
@@ -79,6 +82,7 @@ class test_node_ports_no_conflict(unittest.TestCase):
         fake_config_2 = fixtures.FakeConfig()
         self.node_info = fake_config.get_node_info()
         self.node_info_2 = fake_config_2.get_node_info()
+        os.environ["PATH"] = new_path
 
     def tearDown(self):
         node = model.CNode(self.node_info)
@@ -151,6 +155,7 @@ class test_start_node_with_conflict_port(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        os.environ["PATH"] = new_path
         fake_config = fixtures.FakeConfig()
         cls.node_info = fake_config.get_node_info()
 
@@ -169,6 +174,7 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.node_info = None
+        os.environ["PATH"] = old_path
 
     def setUp(self):
         fake_config_2 = fixtures.FakeConfig()

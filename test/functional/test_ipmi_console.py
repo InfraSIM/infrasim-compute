@@ -71,6 +71,10 @@ def reset_console(channel, timeout=10):
 
 class test_ipmi_console_start_stop(unittest.TestCase):
 
+    def setUp(self):
+        old_path = os.environ.get("PATH")
+        os.environ["PATH"] = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
+
     def tearDown(self):
         os.system("infrasim node destroy {}".format(self.node_name))
         os.system("rm -rf {}".format(self.node_workspace))

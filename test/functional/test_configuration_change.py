@@ -50,6 +50,11 @@ def read_buffer(channel):
         time.sleep(1)
     return str_output
 
+def get_qemu_pid(node):
+    for t in node.get_task_list():
+        if isinstance(t, model.CCompute):
+            return t.get_task_pid()
+    return None
 
 class test_compute_configuration_change(unittest.TestCase):
 
@@ -113,11 +118,12 @@ class test_compute_configuration_change(unittest.TestCase):
 
     def test_set_disk_drive(self):
         self.conf["compute"]["storage_backend"] = [{
-            "controller": {
-                "type": "ahci",
-                "max_drive_per_controller": 6,
-                "drives": [{"size": 8}, {"size": 8}]
-            }
+            "type": "ahci",
+            "max_drive_per_controller": 6,
+            "drives": [
+                {"size": 8, "file": "/tmp/sda.img"},
+                {"size": 8, "file": "/tmp/sdb.img"}
+            ]
         }]
         # with open(TMP_CONF_FILE, "w") as yaml_file:
         #    yaml.dump(self.conf, yaml_file, default_flow_style=False)
@@ -127,11 +133,13 @@ class test_compute_configuration_change(unittest.TestCase):
         node.precheck()
         node.start()
 
-        str_result = run_command(PS_QEMU, True,
-                                 subprocess.PIPE, subprocess.PIPE)[1]
-        assert "qemu-system-x86_64" in str_result
-        assert ".infrasim/test/sda.img,format=qcow2" in str_result
-        assert ".infrasim/test/sdb.img,format=qcow2" in str_result
+        qemu_pid = get_qemu_pid(node)
+        qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+
+        assert "qemu-system-x86_64" in qemu_cmdline
+        assert "/tmp/sda.img" in qemu_cmdline
+        assert "/tmp/sdb.img" in qemu_cmdline
+        assert "format=qcow2" in qemu_cmdline
 
     def test_qemu_boot_from_disk_img(self):
         MD5_CIRROS_IMG = "ee1eca47dc88f4879d8a229cc70a07c6"
@@ -145,11 +153,9 @@ class test_compute_configuration_change(unittest.TestCase):
 
 
         self.conf["compute"]["storage_backend"] = [{
-            "controller": {
-                "type": "ahci",
-                "max_drive_per_controller": 6,
-                "drives": [{"size": 8, "file": test_img_file}]
-            }
+            "type": "ahci",
+            "max_drive_per_controller": 6,
+            "drives": [{"size": 8, "file": test_img_file}]
         }]
         # with open(TMP_CONF_FILE, "w") as yaml_file:
         #    yaml.dump(self.conf, yaml_file, default_flow_style=False)
