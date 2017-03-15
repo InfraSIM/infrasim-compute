@@ -204,7 +204,7 @@ class NodeCommands(object):
             row.append([" " * 17, "device", "mode", "name"])
             for i in range(1, len(node_info_net) + 1):
                 net = node_info_net[i-1]
-	        row.append([" " * 17, net['device'], net['network_mode'], net['network_name']])
+                row.append([" " * 17, net['device'], net['network_mode'], net['network_name']])
             table.add_rows(row)
             print table.draw()
 
