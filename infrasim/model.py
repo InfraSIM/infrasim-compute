@@ -211,7 +211,7 @@ class CCharDev(CElement):
         return self.__id
 
     def precheck(self):
-        if helper.check_if_port_in_use("0.0.0.0", self.__port):
+        if self.__port and helper.check_if_port_in_use("0.0.0.0", self.__port):
             raise ArgsNotCorrect("Monitor port {} is already in use.".format(self.__port))
 
     def init(self):
