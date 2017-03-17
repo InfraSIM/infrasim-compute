@@ -135,6 +135,11 @@ class qemu_functions(unittest.TestCase):
             backend_storage_info = [{
                 "type": "megasas",
                 "max_drive_per_controller": 6,
+                "use_jbod": True,
+                "use_msi": True,
+                "max_cmds": 1024,
+                "max_sge": 128,
+                "sas_address": "000abc",
                 "drives": [{"size": 8, "file": "/tmp/sda.img"}]
             }]
             storage = model.CBackendStorage(backend_storage_info)
@@ -142,6 +147,11 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "-device megasas" in storage.get_option()
+            assert "use_jbod=True" in storage.get_option()
+            assert "use_msi=True" in storage.get_option()
+            assert "max_cmds=1024" in storage.get_option()
+            assert "max_sge=128" in storage.get_option()
+            assert "sas_address=000abc" in storage.get_option()
         except:
             assert False
 
@@ -261,6 +271,120 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "product" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_scsi_drive_port_index(self):
+        try:
+            backend_storage_info = [{
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [{
+                    "size": 8,
+                    "file": "/tmp/sda.img",
+                    "port_index": "1"
+                }]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "port_index=1" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_scsi_drive_port_wwn(self):
+        try:
+            backend_storage_info = [{
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [{
+                    "size": 8,
+                    "file": "/tmp/sda.img",
+                    "port_wwn": "wwn-000abc"
+                }]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "port_wwn=wwn-000abc" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_scsi_drive_channel(self):
+        try:
+            backend_storage_info = [{
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [{
+                    "size": 8,
+                    "file": "/tmp/sda.img",
+                    "channel": "1"
+                }]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "channel=1" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_scsi_scsiid(self):
+        try:
+            backend_storage_info = [{
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [{
+                    "size": 8,
+                    "file": "/tmp/sda.img",
+                    "scsi-id": "1"
+                }]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "scsi-id=1" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_scsi_lun(self):
+        try:
+            backend_storage_info = [{
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [{
+                    "size": 8,
+                    "file": "/tmp/sda.img",
+                    "lun": "1"
+                }]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "lun=1" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_scsi_lun(self):
+        try:
+            backend_storage_info = [{
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [{
+                    "size": 8,
+                    "file": "/tmp/sda.img",
+                    "slot_number": "2"
+                }]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "slot_number=2" in storage.get_option()
         except:
             assert False
 
