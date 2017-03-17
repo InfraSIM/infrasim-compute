@@ -45,61 +45,61 @@ compute:
             device: i82801b11-bridge
             addr: 0x1e.0x0
             multifunction: on
+            downstream_bridge:    
                 -
                     device: pci-bridge
                     chassis_nr: 0x1
                     msi: false
                     addr: 0x1
+
     storage_backend:
         -
-            controller:
-                type: ahci
-                max_drive_per_controller: 6
-                drives:
+            type: ahci
+            max_drive_per_controller: 6
+            drives:
                 -
-                    model: SATADOM
-                    serial: HUSMM142
-                    bootindex: 1
-                    # To boot esxi, please set ignore_msrs to Y
-                    # sudo -i
-                    # echo 1 > /sys/module/kvm/parameters/ignore_msrs
-                    # cat /sys/module/kvm/parameters/ignore_msrs
-                    file: chassis/node1/esxi6u2-1.qcow2
+                     model: SATADOM
+                     serial: HUSMM142
+                     bootindex: 1
+                     # To boot esxi, please set ignore_msrs to Y
+                     # sudo -i
+                     # echo 1 > /sys/module/kvm/parameters/ignore_msrs
+                     # cat /sys/module/kvm/parameters/ignore_msrs
+                     file: chassis/node1/esxi6u2-1.qcow2
                 -
-                    vendor: Hitachi
-                    model: HUSMM0SSD
-                    serial: 0SV3XMUA
-                    # To set rotation to 1 (SSD), need some customization
-                    # on qemu
-                    # rotation: 1
-                    # Use RAM-disk to accelerate IO
-                    file: /dev/ram0
+                     vendor: Hitachi
+                     model: HUSMM0SSD
+                     serial: 0SV3XMUA
+                     # To set rotation to 1 (SSD), need some customization
+                     # on qemu
+                     # rotation: 1
+                     # Use RAM-disk to accelerate IO
+                     file: /dev/ram0
                 -
-                    vendor: Samsung
-                    model: SM162521
-                    serial: S0351X2B
-                    # Create your disk image first
-                    # e.g. qemu-img create -f qcow2 sda.img 2G
-                    file: chassis/node1/sda.img
+                     vendor: Samsung
+                     model: SM162521
+                     serial: S0351X2B
+                     # Create your disk image first
+                     # e.g. qemu-img create -f qcow2 sda.img 2G
+                     file: chassis/node1/sda.img
                 -
-                    vendor: Samsung
-                    model: SM162521
-                    serial: S0351X3B
-                    file: chassis/node1/sdb.img
+                     vendor: Samsung
+                     model: SM162521
+                     serial: S0351X3B
+                     file: chassis/node1/sdb.img
                 -
-                    vendor: Samsung
-                    model: SM162521
-                    serial: S0451X2B
-                    file: chassis/node1/sdc.img
+                     vendor: Samsung
+                     model: SM162521
+                     serial: S0451X2B
+                     file: chassis/node1/sdc.img
         -
-            controller:
-                type: megasas-gen2
-                use_jbod: true
-                use_msi: true
-                max_cmds: 1024
-                max-sge: 128
-                max_drive_per_controller: 1
-                drives:
+            type: megasas-gen2
+            use_jbod: true
+            use_msi: true
+            max_cmds: 1024
+            max-sge: 128
+            max_drive_per_controller: 1
+            drives:
                     -
                         vendor: HITACHI
                         product: HUSMM168XXXXX
