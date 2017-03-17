@@ -404,6 +404,8 @@ class MegaSASController(CBaseStorageController):
         self.__sas_address = self._controller_info.get('sas_address')
         self.__max_cmds = self._controller_info.get('max_cmds')
         self.__max_sge = self._controller_info.get('max_sge')
+        self.__use_msi = self._controller_info.get('use_msi')
+        self.__use_jbod = self._controller_info.get('use_jbod')
 
         self._start_idx = self.controller_index
         idx = 0
@@ -519,7 +521,6 @@ class CBaseDrive(CElement):
         self.__index = 0
         self.__serial = None
         self.__wwn = None
-        self.__drive_file = None
         self.__bootindex = None
         self.__bus_address = None
         self.__version = None
@@ -592,9 +593,8 @@ class CBaseDrive(CElement):
             disk_file_base = os.path.join(config.infrasim_home, ws)
             self.__drive_file = os.path.join(disk_file_base, "disk{0}{1}.img".format(self.__bus, self.__index))
 
-
         if not os.path.exists(self.__drive_file):
-	    logger.info("Creating drive: ".format(self.__drive_file))
+            logger.info("Creating drive: ".format(self.__drive_file))
             command = "qemu-img create -f qcow2 {0} {1}G".format(self.__drive_file, self.__size)
             try:
                 run_command(command)
