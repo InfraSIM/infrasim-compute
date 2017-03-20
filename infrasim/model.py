@@ -307,7 +307,7 @@ class CBaseStorageController(CElement):
     def set_pci_bus_nr(self, nr):
         self._pci_bus_nr = nr
 
-    def set_pci_topology_mrg(self, ptm):
+    def set_pci_topology_mgr(self, ptm):
         self._ptm = ptm
 
     def precheck(self):
@@ -1013,7 +1013,7 @@ class CPCIBridge(CElement):
         return self.__parent
 
     def precheck(self):
-        if self.__current_bridge_deivce is None:
+        if self.__current_bridge_device is None:
             raise ArgsNotCorrect("bridge device is required.")
 
     def init(self):
