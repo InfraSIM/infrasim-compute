@@ -19,6 +19,10 @@ class FakeConfig(object):
                     {
                         "type": "ahci",
                         "max_drive_per_controller": 6,
+                        "use_jbod": "true",
+                        "use_msi": "true",
+                        "max_cmds": 1024,
+                        "max_sge": 128,
                         "drives": [
                             {
                                 "size": 8
