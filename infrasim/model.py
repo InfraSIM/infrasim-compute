@@ -561,7 +561,7 @@ class CBaseDrive(CElement):
         pass
 
     def init(self):
-        self.__boot_index = self._drive_info.get("bootindex")
+        self.__bootindex = self._drive_info.get("bootindex")
         self.__serial = self._drive_info.get("serial")
         self.__version = self._drive_info.get("version")
         self.__format = self._drive_info.get("format", "qcow2")
@@ -648,6 +648,9 @@ class CBaseDrive(CElement):
 
         if self.__version:
             self._dev_attrs["ver"] = self.__version
+
+        if self.__bootindex:
+            self._dev_attrs["bootindex"] = self.__bootindex
 
         # for ATA controller, one bus should only have one target, AHCI could support at most 6 target devices
         # for SCSI controller, one controller only one Bus which could support at most 8 target devices
