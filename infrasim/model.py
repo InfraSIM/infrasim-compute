@@ -2005,6 +2005,50 @@ class CRacadm(Task):
         return racadmsim_str
 
 
+class CRedfish(Task):
+    def __init__(self, redfish_info):
+        super(CRedfish, self).__init__()
+
+        self.__bin = "redfishsim"
+
+        self.__redfish_info = redfish_info
+
+        self.__node_name = "default"
+        self.__port = None
+        self.__interface = None
+        self.__ip = ""
+
+    def precheck(self):
+        if not self.__ip:
+            raise ArgsNotCorrect("Specified redfish interface {} doesn\'t exist".
+                                 format(self.__interface))
+
+        if helper.check_if_port_in_use(self.__ip, self.__port):
+            raise ArgsNotCorrect("Redfish port {}:{} is already in use.".
+                                 format(self.__ip,
+                                        self.__port))
+
+    @run_in_namespace
+    def init(self):
+        if "interface" in self.__redfish_info:
+            self.__interface = self.__redfish_info.get("interface", "")
+            self.__ip = helper.get_interface_ip(self.__interface)
+        else:
+            self.__ip = "0.0.0.0"
+        self.__port = self.__redfish_info.get("port", 8080)
+
+    def set_node_name(self, name):
+        self.__node_name = name
+
+    def get_commandline(self):
+        redfishsim_str = "{} {} {} {}".\
+            format(self.__bin,
+                   self.__node_name,
+                   self.__ip,
+                   self.__port)
+        return redfishsim_str
+
+
 class CNode(object):
     def __init__(self, node_info=None):
         self.__tasks_list = []
@@ -2117,6 +2161,15 @@ class CNode(object):
             racadm_obj.set_log_path("/var/log/infrasim/{}/racadm.log".
                                     format(self.__node_name))
             self.__tasks_list.append(racadm_obj)
+
+            redfish_info = self.__node.get("redfish", {})
+            redfish_obj = CRedfish(redfish_info)
+            redfish_obj.set_priority(4)
+            redfish_obj.set_node_name(self.__node_name)
+            redfish_obj.set_task_name("{}-redfish".format(self.__node_name))
+            redfish_obj.set_log_path("/var/log/infrasim/{}/redfish.log".
+                                    format(self.__node_name))
+            self.__tasks_list.append(redfish_obj)
 
         # Set interface
         if "type" not in self.__node:
