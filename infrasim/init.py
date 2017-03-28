@@ -74,7 +74,7 @@ def update_bridge_cfg():
         f.write("allow all")
 
 
-def infrasim_init(node_type="quanta_d51", skip_installation=False, target_home=None, config_file=None):
+def infrasim_init(node_type="dell_r730", skip_installation=False, target_home=None, config_file=None):
     try:
         create_infrasim_directories()
         if not skip_installation:
