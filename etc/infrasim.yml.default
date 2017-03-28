@@ -86,3 +86,9 @@ compute:
 
     #Set cdrom ISO file for OS Installation
     #cdrom: /dev/sr0
+    
+    #extra_option can be used to extend qemu command which infrasim did not support yet.
+    #an example: -msg timestamp[=on|off]
+        #change the format of messages
+        #on|off controls leading timestamps (default:on)
+    #extra_option: -msg timestamp=on
