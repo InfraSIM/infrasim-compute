@@ -2193,7 +2193,7 @@ class CNode(object):
 
 
 class NumaCtl(object):
-    HT_FACTOR = 2
+    HT_FACTOR = -1
 
     def __init__(self):
         """
@@ -2239,6 +2239,8 @@ class NumaCtl(object):
                 self._core_map_avai[key].append(False)
             else:
                 self._core_map_avai[key].append(True)
+
+        self.__class__.HT_FACTOR = len(self._core_map[(0,0)])
 
     def get_cpu_list(self, num):
         processor_use_up = True
