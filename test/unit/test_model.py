@@ -190,8 +190,8 @@ class qemu_functions(unittest.TestCase):
             backend_storage_info = [{
                 "type": "ahci",
                 "max_drive_per_controller": 6,
-                "drives": [{"size": 8, 
-                            "model": "SATADOM", 
+                "drives": [{"size": 8,
+                            "model": "SATADOM",
                             "file": "/tmp/sda.img"}]
             }]
             storage = model.CBackendStorage(backend_storage_info)
@@ -396,7 +396,7 @@ class qemu_functions(unittest.TestCase):
 
         compute_info["smbios"] = "/tmp/test.smbios"
         compute = model.CCompute(compute_info)
-        compute.set_workspace("{}/{}".format(config.infrasim_home, 
+        compute.set_workspace("{}/{}".format(config.infrasim_home,
                                              node_info['name']))
         compute.init()
         assert compute.get_smbios() == "/tmp/test.smbios"
@@ -969,3 +969,74 @@ class racadm_configuration(unittest.TestCase):
         except ArgsNotCorrect, e:
             assert "Specified racadm interface {} doesn\'t exist".\
                        format(fake_interface) in str(e)
+
+class numa_configuration(unittest.TestCase):
+
+    def setUp(self):
+        self.numactl = model.NumaCtl()
+        self.numactl._socket_list = [0, 1]
+        self.numactl._core_list = [0, 1, 2, 3, 4, 8, 9, 10, 11, 12]
+        self.numactl._core_map = {
+            (0, 0): [0, 20], (1, 0): [1, 21],
+            (0, 1): [2, 22], (1, 1): [3, 23],
+            (0, 2): [4, 24], (1, 2): [5, 25],
+            (0, 3): [6, 26], (1, 3): [7, 27],
+            (0, 4): [8, 28], (1, 4): [9, 29],
+            (0, 8): [10, 30], (1, 8): [11, 31],
+            (0, 9): [12, 32], (1, 9): [13, 33],
+            (0, 10): [14, 34], (1, 10): [15, 35],
+            (0, 11): [16, 36], (1, 11): [17, 37],
+            (0, 12): [18, 38], (1, 12): [19, 39]
+        }
+        self.numactl._core_map_avai = {
+            (0, 0): [False, False], (1, 0): [False, False],
+            (0, 1): [True, True], (1, 1): [True, True],
+            (0, 2): [True, True], (1, 2): [True, True],
+            (0, 3): [True, True], (1, 3): [True, True],
+            (0, 4): [True, True], (1, 4): [True, True],
+            (0, 8): [True, True], (1, 8): [True, True],
+            (0, 9): [True, True], (1, 9): [True, True],
+            (0, 10): [True, True], (1, 10): [True, True],
+            (0, 11): [True, True], (1, 11): [True, True],
+            (0, 12): [True, True], (1, 12): [True, True]
+        }
+
+    def tearDown(self):
+        self.numactl = None
+
+    def test_cpu_assign(self):
+        assert self.numactl.get_cpu_list(4) == [2, 22, 4, 24]
+
+    def test_cpu_assign_scattered_1(self):
+        assert self.numactl.get_cpu_list(3) == [2, 22, 4]
+        assert self.numactl.get_cpu_list(1) == [24]
+
+    def test_cpu_assign_scattered_2(self):
+        assert self.numactl.get_cpu_list(3) == [2, 22, 4]
+        assert self.numactl.get_cpu_list(3) == [6, 26, 24]
+
+    def test_cpu_assign_hyper_thread(self):
+        assert self.numactl.get_cpu_list(8) == [2, 22, 4, 24, 6, 26, 8, 28]
+        assert self.numactl.get_cpu_list(8) == [10, 30, 12, 32, 14, 34, 16, 36]
+        assert self.numactl.get_cpu_list(8) == [3, 23, 5, 25, 7,27, 9, 29]
+        assert self.numactl.get_cpu_list(8) == [11, 31, 13, 33, 15, 35, 17, 37]
+
+    def test_no_enough_core_1(self):
+        try:
+            self.numactl.get_cpu_list(19)
+        except Exception, e:
+            assert str(e) == "All sockets don't have enough processor to bind."
+
+    def test_no_enough_core_2(self):
+        assert self.numactl.get_cpu_list(16) == [2, 22, 4, 24,
+                                                6, 26, 8, 28,
+                                                10, 30, 12, 32,
+                                                14, 34, 16, 36]
+        assert self.numactl.get_cpu_list(16) == [3, 23, 5, 25,
+                                                7, 27, 9, 29,
+                                                11, 31, 13, 33,
+                                                15, 35, 17, 37]
+        try:
+            self.numactl.get_cpu_list(4)
+        except Exception, e:
+            assert str(e) == "All sockets don't have enough processor to bind."
