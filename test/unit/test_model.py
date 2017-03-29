@@ -970,10 +970,11 @@ class racadm_configuration(unittest.TestCase):
             assert "Specified racadm interface {} doesn\'t exist".\
                        format(fake_interface) in str(e)
 
-class numa_configuration(unittest.TestCase):
+class numa_configuration_1(unittest.TestCase):
 
     def setUp(self):
         self.numactl = model.NumaCtl()
+        self.numactl.__class__.HT_FACTOR = 2
         self.numactl._socket_list = [0, 1]
         self.numactl._core_list = [0, 1, 2, 3, 4, 8, 9, 10, 11, 12]
         self.numactl._core_map = {
@@ -1036,6 +1037,42 @@ class numa_configuration(unittest.TestCase):
                                                 7, 27, 9, 29,
                                                 11, 31, 13, 33,
                                                 15, 35, 17, 37]
+        try:
+            self.numactl.get_cpu_list(4)
+        except Exception, e:
+            assert str(e) == "All sockets don't have enough processor to bind."
+
+class numa_configuration_2(unittest.TestCase):
+
+    def setUp(self):
+        self.numactl = model.NumaCtl()
+        self.numactl.__class__.HT_FACTOR = 1
+        self.numactl._socket_list = [0, 1]
+        self.numactl._core_list = [0, 1, 2, 3]
+        self.numactl._core_map = {
+            (0, 0): [0], (1, 0): [4],
+            (0, 1): [1], (1, 1): [5],
+            (0, 2): [2], (1, 2): [6],
+            (0, 3): [3], (1, 3): [7]
+        }
+        self.numactl._core_map_avai = {
+            (0, 0): [False], (1, 0): [False],
+            (0, 1): [True], (1, 1): [True],
+            (0, 2): [True], (1, 2): [True],
+            (0, 3): [True], (1, 3): [True]
+        }
+
+    def tearDown(self):
+        self.numactl = None
+
+    def test_cpu_assign(self):
+        assert self.numactl.get_cpu_list(3) == [1, 2, 3]
+
+    def test_cpu_assign_scattered(self):
+        assert self.numactl.get_cpu_list(2) == [1, 2]
+        assert self.numactl.get_cpu_list(1) == [3]
+
+    def test_no_enough_core_1(self):
         try:
             self.numactl.get_cpu_list(4)
         except Exception, e:
