@@ -1287,6 +1287,9 @@ class Task(object):
 
 
 class CCompute(Task, CElement):
+
+    numactl = None
+
     def __init__(self, compute_info):
         super(CCompute, self).__init__()
         CElement.__init__(self)
@@ -1301,7 +1304,7 @@ class CCompute(Task, CElement):
         self.__vendor_type = None
         # remember cpu object
         self.__cpu_obj = None
-        self.__numactl_obj = None
+        self.__numactl_enable = False
         self.__cdrom_file = None
         self.__monitor = None
         self.__display = None
@@ -1318,9 +1321,6 @@ class CCompute(Task, CElement):
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
-
-    def set_numactl(self, numactl_obj):
-        self.__numactl_obj = numactl_obj
 
     def set_type(self, vendor_type):
         self.__vendor_type = vendor_type
@@ -1393,7 +1393,9 @@ class CCompute(Task, CElement):
         if 'numa_control' in self.__compute \
                 and self.__compute['numa_control']:
             if os.path.exists("/usr/bin/numactl"):
-                self.set_numactl(NumaCtl())
+                if self.__class__.numactl is None:
+                    self.__class__.numactl = NumaCtl()
+                self.__numactl_enable = True
                 logger.info('[model:compute] infrasim has '
                             'enabled numa control')
             else:
@@ -1479,10 +1481,10 @@ class CCompute(Task, CElement):
         qemu_commandline = " ".join([self.__qemu_bin, self.get_option(), qemu_commandline])
 
         # set cpu affinity
-        if self.__numactl_obj:
+        if self.__numactl_enable:
             cpu_number = self.__cpu_obj.get_cpu_quantities()
             try:
-                bind_cpu_list = [str(x) for x in self.__numactl_obj.get_cpu_list(cpu_number)]
+                bind_cpu_list = [str(x) for x in self.__class__.numactl.get_cpu_list(cpu_number)]
             except Exception, e:
                 bind_cpu_list = []
                 logger.warning(str(e))
@@ -2014,7 +2016,6 @@ class CNode(object):
         self.__tasks_list = []
         self.__node = node_info
         self.__node_name = ""
-        self.__numactl_obj = None
         self.workspace = None
         self.__sol_enabled = None
         self.__netns = None
@@ -2025,9 +2026,6 @@ class CNode(object):
 
     def get_task_list(self):
         return self.__tasks_list
-
-    def set_numactl(self, numactl_obj):
-        self.__numactl_obj = numactl_obj
 
     def get_node_name(self):
         return self.__node_name
