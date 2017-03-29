@@ -18,6 +18,8 @@ type: {{ node_type }}
 
 compute:
 
+    boot:
+        splash: {{ splash_path }}
     cpu:
         #Set node cpu num, the default value is 2
         #

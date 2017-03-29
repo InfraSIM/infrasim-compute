@@ -26,8 +26,12 @@ name: node-0
 type: quanta_d51
 
 compute:
-    # floppy (a), hard disk (c), CD-ROM (d), network (n)
-    boot_order: ncd
+    boot:
+        # floppy (a), hard disk (c), CD-ROM (d), network (n)
+        boot_order: ncd
+        menu: on
+        splash: <path/to/your splash picture>
+        splash-time: 30000
     kvm_enabled: true
     numa_control: true
     cmdline: API_CB=192.168.1.1:8000 BASEFS=base.trusty.3.16.0-25-generic.squashfs.img OVERLAYFS=discovery.overlay.cpio.gz BOOTIF=52-54-BF-11-22-33

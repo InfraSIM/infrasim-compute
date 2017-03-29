@@ -34,6 +34,7 @@ def create_infrasim_directories():
 
 def init_infrasim_conf(node_type):
 
+    splash_path = os.path.join(config.get_infrasim_root(), "data/boot_logo.jpg")
     # Prepare default network
     networks = []
     nics_list = helper.get_all_interfaces()
@@ -50,7 +51,7 @@ def init_infrasim_conf(node_type):
     with open(config.infrasim_config_template, "r") as f:
         infrasim_conf = f.read()
     template = jinja2.Template(infrasim_conf)
-    infrasim_conf = template.render(node_type=node_type, disks=disks, networks=networks)
+    infrasim_conf = template.render(node_type=node_type, disks=disks, networks=networks, splash_path=splash_path)
     with open(config.infrasim_default_config, "w") as f:
         f.write(infrasim_conf)
 
