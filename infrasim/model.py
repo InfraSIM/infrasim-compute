@@ -2238,7 +2238,9 @@ class NumaCtl(object):
                 self._core_map[key] = []
                 self._core_map_avai[key] = []
             self._core_map[key].append(core["processor"])
-            if key[1] == 0:
+
+            # Reserve first two core of each socket for system
+            if key[1] in [0, 1]:
                 self._core_map_avai[key].append(False)
             else:
                 self._core_map_avai[key].append(True)
