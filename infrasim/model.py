@@ -226,7 +226,8 @@ class CCharDev(CElement):
         self.__port = self.__chardev.get('port', self.__port)
         self.__wait = self.__chardev.get('wait', True)
         self.__path = self.__chardev.get('path')
-        self.__reconnect = self.__chardev.get('reconnect', 10)
+        if not self.__is_server:
+            self.__reconnect = self.__chardev.get('reconnect', 10)
 
     def handle_parms(self):
         chardev_option_list = []
@@ -561,7 +562,7 @@ class CBaseDrive(CElement):
         pass
 
     def init(self):
-        self.__boot_index = self._drive_info.get("bootindex")
+        self.__bootindex = self._drive_info.get("bootindex")
         self.__serial = self._drive_info.get("serial")
         self.__version = self._drive_info.get("version")
         self.__format = self._drive_info.get("format", "qcow2")
@@ -648,6 +649,9 @@ class CBaseDrive(CElement):
 
         if self.__version:
             self._dev_attrs["ver"] = self.__version
+
+        if self.__bootindex:
+            self._dev_attrs["bootindex"] = self.__bootindex
 
         # for ATA controller, one bus should only have one target, AHCI could support at most 6 target devices
         # for SCSI controller, one controller only one Bus which could support at most 8 target devices
@@ -1287,6 +1291,9 @@ class Task(object):
 
 
 class CCompute(Task, CElement):
+
+    numactl = None
+
     def __init__(self, compute_info):
         super(CCompute, self).__init__()
         CElement.__init__(self)
@@ -1301,7 +1308,7 @@ class CCompute(Task, CElement):
         self.__vendor_type = None
         # remember cpu object
         self.__cpu_obj = None
-        self.__numactl_obj = None
+        self.__numactl_enable = False
         self.__cdrom_file = None
         self.__monitor = None
         self.__display = None
@@ -1318,9 +1325,6 @@ class CCompute(Task, CElement):
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
-
-    def set_numactl(self, numactl_obj):
-        self.__numactl_obj = numactl_obj
 
     def set_type(self, vendor_type):
         self.__vendor_type = vendor_type
@@ -1393,7 +1397,9 @@ class CCompute(Task, CElement):
         if 'numa_control' in self.__compute \
                 and self.__compute['numa_control']:
             if os.path.exists("/usr/bin/numactl"):
-                self.set_numactl(NumaCtl())
+                if self.__class__.numactl is None:
+                    self.__class__.numactl = NumaCtl()
+                self.__numactl_enable = True
                 logger.info('[model:compute] infrasim has '
                             'enabled numa control')
             else:
@@ -1479,9 +1485,13 @@ class CCompute(Task, CElement):
         qemu_commandline = " ".join([self.__qemu_bin, self.get_option(), qemu_commandline])
 
         # set cpu affinity
-        if self.__numactl_obj:
+        if self.__numactl_enable:
             cpu_number = self.__cpu_obj.get_cpu_quantities()
-            bind_cpu_list = [str(x) for x in self.__numactl_obj.get_cpu_list(cpu_number)]
+            try:
+                bind_cpu_list = [str(x) for x in self.__class__.numactl.get_cpu_list(cpu_number)]
+            except Exception, e:
+                bind_cpu_list = []
+                logger.warning(str(e))
             if len(bind_cpu_list) > 0:
                 numactl_option = 'numactl --physcpubind={} --localalloc'.format(','.join(bind_cpu_list))
                 qemu_commandline = " ".join([numactl_option, qemu_commandline])
@@ -2010,7 +2020,6 @@ class CNode(object):
         self.__tasks_list = []
         self.__node = node_info
         self.__node_name = ""
-        self.__numactl_obj = None
         self.workspace = None
         self.__sol_enabled = None
         self.__netns = None
@@ -2021,9 +2030,6 @@ class CNode(object):
 
     def get_task_list(self):
         return self.__tasks_list
-
-    def set_numactl(self, numactl_obj):
-        self.__numactl_obj = numactl_obj
 
     def get_node_name(self):
         return self.__node_name
@@ -2191,35 +2197,135 @@ class CNode(object):
 
 
 class NumaCtl(object):
+    HT_FACTOR = -1
+
     def __init__(self):
-        self.__cpu_list = []
-        self.__node_list = []
-        self.__numactl_table = {}
-        numactl_show_output = Utility.run_command("numactl --show")
-        for line in numactl_show_output.split(os.linesep):
-            if line.startswith("physcpubind:"):
-                self.__cpu_list = [int(x) for x in line.split(':')[1].strip().split()]
+        """
+        Build core map by reading /proc/cpuinfo
+        """
+        self._socket_list = []
+        self._core_list = []
+        self._core_map = {}
+        self._core_map_avai = {}
 
-            if line.startswith("nodebind:"):
-                self.__node_list = [int(x) for x in line.split(':')[1].strip().split()]
+        with open("/proc/cpuinfo", "r") as fp:
+            lines = fp.readlines()
 
-        numactl_hardware_output = Utility.run_command("numactl --hardware")
-        for node_index in self.__node_list:
-            self.__numactl_table[node_index] = []
-            for line in numactl_hardware_output.split(os.linesep):
-                if line.startswith("node {} cpus:".format(node_index)):
-                    self.__numactl_table[node_index] = [int(x) for x in line.split(':')[1].strip().split()]
+        core_block = []
+        core_info = {}
+
+        for line in lines:
+            if len(line.strip()) != 0:
+                key, value = line.split(":", 1)
+                core_info[key.strip()] = value.strip()
+            else:
+                core_block.append(core_info)
+                core_info = {}
+
+        for core in core_block:
+            for field in ["processor", "core id", "physical id"]:
+                if field not in core:
+                    err = "Error getting '%s' value from /proc/cpuinfo".format(field)
+                    logger.error(err)
+                    raise Exception(err)
+                core[field] = int(core[field])
+
+            if core["core id"] not in self._core_list:
+                self._core_list.append(core["core id"])
+            if core["physical id"] not in self._socket_list:
+                self._socket_list.append(core["physical id"])
+            key = (core["physical id"], core["core id"])
+            if key not in self._core_map:
+                self._core_map[key] = []
+                self._core_map_avai[key] = []
+            self._core_map[key].append(core["processor"])
+
+            # Reserve first two core of each socket for system
+            if key[1] in [0, 1]:
+                self._core_map_avai[key].append(False)
+            else:
+                self._core_map_avai[key].append(True)
+
+        self.__class__.HT_FACTOR = len(self._core_map[(0,0)])
 
     def get_cpu_list(self, num):
-        for i in self.__node_list:
-            if len(self.__numactl_table[i]) >= num:
-                return [self.__numactl_table[i].pop() for _ in range(0, num)]
+        processor_use_up = True
+        cpu_list = []
+        assigned_count = 0
+        socket_to_use = -1
 
-        returned_cpu_list = []
-        for i in self.__node_list:
-            while (len(self.__numactl_table[i])) > 0:
-                returned_cpu_list.append(self.__numactl_table[i].pop())
-                if len(returned_cpu_list) == num:
-                    return returned_cpu_list
+        # Find available socket (with enough processor) to bind
+        for socket in self._socket_list:
+            count_avai = 0
+            for core in self._core_list:
+                for avai in self._core_map_avai[(socket,core)]:
+                    if avai:
+                        count_avai +=1
+            if count_avai < num:
+                continue
+            else:
+                socket_to_use = socket
+                processor_use_up = False
+                break
+        if processor_use_up or socket_to_use<0:
+            raise Exception("All sockets don't have enough processor to bind.")
 
-        return returned_cpu_list
+        # Append core which all HT processor are available
+        for core in self._core_list:
+            if num - assigned_count >= self.HT_FACTOR:
+                # check if all processor are available on this core
+                all_avai = reduce(lambda x, y: x and y,
+                            self._core_map_avai[(socket_to_use, core)])
+                if all_avai:
+                    cpu_list += self._core_map[(socket_to_use, core)]
+                    self._core_map_avai[(socket_to_use, core)] = [False] * self.HT_FACTOR
+                    assigned_count += self.HT_FACTOR
+                    if num == assigned_count:
+                        return cpu_list
+            else:
+                break
+
+        # Use scattered core
+        for core in self._core_list:
+            # check availability of processors on this core
+            core_avai_list = self._core_map_avai[(socket_to_use, core)]
+            core_avai_count = len(filter(lambda x:x, core_avai_list))
+
+            if num - assigned_count <= core_avai_count:
+                # assign
+                for i in range(self.HT_FACTOR):
+                    if core_avai_list[i]:
+                        cpu_list.append(self._core_map[(socket_to_use, core)][i])
+                        self._core_map_avai[(socket_to_use, core)][i] = False
+                        assigned_count += 1
+                        if num == assigned_count:
+                            return cpu_list
+
+
+    def print_core_map(self):
+        print "============================================================"
+        print "Core and Socket Information (as reported by '/proc/cpuinfo')"
+        print "============================================================\n"
+        print "cores = ", self._core_list
+        print "sockets = ", self._socket_list
+        print ""
+
+        max_processor_len = len(str(len(self._core_list) * len(self._socket_list) * self.HT_FACTOR - 1))
+        max_core_map_len = max_processor_len * self.HT_FACTOR \
+                            + len('[, ]') + len('Socket ')
+        max_core_id_len = len(str(max(self._core_list)))
+
+        print " ".ljust(max_core_id_len + len('Core ')),
+        for s in self._socket_list:
+            print "Socket %s" % str(s).ljust(max_core_map_len - len('Socket ')),
+        print ""
+        print " ".ljust(max_core_id_len + len('Core ')),
+        for s in self._socket_list:
+            print "--------".ljust(max_core_map_len),
+        print ""
+
+        for c in self._core_list:
+            print "Core %s" % str(c).ljust(max_core_id_len),
+            for s in self._socket_list:
+                print str(self._core_map[(s,c)]).ljust(max_core_map_len),
+            print "\n"
