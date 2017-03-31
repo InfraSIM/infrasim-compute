@@ -1303,6 +1303,9 @@ class CCompute(Task, CElement):
         self.__smbios = None
         self.__bios = None
         self.__boot_order = None
+        self.__boot_menu = None
+        self.__boot_splash_name = None
+        self.__boot_splash_time = None
         self.__qemu_bin = "qemu-system-x86_64"
         self.__cdrom_file = None
         self.__vendor_type = None
@@ -1391,7 +1394,15 @@ class CCompute(Task, CElement):
                                          "{0}/{0}_smbios.bin".format(self.__vendor_type))
 
         self.__bios = self.__compute.get('bios')
-        self.__boot_order = self.__compute.get('boot_order', "ncd")
+        if 'boot' in self.__compute:
+            self.__boot_order = self.__compute['boot'].get('boot_order', "ncd")
+            if 'menu' in self.__compute['boot']:
+                self.__boot_menu = "on" if self.__compute['boot']['menu'] is True else "off"
+            self.__boot_splash_name = self.__compute['boot'].get('splash', None)
+            self.__boot_splash_time = self.__compute['boot'].get('splash-time', None)
+        else:
+            self.__boot_order = "ncd"
+
         self.__cdrom_file = self.__compute.get('cdrom')
 
         if 'numa_control' in self.__compute \
@@ -1518,8 +1529,8 @@ class CCompute(Task, CElement):
         if self.__extra_option:
             self.add_option(self.__extra_option)
 
+        boot_param = []
         if self.__boot_order:
-            boot_param = ""
             bootdev_path = self.get_workspace() + '/bootdev'
             if os.path.exists(bootdev_path) is True:
                 with open(bootdev_path, "r") as f:
@@ -1533,9 +1544,17 @@ class CCompute(Task, CElement):
                     self.__boot_order = "d"
                 else:
                     self.__boot_order = "ncd"
-                self.add_option("-boot {}".format(self.__boot_order))
+                boot_param.append("order={}".format(self.__boot_order))
             else:
-                self.add_option("-boot {}".format(self.__boot_order))
+                boot_param.append("order={}".format(self.__boot_order))
+        if self.__boot_menu:
+            boot_param.append("menu={}".format(self.__boot_menu))
+        if self.__boot_splash_name:
+            boot_param.append("splash={}".format(self.__boot_splash_name))
+        if self.__boot_splash_time:
+            boot_param.append("splash-time={}".format(self.__boot_splash_time))
+        tmp = ","
+        self.add_option("-boot {}".format(tmp.join(boot_param)))
 
         self.add_option("-machine q35,usb=off,vmport=off")
 

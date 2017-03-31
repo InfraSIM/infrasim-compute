@@ -26,8 +26,12 @@ name: node-0
 type: quanta_d51
 
 compute:
-    # floppy (a), hard disk (c), CD-ROM (d), network (n)
-    boot_order: ncd
+    boot:
+        # floppy (a), hard disk (c), CD-ROM (d), network (n)
+        boot_order: ncd
+        menu: on
+        splash: <path/to/your splash picture>
+        splash-time: 30000
     kvm_enabled: true
     numa_control: true
     # extra_option can be used to extend qemu command which infrasim did not support yet.
