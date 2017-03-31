@@ -226,7 +226,8 @@ class CCharDev(CElement):
         self.__port = self.__chardev.get('port', self.__port)
         self.__wait = self.__chardev.get('wait', True)
         self.__path = self.__chardev.get('path')
-        self.__reconnect = self.__chardev.get('reconnect', 10)
+        if not self.__is_server:
+            self.__reconnect = self.__chardev.get('reconnect', 10)
 
     def handle_parms(self):
         chardev_option_list = []
