@@ -326,6 +326,8 @@ def command_handler():
     init_parser.set_defaults(init="init")
     init_parser.add_argument("-s", "--skip-installation", action="store_true",
                              help="Ignore qemu/openipmi package installation")
+    init_parser.add_argument("-f", "--force", action="store_true", 
+                            help="Destroy existing Nodes")
     init_parser.add_argument("-i", "--infrasim-home", action="store",
                              help="Target infrasim home foler, default $HOME/.infrasim")
     exclusive_group = init_parser.add_mutually_exclusive_group()
@@ -339,7 +341,7 @@ def command_handler():
     args = parser.parse_args(sys.argv[1:])
     if hasattr(args, "init"):
         # Do init
-        infrasim_init(args.type, args.skip_installation, args.infrasim_home, args.config_file)
+        infrasim_init(args.type, args.skip_installation, args.force, args.infrasim_home, args.config_file)
     elif hasattr(args, "version"):
         # Print version
         print version()
