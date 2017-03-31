@@ -87,7 +87,7 @@ def destroy_existing_nodes():
 
 def check_existing_workspace():
     nodes = os.listdir(config.infrasim_home)
-    if len(nodes)>1:
+    if len(nodes) > 1:
         print "There is node workspace existing.\n" 
         print "If you want to remove it, please run:\n"
         print "\"infrasim init -f \" "
