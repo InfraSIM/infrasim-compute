@@ -468,7 +468,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -487,7 +487,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -506,7 +506,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -524,7 +524,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -542,7 +542,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -560,7 +560,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -578,7 +578,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -596,7 +596,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -614,7 +614,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.enable_sol(True)
         bmc.init()
@@ -633,7 +633,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -651,7 +651,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -669,7 +669,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -687,7 +687,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -705,7 +705,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -724,7 +724,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -747,7 +747,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -765,7 +765,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -786,7 +786,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -804,7 +804,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.set_config_file(fn)
@@ -822,7 +822,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -840,7 +840,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
@@ -859,7 +859,7 @@ class bmc_configuration(unittest.TestCase):
         }
 
         bmc = model.CBMC(bmc_info)
-        bmc.set_type("quanta_d51")
+        bmc.set_type("dell_r730")
         bmc.set_workspace(self.__class__.WORKSPACE)
         bmc.init()
         bmc.write_bmc_config()
