@@ -265,6 +265,22 @@ class test_node_cli(unittest.TestCase):
 
         assert "Node {} runtime workspace doesn't exist".format(self.node_name) in output_info['destroy'][1]
 
+    def test_init(self):
+        """
+        CLI test: test init "-f" which will remove existing workspace
+        """
+        output_info = {}
+        output_start = run_command("infrasim node start")
+        self.assertEqual(output_start[0], 0)
+        self.assertTrue(Workspace.check_workspace_exists(self.node_name))
+        output_info['start'] = run_command("infrasim node info")
+        self.assertEqual(output_info['start'][0], 0)
+
+        output_init = run_command("infrasim init -s")
+        self.assertEqual(output_init[0], 0)
+
+        output_init_force = run_command("infrasim init -s -f")
+        self.assertEqual(output_init_force[0], 0)
 
 class test_config_cli_with_runtime_node(unittest.TestCase):
     test_name = "test"
