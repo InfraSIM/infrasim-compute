@@ -1535,12 +1535,12 @@ class CCompute(Task, CElement):
             if os.path.exists(bootdev_path) is True:
                 with open(bootdev_path, "r") as f:
                     boot_param = f.readlines()
-                boot_param = boot_param[0].strip()
-                if boot_param == "default":
+                boot_param[0] = boot_param[0].strip()
+                if boot_param[0] == "default":
                     self.__boot_order = "c"
-                elif boot_param == "pxe":
+                elif boot_param[0] == "pxe":
                     self.__boot_order = "n"
-                elif boot_param == "cdrom":
+                elif boot_param[0] == "cdrom":
                     self.__boot_order = "d"
                 else:
                     self.__boot_order = "ncd"
