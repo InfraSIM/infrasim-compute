@@ -280,8 +280,7 @@ class test_node_cli(unittest.TestCase):
         self.assertEqual(output_init[0], 0)
 
         output_init_force = run_command("infrasim init -s -f")
-        self.assertEqual(output_init_force[0],0)
-
+        self.assertEqual(output_init_force[0], 0)
 
 class test_config_cli_with_runtime_node(unittest.TestCase):
     test_name = "test"
