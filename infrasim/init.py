@@ -10,6 +10,7 @@ from infrasim.qemu import get_qemu
 from infrasim.package_install import package_install
 from infrasim import helper
 import config
+import subprocess
 
 mac_base = "00:60:16:"
 
@@ -41,6 +42,11 @@ def init_infrasim_conf(node_type):
     eth_nic = filter(lambda x: x != "lo", nics_list)[0]
     mac = create_mac_address()
     networks.append({"nic": eth_nic, "mac": mac})
+    
+    # create_infrasim_directories
+    if not os.path.exists(config.infrasim_home):
+        os.mkdir(config.infrasim_home)
+        os.mkdir(config.infrasim_node_config_map)
 
     # Prepare default disk
     disks = []
@@ -69,15 +75,31 @@ def update_bridge_cfg():
     bridge_conf_loc = os.path.join(qemu_sys_prefix, "etc/qemu")
     if not os.path.exists(bridge_conf_loc):
         os.mkdir(bridge_conf_loc)
-
     bridge_conf = os.path.join(qemu_sys_prefix, bridge_conf_loc, "bridge.conf")
     with open(bridge_conf, "w") as f:
         f.write("allow all")
 
+def destroy_existing_nodes():
+    nodes = os.listdir(config.infrasim_home)
+    if os.path.exists(config.infrasim_node_config_map):
+        nodes.remove('.node_map')
+    for node in nodes:
+        os.system("infrasim node destroy {}".format(node))
 
-def infrasim_init(node_type="quanta_d51", skip_installation=False, target_home=None, config_file=None):
+def check_existing_workspace():
+    nodes = os.listdir(config.infrasim_home)
+    if len(nodes) > 1:
+        print "There is node workspace existing.\n" 
+        print "If you want to remove it, please run:\n"
+        print "\"infrasim init -f \" "
+        exit()
+
+def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, target_home=None, config_file=None):
     try:
-        create_infrasim_directories()
+        if force:
+            destroy_existing_nodes()
+            create_infrasim_directories()
+        
         if not skip_installation:
             install_packages()
             update_bridge_cfg()
@@ -89,6 +111,7 @@ def infrasim_init(node_type="quanta_d51", skip_installation=False, target_home=N
             else:
                 raise Exception("{} not found.".format(config_file))
         else:
+            check_existing_workspace()
             init_infrasim_conf(node_type)
 
         get_socat()
