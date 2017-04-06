@@ -23,7 +23,7 @@ name: node-0
 #  s2600kp - Rinjin KP
 #  s2600tp - Rinjin TP
 #  s2600wtt - Node of Hydra, Python
-type: quanta_d51
+type: dell_r730
 
 compute:
     boot:
@@ -137,7 +137,7 @@ compute:
             reconnect: 10
         ioport: 0xca8
         irq: 10
-    smbios: chassis/node1/quanta_d51_smbios.bin
+    smbios: chassis/node1/dell_r730_smbios.bin
     monitor:
         mode: readline
         chardev:
@@ -162,7 +162,7 @@ bmc:
     kill_wait: 5
     historyfru: 20
     config_file: <path/to/your config file>
-    emu_file: chassis/node1/quanta_d51.emu
+    emu_file: chassis/node1/dell_r730.emu
     ipmi_over_lan_port: 623
 
 # racadm is a segment of attributes defined only for dell server
