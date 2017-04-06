@@ -316,6 +316,11 @@ def add_command_parsers(subparser):
 
 
 def command_handler():
+    py_version = sys.version_info
+    if not (py_version[0] is 2 and py_version[1] is 7):
+        print "Warning: please install Python 2.7 first."
+        return
+    
     parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers(title="InfraSIM Commands:")
