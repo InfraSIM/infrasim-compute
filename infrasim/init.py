@@ -87,12 +87,13 @@ def destroy_existing_nodes():
         os.system("infrasim node destroy {}".format(node))
 
 def check_existing_workspace():
-    nodes = os.listdir(config.infrasim_home)
-    if len(nodes) > 1:
-        print "There is node workspace existing.\n" 
-        print "If you want to remove it, please run:\n"
-        print "\"infrasim init -f \" "
-        exit()
+    if os.path.exists(config.infrasim_home):
+        nodes = os.listdir(config.infrasim_home)
+        if len(nodes) > 1:
+            print "There is node workspace existing.\n" 
+            print "If you want to remove it, please run:\n"
+            print "\"infrasim init -f \" "
+            exit()
 
 def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, target_home=None, config_file=None):
     try:
