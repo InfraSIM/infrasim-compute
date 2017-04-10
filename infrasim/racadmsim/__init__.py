@@ -13,9 +13,8 @@ import paramiko
 import os
 import logging
 from os import linesep
-from . import sshim, logger
-from .repl import REPL, register, parse, QuitREPL
-from infrasim import config
+from infrasim import sshim, logger, config
+from infrasim.repl import REPL, register, parse, QuitREPL
 
 auth_map = {}
 racadm_data = None
