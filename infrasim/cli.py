@@ -12,6 +12,7 @@ from infrasim.config_manager import NodeMap
 from infrasim import InfraSimError
 from infrasim.workspace import Workspace
 from texttable import Texttable
+from global_status import InfrasimMonitor
 
 nm = NodeMap()
 
@@ -182,7 +183,6 @@ class NodeCommands(object):
             node_info = Workspace.get_node_info_in_workspace(node_name)
             node_info_net = node_info['compute']['networks']
             node_info_stor = node_info['compute']['storage_backend']
-
             print "{:<20}{}\n" \
                   "{:<20}{}\n" \
                   "{:<20}{}\n" \
@@ -250,6 +250,14 @@ class ChassisCommands(object):
         print node_name
 
 
+class InfrasimCommands(object):
+
+    def status(self):
+        monitor = InfrasimMonitor()
+        monitor.init()
+        monitor.print_global_status()
+
+
 def methods_of(obj):
     result = []
     for i in dir(obj):
@@ -290,7 +298,8 @@ def get_func_args(func, matchargs):
 CATEGORIES = {
     'node': NodeCommands,
     'chassis': ChassisCommands,
-    'config': ConfigCommands
+    'config': ConfigCommands,
+    'global': InfrasimCommands
 }
 
 
@@ -339,6 +348,7 @@ def command_handler():
     version_parser.set_defaults(version="version")
 
     args = parser.parse_args(sys.argv[1:])
+
     if hasattr(args, "init"):
         # Do init
         infrasim_init(args.type, args.skip_installation, args.force, args.infrasim_home, args.config_file)

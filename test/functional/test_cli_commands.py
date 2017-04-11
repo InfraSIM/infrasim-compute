@@ -15,6 +15,10 @@ from infrasim import run_command
 from test.fixtures import FakeConfig
 import infrasim.model as model
 from infrasim.workspace import Workspace
+from test import fixtures
+import time
+
+
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
@@ -396,7 +400,7 @@ class test_command_navigation(unittest.TestCase):
         CLI test: "infrasim -h" navigates next level command usage
         """
         p = r'\{([a-zA-Z,]+)\}'
-        cmd_next_level = ["node", "chassis", "config", "init", "version"]
+        cmd_next_level = ["node", "chassis", "config", "init", "version", "global"]
 
         output = run_command("infrasim -h")[1]
         r = re.compile(p)
@@ -432,3 +436,121 @@ class test_command_navigation(unittest.TestCase):
         cmd = m.group(1)
         cmd_list = cmd.split(',')
         assert set(cmd_list) == set(cmd_next_level)
+
+
+class test_global_status(unittest.TestCase):
+    """
+    CLI test: start, stop and destroy node test1 and test2, get the global status respectively.
+    start, stop test1 ipmi-console, get the global status respectively.
+    """
+
+    def setUp(self):
+        fake_config = fixtures.FakeConfig()
+        self.node_info = fake_config.get_node_info()
+        # start node test1
+        self.node_info['name'] = "test1"
+        self.node_info["type"] = "quanta_d51"
+        node1 = model.CNode(self.node_info)
+        node1.init()
+        node1.precheck()
+        node1.start()
+        time.sleep(2)
+
+    def tearDown(self):
+        node1 = model.CNode(self.node_info)
+        node1.init()
+        node1.stop()
+        node1.terminate_workspace()
+        self.node_info = None
+
+    def test_node_global_status_ipmi_console(self):
+        os.system("ipmi-console start test1")
+        time.sleep(2)
+        output_status = {}
+        output_status["ipmi-console-start"] = run_command("infrasim global status")[1]
+        words = ['name', 'bmc', 'node', 'socat', 'ipmi-console', 'ports', 'test1']
+        for word in words:
+            assert word in output_status["ipmi-console-start"]
+        words = ['racadm', 'test2']
+        for word in words:
+            assert word not in output_status["ipmi-console-start"]
+
+        os.system("ipmi-console stop test1")
+        output_status["ipmi-console-stop"] = run_command("infrasim global status")[1]
+        words = ['name', 'bmc', 'node', 'socat', 'ports', 'test1']
+        for word in words:
+            assert word in output_status["ipmi-console-stop"]
+        words = ['racadm', 'ipmi-console', 'test2']
+        for word in words:
+            assert word not in output_status["ipmi-console-stop"]
+
+    def test_nodes_global_status_start_stop_destroy(self):
+
+        output_status={}
+        output_status["start1"] = run_command("infrasim global status")[1]
+        words = ['name', 'bmc', 'node', 'socat', 'ports', 'test1']
+        for word in words:
+            assert word in output_status["start1"]
+        words = ['racadm', 'ipmi-console', 'test2']
+        for word in words:
+            assert word not in output_status["start1"]
+
+        fake_config_2 = fixtures.FakeConfig()
+        node_info_2 = fake_config_2.get_node_info()
+        node_info_2['name'] = "test2"
+        node_info_2['ipmi_console_ssh'] = 9301
+        node_info_2['ipmi_console_port'] = 9001
+        node_info_2['bmc_connection_port'] = 9101
+        node_info_2['compute']['vnc_display'] = 2
+        node_info_2['compute']['monitor'] = {
+            'mode': 'readline',
+            'chardev': {
+                'backend': 'socket',
+                'host': '127.0.0.1',
+                'port': 2346,
+                'server': True,
+                'wait': False
+            }
+        }
+        node_info_2["type"] = "dell_c6320"
+        node2 = model.CNode(node_info_2)
+        node2.init()
+        node2.precheck()
+        node2.start()
+        time.sleep(2)
+        output_status["start"] = run_command("infrasim global status")[1]
+        words = ['name', 'bmc', 'node', 'socat', 'racadm', 'ports', 'test1', 'test2']
+        for word in words:
+            assert word in output_status["start"]
+        assert 'ipmi-console' not in output_status['start']
+
+        node1 = model.CNode(self.node_info)
+        node1.init()
+        node1.stop()
+        output_status["stop1"] = run_command("infrasim global status")[1]
+        words = ['name', 'bmc', 'node', 'socat', 'racadm', 'ports', 'test1', 'test2']
+        for word in words:
+            assert word in output_status["stop1"]
+        assert 'ipmi-console' not in output_status['stop1']
+
+        node2.stop()
+        output_status["stop"] = run_command("infrasim global status")[1]
+        words = ['name', 'bmc', 'node', 'ports', 'test1', 'test2']
+        for word in words:
+            assert word in output_status["stop"]
+        words = ['socat', 'racadm', 'ipmi-console']
+        for word in words:
+            assert word not in output_status['stop']
+
+        node1.terminate_workspace()
+        output_status["destroy1"] = run_command("infrasim global status")[1]
+        words = ['name', 'bmc', 'node', 'ports', 'test2']
+        for word in words:
+            assert word in output_status["destroy1"]
+        words = ['socat', 'racadm', 'ipmi-console', 'test1']
+        for word in words:
+            assert word not in output_status['destroy1']
+
+        node2.terminate_workspace()
+        output_status["destroy"] = run_command("infrasim global status")[1]
+        assert "There is no node." in output_status["destroy"]
