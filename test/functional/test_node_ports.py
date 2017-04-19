@@ -13,6 +13,7 @@ from infrasim.ipmicons.common import IpmiError
 PS_QEMU = "ps ax | grep qemu"
 PS_IPMI = "ps ax | grep ipmi"
 PS_SOCAT = "ps ax | grep socat"
+PS_RACADM = "ps ax | grep racadmsim"
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
@@ -111,16 +112,24 @@ class test_node_ports_no_conflict(unittest.TestCase):
                                   subprocess.PIPE, subprocess.PIPE)[1]
         qemu_result = run_command(PS_QEMU, True,
                                   subprocess.PIPE, subprocess.PIPE)[1]
+        if 'dell' in self.node_info['type']:
+            racadm_result = run_command(PS_RACADM, True,
+                                        subprocess.PIPE, subprocess.PIPE)[1]
+
         # check if node test1 is running
         assert "test1" in socat_result
         assert "test1" in ipmi_result
         assert "test1-node" in qemu_result
+        if 'dell' in self.node_info['type']:
+            assert "test1" in racadm_result
 
         self.node_info_2['name'] = "test2"
         # modify node configuration to resolve port conflict
         self.node_info_2['ipmi_console_ssh'] = 9301
         self.node_info_2['ipmi_console_port'] = 9001
         self.node_info_2['bmc_connection_port'] = 9101
+        if 'dell' in self.node_info_2['type']:
+            self.node_info_2['racadm_port'] = 10023
         self.node_info_2['compute']['vnc_display'] = 2
         self.node_info_2['compute']['monitor'] = {
             'mode': 'readline',
@@ -144,11 +153,17 @@ class test_node_ports_no_conflict(unittest.TestCase):
                                   subprocess.PIPE, subprocess.PIPE)[1]
         qemu_result = run_command(PS_QEMU, True,
                                   subprocess.PIPE, subprocess.PIPE)[1]
+        if 'dell' in self.node_info_2['type']:
+            racadm_result = run_command(PS_RACADM, True,
+                                        subprocess.PIPE, subprocess.PIPE)[1]
+
         # node test1 and test2 should be running simultaneously
 
         assert "test1" in socat_result and "test2" in socat_result
         assert "test1" in ipmi_result and "test2" in ipmi_result
         assert "test1-node" in qemu_result and "test2-node" in qemu_result
+        if 'dell' in self.node_info['type']:
+            assert "test1" in racadm_result and "test2" in racadm_result
 
 
 class test_start_node_with_conflict_port(unittest.TestCase):
@@ -191,15 +206,23 @@ class test_start_node_with_conflict_port(unittest.TestCase):
                                   subprocess.PIPE, subprocess.PIPE)[1]
         qemu_result = run_command(PS_QEMU, True,
                                   subprocess.PIPE, subprocess.PIPE)[1]
+        if 'dell' in self.node_info['type']:
+            racadm_result = run_command(PS_RACADM, True,
+                                        subprocess.PIPE, subprocess.PIPE)[1]
         # check if node test1 is running
         assert "test1" in socat_result
         assert "test1" in ipmi_result
         assert "test1-node" in qemu_result
+        if 'dell' in self.node_info['type']:
+            assert "test1" in racadm_result
 
         self.node_info_2['name'] = "test2"
         # modify node configuration to resolve port conflict
         self.node_info_2['ipmi_console_ssh'] = 9301
         self.node_info_2['ipmi_console_port'] = 9001
+        if 'dell' in self.node_info_2['type']:
+            self.node_info_2['racadm_port'] = 10023
+
         #self.node_info_2['bmc_connection_port'] = 9101
         self.node_info_2['compute']['vnc_display'] = 2
         self.node_info_2['compute']['monitor'] = {
@@ -234,11 +257,16 @@ class test_start_node_with_conflict_port(unittest.TestCase):
                                   subprocess.PIPE, subprocess.PIPE)[1]
         qemu_result = run_command(PS_QEMU, True,
                                   subprocess.PIPE, subprocess.PIPE)[1]
+        if 'dell' in self.node_info['type']:
+            racadm_result = run_command(PS_RACADM, True,
+                                        subprocess.PIPE, subprocess.PIPE)[1]
+
         # check if node test1 is running
         assert "test1" in socat_result
         assert "test1" in ipmi_result
         assert "test1-node" in qemu_result
-
+        if 'dell' in self.node_info['type']:
+            assert "test1" in racadm_result
         self.node_info_2['name'] = "test2"
         # modify node configuration to resolve port conflict
         self.node_info_2['ipmi_console_ssh'] = 9301
@@ -277,16 +305,24 @@ class test_start_node_with_conflict_port(unittest.TestCase):
                                   subprocess.PIPE, subprocess.PIPE)[1]
         qemu_result = run_command(PS_QEMU, True,
                                   subprocess.PIPE, subprocess.PIPE)[1]
+        if 'dell' in self.node_info['type']:
+            racadm_result = run_command(PS_RACADM, True,
+                                        subprocess.PIPE, subprocess.PIPE)[1]
         # check if node test1 is running
         assert "test1" in socat_result
         assert "test1" in ipmi_result
         assert "test1-node" in qemu_result
+        if 'dell' in self.node_info['type']:
+            assert "test1" in racadm_result
 
         self.node_info_2['name'] = "test2"
         # modify node configuration to resolve port conflict
         self.node_info_2['ipmi_console_ssh'] = 9301
         self.node_info_2['ipmi_console_port'] = 9001
         self.node_info_2['bmc_connection_port'] = 9101
+        if 'dell' in self.node_info_2['type']:
+            self.node_info_2['racadm_port'] = 10023
+
         self.node_info_2['compute']['vnc_display'] = 2
 
         try:
@@ -310,15 +346,22 @@ class test_start_node_with_conflict_port(unittest.TestCase):
                                   subprocess.PIPE, subprocess.PIPE)[1]
         qemu_result = run_command(PS_QEMU, True,
                                   subprocess.PIPE, subprocess.PIPE)[1]
+        if 'dell' in self.node_info['type']:
+            racadm_result = run_command(PS_RACADM, True,
+                                        subprocess.PIPE, subprocess.PIPE)[1]
         # check if node test1 is running
         assert "test1" in socat_result
         assert "test1" in ipmi_result
         assert "test1-node" in qemu_result
+        if 'dell' in self.node_info['type']:
+            assert "test1" in racadm_result
 
         self.node_info_2['name'] = "test2"
         # modify node configuration to resolve port conflict
         self.node_info_2['ipmi_console_ssh'] = 9301
         self.node_info_2['bmc_connection_port'] = 9101
+        if 'dell' in self.node_info_2['type']:
+            self.node_info_2['racadm_port'] = 10023
         self.node_info_2['compute']['vnc_display'] = 2
         self.node_info_2['compute']['monitor'] = {
             'mode': 'readline',
@@ -352,10 +395,17 @@ class test_start_node_with_conflict_port(unittest.TestCase):
                                   subprocess.PIPE, subprocess.PIPE)[1]
         qemu_result = run_command(PS_QEMU, True,
                                   subprocess.PIPE, subprocess.PIPE)[1]
+        if 'dell' in self.node_info['type']:
+            racadm_result = run_command(PS_RACADM, True,
+                                        subprocess.PIPE, subprocess.PIPE)[1]
+
         # check if node test1 is running
         assert "test1" in socat_result
         assert "test1" in ipmi_result
         assert "test1-node" in qemu_result
+        if 'dell' in self.node_info['type']:
+            assert "test1" in racadm_result
+
 
         ipmi_console_thread = threading.Thread(target=console.start, args=(self.node_info["name"],))
         ipmi_console_thread.setDaemon(True)
@@ -366,6 +416,8 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         # modify node configuration to resolve port conflict
         self.node_info_2['ipmi_console_port'] = 9001
         self.node_info_2['bmc_connection_port'] = 9101
+        if 'dell' in self.node_info_2['type']:
+            self.node_info_2['racadm_port'] = 10023
         self.node_info_2['compute']['vnc_display'] = 2
         self.node_info_2['compute']['monitor'] = {
             'mode': 'readline',
@@ -386,7 +438,6 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         ipmi_console_result = run_command(ipmi_console_cmd, True,
                                           subprocess.PIPE, subprocess.PIPE)[1]
         assert "ssh port 9300 is already in use." in ipmi_console_result
-
         console.stop(self.node_info["name"])
         node2.stop()
         node2.terminate_workspace()

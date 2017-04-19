@@ -1990,12 +1990,15 @@ class CRacadm(Task):
         self.__racadm_info = racadm_info
 
         self.__node_name = "default"
-        self.__port_idrac = None
+        self.__port_idrac = 10022
         self.__username = ""
         self.__password = ""
         self.__interface = None
         self.__ip = ""
         self.__data_src = ""
+
+    def set_port_idrac(self, port):
+        self.__port_idrac = port
 
     def precheck(self):
         if not self.__ip:
@@ -2014,7 +2017,8 @@ class CRacadm(Task):
             self.__ip = helper.get_interface_ip(self.__interface)
         else:
             self.__ip = "0.0.0.0"
-        self.__port_idrac = self.__racadm_info.get("port", 10022)
+        if "port" in self.__racadm_info:
+            self.__port_idrac = self.__racadm_info.get("port","")
         self.__username = self.__racadm_info.get("username", "admin")
         self.__password = self.__racadm_info.get("password", "admin")
         self.__data_src = self.__racadm_info.get("data", "auto")
@@ -2141,6 +2145,10 @@ class CNode(object):
             racadm_obj.set_task_name("{}-racadm".format(self.__node_name))
             racadm_obj.set_log_path("/var/log/infrasim/{}/racadm.log".
                                     format(self.__node_name))
+
+            if "racadm_port" in self.__node:
+                racadm_obj.set_port_idrac(self.__node["racadm_port"])
+
             self.__tasks_list.append(racadm_obj)
 
         # Set interface

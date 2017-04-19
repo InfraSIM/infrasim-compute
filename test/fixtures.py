@@ -5,7 +5,7 @@ class FakeConfig(object):
     def __init__(self):
         self.__node_info = {
             "name": "test",
-            "type": "quanta_d51",
+            "type": "dell_r730",
             "compute": {
                 "kvm_enabled": helper.check_kvm_existence(),
                 "cpu": {

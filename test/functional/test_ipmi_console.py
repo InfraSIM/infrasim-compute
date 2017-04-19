@@ -24,7 +24,7 @@ import telnetlib
 import socket
 import signal
 from test.fixtures import FakeConfig
-
+from nose.tools import assert_raises
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
     child = subprocess.Popen(cmd, shell=shell, stdout=stdout, stderr=stderr)
@@ -76,17 +76,20 @@ class test_ipmi_console_start_stop(unittest.TestCase):
         os.environ["PATH"] = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
     def tearDown(self):
+
         os.system("infrasim node destroy {}".format(self.node_name))
         os.system("rm -rf {}".format(self.node_workspace))
         os.system("pkill socat")
         os.system("pkill ipmi")
         os.system("pkill qemu")
+        os.system("pkill racadmsim")
 
     def test_start_stop_default_ipmi_console(self):
         self.node_name = "default"
         self.node_workspace = os.path.join(config.infrasim_home, self.node_name)
         os.system("infrasim node start")
         os.system("ipmi-console start")
+        time.sleep(20)
         ipmi_start_cmd = 'ps ax | grep ipmi-console'
         returncode, output = run_command(ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system("ipmi-console stop")
@@ -107,6 +110,7 @@ class test_ipmi_console_start_stop(unittest.TestCase):
         os.system("infrasim config add {} {}".format(self.node_name, node_config_path))
         os.system("infrasim node start {}".format(self.node_name))
         os.system("ipmi-console start {}".format(self.node_name))
+        time.sleep(20)
         ipmi_start_cmd = 'ps ax | grep ipmi-console'
         returncode, output = run_command(ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system("ipmi-console stop {}".format(self.node_name))
@@ -127,6 +131,7 @@ class test_ipmi_console_start_stop(unittest.TestCase):
         os.system("infrasim node stop")
         ipmi_start_cmd = 'ipmi-console start'
         returncode, output = run_command(ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(20)
         self.assertEqual(returncode, 0)
         assert 'Warning: node default has not started BMC. Please start node default first.' in output
         ipmi_start_cmd = 'ps ax | grep ipmi-console'
@@ -140,6 +145,7 @@ class test_ipmi_console_start_stop(unittest.TestCase):
         self.node_workspace = os.path.join(config.infrasim_home, self.node_name)
         ipmi_start_cmd = 'ipmi-console start'
         returncode, output = run_command(ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(20)
         self.assertEqual(returncode, 0)
         assert 'Warning: there is no node default workspace. Please start node default first.' in output
         ipmi_start_cmd = "ps ax | grep ipmi-console"
@@ -152,9 +158,10 @@ class test_ipmi_console(unittest.TestCase):
 
     ssh = paramiko.SSHClient()
     channel = None
-    # Just for quanta_d51
-    sensor_id = '0xc0'
-    sensor_value = '1000.00'
+
+    # Just for dell_r730
+    sensor_id = '0x30'
+    sensor_value = '3960.00'
     event_id = '6'
     TMP_CONF_FILE = "/tmp/test.yml"
 
@@ -174,7 +181,7 @@ class test_ipmi_console(unittest.TestCase):
 
         # Wait ipmi_sim sever coming up.
         # FIXME: good way???
-        print "Wait ipmi-console start in about 30s..."
+        print "Wait ipmi-console start in about 15s..."
         time.sleep(15)
 
         ipmi_console_thread = threading.Thread(target=console.start, args=(node_info["name"],))
@@ -184,13 +191,21 @@ class test_ipmi_console(unittest.TestCase):
         # Wait SSH server coming up
         # FIXME: Need a good way to check if SSH server is listening
         # on port 9300
-        time.sleep(20)
         cls.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        cls.ssh.connect('127.0.0.1', username='', password='', port=9300)
+        #Retry SSH to make sure ipmi console started
+        for i in range(6):
+           try:
+               time.sleep(10)
+               cls.ssh.connect('127.0.0.1', username='', password='', port=9300)
+           except paramiko.ssh_exception.NoValidConnectionsError, e:
+               if i == 5:
+                   raise e
+               continue
         cls.channel = cls.ssh.invoke_shell()
 
     @classmethod
     def tearDownClass(cls):
+
         cls.channel.send('quit\n')
         cls.channel.close()
         cls.ssh.close()
@@ -211,7 +226,6 @@ class test_ipmi_console(unittest.TestCase):
         if os.path.exists(workspace):
             shutil.rmtree(workspace)
 
-
     def test_sensor_accessibility(self):
         self.channel.send('sensor info\n')
         time.sleep(1)
@@ -221,7 +235,7 @@ class test_ipmi_console(unittest.TestCase):
         self.channel.send('sensor value get ' + self.sensor_id + '\n')
         time.sleep(1)
         str_output = read_buffer(self.channel)
-        assert 'Fan_SYS0' in str_output
+        assert 'Fan1' in str_output
 
         self.channel.send('sensor value set ' + self.sensor_id + ' ' + self.sensor_value + '\n')
         time.sleep(1)
@@ -229,7 +243,7 @@ class test_ipmi_console(unittest.TestCase):
         self.channel.send('sensor value get ' + self.sensor_id + '\n')
         time.sleep(1)
         str_output = read_buffer(self.channel)
-        assert 'Fan_SYS0 : 1000.000 RPM' in str_output
+        assert 'Fan1 : 3960.000 RPM' in str_output
 
     def test_help_accessibility(self):
         self.channel.send('help\n')
@@ -260,8 +274,8 @@ class test_ipmi_console(unittest.TestCase):
         except IndexError:
             assert False
 
-        assert 'Fan #0xc0 | Upper Non-critical going low  | Asserted' in assert_line
-        assert 'Fan #0xc0 | Upper Non-critical going low  | Deasserted' in deassert_line
+        assert 'Fan #0x30 | Upper Non-critical going low  | Asserted' in assert_line
+        assert 'Fan #0x30 | Upper Non-critical going low  | Deasserted' in deassert_line
 
     def test_history_accessibilty(self):
         self.channel.send('help\n')
@@ -283,7 +297,7 @@ class test_ipmi_console(unittest.TestCase):
         self.channel.send("sensor value get 0xe0\n")
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
-        self.assertTrue("PSU1 Status : 0x0100" in str_output)
+        self.assertTrue("Cable SAS A0 : 0x0100" in str_output)
         time.sleep(1)
 
     def test_sensor_value_set_discrete(self):
@@ -294,7 +308,7 @@ class test_ipmi_console(unittest.TestCase):
         self.channel.send("sensor value get 0xe0\n")
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
-        self.assertTrue("PSU1 Status : 0xca01" in str_output)
+        self.assertTrue("Cable SAS A0 : 0xca01" in str_output)
 
         self.channel.send("sensor value set 0xe0 0x0100\n")
         time.sleep(3)
@@ -312,7 +326,7 @@ class test_ipmi_console(unittest.TestCase):
         self.channel.send("sensor value get 0xe0\n")
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
-        self.assertTrue("PSU1 Status : 0x0100" in str_output)
+        self.assertTrue("Cable SAS A0 : 0x0100" in str_output)
 
     def test_sensor_value_set_discrete_invalid_value(self):
         reset_console(self.channel)
@@ -325,7 +339,7 @@ class test_ipmi_console(unittest.TestCase):
         self.channel.send("sensor value get 0xe0\n")
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
-        self.assertTrue("PSU1 Status : 0x0100" in str_output)
+        self.assertTrue("Cable SAS A0 : 0x0100" in str_output)
 
     def test_sensor_value_set_discrete_state(self):
         reset_console(self.channel)
@@ -336,7 +350,7 @@ class test_ipmi_console(unittest.TestCase):
         self.channel.send("sensor value get 0xe0\n")
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
-        self.assertTrue("PSU1 Status : 0x0110" in str_output)
+        self.assertTrue("Cable SAS A0 : 0x0110" in str_output)
 
         self.channel.send("sensor value set 0xe0 0x0100\n")
         time.sleep(0.1)
@@ -352,7 +366,7 @@ class test_ipmi_console(unittest.TestCase):
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
 
-        self.assertTrue("PSU1 Status : 0x0100" in str_output)
+        self.assertTrue("Cable SAS A0 : 0x0100" in str_output)
 
     def test_sensor_value_set_discrete_state_invalid_value(self):
         reset_console(self.channel)
@@ -364,22 +378,20 @@ class test_ipmi_console(unittest.TestCase):
         time.sleep(0.1)
         str_output = read_buffer(self.channel)
 
-        self.assertTrue("PSU1 Status : 0x0100" in str_output)
+        self.assertTrue("Cable SAS A0 : 0x0100" in str_output)
 
 
 class test_ipmi_console_config_change(unittest.TestCase):
 
     ssh = paramiko.SSHClient()
     channel = None
-    # Just for quanta_d51
-    sensor_id = '0xc0'
-    sensor_value = '1000.00'
-    event_id = '6'
+    # Just for dell_r730
     TMP_CONF_FILE = "/tmp/test.yml"
     bmc_conf = ""
 
     @classmethod
     def setUpClass(cls):
+        ssh = paramiko.SSHClient()
         node_info = {}
         fake_config = fixtures.FakeConfig()
         node_info = fake_config.get_node_info()
@@ -398,7 +410,7 @@ class test_ipmi_console_config_change(unittest.TestCase):
 
         # Wait ipmi_sim sever coming up.
         # FIXME: good way???
-        print "Wait ipmi-console start in about 30s..."
+        print "Wait ipmi-console start in about 15s..."
         time.sleep(15)
 
         ipmi_console_thread = threading.Thread(target=console.start, args=(node_info["name"],))
