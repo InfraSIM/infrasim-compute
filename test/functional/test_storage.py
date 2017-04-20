@@ -194,6 +194,7 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
         assert "/tmp/sdb.img" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
 
+
 class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
 
     drive7 = [{"size": 8, "file": "/tmp/sda.img"},
