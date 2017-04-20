@@ -219,7 +219,7 @@ class NodeCommands(object):
                 node_info_drives = stor['drives']
                 for j in range(1, len(node_info_drives) + 1):
                     drive = node_info_drives[j - 1]
-                    if j == 1:
+                    if j % stor['max_drive_per_controller'] == 1:
                         row.append([" " * 17, stor['type'],
                                     stor['max_drive_per_controller'], drive['size']])
                     else:
