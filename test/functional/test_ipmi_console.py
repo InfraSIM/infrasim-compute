@@ -76,7 +76,6 @@ class test_ipmi_console_start_stop(unittest.TestCase):
         os.environ["PATH"] = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
     def tearDown(self):
-
         os.system("infrasim node destroy {}".format(self.node_name))
         os.system("rm -rf {}".format(self.node_workspace))
         os.system("pkill socat")
@@ -192,15 +191,15 @@ class test_ipmi_console(unittest.TestCase):
         # FIXME: Need a good way to check if SSH server is listening
         # on port 9300
         cls.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        #Retry SSH to make sure ipmi console started
+        # Retry SSH to make sure ipmi console started
         for i in range(6):
-           try:
-               time.sleep(10)
-               cls.ssh.connect('127.0.0.1', username='', password='', port=9300)
-           except paramiko.ssh_exception.NoValidConnectionsError, e:
-               if i == 5:
-                   raise e
-               continue
+            try:
+                time.sleep(10)
+                cls.ssh.connect('127.0.0.1', username='', password='', port=9300)
+            except paramiko.ssh_exception.NoValidConnectionsError, e:
+                if i == 5:
+                    raise e
+                continue
         cls.channel = cls.ssh.invoke_shell()
 
     @classmethod

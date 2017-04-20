@@ -129,7 +129,8 @@ class test_node_ports_no_conflict(unittest.TestCase):
         self.node_info_2['ipmi_console_port'] = 9001
         self.node_info_2['bmc_connection_port'] = 9101
         if 'dell' in self.node_info_2['type']:
-            self.node_info_2['racadm_port'] = 10023
+            self.node_info_2['racadm'] = {}
+            self.node_info_2['racadm']['port'] = 10023
         self.node_info_2['compute']['vnc_display'] = 2
         self.node_info_2['compute']['monitor'] = {
             'mode': 'readline',
@@ -221,8 +222,8 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         self.node_info_2['ipmi_console_ssh'] = 9301
         self.node_info_2['ipmi_console_port'] = 9001
         if 'dell' in self.node_info_2['type']:
-            self.node_info_2['racadm_port'] = 10023
-
+            self.node_info_2['racadm'] = {}
+            self.node_info_2['racadm']['port'] = 10023
         #self.node_info_2['bmc_connection_port'] = 9101
         self.node_info_2['compute']['vnc_display'] = 2
         self.node_info_2['compute']['monitor'] = {
@@ -321,8 +322,8 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         self.node_info_2['ipmi_console_port'] = 9001
         self.node_info_2['bmc_connection_port'] = 9101
         if 'dell' in self.node_info_2['type']:
-            self.node_info_2['racadm_port'] = 10023
-
+            self.node_info_2['racadm'] = {}
+            self.node_info_2['racadm']['port'] = 10023
         self.node_info_2['compute']['vnc_display'] = 2
 
         try:
@@ -361,7 +362,8 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         self.node_info_2['ipmi_console_ssh'] = 9301
         self.node_info_2['bmc_connection_port'] = 9101
         if 'dell' in self.node_info_2['type']:
-            self.node_info_2['racadm_port'] = 10023
+            self.node_info_2['racadm'] = {}
+            self.node_info_2['racadm']['port'] = 10023
         self.node_info_2['compute']['vnc_display'] = 2
         self.node_info_2['compute']['monitor'] = {
             'mode': 'readline',
@@ -417,7 +419,8 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         self.node_info_2['ipmi_console_port'] = 9001
         self.node_info_2['bmc_connection_port'] = 9101
         if 'dell' in self.node_info_2['type']:
-            self.node_info_2['racadm_port'] = 10023
+            self.node_info_2['racadm'] = {}
+            self.node_info_2['racadm']['port'] = 10023
         self.node_info_2['compute']['vnc_display'] = 2
         self.node_info_2['compute']['monitor'] = {
             'mode': 'readline',
