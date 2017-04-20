@@ -194,6 +194,66 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
         assert "/tmp/sdb.img" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
 
+class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
+
+    drive7 = [{"size": 8, "file": "/tmp/sda.img"},
+          {"size": 16, "file": "/tmp/sdb.img"},
+          {"size": 8, "file": "/tmp/sdc.img"},
+          {"size": 16, "file": "/tmp/sdd.img"},
+          {"size": 8, "file": "/tmp/sde.img"},
+          {"size": 16, "file": "/tmp/sdf.img"},
+          {"size": 8, "file": "/tmp/sdg.img"}]
+
+    @classmethod
+    def setUp(cls):
+        fake_config = fixtures.FakeConfig()
+        cls.conf = fake_config.get_node_info()
+
+    @classmethod
+    def tearDown(cls):
+        node = model.CNode(cls.conf)
+        node.init()
+        node.stop()
+        node.terminate_workspace()
+        cls.conf = None
+
+    def test_controller_with_more_than_drive6(self):
+        # Update ahci controller with seven drives
+        self.conf["compute"]["storage_backend"] = [{
+            "type": "ahci",
+            "use_jbod": "true",
+            "use_msi": "true",
+            "max_cmds": 1024,
+            "max_sge": 128,
+            "max_drive_per_controller": 6,
+            "drives": self.drive7
+            }]
+        with open('/tmp/test.yml', 'w') as outfile:
+            yaml.dump(self.conf, outfile, default_flow_style=False)
+        os.system("infrasim config add test {}".format(tmp_conf_file))
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        controller_type_ahci = run_command("infrasim node info {} | grep -c ahci".
+                                      format(self.conf["name"]))
+        self.assertEqual(int(controller_type_ahci[1]), 2)
+
+        qemu_pid = get_qemu_pid(node)
+        qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+
+        assert "qemu-system-x86_64" in qemu_cmdline
+        assert "/tmp/sda.img" in qemu_cmdline
+        assert "/tmp/sdb.img" in qemu_cmdline
+        assert "/tmp/sdc.img" in qemu_cmdline
+        assert "/tmp/sdd.img" in qemu_cmdline
+        assert "/tmp/sde.img" in qemu_cmdline
+        assert "/tmp/sdf.img" in qemu_cmdline
+        assert "/tmp/sdg.img" in qemu_cmdline
+        assert "format=qcow2" in qemu_cmdline
+
+
 class test_ahci_controller_with_six_drives(unittest.TestCase):
 
     @classmethod
