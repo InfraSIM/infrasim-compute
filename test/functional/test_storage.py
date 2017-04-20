@@ -253,7 +253,10 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         assert "/tmp/sdf.img" in qemu_cmdline
         assert "/tmp/sdg.img" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
-
+        assert "-device ahci,id=sata1" in qemu_cmdline
+        assert "-device ahci,id=sata0" in qemu_cmdline
+        assert "drive=sata0-0-5-0" in qemu_cmdline
+        assert "drive=sata1-0-0-0" in qemu_cmdline
 
 class test_ahci_controller_with_six_drives(unittest.TestCase):
 
