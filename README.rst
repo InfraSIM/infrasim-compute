@@ -68,6 +68,8 @@ Start Infrasim Service
 
    -  -s, --skip-installation Ignore qemu/openipmi package installation
 
+   -  -f, --force Destroy existing Nodes
+
    -  -c [CONFIG\_FILE], --config-file [CONFIG\_FILE] Use customized
       yaml file for the default node
 
@@ -99,6 +101,12 @@ Start Infrasim Service
    ::
 
        sudo infrasim config update <node name> <config path>
+
+   - Edit configuration mapping with environment editor
+
+   ::
+
+       sudo infrasim config edit
 
    -  List all configuration mappings
 
