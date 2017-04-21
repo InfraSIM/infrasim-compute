@@ -94,16 +94,23 @@ def check_existing_workspace():
     if os.path.exists(config.infrasim_home):
         nodes = os.listdir(config.infrasim_home)
         if len(nodes) > 1:
-            print "There is node workspace existing.\n" 
-            print "If you want to remove it, please run:\n"
-            print "\"infrasim init -f \" "
-            exit()
+            return True
+        else:
+            return False
+
 
 def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, target_home=None, config_file=None):
     try:
-        if force:
-            destroy_existing_nodes()
-            create_infrasim_directories()
+        if check_existing_workspace() is True:
+            if not force:
+                print "There is node workspace existing.\n"
+                print "If you want to remove it, please run:\n"
+                print "\"infrasim init -f \" "
+                exit()
+
+            if force:
+                destroy_existing_nodes()
+                create_infrasim_directories()
         
         if not skip_installation:
             install_packages()
@@ -116,7 +123,7 @@ def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, ta
             else:
                 raise Exception("{} not found.".format(config_file))
         else:
-            check_existing_workspace()
+            #check_existing_workspace()
             init_infrasim_conf(node_type)
 
         get_socat()
