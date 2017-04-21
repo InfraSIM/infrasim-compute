@@ -9,8 +9,8 @@ from infrasim.ipmi import get_ipmi
 from infrasim.qemu import get_qemu
 from infrasim.package_install import package_install
 from infrasim import helper
+from infrasim import WorkspaceExisting
 import config
-from . import WorkspaceExisting, logger, InfraSimError
 import subprocess
 
 mac_base = "00:60:16:"
@@ -101,40 +101,27 @@ def check_existing_workspace():
 
 
 def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, target_home=None, config_file=None):
-    try:
-        if check_existing_workspace():
-            if not force:
-                raise WorkspaceExisting("Workspace Existing!!")
+    if check_existing_workspace():
+        if not force:
+            raise WorkspaceExisting("Workspace Existing!!")
 
-            if force:
-                destroy_existing_nodes()
-                create_infrasim_directories()
-        
-        if not skip_installation:
-            install_packages()
-            config_library_link()
+        if force:
+            destroy_existing_nodes()
+            create_infrasim_directories()
 
-        if config_file:
-            if os.path.exists(config_file):
-                shutil.copy2(config_file, config.infrasim_etc)
-            else:
-                raise Exception("{} not found.".format(config_file))
+    if not skip_installation:
+        install_packages()
+        config_library_link()
+
+    if config_file:
+        if os.path.exists(config_file):
+            shutil.copy2(config_file, config.infrasim_etc)
         else:
-            init_infrasim_conf(node_type)
+            raise Exception("{} not found.".format(config_file))
+    else:
+        init_infrasim_conf(node_type)
 
-        get_socat()
-        get_ipmi()
-        get_qemu()
-        print "Infrasim init OK"
-    except CommandNotFound as e:
-        print "command:{} not found\n" \
-              "Infrasim init failed".format(e.value)
-    except CommandRunFailed as e:
-        print "command:{} run failed\n" \
-              "Infrasim init failed".format(e.value)
-    except WorkspaceExisting as e:
-        logger.error(e.value)
-        print "{} \n" \
-                "There is node workspace existing.\n"\
-                "If you want to remove it, please run:\n" \
-                "\"infrasim init -f \" ".format (e.value)
+    get_socat()
+    get_ipmi()
+    get_qemu()
+    print "Infrasim init OK"
