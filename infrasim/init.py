@@ -10,6 +10,7 @@ from infrasim.qemu import get_qemu
 from infrasim.package_install import package_install
 from infrasim import helper
 import config
+from . import WorkspaceExisting, logger, InfraSimError
 import subprocess
 
 mac_base = "00:60:16:"
@@ -101,12 +102,9 @@ def check_existing_workspace():
 
 def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, target_home=None, config_file=None):
     try:
-        if check_existing_workspace() is True:
+        if check_existing_workspace():
             if not force:
-                print "There is node workspace existing.\n"
-                print "If you want to remove it, please run:\n"
-                print "\"infrasim init -f \" "
-                exit()
+                raise WorkspaceExisting("Workspace Existing!!")
 
             if force:
                 destroy_existing_nodes()
@@ -114,7 +112,6 @@ def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, ta
         
         if not skip_installation:
             install_packages()
-            update_bridge_cfg()
             config_library_link()
 
         if config_file:
@@ -123,7 +120,6 @@ def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, ta
             else:
                 raise Exception("{} not found.".format(config_file))
         else:
-            #check_existing_workspace()
             init_infrasim_conf(node_type)
 
         get_socat()
@@ -136,3 +132,9 @@ def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, ta
     except CommandRunFailed as e:
         print "command:{} run failed\n" \
               "Infrasim init failed".format(e.value)
+    except WorkspaceExisting as e:
+        logger.error(e.value)
+        print "{} \n" \
+                "There is node workspace existing.\n"\
+                "If you want to remove it, please run:\n" \
+                "\"infrasim init -f \" ".format (e.value)
