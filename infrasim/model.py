@@ -543,6 +543,10 @@ class CBaseDrive(CElement):
         self._channel = 0
         self._lun = 0
 
+        self.__l2_cache_size = None  # unit: byte
+        self.__refcount_cache_size = None # unit: byte
+        self.__cluster_size = 128 # unit: KB
+
     @property
     def index(self):
         return self.__index
@@ -572,6 +576,9 @@ class CBaseDrive(CElement):
         self.__drive_file = self._drive_info.get("file")
         self.__wwn = self._drive_info.get("wwn");
 
+        self.__l2_cache_size = self._drive_info.get("l2-cache-size", 64 * 1024 * 1024)
+        self.__refcount_cache_size = self._drive_info.get("refcount-cache-size", 64 * 1024 * 1024)
+
         # assume the files starts with "/dev/" are block device
         # all the block devices are assumed to be raw format
         if self.__drive_file and self.__drive_file.startswith("/dev/"):
@@ -595,8 +602,8 @@ class CBaseDrive(CElement):
             self.__drive_file = os.path.join(disk_file_base, "disk{0}{1}.img".format(self.__bus, self.__index))
 
         if not os.path.exists(self.__drive_file):
-            logger.info("Creating drive: ".format(self.__drive_file))
-            command = "qemu-img create -f qcow2 {0} {1}G".format(self.__drive_file, self.__size)
+            logger.info("Creating drive: {}".format(self.__drive_file))
+            command = "qemu-img create -f qcow2 -o cluster_size={0}K {1} {2}G".format(self.__cluster_size, self.__drive_file, self.__size)
             try:
                 run_command(command)
             except CommandRunFailed as e:
@@ -626,6 +633,12 @@ class CBaseDrive(CElement):
 
         if self.__format:
             host_opt["format"] = self.__format
+
+        if self.__l2_cache_size:
+            host_opt["l2-cache-size"] = self.__l2_cache_size
+
+        if self.__refcount_cache_size:
+            host_opt["refcount-cache-size"] = self.__l2_cache_size
 
         host_opt["if"] = "none"
         host_opt["id"] = "{}{}-{}-{}-{}".format(self.prefix, self.__bus, self._channel, self._scsi_id, self._lun)
