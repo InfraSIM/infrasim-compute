@@ -197,7 +197,7 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
 
 class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
 
-    drive7 = [{"size": 8, "file": "/tmp/sda.img"},
+    drives7 = [{"size": 8, "file": "/tmp/sda.img"},
           {"size": 16, "file": "/tmp/sdb.img"},
           {"size": 8, "file": "/tmp/sdc.img"},
           {"size": 16, "file": "/tmp/sdd.img"},
@@ -218,7 +218,7 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         node.terminate_workspace()
         cls.conf = None
 
-    def test_controller_with_more_than_drive6(self):
+    def test_controller_with_drive7(self):
         # Update ahci controller with seven drives
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",
@@ -227,7 +227,7 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
             "max_cmds": 1024,
             "max_sge": 128,
             "max_drive_per_controller": 6,
-            "drives": self.drive7
+            "drives": self.drives7
             }]
         with open('/tmp/test.yml', 'w') as outfile:
             yaml.dump(self.conf, outfile, default_flow_style=False)
@@ -257,6 +257,89 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         assert "-device ahci,id=sata0" in qemu_cmdline
         assert "drive=sata0-0-5-0" in qemu_cmdline
         assert "drive=sata1-0-0-0" in qemu_cmdline
+
+    def test_controller_with_drive7_drive2_drive3(self):
+        # Update ahci controller with seven drives
+        self.conf["compute"]["storage_backend"] = [{
+            "type": "ahci",
+            "use_jbod": "true",
+            "use_msi": "true",
+            "max_cmds": 1024,
+            "max_sge": 128,
+            "max_drive_per_controller": 6,
+            "drives": self.drives7
+            }]
+
+        controllers = []
+        controllers.append({
+            'type': 'ahci',
+            'use_jbod': 'true',
+            'use_msi': 'true',
+            'max_cmds': 1024,
+            'max_sge': 128,
+            'drives': [],
+            'max_drive_per_controller': 6
+        })
+        controllers.append({
+            'type': 'ahci',
+            'use_jbod': 'true',
+            'use_msi': 'true',
+            'max_cmds': 1024,
+            'max_sge': 128,
+            'drives': [],
+            'max_drive_per_controller': 6
+        })
+        self.conf['compute']['storage_backend'].extend(controllers)
+
+        drives2 = []
+        drives2.append({'size': 8, 'file': "/tmp/sdh.img"})
+        drives2.append({'size': 16, 'file': "/tmp/sdi.img"})
+
+        self.conf['compute']['storage_backend'][1]['drives'].extend(drives2)
+
+        drives3 = []
+        drives3.append({'size': 8, 'file': "/tmp/sdj.img"})
+        drives3.append({'size': 16, 'file': "/tmp/sdk.img"})
+        drives3.append({'size': 8, 'file': "/tmp/sdl.img"})
+        self.conf['compute']['storage_backend'][2]['drives'].extend(drives3)
+        with open('/tmp/test.yml', 'w') as outfile:
+            yaml.dump(self.conf, outfile, default_flow_style=False)
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        controller_type_ahci = run_command("infrasim node info {} | grep -c ahci".
+                                      format(self.conf["name"]))
+        self.assertEqual(int(controller_type_ahci[1]), 4)
+
+        qemu_pid = get_qemu_pid(node)
+        qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+
+        assert "qemu-system-x86_64" in qemu_cmdline
+        assert "/tmp/sda.img" in qemu_cmdline
+        assert "/tmp/sdb.img" in qemu_cmdline
+        assert "/tmp/sdc.img" in qemu_cmdline
+        assert "/tmp/sdd.img" in qemu_cmdline
+        assert "/tmp/sde.img" in qemu_cmdline
+        assert "/tmp/sdf.img" in qemu_cmdline
+        assert "/tmp/sdg.img" in qemu_cmdline
+        assert "/tmp/sdh.img" in qemu_cmdline
+        assert "/tmp/sdi.img" in qemu_cmdline
+        assert "/tmp/sdj.img" in qemu_cmdline
+        assert "/tmp/sdk.img" in qemu_cmdline
+        assert "/tmp/sdl.img" in qemu_cmdline
+        assert "format=qcow2" in qemu_cmdline
+        assert "-device ahci,id=sata0" in qemu_cmdline
+        assert "-device ahci,id=sata1" in qemu_cmdline
+        assert "-device ahci,id=sata2" in qemu_cmdline
+        assert "-device ahci,id=sata3" in qemu_cmdline
+        assert "drive=sata0-0-5-0" in qemu_cmdline
+        assert "drive=sata1-0-0-0" in qemu_cmdline
+        assert "drive=sata2-0-1-0" in qemu_cmdline
+        assert "drive=sata3-0-2-0" in qemu_cmdline
+
+
 
 class test_ahci_controller_with_six_drives(unittest.TestCase):
 
