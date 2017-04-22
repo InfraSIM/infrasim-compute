@@ -1997,9 +1997,6 @@ class CRacadm(Task):
         self.__ip = ""
         self.__data_src = ""
 
-    def set_port_idrac(self, port):
-        self.__port_idrac = port
-
     def precheck(self):
         if not self.__ip:
             raise ArgsNotCorrect("Specified racadm interface {} doesn\'t exist".
@@ -2144,11 +2141,6 @@ class CNode(object):
             racadm_obj.set_task_name("{}-racadm".format(self.__node_name))
             racadm_obj.set_log_path("/var/log/infrasim/{}/racadm.log".
                                     format(self.__node_name))
-
-            if "racadm" in self.__node:
-                if "port" in self.__node["racadm"]:
-                    racadm_obj.set_port_idrac(self.__node["racadm"]["port"])
-
             self.__tasks_list.append(racadm_obj)
 
         # Set interface
