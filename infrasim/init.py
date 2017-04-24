@@ -124,4 +124,3 @@ def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, ta
     get_socat()
     get_ipmi()
     get_qemu()
-    print "Infrasim init OK"

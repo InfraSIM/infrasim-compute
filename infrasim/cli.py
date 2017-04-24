@@ -353,6 +353,7 @@ def command_handler():
         # Do init
         try:
             infrasim_init(args.type, args.skip_installation, args.force, args.infrasim_home, args.config_file)
+            print "Infrasim init OK"
         except CommandNotFound as e:
             print "command:{} not found\n" \
                   "Infrasim init failed".format(e.value)
