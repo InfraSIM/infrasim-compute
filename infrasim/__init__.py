@@ -95,3 +95,7 @@ class ArgsNotCorrect(InfraSimError):
 class NodeAlreadyRunning(InfraSimError):
     pass
 
+
+class WorkspaceExisting(InfraSimError):
+    pass
+

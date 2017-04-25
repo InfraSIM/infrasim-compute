@@ -9,6 +9,7 @@ from infrasim.ipmi import get_ipmi
 from infrasim.qemu import get_qemu
 from infrasim.package_install import package_install
 from infrasim import helper
+from infrasim import WorkspaceExisting
 import config
 import subprocess
 
@@ -94,38 +95,32 @@ def check_existing_workspace():
     if os.path.exists(config.infrasim_home):
         nodes = os.listdir(config.infrasim_home)
         if len(nodes) > 1:
-            print "There is node workspace existing.\n" 
-            print "If you want to remove it, please run:\n"
-            print "\"infrasim init -f \" "
-            exit()
+            return True
+        else:
+            return False
+
 
 def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, target_home=None, config_file=None):
-    try:
+    if check_existing_workspace():
+        if not force:
+            raise WorkspaceExisting("Workspace Existing!!")
+
         if force:
             destroy_existing_nodes()
             create_infrasim_directories()
-        
-        if not skip_installation:
-            install_packages()
-            update_bridge_cfg()
-            config_library_link()
 
-        if config_file:
-            if os.path.exists(config_file):
-                shutil.copy2(config_file, config.infrasim_etc)
-            else:
-                raise Exception("{} not found.".format(config_file))
+    if not skip_installation:
+        install_packages()
+        config_library_link()
+
+    if config_file:
+        if os.path.exists(config_file):
+            shutil.copy2(config_file, config.infrasim_etc)
         else:
-            check_existing_workspace()
-            init_infrasim_conf(node_type)
+            raise Exception("{} not found.".format(config_file))
+    else:
+        init_infrasim_conf(node_type)
 
-        get_socat()
-        get_ipmi()
-        get_qemu()
-        print "Infrasim init OK"
-    except CommandNotFound as e:
-        print "command:{} not found\n" \
-              "Infrasim init failed".format(e.value)
-    except CommandRunFailed as e:
-        print "command:{} run failed\n" \
-              "Infrasim init failed".format(e.value)
+    get_socat()
+    get_ipmi()
+    get_qemu()

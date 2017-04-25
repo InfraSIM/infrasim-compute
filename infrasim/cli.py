@@ -9,10 +9,10 @@ from infrasim.init import infrasim_init
 from infrasim.version import version
 import infrasim.helper as helper
 from infrasim.config_manager import NodeMap
-from infrasim import InfraSimError
 from infrasim.workspace import Workspace
 from texttable import Texttable
 from global_status import InfrasimMonitor
+from infrasim import WorkspaceExisting, CommandRunFailed, logger,CommandNotFound, InfraSimError
 
 nm = NodeMap()
 
@@ -351,7 +351,22 @@ def command_handler():
 
     if hasattr(args, "init"):
         # Do init
-        infrasim_init(args.type, args.skip_installation, args.force, args.infrasim_home, args.config_file)
+        try:
+            infrasim_init(args.type, args.skip_installation, args.force, args.infrasim_home, args.config_file)
+            print "Infrasim init OK"
+        except CommandNotFound as e:
+            print "command:{} not found\n" \
+                  "Infrasim init failed".format(e.value)
+        except CommandRunFailed as e:
+            print "command:{} run failed\n" \
+                  "Infrasim init failed".format(e.value)
+        except WorkspaceExisting as e:
+            logger.error(e.value)
+            print "{} \n" \
+                  "There is node workspace existing.\n" \
+                  "If you want to remove it, please run:\n" \
+                  "\"infrasim init -f \" ".format(e.value)
+
     elif hasattr(args, "version"):
         # Print version
         print version()
