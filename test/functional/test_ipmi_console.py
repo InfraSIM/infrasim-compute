@@ -12,7 +12,7 @@ import subprocess
 import os
 import time
 import paramiko
-from infrasim import console
+from infrasim import ipmiconsole
 from infrasim import config
 from infrasim.model import CNode
 from infrasim.config_manager import NodeMap
@@ -183,7 +183,7 @@ class test_ipmi_console(unittest.TestCase):
         print "Wait ipmi-console start in about 15s..."
         time.sleep(15)
 
-        ipmi_console_thread = threading.Thread(target=console.start, args=(node_info["name"],))
+        ipmi_console_thread = threading.Thread(target=ipmiconsole.start, args=(node_info["name"],))
         ipmi_console_thread.setDaemon(True)
         ipmi_console_thread.start()
 
@@ -212,7 +212,7 @@ class test_ipmi_console(unittest.TestCase):
         with open(cls.TMP_CONF_FILE, "r") as yml_file:
             node_info = yaml.load(yml_file)
 
-        console.stop(node_info["name"])
+        ipmiconsole.stop(node_info["name"])
 
         node = CNode(node_info)
         node.init()
@@ -412,11 +412,11 @@ class test_ipmi_console_config_change(unittest.TestCase):
         print "Wait ipmi-console start in about 15s..."
         time.sleep(15)
 
-        ipmi_console_thread = threading.Thread(target=console.start, args=(node_info["name"],))
+        ipmi_console_thread = threading.Thread(target=ipmiconsole.start, args=(node_info["name"],))
         ipmi_console_thread.setDaemon(True)
         ipmi_console_thread.start()
 
-        # console.start(node_info["name"])
+        # ipmiconsole.start(node_info["name"])
 
         # Wait SSH server coming up
         # FIXME: Need a good way to check if SSH server is listening
@@ -429,7 +429,7 @@ class test_ipmi_console_config_change(unittest.TestCase):
         with open(cls.TMP_CONF_FILE, "r") as yml_file:
             node_info = yaml.load(yml_file)
 
-        console.stop(node_info["name"])
+        ipmiconsole.stop(node_info["name"])
 
         node = CNode(node_info)
         node.init()

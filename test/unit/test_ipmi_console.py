@@ -6,9 +6,9 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 # -*- coding: utf-8 -*-
 
-from infrasim.ipmicons import sdr
-from infrasim.ipmicons.command import Command_Handler
-from infrasim.ipmicons import common
+from infrasim.ipmiconsole import sdr
+from infrasim.ipmiconsole.command import Command_Handler
+from infrasim.ipmiconsole import common
 from infrasim.model import CNode
 from infrasim import config
 from test import fixtures

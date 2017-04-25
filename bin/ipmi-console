@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from infrasim import console
+from infrasim import ipmiconsole
 
 if __name__ == '__main__':
-    console.console_main()
+    ipmiconsole.console_main()

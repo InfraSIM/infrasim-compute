@@ -7,8 +7,8 @@ from test import fixtures
 from infrasim import model
 from infrasim import ArgsNotCorrect, run_command
 import threading
-from infrasim import console
-from infrasim.ipmicons.common import IpmiError
+from infrasim import ipmiconsole
+from infrasim.ipmiconsole.common import IpmiError
 
 PS_QEMU = "ps ax | grep qemu"
 PS_IPMI = "ps ax | grep ipmi"
@@ -409,7 +409,7 @@ class test_start_node_with_conflict_port(unittest.TestCase):
             assert "test1" in racadm_result
 
 
-        ipmi_console_thread = threading.Thread(target=console.start, args=(self.node_info["name"],))
+        ipmi_console_thread = threading.Thread(target=ipmiconsole.start, args=(self.node_info["name"],))
         ipmi_console_thread.setDaemon(True)
         ipmi_console_thread.start()
         time.sleep(20)
@@ -441,8 +441,8 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         ipmi_console_result = run_command(ipmi_console_cmd, True,
                                           subprocess.PIPE, subprocess.PIPE)[1]
         assert "ssh port 9300 is already in use." in ipmi_console_result
-        console.stop(self.node_info["name"])
+
+        ipmiconsole.stop(self.node_info["name"])
+
         node2.stop()
         node2.terminate_workspace()
-
-
