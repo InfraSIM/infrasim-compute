@@ -12,7 +12,6 @@ import subprocess
 import os
 import yaml
 import time
-import hashlib
 import paramiko
 from infrasim import model
 from infrasim import helper
@@ -50,11 +49,13 @@ def read_buffer(channel):
         time.sleep(1)
     return str_output
 
+
 def get_qemu_pid(node):
     for t in node.get_task_list():
         if isinstance(t, model.CCompute):
             return t.get_task_pid()
     return None
+
 
 class test_compute_configuration_change(unittest.TestCase):
 
@@ -150,7 +151,6 @@ class test_compute_configuration_change(unittest.TestCase):
         except InfraSimError, e:
             print e.value
             assert False
-
 
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",

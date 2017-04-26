@@ -282,7 +282,7 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
         node.start()
 
         self.set_port_forward()
-        self.verify_qemu_local_lan({"IP Address": "0.0.0.0", "MAC Address":"00:00:00:00:00:00"})
+        self.verify_qemu_local_lan({"IP Address": "0.0.0.0", "MAC Address": "00:00:00:00:00:00"})
 
     def test_bmc_intf_exists_no_ip(self):
         """

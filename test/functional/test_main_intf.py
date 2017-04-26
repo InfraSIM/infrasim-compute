@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 '''
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
@@ -6,17 +5,16 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 # -*- coding: utf-8 -*-
 
+import subprocess
+import unittest
+from infrasim import run_command
+from infrasim import helper
+
+
 """
 Test infrasim-main start command to check the output
 matches the correct format
 """
-
-import subprocess
-import unittest
-import re
-
-from infrasim import run_command
-from infrasim import helper
 
 
 class test_start_intf(unittest.TestCase):
@@ -29,7 +27,6 @@ class test_start_intf(unittest.TestCase):
         pass
 
     def test_ip4addr_list(self):
-        ip_list = []
 
         try:
             test_ip_list = helper.ip4_addresses()

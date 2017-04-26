@@ -287,6 +287,7 @@ class test_node_cli(unittest.TestCase):
         self.assertEqual(output_init_force[0], 0)
         self.assertTrue(config.infrasim_home)
 
+
 class test_config_cli_with_runtime_node(unittest.TestCase):
     test_name = "test"
     test_workspace = os.path.join(config.infrasim_home, test_name)
@@ -486,7 +487,7 @@ class test_global_status(unittest.TestCase):
 
     def test_nodes_global_status_start_stop_destroy(self):
 
-        output_status={}
+        output_status = {}
         output_status["start1"] = run_command("infrasim global status")[1]
         words = ['name', 'bmc', 'node', 'socat', 'ports', 'test1']
         for word in words:

@@ -544,8 +544,8 @@ class CBaseDrive(CElement):
         self._lun = 0
 
         self.__l2_cache_size = None  # unit: byte
-        self.__refcount_cache_size = None # unit: byte
-        self.__cluster_size = 128 # unit: KB
+        self.__refcount_cache_size = None  # unit: byte
+        self.__cluster_size = 128  # unit: KB
 
     @property
     def index(self):
@@ -574,10 +574,10 @@ class CBaseDrive(CElement):
         self.__aio = self._drive_info.get("aio")
         self.__size = self._drive_info.get("size", 8)
         self.__drive_file = self._drive_info.get("file")
-        self.__wwn = self._drive_info.get("wwn");
+        self.__wwn = self._drive_info.get("wwn")
 
-        self.__l2_cache_size = self._drive_info.get("l2-cache-size", 64 * 1024 * 1024)
-        self.__refcount_cache_size = self._drive_info.get("refcount-cache-size", 64 * 1024 * 1024)
+        self.__l2_cache_size = self._drive_info.get("l2-cache-size")
+        self.__refcount_cache_size = self._drive_info.get("refcount-cache-size")
 
         # assume the files starts with "/dev/" are block device
         # all the block devices are assumed to be raw format
@@ -603,7 +603,8 @@ class CBaseDrive(CElement):
 
         if not os.path.exists(self.__drive_file):
             logger.info("Creating drive: {}".format(self.__drive_file))
-            command = "qemu-img create -f qcow2 -o cluster_size={0}K {1} {2}G".format(self.__cluster_size, self.__drive_file, self.__size)
+            command = "qemu-img create -f {0} -o cluster_size={1}K {2} {3}G".format(self.__format, self.__cluster_size,
+                                                                                    self.__drive_file, self.__size)
             try:
                 run_command(command)
             except CommandRunFailed as e:
@@ -1700,8 +1701,8 @@ class CBMC(Task):
         if self.__lan_interface not in helper.get_all_interfaces():
             print "Specified BMC interface {} doesn\'t exist, but BMC will still start."\
                 .format(self.__lan_interface)
-            logger.warning("Specified BMC interface {} doesn\'t exist.".
-                                 format(self.__lan_interface))
+            logger.warning("Specified BMC interface {} doesn\'t exist.".format(
+                self.__lan_interface))
 
         # check if lan interface has IP address
         elif not self.__ipmi_listen_range:
@@ -1984,7 +1985,7 @@ class CSocat(Task):
     def terminate(self):
         super(CSocat, self).terminate()
         if os.path.exists(self.__socket_serial):
-            os.remove(self.__socket_serial);
+            os.remove(self.__socket_serial)
 
     def get_commandline(self):
         socat_str = "{0} pty,link={1},waitslave " \
@@ -2278,7 +2279,7 @@ class NumaCtl(object):
             else:
                 self._core_map_avai[key].append(True)
 
-        self.__class__.HT_FACTOR = len(self._core_map[(0,0)])
+        self.__class__.HT_FACTOR = len(self._core_map[(0, 0)])
 
     def get_cpu_list(self, num):
         processor_use_up = True
@@ -2290,16 +2291,16 @@ class NumaCtl(object):
         for socket in self._socket_list:
             count_avai = 0
             for core in self._core_list:
-                for avai in self._core_map_avai[(socket,core)]:
+                for avai in self._core_map_avai[(socket, core)]:
                     if avai:
-                        count_avai +=1
+                        count_avai += 1
             if count_avai < num:
                 continue
             else:
                 socket_to_use = socket
                 processor_use_up = False
                 break
-        if processor_use_up or socket_to_use<0:
+        if processor_use_up or socket_to_use < 0:
             raise Exception("All sockets don't have enough processor to bind.")
 
         # Append core which all HT processor are available
@@ -2307,7 +2308,7 @@ class NumaCtl(object):
             if num - assigned_count >= self.HT_FACTOR:
                 # check if all processor are available on this core
                 all_avai = reduce(lambda x, y: x and y,
-                            self._core_map_avai[(socket_to_use, core)])
+                                  self._core_map_avai[(socket_to_use, core)])
                 if all_avai:
                     cpu_list += self._core_map[(socket_to_use, core)]
                     self._core_map_avai[(socket_to_use, core)] = [False] * self.HT_FACTOR
@@ -2321,7 +2322,7 @@ class NumaCtl(object):
         for core in self._core_list:
             # check availability of processors on this core
             core_avai_list = self._core_map_avai[(socket_to_use, core)]
-            core_avai_count = len(filter(lambda x:x, core_avai_list))
+            core_avai_count = len(filter(lambda x: x, core_avai_list))
 
             if num - assigned_count <= core_avai_count:
                 # assign
@@ -2333,7 +2334,6 @@ class NumaCtl(object):
                         if num == assigned_count:
                             return cpu_list
 
-
     def print_core_map(self):
         print "============================================================"
         print "Core and Socket Information (as reported by '/proc/cpuinfo')"
@@ -2344,7 +2344,7 @@ class NumaCtl(object):
 
         max_processor_len = len(str(len(self._core_list) * len(self._socket_list) * self.HT_FACTOR - 1))
         max_core_map_len = max_processor_len * self.HT_FACTOR \
-                            + len('[, ]') + len('Socket ')
+            + len('[, ]') + len('Socket ')
         max_core_id_len = len(str(max(self._core_list)))
 
         print " ".ljust(max_core_id_len + len('Core ')),
@@ -2359,5 +2359,5 @@ class NumaCtl(object):
         for c in self._core_list:
             print "Core %s" % str(c).ljust(max_core_id_len),
             for s in self._socket_list:
-                print str(self._core_map[(s,c)]).ljust(max_core_map_len),
+                print str(self._core_map[(s, c)]).ljust(max_core_map_len),
             print "\n"

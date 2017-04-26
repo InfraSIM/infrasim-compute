@@ -8,7 +8,6 @@ from infrasim import model
 from infrasim import ArgsNotCorrect, run_command
 import threading
 from infrasim import ipmiconsole
-from infrasim.ipmiconsole.common import IpmiError
 
 PS_QEMU = "ps ax | grep qemu"
 PS_IPMI = "ps ax | grep ipmi"
@@ -16,6 +15,7 @@ PS_SOCAT = "ps ax | grep socat"
 PS_RACADM = "ps ax | grep racadmsim"
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
+
 
 class test_node_ports(unittest.TestCase):
 
@@ -59,7 +59,6 @@ class test_node_ports(unittest.TestCase):
                 break
 
     def test_start_node1_then_start_node2(self):
-        old_name = self.node_info['name']
         self.node_info['name'] = "test1"
         node1 = model.CNode(self.node_info)
         node1.init()
@@ -224,7 +223,7 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         if 'dell' in self.node_info_2['type']:
             self.node_info_2['racadm'] = {}
             self.node_info_2['racadm']['port'] = 10023
-        #self.node_info_2['bmc_connection_port'] = 9101
+        # self.node_info_2['bmc_connection_port'] = 9101
         self.node_info_2['compute']['vnc_display'] = 2
         self.node_info_2['compute']['monitor'] = {
             'mode': 'readline',
@@ -273,7 +272,7 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         self.node_info_2['ipmi_console_ssh'] = 9301
         self.node_info_2['ipmi_console_port'] = 9001
         self.node_info_2['bmc_connection_port'] = 9101
-        #self.node_info_2['compute']['vnc_display'] = 2
+        # self.node_info_2['compute']['vnc_display'] = 2
         self.node_info_2['compute']['monitor'] = {
             'mode': 'readline',
             'chardev': {
@@ -408,7 +407,6 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         if 'dell' in self.node_info['type']:
             assert "test1" in racadm_result
 
-
         ipmi_console_thread = threading.Thread(target=ipmiconsole.start, args=(self.node_info["name"],))
         ipmi_console_thread.setDaemon(True)
         ipmi_console_thread.start()
@@ -443,6 +441,5 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         assert "ssh port 9300 is already in use." in ipmi_console_result
 
         ipmiconsole.stop(self.node_info["name"])
-
         node2.stop()
         node2.terminate_workspace()

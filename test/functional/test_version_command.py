@@ -6,16 +6,15 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 # -*- coding: utf-8 -*-
 
+import unittest
+import re
+from infrasim import version
+
+
 """
 Test version command to check the output
 matches the correct format
 """
-
-import unittest
-import re
-
-from infrasim import run_command
-from infrasim import version
 
 
 class test_version_command(unittest.TestCase):
