@@ -7,7 +7,6 @@ import unittest
 import os
 import time
 import yaml
-import hashlib
 from infrasim import model
 from infrasim import helper
 from infrasim import InfraSimError

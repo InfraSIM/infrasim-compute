@@ -151,7 +151,6 @@ def check_node_stop_workspace(node_name):
     assert os.path.exists(node_qemu) is False
 
 
-
 class test_control_by_lib(unittest.TestCase):
 
     @classmethod
@@ -159,9 +158,9 @@ class test_control_by_lib(unittest.TestCase):
         fake_config = fixtures.FakeConfig()
         cls.conf = fake_config.get_node_info()
         cls.node_root = os.path.join(config.infrasim_home, cls.conf["name"])
-        
+
         # Add several strage controllers and drives to node config file.
-	drives = []
+        drives = []
         drives.append({'size': 8, 'file': "{}/sdb.img".format(cls.node_root)})
         drives.append({'size': 8, 'file': "{}/sdc.img".format(cls.node_root)})
         drives.append({'size': 8, 'file': "{}/sdd.img".format(cls.node_root)})
@@ -189,7 +188,7 @@ class test_control_by_lib(unittest.TestCase):
             yaml.dump(cls.conf, outfile, default_flow_style=False)
 
         os.system("infrasim config add test /tmp/test.yml")
-        
+
     @classmethod
     def tearDownClass(cls):
         node = model.CNode(cls.conf)
@@ -254,8 +253,8 @@ class test_control_by_cli(unittest.TestCase):
 
     fake_config = fixtures.FakeConfig()
     test_config = fake_config.get_node_info()
-    image_path =  "{}/{}".format(config.infrasim_home, node_name)
-    
+    image_path = "{}/{}".format(config.infrasim_home, node_name)
+
     # Add several storage controllers/drives in node config file.
     drives = []
     drives.append({'size': 8, 'file': "{}/sdb.img".format(image_path)})
@@ -285,8 +284,6 @@ class test_control_by_cli(unittest.TestCase):
         yaml.dump(test_config, outfile, default_flow_style=False)
 
     os.system("infrasim config add test /tmp/test.yml")
-
-
 
     def tearDown(self):
         os.system("infrasim node destroy {}".format(self.node_name))

@@ -49,11 +49,13 @@ drive6 = [{"size": 8, "file": "/tmp/sda.img"},
           {"size": 8, "file": "/tmp/sde.img"},
           {"size": 16, "file": "/tmp/sdf.img"}]
 
+
 def get_qemu_pid(node):
     for t in node.get_task_list():
         if isinstance(t, model.CCompute):
             return t.get_task_pid()
     return None
+
 
 class test_ahci_controller_with_two_drives(unittest.TestCase):
 
@@ -101,6 +103,7 @@ class test_ahci_controller_with_two_drives(unittest.TestCase):
         assert "/tmp/sdb.img" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
 
+
 class test_megasas_controller_with_two_drives(unittest.TestCase):
 
     @classmethod
@@ -146,6 +149,7 @@ class test_megasas_controller_with_two_drives(unittest.TestCase):
         assert "/tmp/sda.img" in qemu_cmdline
         assert "/tmp/sdb.img" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
+
 
 class test_lsi_controller_with_two_drives(unittest.TestCase):
 
@@ -198,12 +202,12 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
 class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
 
     drives7 = [{"size": 8, "file": "/tmp/sda.img"},
-          {"size": 16, "file": "/tmp/sdb.img"},
-          {"size": 8, "file": "/tmp/sdc.img"},
-          {"size": 16, "file": "/tmp/sdd.img"},
-          {"size": 8, "file": "/tmp/sde.img"},
-          {"size": 16, "file": "/tmp/sdf.img"},
-          {"size": 8, "file": "/tmp/sdg.img"}]
+               {"size": 16, "file": "/tmp/sdb.img"},
+               {"size": 8, "file": "/tmp/sdc.img"},
+               {"size": 16, "file": "/tmp/sdd.img"},
+               {"size": 8, "file": "/tmp/sde.img"},
+               {"size": 16, "file": "/tmp/sdf.img"},
+               {"size": 8, "file": "/tmp/sdg.img"}]
 
     @classmethod
     def setUp(cls):
@@ -238,7 +242,7 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         node.start()
 
         controller_type_ahci = run_command("infrasim node info {} | grep -c ahci".
-                                      format(self.conf["name"]))
+                                           format(self.conf["name"]))
         self.assertEqual(int(controller_type_ahci[1]), 2)
 
         qemu_pid = get_qemu_pid(node)
@@ -310,7 +314,7 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         node.start()
 
         controller_type_ahci = run_command("infrasim node info {} | grep -c ahci".
-                                      format(self.conf["name"]))
+                                           format(self.conf["name"]))
         self.assertEqual(int(controller_type_ahci[1]), 4)
 
         qemu_pid = get_qemu_pid(node)
@@ -338,7 +342,6 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         assert "drive=sata1-0-0-0" in qemu_cmdline
         assert "drive=sata2-0-1-0" in qemu_cmdline
         assert "drive=sata3-0-2-0" in qemu_cmdline
-
 
 
 class test_ahci_controller_with_six_drives(unittest.TestCase):
@@ -391,6 +394,7 @@ class test_ahci_controller_with_six_drives(unittest.TestCase):
         assert "/tmp/sdf.img" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
 
+
 class test_megasas_controller_with_six_drives(unittest.TestCase):
 
     @classmethod
@@ -441,6 +445,7 @@ class test_megasas_controller_with_six_drives(unittest.TestCase):
         assert "/tmp/sdf.img" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
 
+
 class test_lsi_controller_with_six_drives(unittest.TestCase):
 
     @classmethod
@@ -490,6 +495,7 @@ class test_lsi_controller_with_six_drives(unittest.TestCase):
         assert "/tmp/sde.img" in qemu_cmdline
         assert "/tmp/sdf.img" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
+
 
 class test_three_storage_controllers(unittest.TestCase):
 
@@ -604,6 +610,7 @@ class test_three_storage_controllers(unittest.TestCase):
         assert "{}/sdq.img".format(image_path) in qemu_cmdline
         assert "{}/sdr.img".format(image_path) in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
+
 
 class test_four_storage_controllers(unittest.TestCase):
 
@@ -741,6 +748,7 @@ class test_four_storage_controllers(unittest.TestCase):
         assert "{}/sdx.img".format(image_path) in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
 
+
 class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
 
     @classmethod
@@ -837,8 +845,8 @@ class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
 
         assert True
 
-class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
 
+class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
 
     @classmethod
     def setUp(self):
@@ -933,8 +941,8 @@ class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
 
         assert True
 
-class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
 
+class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
 
     @classmethod
     def setUp(self):

@@ -22,9 +22,8 @@ import yaml
 import shutil
 import telnetlib
 import socket
-import signal
 from test.fixtures import FakeConfig
-from nose.tools import assert_raises
+
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
     child = subprocess.Popen(cmd, shell=shell, stdout=stdout, stderr=stderr)
@@ -390,7 +389,6 @@ class test_ipmi_console_config_change(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        ssh = paramiko.SSHClient()
         node_info = {}
         fake_config = fixtures.FakeConfig()
         node_info = fake_config.get_node_info()
@@ -461,7 +459,7 @@ class test_ipmi_console_config_change(unittest.TestCase):
         Verify vBMC console is not listening on default port 9000
         """
         try:
-            tn = telnetlib.Telnet(host="127.0.0.1", port=9000, timeout=5)
+            telnetlib.Telnet(host="127.0.0.1", port=9000, timeout=5)
         except socket.error:
             pass
         else:

@@ -25,6 +25,7 @@ Test serial functions:
 
 class test_serial(unittest.TestCase):
     TMP_CONF_FILE = "/tmp/test.yml"
+
     @classmethod
     def setUpClass(cls):
         socat.stop_socat()
