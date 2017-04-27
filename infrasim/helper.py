@@ -4,6 +4,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
 import os
+import time
 import socket
 import multiprocessing
 from functools import wraps
@@ -318,3 +319,15 @@ def double_fork(func):
         os._exit(os.EX_OK)
 
     return wrapper
+
+
+def try_func(times, func, *args, **kwargs):
+    for i in range(times):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            time.sleep(0.5)
+            continue
+    raise Exception(
+        "Tried {} times already, but still failed to run {}".format(
+            times, func))

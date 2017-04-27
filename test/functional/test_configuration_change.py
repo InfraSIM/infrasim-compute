@@ -167,7 +167,6 @@ class test_compute_configuration_change(unittest.TestCase):
 
         import telnetlib
         import paramiko
-        import time
         tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
         tn.read_until("(qemu)")
         tn.write("hostfwd_add ::2222-:22\n")
@@ -177,20 +176,10 @@ class test_compute_configuration_change(unittest.TestCase):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         paramiko.util.log_to_file("filename.log")
-        while True:
-            try:
-                ssh.connect("127.0.0.1", port=2222, username="cirros",
-                            password="cubswin:)", timeout=120)
-                ssh.close()
-                break
-            except paramiko.SSHException:
-                time.sleep(1)
-                continue
-            except Exception:
-                assert False
-                return
-
-        assert True
+        helper.try_func(600, paramiko.SSHClient.connect, ssh,
+                        "127.0.0.1", port=2222, username="cirros",
+                        password="cubswin:)", timeout=120)
+        ssh.close()
 
 
 class test_bmc_configuration_change(unittest.TestCase):

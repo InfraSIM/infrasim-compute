@@ -1,8 +1,9 @@
 import os
 import re
-from config import infrasim_home
-from infrasim import run_command
 from texttable import Texttable
+from infrasim.config import infrasim_home
+from infrasim import run_command
+from infrasim import helper
 
 
 def get_dir_list(p):
@@ -70,19 +71,21 @@ class NodeStatus(object):
             if task is 'ipmi_console':
                 pid_file = os.path.join(base_path, '.ipmi_console.pid')
             else:
-                pid_file = os.path.join(base_path, ".{}-{}.pid".format(self.__node_name, task))
+                pid_file = os.path.join(base_path, ".{}-{}.pid".format(
+                    self.__node_name, task))
             if os.path.exists(pid_file):
                 pid = get_task_pid(pid_file)
                 if pid > 0 and os.path.exists("/proc/{}".format(pid)):
                     task_pid.append(pid)
         for pid in task_pid:
             cmd = "netstat -anp | grep {}".format(pid)
-            res = run_command(cmd)
-            if res[0] is 0:
-                port = re.findall(r":(\d.+?) ", res[1])
-                for p in port:
-                    if p not in port_list:
-                        port_list.append(p)
+
+            res = helper.try_func(600, run_command, cmd)
+            port = re.findall(r":(\d.+?) ", res[1])
+            for p in port:
+                if p not in port_list:
+                    port_list.append(p)
+
         return port_list
 
 
@@ -132,7 +135,8 @@ class InfrasimMonitor(object):
             width.append(12)
             align.append('l')
         header_line.append('ports')
-        port_width = 80 - 14 - 9 - 9 - socat_flag*9 - racadm_flag*9 - ipmi_console_flag*15
+        port_width = 80 - 14 - 9 - 9 - socat_flag*9 - \
+            racadm_flag*9 - ipmi_console_flag*15
         width.append(port_width-1)
         align.append('l')
         rows = []
@@ -178,4 +182,3 @@ class InfrasimMonitor(object):
         table.set_cols_align(align)
         table.add_rows(rows)
         print table.draw() + '\n'
-

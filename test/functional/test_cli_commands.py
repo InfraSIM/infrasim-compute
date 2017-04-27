@@ -10,13 +10,13 @@ import os
 import unittest
 import yaml
 import re
+import time
 import infrasim.config as config
 from infrasim import run_command
 from test.fixtures import FakeConfig
 import infrasim.model as model
 from infrasim.workspace import Workspace
 from test import fixtures
-import time
 
 
 old_path = os.environ.get("PATH")
@@ -554,4 +554,5 @@ class test_global_status(unittest.TestCase):
 
         node2.terminate_workspace()
         output_status["destroy"] = run_command("infrasim global status")[1]
-        assert "There is no node." in output_status["destroy"]
+        assert ("test1" not in output_status["destroy"]) and (
+            "test2" not in output_status["destroy"])
