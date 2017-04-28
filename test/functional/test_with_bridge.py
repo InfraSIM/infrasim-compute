@@ -239,17 +239,10 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         paramiko.util.log_to_file("filename.log")
-        while True:
-            try:
-                ssh.connect("127.0.0.1", port=2222, username="root",
-                            password="root", timeout=120)
-                ssh.close()
-                break
-            except paramiko.SSHException:
-                time.sleep(1)
-                continue
-            except Exception:
-                assert False
+        helper.try_func(600, paramiko.SSHClient.connect, ssh,
+                        "127.0.0.1", port=2222, username="root",
+                        password="root", timeout=120)
+        ssh.close()
 
         time.sleep(5)
 

@@ -749,6 +749,27 @@ class test_four_storage_controllers(unittest.TestCase):
         assert "format=qcow2" in qemu_cmdline
 
 
+def set_port_forward_try_ssh():
+    import time
+    import paramiko
+    time.sleep(3)
+    import telnetlib
+    tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
+    tn.read_until("(qemu)")
+    tn.write("hostfwd_add ::2222-:22\n")
+    tn.read_until("(qemu)")
+    tn.close()
+
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    paramiko.util.log_to_file("filename.log")
+    helper.try_func(600, paramiko.SSHClient.connect, ssh,
+                    "127.0.0.1", port=2222, username="cirros",
+                    password="cubswin:)", timeout=120)
+    ssh.close()
+    time.sleep(5)
+
+
 class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
 
     @classmethod
@@ -818,32 +839,7 @@ class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
         node.precheck()
         node.start()
 
-        import telnetlib
-        import paramiko
-        import time
-        tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
-        tn.read_until("(qemu)")
-        tn.write("hostfwd_add ::2222-:22\n")
-        tn.read_until("(qemu)")
-        tn.close()
-
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        paramiko.util.log_to_file("filename.log")
-        while True:
-            try:
-                ssh.connect("127.0.0.1", port=2222, username="cirros",
-                            password="cubswin:)", timeout=120)
-                ssh.close()
-                break
-            except paramiko.SSHException:
-                time.sleep(1)
-                continue
-            except Exception:
-                assert False
-                return
-
-        assert True
+        set_port_forward_try_ssh()
 
 
 class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
@@ -914,32 +910,7 @@ class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
         node.precheck()
         node.start()
 
-        import telnetlib
-        import paramiko
-        import time
-        tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
-        tn.read_until("(qemu)")
-        tn.write("hostfwd_add ::2222-:22\n")
-        tn.read_until("(qemu)")
-        tn.close()
-
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        paramiko.util.log_to_file("filename.log")
-        while True:
-            try:
-                ssh.connect("127.0.0.1", port=2222, username="cirros",
-                            password="cubswin:)", timeout=120)
-                ssh.close()
-                break
-            except paramiko.SSHException:
-                time.sleep(1)
-                continue
-            except Exception:
-                assert False
-                return
-
-        assert True
+        set_port_forward_try_ssh()
 
 
 class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
@@ -1004,28 +975,4 @@ class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
-        import telnetlib
-        import paramiko
-        import time
-        tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
-        tn.read_until("(qemu)")
-        tn.write("hostfwd_add ::2222-:22\n")
-        tn.read_until("(qemu)")
-        tn.close()
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        paramiko.util.log_to_file("filename.log")
-        while True:
-            try:
-                ssh.connect("127.0.0.1", port=2222, username="cirros",
-                            password="cubswin:)", timeout=120)
-                ssh.close()
-                break
-            except paramiko.SSHException:
-                time.sleep(1)
-                continue
-            except Exception:
-                assert False
-                return
-
-        assert True
+        set_port_forward_try_ssh()

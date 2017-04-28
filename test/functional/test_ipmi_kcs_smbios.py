@@ -45,7 +45,6 @@ tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
-
 def setup_module():
     test_img_file = "/tmp/kcs.img"
     DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
@@ -60,6 +59,9 @@ def setup_module():
 
 
 def teardown_module():
+    global conf
+    if conf:
+        stop_node()
     os.environ["PATH"] = old_path
 
 
@@ -95,18 +97,9 @@ def start_node(node_type):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     paramiko.util.log_to_file("filename.log")
-    while True:
-        try:
-            ssh.connect("127.0.0.1", port=2222, username="root",
-                        password="root", timeout=120)
-            ssh.close()
-            break
-        except paramiko.SSHException:
-            time.sleep(1)
-            continue
-        except Exception:
-            assert False
-
+    helper.try_func(600, paramiko.SSHClient.connect, ssh, "127.0.0.1",
+                    port=2222, username="root", password="root", timeout=120)
+    ssh.close()
     time.sleep(5)
 
 
