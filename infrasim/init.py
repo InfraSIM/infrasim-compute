@@ -43,12 +43,12 @@ def init_infrasim_conf(node_type):
     eth_nic = filter(lambda x: x != "lo", nics_list)[0]
     mac = create_mac_address()
     networks.append({"nic": eth_nic, "mac": mac})
-    
+
     # create_infrasim_directories
     if not os.path.exists(config.infrasim_home):
         os.mkdir(config.infrasim_home)
         os.mkdir(config.infrasim_node_config_map)
-    
+
     # create_infrasim_log_directories
     if not os.path.exists(config.infrasim_logdir):
         os.mkdir(config.infrasim_logdir)
@@ -112,6 +112,7 @@ def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, ta
     if not skip_installation:
         install_packages()
         config_library_link()
+        update_bridge_cfg()
 
     if config_file:
         if os.path.exists(config_file):
