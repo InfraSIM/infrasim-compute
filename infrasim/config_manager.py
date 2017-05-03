@@ -43,7 +43,7 @@ class NodeMap(object):
         if node_name in self.__name_list:
             raise InfraSimError("Node {0}'s configuration already in InfraSIM mapping.\n"
                                 "If you want to update the configuration, please run this command:\n"
-                                "    infrasim node update {0} {1}".format(node_name, config_path))
+                                "    infrasim config update {0} {1}".format(node_name, config_path))
         try:
             with open(config_path, 'r') as fp:
                 node_info = YAMLLoader(fp).get_data()
