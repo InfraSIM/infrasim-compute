@@ -37,4 +37,4 @@ infrasim_default_config = os.path.join(infrasim_node_config_map, "default.yml")
 
 # Log
 infrasim_logdir = "/var/log/infrasim"
-
+infrasim_log_file = '/var/log/infrasim.log'
