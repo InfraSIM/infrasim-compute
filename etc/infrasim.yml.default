@@ -48,7 +48,8 @@ compute:
         #Set drive list and define drive attributes
         -
             type: ahci
-            max_drive_per_controller: 8
+            #For ahci, maximium allowable drive number is 6
+            max_drive_per_controller: 6
             drives:
 
             -
