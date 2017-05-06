@@ -128,41 +128,41 @@ class test_boot_splash_time(unittest.TestCase):
         # Check if sol session has get something
         time.sleep(16.5)
         self.fw.close()
-	fr = open('/tmp/test_sol', 'r')
-	sol_out = fr.read()
-	fr.close()
-	# SOL will print a hint at first
-	# After this hint message, any ASCII char indicates
-	# the SOL receives something and it means SOL is alive
-	p = re.compile(r'\[\d+;\d+H')
-	sol_out = re.sub(p, '', sol_out)
-	p = re.compile(r'\[m')
-	sol_out = re.sub(p, '', sol_out)
-	p = re.compile(r'\[\d+;\d+;lm')
-	sol_out = re.sub(p, '', sol_out)
-	p = re.compile(r'[^A-Za-z0-9 ():/\n.)]')
-	sol_out = re.sub(p, '', sol_out)
-	index = sol_out.find('boot')
-	assert index is -1
-	start = time.time()
-	while True:
-	    fr = open('/tmp/test_sol', 'r')
-	    sol_out = fr.read()
-	    fr.close()
-	    # SOL will print a hint at first
-	    # After this hint message, any ASCII char indicates
-	    # the SOL receives something and it means SOL is alive
-	    p = re.compile(r'\[\d+;\d+H')
-	    sol_out = re.sub(p, '', sol_out)
-	    p = re.compile(r'\[m')
-	    sol_out = re.sub(p, '', sol_out)
-	    p = re.compile(r'\[\d+;\d+;lm')
-	    sol_out = re.sub(p, '', sol_out)
-	    p = re.compile(r'[^A-Za-z0-9 ():/\n.)]')
-	    sol_out = re.sub(p, '', sol_out)
-	    index = sol_out.find('boot')
-	    if index is not -1:
-		break
-	    if time.time() - start > 20:
-		break
-	assert index is not -1
+        fr = open('/tmp/test_sol', 'r')
+        sol_out = fr.read()
+        fr.close()
+        # SOL will print a hint at first
+        # After this hint message, any ASCII char indicates
+        # the SOL receives something and it means SOL is alive
+        p = re.compile(r'\[\d+;\d+H')
+        sol_out = re.sub(p, '', sol_out)
+        p = re.compile(r'\[m')
+        sol_out = re.sub(p, '', sol_out)
+        p = re.compile(r'\[\d+;\d+;lm')
+        sol_out = re.sub(p, '', sol_out)
+        p = re.compile(r'[^A-Za-z0-9 ():/\n.)]')
+        sol_out = re.sub(p, '', sol_out)
+        index = sol_out.find('boot')
+        assert index is -1
+        start = time.time()
+        while True:
+            fr = open('/tmp/test_sol', 'r')
+            sol_out = fr.read()
+            fr.close()
+            # SOL will print a hint at first
+            # After this hint message, any ASCII char indicates
+            # the SOL receives something and it means SOL is alive
+            p = re.compile(r'\[\d+;\d+H')
+            sol_out = re.sub(p, '', sol_out)
+            p = re.compile(r'\[m')
+            sol_out = re.sub(p, '', sol_out)
+            p = re.compile(r'\[\d+;\d+;lm')
+            sol_out = re.sub(p, '', sol_out)
+            p = re.compile(r'[^A-Za-z0-9 ():/\n.)]')
+            sol_out = re.sub(p, '', sol_out)
+            index = sol_out.find('boot')
+            if index is not -1:
+                break
+            if time.time() - start > 20:
+                break
+        assert index is not -1
