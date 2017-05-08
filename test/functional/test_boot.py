@@ -126,7 +126,7 @@ class test_boot_splash_time(unittest.TestCase):
     def test_boot_splash_time(self):
 
         # Check if sol session has get something
-        time.sleep(20)
+        time.sleep(16.5)
         self.fw.close()
         fr = open('/tmp/test_sol', 'r')
         sol_out = fr.read()
