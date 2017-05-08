@@ -11,7 +11,7 @@ import time
 import config
 from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect, InfraSimError
 from model import CCompute
-
+from .log import infrasim_log, LoggerType
 
 def get_qemu():
     try:
@@ -57,6 +57,7 @@ def start_qemu(conf_file=config.infrasim_default_config):
         if not os.path.isdir(workspace):
             os.mkdir(workspace)
         path_log = "/var/log/infrasim/{}".format(node_name)
+        compute.logger = infrasim_log.get_logger(LoggerType.model.value, node_name)
         if not os.path.isdir(path_log):
             os.mkdir(path_log)
 
@@ -111,6 +112,7 @@ def stop_qemu(conf_file=config.infrasim_default_config):
         node_name = conf["name"] if "name" in conf else "node-0"
 
         # Set attributes
+        compute.logger = infrasim_log.get_logger(LoggerType.model.value, node_name)
         compute.set_task_name("{}-node".format(node_name))
         compute.set_log_path("/var/log/infrasim/{}/qemu.log".
                              format(node_name))

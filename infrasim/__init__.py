@@ -1,7 +1,6 @@
 import logging
 import subprocess
 import pkg_resources
-from infrasim.log import InfrasimLog, logger_type
 
 logger = logging.getLogger('logger')
 hdlr = logging.FileHandler('/var/log/infrasim.log')
@@ -10,9 +9,6 @@ hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
 logger.setLevel(logging.NOTSET)
 
-infrasim_log = InfrasimLog()
-infrasim_log.init()
-log_type = logger_type()
 
 try:
     __version__ = pkg_resources.get_distribution('infrasim-compute').version

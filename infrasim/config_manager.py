@@ -9,9 +9,10 @@ import yaml
 from texttable import Texttable
 from infrasim import config
 from infrasim.yaml_loader import YAMLLoader
-from infrasim import DirectoryNotFound, InfraSimError, infrasim_log, log_type
+from infrasim import DirectoryNotFound, InfraSimError
+from .log import LoggerType, infrasim_log
 
-logger = infrasim_log.get_logger(log_type.config)
+logger = infrasim_log.get_logger(LoggerType.config.value)
 
 class NodeMap(object):
     """
@@ -35,7 +36,7 @@ class NodeMap(object):
                 self.__name_list.append(node[:-4])
 
     def add(self, node_name, config_path):
-        logger_config = infrasim_log.get_logger(log_type.config, node_name)
+        logger_config = infrasim_log.get_logger(LoggerType.config.value, node_name)
         """
         Create a mapping for this node, by writing config
         to <node_name>.yml in mapping folder.
@@ -79,7 +80,7 @@ class NodeMap(object):
         Delete a mapping for this node, by deleting config
         of <node_name>.yml in mapping folder.
         """
-        logger_config = infrasim_log.get_logger(log_type.config, node_name)
+        logger_config = infrasim_log.get_logger(LoggerType.config.value, node_name)
         logger_config.info("request rev: delete node {}".format(node_name))
         try:
             self.load()
@@ -101,7 +102,7 @@ class NodeMap(object):
         """
         Update mapping configure for this node
         """
-        logger_config = infrasim_log.get_logger(log_type.config, node_name)
+        logger_config = infrasim_log.get_logger(LoggerType.config.value, node_name)
         logger_config.info("request rev: update node {0} with file {1}".format(node_name, config_path))
         try:
             self.load()
@@ -123,7 +124,7 @@ class NodeMap(object):
                     raise InfraSimError("Config {} is an invalid yaml file.".format(config_path))
                 logger_config.info("Node {}'s yaml file: {}".format(node_name, node_info))
         except IOError:
-            logger_config.exception("Cannot find config".format(config_path))
+            logger_config.exception("Cannot find config {}".format(config_path))
             raise InfraSimError("Cannot find config {}".format(config_path))
 
         dst = os.path.join(self.__mapping_folder, "{}.yml".format(node_name))
@@ -172,7 +173,7 @@ class NodeMap(object):
         return self.__name_list
 
     def get_node_info(self, node_name):
-        logger_config = infrasim_log.get_logger(log_type.config, node_name)
+        logger_config = infrasim_log.get_logger(LoggerType.config.value, node_name)
         src = os.path.join(self.__mapping_folder, "{}.yml".format(node_name))
         if not os.path.exists(src):
             logger_config.exception("Node {0}'s configuration is not defined.".format(node_name))

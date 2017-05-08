@@ -12,10 +12,11 @@ from infrasim.config_manager import NodeMap
 from infrasim.workspace import Workspace
 from texttable import Texttable
 from global_status import InfrasimMonitor
-from infrasim import WorkspaceExisting, CommandRunFailed, CommandNotFound, InfraSimError, infrasim_log, log_type
+from infrasim import WorkspaceExisting, CommandRunFailed, CommandNotFound, InfraSimError
+from .log import LoggerType, infrasim_log
 
 nm = NodeMap()
-logger_cmd = infrasim_log.get_logger(log_type.cmd)
+logger_cmd = infrasim_log.get_logger(LoggerType.cmd.value)
 
 
 def args(*args, **kwargs):
