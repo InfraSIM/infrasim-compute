@@ -1688,7 +1688,7 @@ class CBMC(Task):
 
         if not os.path.exists(self.__startcmd_script):
             raise ArgsNotCorrect("startcmd script {} doesn\'t exist".
-                                 format(self.__chassiscontrol_script))
+                                 format(self.__startcmd_script))
 
         # check if self.__port_qemu_ipmi in use
         if helper.check_if_port_in_use("0.0.0.0", self.__port_qemu_ipmi):
