@@ -72,7 +72,8 @@ class test_ipmi_console_start_stop(unittest.TestCase):
 
     def setUp(self):
         old_path = os.environ.get("PATH")
-        os.environ["PATH"] = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
+        os.environ["PATH"] = "{}/bin:{}".format(
+            os.environ.get("PYTHONPATH"), old_path)
 
     def tearDown(self):
         os.system("infrasim node destroy {}".format(self.node_name))
@@ -84,15 +85,18 @@ class test_ipmi_console_start_stop(unittest.TestCase):
 
     def test_start_stop_default_ipmi_console(self):
         self.node_name = "default"
-        self.node_workspace = os.path.join(config.infrasim_home, self.node_name)
+        self.node_workspace = os.path.join(
+            config.infrasim_home, self.node_name)
         os.system("infrasim node start")
         os.system("ipmi-console start")
         time.sleep(20)
         ipmi_start_cmd = 'ps ax | grep ipmi-console'
-        returncode, output = run_command(ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        returncode, output = run_command(
+            ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system("ipmi-console stop")
         ipmi_stop_cmd = 'ps ax | grep ipmi-console'
-        returncode1, output1 = run_command(ipmi_stop_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        returncode1, output1 = run_command(
+            ipmi_stop_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(returncode, 0)
         assert 'ipmi-console start' in output
         self.assertEqual(returncode1, 0)
@@ -105,15 +109,18 @@ class test_ipmi_console_start_stop(unittest.TestCase):
         node_info = FakeConfig().get_node_info()
         with open(node_config_path, "w") as fp:
             yaml.dump(node_info, fp, default_flow_style=False)
-        os.system("infrasim config add {} {}".format(self.node_name, node_config_path))
+        os.system("infrasim config add {} {}".format(
+            self.node_name, node_config_path))
         os.system("infrasim node start {}".format(self.node_name))
         os.system("ipmi-console start {}".format(self.node_name))
         time.sleep(20)
         ipmi_start_cmd = 'ps ax | grep ipmi-console'
-        returncode, output = run_command(ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        returncode, output = run_command(
+            ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system("ipmi-console stop {}".format(self.node_name))
         ipmi_stop_cmd = 'ps ax | grep ipmi-console'
-        returncode1, output1 = run_command(ipmi_stop_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        returncode1, output1 = run_command(
+            ipmi_stop_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(returncode, 0)
         self.assertEqual(returncode, 0)
         assert 'ipmi-console start {}'.format(self.node_name) in output
@@ -124,32 +131,71 @@ class test_ipmi_console_start_stop(unittest.TestCase):
 
     def test_start_ipmi_console_not_start_bmc(self):
         self.node_name = "default"
-        self.node_workspace = os.path.join(config.infrasim_home, self.node_name)
+        self.node_workspace = os.path.join(
+            config.infrasim_home, self.node_name)
         os.system("infrasim node start")
         os.system("infrasim node stop")
         ipmi_start_cmd = 'ipmi-console start'
-        returncode, output = run_command(ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        returncode, output = run_command(
+            ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         time.sleep(20)
-        self.assertEqual(returncode, 0)
-        assert 'Warning: node default has not started BMC. Please start node default first.' in output
+        self.assertEqual(returncode, -1)
+        assert 'Warning: node default has not started BMC. ' \
+               'Please start node default first.' in output
         ipmi_start_cmd = 'ps ax | grep ipmi-console'
-        returncode, output = run_command(ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        os.system("ipmi-console stop")
+        returncode, output = run_command(
+            ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(returncode, 0)
         assert 'ipmi-console start' not in output
 
     def test_start_ipmi_console_no_workspace(self):
         self.node_name = "default"
-        self.node_workspace = os.path.join(config.infrasim_home, self.node_name)
+        self.node_workspace = os.path.join(
+            config.infrasim_home, self.node_name)
         ipmi_start_cmd = 'ipmi-console start'
-        returncode, output = run_command(ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        returncode, output = run_command(
+            ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         time.sleep(20)
-        self.assertEqual(returncode, 0)
-        assert 'Warning: there is no node default workspace. Please start node default first.' in output
+        self.assertEqual(returncode, -1)
+        assert 'Warning: there is no node default workspace. ' \
+               'Please start node default first.' in output
         ipmi_start_cmd = "ps ax | grep ipmi-console"
-        returncode, output = run_command(ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        returncode, output = run_command(
+            ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(returncode, 0)
         assert 'ipmi-console start' not in output
+
+    def test_ipmi_console_stops_followed_by_vbmc_stop(self):
+        node_info = FakeConfig().get_node_info()
+        self.node_name = node_info.get("name", "test")
+        self.node_workspace = os.path.join(
+            config.infrasim_home, self.node_name)
+        node = CNode(node_info)
+        node.init()
+        node.precheck()
+        node.start()
+        time.sleep(3)
+
+        ps_ipmi_console_cmd = "ps ax | grep ipmi-console"
+        start_ipmi_console_cmd = "ipmi-console start {}".format(
+            self.node_name)
+
+        returncode = run_command(
+            start_ipmi_console_cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)[0]
+        self.assertEqual(returncode, 0)
+        output = run_command(
+            ps_ipmi_console_cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)[1]
+        assert start_ipmi_console_cmd in output
+
+        node.stop()
+        # ipmi-console polls every 3s to see vbmc status, so wait 10s for it
+        time.sleep(10)
+        output = run_command(
+            ps_ipmi_console_cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)[1]
+        assert start_ipmi_console_cmd not in output
 
 
 class test_ipmi_console(unittest.TestCase):
