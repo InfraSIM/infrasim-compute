@@ -52,7 +52,7 @@ class LoggerList(object):
     # if node_name is not given, the default log file is 'infrasim.log'
     # if node_name is given, the default log depends on the logger_name as follows:
     #    'Config': /infrasim/<node_name>/static.log
-    #    'Model' : /infrasim/<node_name>/runtime.log
+    #    'Model', 'Qemu': /infrasim/<node_name>/runtime.log
     def init(self, node_name=None):
         if node_name is None:
             return

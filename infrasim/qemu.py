@@ -9,15 +9,18 @@ import os
 import yaml
 import time
 import config
-from . import run_command, logger, CommandNotFound, CommandRunFailed, ArgsNotCorrect, InfraSimError
+from . import run_command, CommandNotFound, CommandRunFailed, ArgsNotCorrect, InfraSimError
 from model import CCompute
 from .log import infrasim_log, LoggerType
+
+logger_qemu = infrasim_log.get_logger(LoggerType.qemu.value)
 
 def get_qemu():
     try:
         code, qemu_cmd = run_command("which qemu-system-x86_64")
         return qemu_cmd.strip(os.linesep)
     except CommandRunFailed:
+        logger_qemu.exception("Cannot find qemu-system-x86_64")
         raise CommandNotFound("qemu-system-x86_64")
 
 
@@ -36,6 +39,7 @@ def create_macvtap(idx, nic, mac):
         run_command("ifconfig macvtap{} promisc".format(idx))
         time.sleep(1)
     except CommandRunFailed as e:
+        logger_qemu.exception(e.value)
         raise e
 
 
@@ -44,6 +48,7 @@ def stop_macvtap(eth):
         run_command("ip link set {} down".format(eth))
         run_command("ip link delete {}".format(eth))
     except CommandRunFailed as e:
+        logger_qemu.exception(e.value)
         raise e
 
 
@@ -53,6 +58,10 @@ def start_qemu(conf_file=config.infrasim_default_config):
             conf = yaml.load(f_yml)
         compute = CCompute(conf["compute"])
         node_name = conf["name"] if "name" in conf else "node-0"
+
+        logger_qemu = infrasim_log.get_logger(
+            LoggerType.qemu.value, node_name)
+
         workspace = "{}/.infrasim/{}".format(os.environ["HOME"], node_name)
         if not os.path.isdir(workspace):
             os.mkdir(workspace)
@@ -90,17 +99,17 @@ def start_qemu(conf_file=config.infrasim_default_config):
         compute.precheck()
         compute.run()
 
-        logger.info("qemu start")
+        logger_qemu.info("qemu start")
 
         return
     except CommandRunFailed as e:
-        logger.error(e.value)
+        logger_qemu.exception(e.value)
         raise e
     except ArgsNotCorrect as e:
-        logger.error(e.value)
+        logger_qemu.exception(e.value)
         raise e
     except InfraSimError as e:
-        logger.error(e.value)
+        logger_qemu.exception(e.value)
         raise e
 
 
@@ -111,8 +120,12 @@ def stop_qemu(conf_file=config.infrasim_default_config):
         compute = CCompute(conf["compute"])
         node_name = conf["name"] if "name" in conf else "node-0"
 
+        logger_qemu = infrasim_log.get_logger(
+            LoggerType.qemu.value, node_name)
+
         # Set attributes
-        compute.logger = infrasim_log.get_logger(LoggerType.model.value, node_name)
+        compute.logger = infrasim_log.get_logger(
+            LoggerType.model.value, node_name)
         compute.set_task_name("{}-node".format(node_name))
         compute.set_log_path("/var/log/infrasim/{}/qemu.log".
                              format(node_name))
@@ -135,7 +148,7 @@ def stop_qemu(conf_file=config.infrasim_default_config):
         compute.init()
         compute.terminate()
 
-        logger.info("qemu stopped")
+        logger_qemu.info("qemu stopped")
     except Exception, e:
-        logger.error(e.value)
+        logger_qemu.exception(e.value)
         raise e
