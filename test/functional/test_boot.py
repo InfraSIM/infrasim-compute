@@ -94,7 +94,7 @@ class test_boot_splash_time(unittest.TestCase):
     def setUp(self):
         fake_config = fixtures.FakeConfig()
         self.conf = fake_config.get_node_info()
-        self.conf['compute']['boot'] = {'boot_order': 'ncd', 'splash-time': 20000}
+        self.conf['compute']['boot'] = {'boot_order': 'ncd', 'splash-time': 20000, 'menu': 'on'}
 
         node = model.CNode(self.conf)
         node.init()
