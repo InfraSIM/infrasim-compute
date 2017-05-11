@@ -26,7 +26,7 @@ Installation
    ::
 
        sudo apt-get update
-       sudo apt-get install python-pip libpython-dev libssl-dev
+       sudo apt-get install python-pip libpython-dev libssl-dev libaio-dev
 
 2. Upgrade pip and install setuptools:
 
