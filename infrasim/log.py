@@ -77,6 +77,10 @@ class LoggerList(object):
                 log_file = os.path.join(infrasim_logdir,
                                         self.__node_name,
                                         'ipmi-console.log')
+            elif logger_name is LoggerType.racadm:
+                log_file = os.path.join(infrasim_logdir,
+                                        self.__node_name,
+                                        'racadmsim.log')
             else:
                 log_file = os.path.join(infrasim_logdir,
                                         self.__node_name,
