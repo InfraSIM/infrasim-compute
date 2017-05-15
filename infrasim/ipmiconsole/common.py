@@ -26,7 +26,6 @@ lock = threading.Lock()
 # logger
 logger = logging.getLogger("ipmi-console")
 
-
 # telnet to vBMC
 tn = telnetlib.Telnet()
 
@@ -50,9 +49,6 @@ def init_logger(instance="default"):
         os.mkdir(log_folder)
     log_path = os.path.join(log_folder, "ipmi-console.log")
 
-    if os.path.isfile(log_path) is True:
-        os.remove(log_path)
-
     # create file handler which logs even debug messages
     fh = logging.FileHandler(log_path)
 
@@ -62,10 +58,13 @@ def init_logger(instance="default"):
     logger.setLevel(logging.INFO)
 
     # create formatter and add it to the handlers
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    formatter = logging.Formatter("%(asctime)s - %(name)s - "
+                                  "%(filename)s:%(lineno)s - "
+                                  "%(levelname)s - %(message)s")
     fh.setFormatter(formatter)
 
     # add the handlers to the logger
+    logger.handlers = []
     logger.addHandler(fh)
 
 
@@ -92,6 +91,7 @@ def init_env(instance):
         raise IpmiError(
             "Warning: node {} has not started BMC. "
             "Please start node {} first.".format(instance, instance))
+
 
     logger.info("Init ipmi-console environment for infrasim instance: {}".
                 format(instance))

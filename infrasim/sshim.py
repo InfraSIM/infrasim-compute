@@ -12,8 +12,12 @@ import sys
 
 import six
 from six.moves import queue
+from .log import infrasim_log, LoggerType
+
 
 logger = logging.getLogger(__name__)
+
+logger_sshim = infrasim_log.get_logger(LoggerType.cmd.value)
 
 DEFAULT_KEY = paramiko.rsakey.RSAKey(file_obj=
 six.StringIO("""-----BEGIN RSA PRIVATE KEY-----
@@ -130,7 +134,7 @@ class Server(threading.Thread):
         # self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((address, port))
         self.socket.listen(backlog)
-        logging.info('sshim.Server listening on %s:%d', *self.socket.getsockname())
+        logger_sshim.info('sshim.Server listening on %s:%d', *self.socket.getsockname())
         self.key = key or DEFAULT_KEY
 
     @property
@@ -154,7 +158,7 @@ class Server(threading.Thread):
         """
             Stop the server, waiting for the runloop to exit.
         """
-        logging.info('closing socket')
+        logger_sshim.info('closing socket')
         self.socket.close()
         if self.is_alive():
             self.join()
@@ -175,7 +179,7 @@ class Server(threading.Thread):
                     r, w, x = select.select([self.socket], [], [], 1)
                     if r:
                         connection, address = self.socket.accept()
-                        logging.info('sshim.Server accepted connection from %s:%d', *address)
+                        logger_sshim.info('sshim.Server accepted connection from %s:%d', *address)
                         #if connection.recv(1, socket.MSG_PEEK):
                         self.handler(self, (connection, address))
             except (select.error, socket.error) as exception:

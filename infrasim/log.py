@@ -53,6 +53,7 @@ class LoggerList(object):
     # if node_name is given, the default log depends on the logger_name as follows:
     #    'Config': /infrasim/<node_name>/static.log
     #    'Model', 'Qemu': /infrasim/<node_name>/runtime.log
+    #    'Ipmi-console': /infrasim/<node_name>/ipmi-console.log
     def init(self, node_name=None):
         if node_name is None:
             return
@@ -70,10 +71,16 @@ class LoggerList(object):
                 continue
             elif logger_name is LoggerType.config:
                 log_file = os.path.join(infrasim_logdir,
-                                        self.__node_name, 'static.log')
+                                        self.__node_name,
+                                        'static.log')
+            elif logger_name is LoggerType.ipmi_console:
+                log_file = os.path.join(infrasim_logdir,
+                                        self.__node_name,
+                                        'ipmi-console.log')
             else:
                 log_file = os.path.join(infrasim_logdir,
-                                        self.__node_name, 'runtime.log')
+                                        self.__node_name,
+                                        'runtime.log')
             logger = self.__logger_list[logger_name.value]
             handler = logging.FileHandler(log_file)
             formatter = logging.Formatter('%(asctime)s - {} - %(filename)s:'

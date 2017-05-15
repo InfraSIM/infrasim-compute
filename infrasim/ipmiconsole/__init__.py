@@ -15,15 +15,16 @@ import time
 
 from infrasim import daemon
 from infrasim import sshim
-from infrasim import logger
 from infrasim import config
 from .command import Command_Handler
 from .common import msg_queue
 from .common import IpmiError
 import env, sdr, common
+from infrasim.log import infrasim_log, LoggerType
 
 server = None
-
+logger_ic = infrasim_log.get_logger(LoggerType.ipmi_console.value)
+logger_ic_cmd = infrasim_log.get_logger(LoggerType.ipmi_console.value)
 
 class IPMI_CONSOLE(threading.Thread):
     WELCOME = 'You have connected to the test server.'
@@ -69,10 +70,11 @@ class IPMI_CONSOLE(threading.Thread):
 
             try:
                 cmd = cmdline.split()[0]
-
+                logger_ic_cmd.info("command rev: {}".format(cmd))
                 if cmd.upper() == 'EXIT' \
                         or cmd.upper() == 'QUIT':
                     self.script.writeline("Quit!")
+                    logger_ic_cmd.info("command res: quit is finished")
                     break
 
                 self.command_handler.handle_command(cmdline)
@@ -83,6 +85,9 @@ class IPMI_CONSOLE(threading.Thread):
                     lines = self.response.split('\n')
                     for line in lines:
                         self.script.writeline(line)
+                        logger_ic.info(line)
+                logger_ic_cmd.info("command res: "
+                                   "command response is finished.")
             except:
                 continue
 
@@ -90,11 +95,14 @@ class IPMI_CONSOLE(threading.Thread):
 def _start_console(instance="default"):
     global server
     server = sshim.Server(IPMI_CONSOLE, port=env.PORT_SSH_FOR_CLIENT)
+    global logger_ic
+    logger_ic = infrasim_log.get_logger(LoggerType.ipmi_console.value, instance)
     try:
-        logger.info("ipmi-console start {}".format(instance))
+        logger_ic.info("ipmi-console start {}".format(instance))
         server.run()
 
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as e:
+        logger_ic.error("{} \nstart to stop ipmi-console".format(str(e)))
         server.stop()
 
 
@@ -141,6 +149,8 @@ def start(instance="default"):
     :param instance: infrasim instance name
     """
     # initialize logging
+    global logger_ic
+    logger_ic = infrasim_log.get_logger(LoggerType.ipmi_console.value, instance)
     common.init_logger(instance)
     # initialize environment
     common.init_env(instance)
@@ -189,6 +199,9 @@ def stop(instance="default"):
     its name
     :param instance: infrasim instance name
     """
+    global logger_ic
+    logger_ic = infrasim_log.get_logger(LoggerType.ipmi_console.value, instance)
+
     try:
         file_ipmi_console_pid = "{}/{}/.ipmi_console.pid".\
             format(config.infrasim_home, instance)
@@ -196,6 +209,7 @@ def stop(instance="default"):
             pid = f.readline().strip()
 
         os.remove(file_ipmi_console_pid)
+
         os.kill(int(pid), signal.SIGTERM)
     except:
         pass
@@ -224,3 +238,4 @@ def console_main(instance="default"):
 
     except Exception as e:
         sys.exit(e)
+

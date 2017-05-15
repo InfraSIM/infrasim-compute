@@ -448,6 +448,7 @@ class Command_Handler:
                 return
 
     def handle_command(self, cmd):
+        logger.info("request rev: {}".format(str(cmd)))
         cmd = cmd.strip()
         if len(cmd) == 0:
             return
