@@ -195,6 +195,12 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         fake_config_2 = fixtures.FakeConfig()
         self.node_info_2 = fake_config_2.get_node_info()
 
+    def tearDown(self):
+        node2 = model.CNode(self.node_info_2)
+        node2.init()
+        node2.stop()
+        node2.terminate_workspace()
+
     def test_start_node_with_conflict_bmc_connection_port(self):
         """
         Port test: after node1 start, if node2 also use the same bmc_connection_port to start, it won't start
@@ -442,4 +448,3 @@ class test_start_node_with_conflict_port(unittest.TestCase):
 
         ipmiconsole.stop(self.node_info["name"])
         node2.stop()
-        node2.terminate_workspace()
