@@ -12,9 +12,13 @@ from infrasim import helper
 from infrasim import WorkspaceExisting
 import config
 import subprocess
+from .log import infrasim_log, LoggerType
+from .version import version
+from infrasim.yaml_loader import YAMLLoader
+from .config import infrasim_default_config
 
 mac_base = "00:60:16:"
-
+logger_env = infrasim_log.get_logger(LoggerType.environment.value)
 
 def create_mac_address():
     macs = []
@@ -99,6 +103,22 @@ def check_existing_workspace():
         else:
             return False
 
+def get_environment():
+    cpu_info = run_command('lscpu')
+    logger_env.info("cpu information: \n{}".
+                    format(cpu_info[1]))
+    version_info = version()
+    logger_env.info("infrasim version information: \n{}".
+                    format(version_info))
+    try:
+        with open(infrasim_default_config, 'r') as fp:
+            node_info = YAMLLoader(fp).get_data()
+            logger_env.info("infrasim default configuration "
+                            "information: \n{}\n".
+                            format(node_info))
+    except:
+        pass
+
 
 def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, target_home=None, config_file=None):
     if check_existing_workspace():
@@ -123,6 +143,9 @@ def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, ta
             raise Exception("{} not found.".format(config_file))
     else:
         init_infrasim_conf(node_type)
+
+    # record infrasim environment
+    get_environment()
 
     get_socat()
     get_ipmi()
