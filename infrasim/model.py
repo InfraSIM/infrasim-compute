@@ -1411,11 +1411,7 @@ class CCompute(Task, CElement):
         if 'boot' in self.__compute:
             self.__boot_order = self.__compute['boot'].get('boot_order', "ncd")
             if 'menu' in self.__compute['boot']:
-                menu_option = str(self.__compute['boot']['menu']).strip(" ").lower()
-                if menu_option != "on" and menu_option != "off":
-                    raise Exception("Illegal config option. The 'menu' must be either 'on' or 'off'.")
-                else:
-                  self.__boot_menu = menu_option
+                self.__boot_menu = "on" if self.__compute['boot']['menu'] is True or self.__compute['boot']['menu'] is 'on' else "off"
             self.__boot_splash_name = self.__compute['boot'].get('splash', None)
             self.__boot_splash_time = self.__compute['boot'].get('splash-time', None)
         else:
