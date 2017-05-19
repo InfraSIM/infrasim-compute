@@ -100,6 +100,46 @@ class qemu_functions(unittest.TestCase):
         except:
             assert False
 
+    def test_set_menu_unsupported_type_digit(self):
+        try:
+            compute_info = {
+                "boot": {"menu": 1},
+                "cpu": {},
+                "memory": {},
+                "storage_backend": {},
+                "networks": {}
+            }
+
+            compute = model.CCompute(compute_info)
+            compute.init()
+            compute.precheck()
+            compute.handle_parms()
+        except ArgsNotCorrect:
+            assert True
+        else:
+            assert False
+
+    def test_set_menu_unsupported_string_value(self):
+        try:
+            compute_info = {
+                "boot": {"menu": "any_string"},
+                "cpu": {},
+                "memory": {},
+                "storage_backend": {},
+                "networks": {}
+            }
+
+            compute = model.CCompute(compute_info)
+            compute.init()
+            compute.precheck()
+            compute.handle_parms()
+        except ArgsNotCorrect:
+            assert True
+        else:
+            assert False
+
+
+
     def test_set_ahci_storage_controller(self):
         try:
             backend_storage_info = [{
