@@ -12,7 +12,7 @@ from infrasim import helper
 from infrasim import WorkspaceExisting
 import config
 import subprocess
-from .log import infrasim_log, LoggerType
+from .log import infrasim_log, LoggerType, infrasim_logdir
 from .version import version
 from infrasim.yaml_loader import YAMLLoader
 from .config import infrasim_default_config
@@ -33,9 +33,9 @@ def create_infrasim_directories():
     os.mkdir(config.infrasim_home)
     os.mkdir(config.infrasim_node_config_map)
 
-    if os.path.exists(config.infrasim_logdir):
-        shutil.rmtree(config.infrasim_logdir)
-    os.mkdir(config.infrasim_logdir)
+    if os.path.exists(infrasim_logdir):
+        shutil.rmtree(infrasim_logdir)
+    os.mkdir(infrasim_logdir)
 
 
 def init_infrasim_conf(node_type):
@@ -54,8 +54,8 @@ def init_infrasim_conf(node_type):
         os.mkdir(config.infrasim_node_config_map)
 
     # create_infrasim_log_directories
-    if not os.path.exists(config.infrasim_logdir):
-        os.mkdir(config.infrasim_logdir)
+    if not os.path.exists(infrasim_logdir):
+        os.mkdir(infrasim_logdir)
 
     # Prepare default disk
     disks = []

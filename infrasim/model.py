@@ -173,7 +173,7 @@ class CCPU(CElement):
         if self.__quantities <= 0:
             self.logger.exception(
                 '[CPU] quantities invalid: {}, should be positive'.
-                    format(self.__quantities))
+                format(self.__quantities))
             raise ArgsNotCorrect(
                 '[CPU] quantities invalid: {}, should be positive'.
                 format(self.__quantities))
@@ -181,7 +181,7 @@ class CCPU(CElement):
         if self.__quantities % self.__socket != 0:
             self.logger.exception(
                 '[CPU] quantities: {} is not divided by socket: {}'.
-                    format(self.__quantities, self.__socket))
+                format(self.__quantities, self.__socket))
             raise ArgsNotCorrect(
                 '[CPU] quantities: {} is not divided by socket: {}'.
                 format(self.__quantities, self.__socket))
@@ -237,7 +237,7 @@ class CCharDev(CElement):
     def precheck(self):
         if self.__port and helper.check_if_port_in_use("0.0.0.0", self.__port):
             self.logger.exception("[Chardev] Monitor port {} is already in use".
-                                    format(self.__port))
+                                  format(self.__port))
             raise ArgsNotCorrect("Monitor port {} is already in use.".format(self.__port))
 
     def init(self):
@@ -893,13 +893,13 @@ class CNetwork(CElement):
             else:
                 if self.__bridge_name not in helper.get_all_interfaces():
                     self.logger.exception('[Network] network_name({}) is not exists'.
-                                            format(self.__bridge_name))
+                                          format(self.__bridge_name))
                     raise ArgsNotCorrect("ERROR: network_name({}) is not exists".
                                          format(self.__bridge_name))
             if "mac" not in self.__network:
                 self.logger.exception("[Network] mac address is not specified for"
-                                        "target network:\n{}".
-                                        format(json.dumps(self.__network, indent=4)))
+                                      "target network:\n{}".
+                                      format(json.dumps(self.__network, indent=4)))
                 raise ArgsNotCorrect("ERROR: mac address is not specified for "
                                      "target network:\n{}".
                                      format(json.dumps(self.__network, indent=4)))
@@ -907,7 +907,7 @@ class CNetwork(CElement):
                 list_addr = self.__mac_address.split(":")
                 if len(list_addr) != 6:
                     self.logger.exception("[Network] mac address invalid: {}".
-                                            format(self.__mac_address))
+                                          format(self.__mac_address))
                     raise ArgsNotCorrect("ERROR: mac address invalid: {}".
                                          format(self.__mac_address))
                 for each_addr in list_addr:
@@ -915,7 +915,7 @@ class CNetwork(CElement):
                         int(each_addr, 16)
                     except:
                         self.logger.exception("[Network] mac address invalid: {}".
-                                                format(self.__mac_address))
+                                              format(self.__mac_address))
                         raise ArgsNotCorrect("ERROR: mac address invalid: {}".
                                              format(self.__mac_address))
 
@@ -944,7 +944,7 @@ class CNetwork(CElement):
             netdev_option = ",".join(["user", "id=netdev{}".format(self.__index)])
         else:
             self.logger.exception("[Network] {} is not supported now.".
-                                    format(self.__network_mode))
+                                  format(self.__network_mode))
             raise Exception("ERROR: {} is not supported now.".
                             format(self.__network_mode))
 
@@ -1447,7 +1447,7 @@ class CCompute(Task, CElement):
         try:
             run_command("which {}".format(self.__qemu_bin))
         except CommandRunFailed:
-            self.logger.exception("[Compute] Can not find file {}".self.__qemu_bin)
+            self.logger.exception("[Compute] Can not find file {}".format(self.__qemu_bin))
             raise CommandNotFound(self.__qemu_bin)
 
         # check if smbios exists
@@ -1486,9 +1486,15 @@ class CCompute(Task, CElement):
                 if isinstance(self.__compute['boot']['menu'], str):
                     menu_option = str(self.__compute['boot']['menu']).strip(" ").lower()
                     if menu_option not in ["on", "off"]:
-                        raise ArgsNotCorrect("Error: illegal config option. The 'menu' must be either 'on' or 'off'.")
+                        msg = "Error: illegal config option. " \
+                              "The 'menu' must be either 'on' or 'off'."
+                        self.logger.exception(msg)
+                        raise ArgsNotCorrect(msg)
                 elif not isinstance(self.__compute['boot']['menu'], bool):
-                    raise ArgsNotCorrect("Error: illegal config option. The 'menu' must be either 'on' or 'off'.")
+                    msg = "Error: illegal config option. The 'menu' " \
+                          "must be either 'on' or 'off'."
+                    self.logger.exception(msg)
+                    raise ArgsNotCorrect(msg)
 
 
     @run_in_namespace
@@ -1528,10 +1534,10 @@ class CCompute(Task, CElement):
                     self.__class__.numactl = NumaCtl()
                 self.__numactl_enable = True
                 self.logger.info('[compute] infrasim has '
-                                   'enabled numa control')
+                                 'enabled numa control')
             else:
                 self.logger.info('[compute] infrasim can\'t '
-                                   'find numactl in this environment')
+                                 'find numactl in this environment')
 
         self.__display = self.__compute.get('vnc_display', 1)
         self.__kernel = self.__compute.get('kernel')
@@ -1791,31 +1797,31 @@ class CBMC(Task):
         # check script exits
         if not os.path.exists(self.__lancontrol_script):
             self.logger.exception("[BMC] Lan control script {} doesn\'t exist".
-                                    format(self.__lancontrol_script))
+                                  format(self.__lancontrol_script))
             raise ArgsNotCorrect("Lan control script {} doesn\'t exist".
                                  format(self.__lancontrol_script))
 
         if not os.path.exists(self.__chassiscontrol_script):
             self.logger.exception("[BMC] Chassis control script {} doesn\'t exist".
-                                    format(self.__chassiscontrol_script))
+                                  format(self.__chassiscontrol_script))
             raise ArgsNotCorrect("Chassis control script {} doesn\'t exist".
                                  format(self.__chassiscontrol_script))
 
         if not os.path.exists(self.__startcmd_script):
             self.logger.exception("[BMC] startcmd script {} desn\'t exist".
-                                    format(self.__startcmd_script))
+                                  format(self.__startcmd_script))
             raise ArgsNotCorrect("startcmd script {} doesn\'t exist".
                                  format(self.__startcmd_script))
 
         # check if self.__port_qemu_ipmi in use
         if helper.check_if_port_in_use("0.0.0.0", self.__port_qemu_ipmi):
             self.logger.exception("[BMC] Port {} is already in use.".
-                                    format(self.__port_qemu_ipmi))
+                                  format(self.__port_qemu_ipmi))
             raise ArgsNotCorrect("Port {} is already in use.".format(self.__port_qemu_ipmi))
 
         if helper.check_if_port_in_use("0.0.0.0", self.__port_ipmi_console):
             self.logger.exception("[BMC] Port {} is already in use.".
-                                    format(self.__port_ipmi_console))
+                                  format(self.__port_ipmi_console))
             raise ArgsNotCorrect("Port {} is already in use.".format(self.__port_ipmi_console))
 
         # check lan interface exists
@@ -1823,75 +1829,75 @@ class CBMC(Task):
             print "Specified BMC interface {} doesn\'t exist, but BMC will still start."\
                 .format(self.__lan_interface)
             self.logger.warning("[BMC] Specified BMC interface {} doesn\'t exist.".
-                                  format(self.__lan_interface))
+                                format(self.__lan_interface))
 
         # check if lan interface has IP address
         elif not self.__ipmi_listen_range:
             print "No IP is found on interface {}, but BMC will still start.".format(self.__lan_interface)
             self.logger.warning("[BMC] No IP is found on BMC interface {}.".
-                                  format(self.__lan_interface))
+                                format(self.__lan_interface))
 
         # check attribute
         if self.__poweroff_wait < 0:
             self.logger.exception("[BMC] poweroff_wait is expected to be >= 0, "
-                                    "it's set to {} now". \
-                                    format(self.__poweroff_wait))
+                                  "it's set to {} now".
+                                  format(self.__poweroff_wait))
             raise ArgsNotCorrect("poweroff_wait is expected to be >= 0, "
                                  "it's set to {} now".
                                  format(self.__poweroff_wait))
 
         if type(self.__poweroff_wait) is not int:
             self.logger.exception("[BMC] poweroff_wait is expected to be integer, "
-                                    "it's set to {} now".
-                                    format(self.__poweroff_wait))
+                                  "it's set to {} now".
+                                  format(self.__poweroff_wait))
             raise ArgsNotCorrect("poweroff_wait is expected to be integer, "
                                  "it's set to {} now".
                                  format(self.__poweroff_wait))
 
         if self.__kill_wait < 0:
             self.logger.exception("[BMC] kill_wait is expected to be >= 0, "
-                                    "it's set to {} now".
-                                    format(self.__kill_wait))
+                                  "it's set to {} now".
+                                  format(self.__kill_wait))
             raise ArgsNotCorrect("kill_wait is expected to be >= 0, "
                                  "it's set to {} now".
                                  format(self.__kill_wait))
 
         if type(self.__kill_wait) is not int:
             self.logger.exception("[BMC] kill_wait is expected to be integer, "
-                                    "it's set to {} now".
-                                    format(self.__kill_wait))
+                                  "it's set to {} now".
+                                  format(self.__kill_wait))
             raise ArgsNotCorrect("kill_wait is expected to be integer, "
                                  "it's set to {} now".
                                  format(self.__kill_wait))
 
         if self.__port_iol < 0:
             self.logger.exception("[BMC] Port for IOL(IPMI over LAN) is expected "
-                                    "to be integer, it's set to {} now".
-                                    format(self.__port_iol))
+                                  "to be integer, it's set to {} now".
+                                  format(self.__port_iol))
             raise ArgsNotCorrect("Port for IOL(IPMI over LAN) is expected "
                                  "to be >= 0, it's set to {} now".
                                  format(self.__port_iol))
 
         if type(self.__port_iol) is not int:
             self.logger.exception("[BMC] Port for IOL(IPMI over LAN) is expected "
-                                    "to be integer, it's set to {} now".
-                                    format(self.__port_iol))
+                                  "to be integer, it's set to {} now".
+                                  format(self.__port_iol))
             raise ArgsNotCorrect("Port for IOL(IPMI over LAN) is expected "
                                  "to be integer, it's set to {} now".
                                  format(self.__port_iol))
 
         if self.__historyfru < 0:
             self.logger.exception("[BMC] History FRU is expected to be >= 0, "
-                                    "it's set to {} now".
-                                    format(self.__historyfru))
+                                  "it's set to {} now".
+                                  format(self.__historyfru))
             raise ArgsNotCorrect("History FRU is expected to be >= 0, "
                                  "it's set to {} now".
                                  format(self.__historyfru))
 
         if type(self.__historyfru) is not int:
             self.logger.exception("[BMC] History FRU is expected to be integer, "
-                                    "it's set to {} now".
-                                    format(self.__historyfru))
+                                  "it's set to {} now".
+                                  format(self.__historyfru))
             raise ArgsNotCorrect("History FRU is expected to be integer, "
                                  "it's set to {} now".
                                  format(self.__historyfru))
@@ -1899,13 +1905,13 @@ class CBMC(Task):
         # check configuration file exists
         if not os.path.isfile(self.__emu_file):
             self.logger.exception("[BMC] Target emulation file does not exist: {}".
-                                    format(self.__emu_file))
+                                  format(self.__emu_file))
             raise ArgsNotCorrect("Target emulation file doesn't exist: {}".
                                  format(self.__emu_file))
 
         if not os.path.isfile(self.__config_file):
             self.logger.exception("[BMC] Target config file does not exist: {}".
-                                    format(self.__config_file))
+                                  format(self.__config_file))
             raise ArgsNotCorrect("Target config file doesn't exist: {}".
                                  format(self.__config_file))
 
@@ -2168,15 +2174,15 @@ class CRacadm(Task):
     def precheck(self):
         if not self.__ip:
             self.logger.exception("[Racadm] Specified racadm interface {} "
-                                    "doesn\'t exist".
-                                    format(self.__interface))
+                                  "doesn\'t exist".
+                                  format(self.__interface))
             raise ArgsNotCorrect("Specified racadm interface {} doesn\'t exist".
                                  format(self.__interface))
 
         if helper.check_if_port_in_use(self.__ip, self.__port_idrac):
             self.logger.exception("[Racadm] Racadm port {}:{} is already in use.".
-                                    format(self.__ip,
-                                           self.__port_idrac))
+                                  format(self.__ip,
+                                         self.__port_idrac))
             raise ArgsNotCorrect("Racadm port {}:{} is already in use.".
                                  format(self.__ip,
                                         self.__port_idrac))
@@ -2434,7 +2440,7 @@ class NumaCtl(object):
             for field in ["processor", "core id", "physical id"]:
                 if field not in core:
                     err = "Error getting '%s' value from /proc/cpuinfo".format(field)
-                    logger_model.error(err)
+                    logger_model.exception(err)
                     raise Exception(err)
                 core[field] = int(core[field])
 

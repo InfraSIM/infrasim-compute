@@ -1,11 +1,43 @@
 import logging
+import logging.handlers
 import os
 from enum import Enum
-
+import gzip
+import shutil
 
 infrasim_logdir = "/var/log/infrasim"
-infrasim_log_file = '/var/log/infrasim.log'
 EXCEPT_LEVEL_NUM = 35
+
+
+class CompressedRotatingFileHandler(logging.handlers.RotatingFileHandler):
+    def doRollover(self):
+        """
+        Do a rollover, as described in __init__().
+        """
+        if self.stream:
+            self.stream.close()
+        if self.backupCount > 0:
+            for i in range(self.backupCount - 1, 0, -1):
+                sfn = "%s.%d.gz" % (self.baseFilename, i)
+                dfn = "%s.%d.gz" % (self.baseFilename, i + 1)
+                if os.path.exists(sfn):
+                    # print "%s -> %s" % (sfn, dfn)
+                    if os.path.exists(dfn):
+                        os.remove(dfn)
+                    os.rename(sfn, dfn)
+            dfn = self.baseFilename + ".1.gz"
+            if os.path.exists(dfn):
+                os.remove(dfn)
+            # These two lines below are the only new lines.
+            #  I commented out the os.rename(self.baseFilename, dfn) and
+            #  replaced it with these two lines.
+            with open(self.baseFilename, 'rb') as f_in, \
+                    gzip.open(dfn, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+            # os.rename(self.baseFilename, dfn)
+            # print "%s -> %s" % (self.baseFilename, dfn)
+        self.mode = 'w'
+        self.stream = self._open()
 
 
 def EXCEPTION(self, message, *args, **kws):
@@ -36,12 +68,18 @@ class LoggerList(object):
         self.__logger_list = {}
         self.__node_name = None
         self.__node_id = node_id
+        if not os.path.exists(infrasim_logdir):
+            os.mkdir(infrasim_logdir)
         for logger_name in LoggerType:
-            logger = logging.getLogger("{}{}".format(self.__node_id, logger_name.value))
+            logger = logging.getLogger("{}{}".format(
+                self.__node_id, logger_name.value))
+            infrasim_log_file = os.path.join(
+                infrasim_logdir, "infrasim.log")
             self.__handler = logging.FileHandler(infrasim_log_file)
-            formatter = logging.Formatter('%(asctime)s - {} - %(filename)s:'
-                                          '%(lineno)s - %(levelname)s - %(message)s'.
-                                          format(logger_name.value))
+            formatter = logging.Formatter(
+                '%(asctime)s - {} - %(filename)s:'
+                '%(lineno)s - %(levelname)s - %(message)s'.
+                    format(logger_name.value))
             self.__handler.setFormatter(formatter)
             logger.addHandler(self.__handler)
             logger.setLevel(logging.DEBUG)
@@ -80,16 +118,18 @@ class LoggerList(object):
             elif logger_name is LoggerType.racadm:
                 log_file = os.path.join(infrasim_logdir,
                                         self.__node_name,
-                                        'racadmsim.log')
+                                        'racadm.log')
             else:
                 log_file = os.path.join(infrasim_logdir,
                                         self.__node_name,
                                         'runtime.log')
             logger = self.__logger_list[logger_name.value]
-            handler = logging.FileHandler(log_file)
-            formatter = logging.Formatter('%(asctime)s - {} - %(filename)s:'
-                                          '%(lineno)s - %(levelname)s - %(message)s'
-                                          .format(logger_name.value))
+            handler = CompressedRotatingFileHandler(
+                log_file, maxBytes=4*1024*1024, backupCount=100)
+            formatter = logging.Formatter(
+                '%(asctime)s - {} - %(filename)s:'
+                '%(lineno)s - %(levelname)s - %(message)s'
+                    .format(logger_name.value))
             handler.setFormatter(formatter)
             logger.handlers = []
             logger.addHandler(handler)
@@ -137,6 +177,9 @@ class InfrasimLog(object):
             del self.__node_list[node_name]
         except KeyError:
             pass
+
+    def get_log_path(self, node_name):
+        return os.path.join(infrasim_logdir, node_name)
 
     def get_logger(self, logger_name, node_name=None):
         if node_name is None:

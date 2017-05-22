@@ -13,7 +13,7 @@ import paramiko
 import os
 import logging
 from os import linesep
-from infrasim import sshim, logger, config
+from infrasim import sshim
 from infrasim.repl import REPL, register, parse, QuitREPL
 from infrasim.log import LoggerType, infrasim_log
 import sys
@@ -21,7 +21,7 @@ import sys
 auth_map = {}
 racadm_data = None
 logger_r = infrasim_log.get_logger(LoggerType.racadm.value)
-logger_r_cmd = infrasim_log.get_logger(LoggerType.racadm.value)
+
 
 def auth(username, password):
     global auth_map
@@ -248,15 +248,12 @@ class iDRACServer(threading.Thread):
     def repl_input(self, msg):
         self.script.write(msg)
         groups = self.script.expect(re.compile('(?P<cmd>.*)')).groupdict()
-        logger_r.info("cmd res: {}".format(groups['cmd']))
+        logger_r.info("command rev: {}".format(groups['cmd']))
         return groups["cmd"]
 
     def repl_output(self, msg):
-        word = ''
         for line in msg.splitlines():
             self.script.writeline(line)
-            word += line + '\n'
-        logger_r.info(word)
 
     def run(self):
         idrac = iDRACConsole()
@@ -281,13 +278,14 @@ def start(instance="default",
     cmd_rev = 'racadmsim '
     for word in sys.argv[1:]:
         cmd_rev += word+' '
-    logger_r_cmd.info('racadmsim command rev: {}'.format(cmd_rev))
+    logger_r.info('racadmsim command rev: {}'.format(cmd_rev))
 
     auth_map[username] = password
     if os.path.exists(data_src):
         racadm_data = data_src
 
     server = sshim.Server(iDRACServer,
+                          logger=logger_r,
                           address=ipaddr,
                           port=int(port),
                           handler=iDRACHandler)
@@ -300,5 +298,5 @@ if __name__ == "__main__":
     #     python -m infrasim.racadmsim
 
     auth_map["admin"] = "admin"
-    server = sshim.Server(iDRACServer, port=10022, handler=iDRACHandler)
+    server = sshim.Server(iDRACServer, logger=logger_r, port=10022, handler=iDRACHandler)
     server.run()

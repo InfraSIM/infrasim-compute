@@ -147,8 +147,12 @@ class NodeCommands(object):
             "Node {} graphic interface accessible via: \n" \
             "VNC port: {} \n" \
             "Either host IP: {} \n" \
-            "depending on host in which network VNC viewer is running". \
-            format(node.get_node_name(), vnc_port, helper.ip4_addresses(netns=node_info.get("namespace")))
+            "depending on host in which network VNC viewer is running \n"\
+            "Node log folder: {}". \
+            format(node.get_node_name(),
+                   vnc_port,
+                   helper.ip4_addresses(netns=node_info.get("namespace")),
+                   infrasim_log.get_log_path(node_name))
         logger_cmd.info("cmd res: start node {} OK".format(node_name))
 
     @node_workspace_exists
@@ -396,15 +400,17 @@ def command_handler():
     if hasattr(args, "init"):
         # Do init
         try:
-            infrasim_init(args.type, args.skip_installation, args.force, args.infrasim_home, args.config_file)
+            infrasim_init(args.type, args.skip_installation,
+                          args.force, args.infrasim_home,
+                          args.config_file)
             print "Infrasim init OK"
         except Exception as e:
-            sys.exit("Infrasim init failed\nException Type: {}\n"
-                     "Error Message:\n{}".format(e.__class__.__name__,
-                                                 eval(str(e))))
+            msg = "Infrasim init failed\nException Type: {}\n" \
+                  "Error Message:\n{}".format(e.__class__.__name__,
+                                              eval(str(e)))
+            logger_cmd.error("cmd res: {} \n".format(msg))
+            sys.exit(msg)
 
-            logger_cmd.error("cmd res: {} \n"
-                             "There is node workspace existing.".format(e.value))
 
     elif hasattr(args, "version"):
         # Print version
