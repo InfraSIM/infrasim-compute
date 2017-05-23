@@ -678,6 +678,8 @@ class CBaseDrive(CElement):
         self._dev_attrs["drive"] = "{}{}-{}-{}-{}".format(self.prefix, self.__bus,
                                                           self._channel, self._scsi_id, self._lun)
 
+        self._dev_attrs["id"] = "dev-{}".format(self._dev_attrs["drive"])
+
 
 class SCSIDrive(CBaseDrive):
     def __init__(self, drive_info):
