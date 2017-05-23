@@ -1388,6 +1388,16 @@ class CCompute(Task, CElement):
             except Exception as e:
                 raise e
 
+        if 'boot' in self.__compute:
+            if 'menu' in self.__compute['boot']:
+                if isinstance(self.__compute['boot']['menu'], str):
+                    menu_option = str(self.__compute['boot']['menu']).strip(" ").lower()
+                    if menu_option not in ["on", "off"]:
+                        raise ArgsNotCorrect("Error: illegal config option. The 'menu' must be either 'on' or 'off'.")
+                elif not isinstance(self.__compute['boot']['menu'], bool):
+                    raise ArgsNotCorrect("Error: illegal config option. The 'menu' must be either 'on' or 'off'.")
+
+
     @run_in_namespace
     def init(self):
 
@@ -1411,7 +1421,7 @@ class CCompute(Task, CElement):
         if 'boot' in self.__compute:
             self.__boot_order = self.__compute['boot'].get('boot_order', "ncd")
             if 'menu' in self.__compute['boot']:
-                self.__boot_menu = "on" if self.__compute['boot']['menu'] is True else "off"
+                self.__boot_menu = "on" if self.__compute['boot']['menu'] in [True, 'on'] else "off"
             self.__boot_splash_name = self.__compute['boot'].get('splash', None)
             self.__boot_splash_time = self.__compute['boot'].get('splash-time', None)
         else:
