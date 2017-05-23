@@ -463,6 +463,13 @@ class test_global_status(unittest.TestCase):
         node1.stop()
         node1.terminate_workspace()
         self.node_info = None
+        fake_config_2 = fixtures.FakeConfig()
+        node_info_2 = fake_config_2.get_node_info()
+        node_info_2['name'] = "test2"
+        node2 = model.CNode(node_info_2)
+        node2.init()
+        node2.stop()
+        node2.terminate_workspace()
 
     def test_node_global_status_ipmi_console(self):
         os.system("ipmi-console start test1")
