@@ -101,44 +101,37 @@ class qemu_functions(unittest.TestCase):
             assert False
 
     def test_set_menu_unsupported_type_digit(self):
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+        node_info["compute"]["boot"]["menu"] = 1
+        node = model.CNode(node_info)
+        node.init()
         try:
-            compute_info = {
-                "boot": {"menu": 1},
-                "cpu": {},
-                "memory": {},
-                "storage_backend": {},
-                "networks": {}
-            }
-
-            compute = model.CCompute(compute_info)
-            compute.init()
-            compute.precheck()
-            compute.handle_parms()
-        except ArgsNotCorrect:
-            assert True
-        else:
-            assert False
+            node.precheck()
+        except ArgsNotCorrect, e:
+            assert "The 'menu' must be either 'on' or 'off'" in e.value
 
     def test_set_menu_unsupported_string_value(self):
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+        node_info["compute"]["boot"]["menu"] = "any_string"
+        node = model.CNode(node_info)
+        node.init()
         try:
-            compute_info = {
-                "boot": {"menu": "any_string"},
-                "cpu": {},
-                "memory": {},
-                "storage_backend": {},
-                "networks": {}
-            }
+            node.precheck()
+        except ArgsNotCorrect, e:
+            assert "The 'menu' must be either 'on' or 'off'" in e.value
 
-            compute = model.CCompute(compute_info)
-            compute.init()
-            compute.precheck()
-            compute.handle_parms()
-        except ArgsNotCorrect:
-            assert True
-        else:
-            assert False
+    def test_set_menu_legal_value(self):
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+        compute_info = node_info["compute"]
+        compute_info["boot"]["menu"] = "on"
+        compute = model.CCompute(compute_info)
+        compute.set_workspace("{}/{}".format(config.infrasim_home, node_info["name"]))
+        compute.init()
 
-
+        assert "menu=on" in compute.get_commandline()
 
     def test_set_ahci_storage_controller(self):
         try:

@@ -1393,9 +1393,9 @@ class CCompute(Task, CElement):
                 if isinstance(self.__compute['boot']['menu'], str):
                     menu_option = str(self.__compute['boot']['menu']).strip(" ").lower()
                     if menu_option not in ["on", "off"]:
-                        raise Exception("Illegal config option. The 'menu' must be either 'on' or 'off'.")
+                        raise ArgsNotCorrect("Error: illegal config option. The 'menu' must be either 'on' or 'off'.")
                 elif not isinstance(self.__compute['boot']['menu'], bool):
-                    raise Exception("Illegal config option. The 'menu' must be either 'on' or 'off'.")
+                    raise ArgsNotCorrect("Error: illegal config option. The 'menu' must be either 'on' or 'off'.")
 
 
     @run_in_namespace
