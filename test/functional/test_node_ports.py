@@ -195,6 +195,12 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         fake_config_2 = fixtures.FakeConfig()
         self.node_info_2 = fake_config_2.get_node_info()
 
+    def tearDown(self):
+        node2 = model.CNode(self.node_info_2)
+        node2.init()
+        node2.stop()
+        node2.terminate_workspace()
+
     def test_start_node_with_conflict_bmc_connection_port(self):
         """
         Port test: after node1 start, if node2 also use the same bmc_connection_port to start, it won't start
@@ -407,7 +413,8 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         if 'dell' in self.node_info['type']:
             assert "test1" in racadm_result
 
-        ipmi_console_thread = threading.Thread(target=ipmiconsole.start, args=(self.node_info["name"],))
+        ipmi_console_thread = threading.Thread(
+            target=ipmiconsole.start, args=(self.node_info["name"],))
         ipmi_console_thread.setDaemon(True)
         ipmi_console_thread.start()
         time.sleep(20)
@@ -435,11 +442,13 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         node2.init()
         node2.precheck()
         node2.start()
+        # FIXME: Sleep is not a good way to wait for vbmc start
+        time.sleep(5)
+
         ipmi_console_cmd = "sudo ipmi-console start test2"
-        ipmi_console_result = run_command(ipmi_console_cmd, True,
-                                          subprocess.PIPE, subprocess.PIPE)[1]
-        assert "ssh port 9300 is already in use." in ipmi_console_result
+        self.assertRaises(
+            Exception, run_command, cmd=ipmi_console_cmd, shell=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         ipmiconsole.stop(self.node_info["name"])
         node2.stop()
-        node2.terminate_workspace()

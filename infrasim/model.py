@@ -718,7 +718,7 @@ class SCSIDrive(CBaseDrive):
         if self.__product:
             self._dev_attrs["product"] = self.__product
 
-        if self.__rotation:
+        if self.__rotation is not None and self.__rotation != "":
             self._dev_attrs["rotation"] = self.__rotation
 
         if self._channel is not None:

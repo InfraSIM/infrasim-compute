@@ -11,6 +11,7 @@ import os
 import sys
 import re
 import signal
+import time
 
 from infrasim import daemon
 from infrasim import sshim
@@ -142,17 +143,44 @@ def start(instance="default"):
     # initialize logging
     common.init_logger(instance)
     # initialize environment
-    try:
-        common.init_env(instance)
-    except IpmiError, e:
-        print e.value
-        return
+    common.init_env(instance)
+
     daemon.daemonize("{}/{}/.ipmi_console.pid".format(config.infrasim_home, instance))
     # parse the sdrs and build all sensors
     sdr.parse_sdrs()
     # running thread for each threshold based sensor
     _spawn_sensor_thread()
+    _start_monitor(instance)
     _start_console(instance)
+
+
+def monitor(instance="default"):
+    """
+    Target method used by monitor thread, which polls vbmc status every 3s.
+    If vbmc stops, ipmi-console will stop.
+    :param instance: infrasim node name
+    """
+    while True:
+        try:
+            with open("{}/{}/.{}-bmc.pid".format(
+                    config.infrasim_home, instance, instance), "r") as f:
+                pid = f.readline().strip()
+                if not os.path.exists("/proc/{}".format(pid)):
+                    break
+            time.sleep(3)
+        except IOError:
+            break
+    stop(instance)
+
+
+def _start_monitor(instance="default"):
+    """
+    Create a monitor thread to watch vbmc status.
+    :param instance: infrasim node name
+    """
+    monitor_thread = threading.Thread(target=monitor, args=(instance,))
+    monitor_thread.setDaemon(True)
+    monitor_thread.start()
 
 
 def stop(instance="default"):
@@ -167,25 +195,32 @@ def stop(instance="default"):
         with open(file_ipmi_console_pid, "r") as f:
             pid = f.readline().strip()
 
-        os.kill(int(pid), signal.SIGTERM)
         os.remove(file_ipmi_console_pid)
+        os.kill(int(pid), signal.SIGTERM)
     except:
         pass
 
 
 def console_main(instance="default"):
-    if len(sys.argv) < 2:
-        print "ipmi-console [ start | stop ]"
-        sys.exit(1)
-    if len(sys.argv) >= 3:
-        if sys.argv[2] == "-h":
-            print "ipmi-console [ start | stop ] [ node_name ]"
-            sys.exit(1)
-        else:
+    """
+        Usage: ipmi-console [start | stop ] [ node_name ]
+        node_name is optional.
+    """
+    try:
+        arg_num = len(sys.argv)
+        if arg_num < 2 or arg_num > 3:
+            raise IpmiError("{}".format(console_main.__doc__))
+        if arg_num == 3:
+            if sys.argv[2] == "-h":
+                print console_main.__doc__
+                sys.exit()
             instance = sys.argv[2]
-    if sys.argv[1] == "start":
-        start(instance)
-    elif sys.argv[1] == "stop":
-        stop(instance)
-    else:
-        pass
+        if sys.argv[1] == "start":
+            start(instance)
+        elif sys.argv[1] == "stop":
+            stop(instance)
+        else:
+            raise IpmiError("{}".format(console_main.__doc__))
+
+    except Exception as e:
+        sys.exit(e)
