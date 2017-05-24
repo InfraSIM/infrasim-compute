@@ -425,6 +425,18 @@ class qemu_functions(unittest.TestCase):
                                                     "data",
                                                     "s2600kp_smbios.bin")
 
+    def test_set_extra_option(self):
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+        compute_info = node_info["compute"]
+        compute_info["extra_option"] = "-msg timestamp=on"
+        workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
+        compute = model.CCompute(compute_info)
+        compute.set_workspace(workspace)
+        compute.init()
+        compute.handle_parms()
+        assert "msg timestamp=on" in compute.get_commandline()
+
 
 class bmc_configuration(unittest.TestCase):
 
