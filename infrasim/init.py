@@ -103,7 +103,9 @@ def check_existing_workspace():
 def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, target_home=None, config_file=None):
     if check_existing_workspace():
         if not force:
-            raise WorkspaceExisting("Workspace Existing!!")
+            raise WorkspaceExisting("There is node workspace existing.\n"
+                                    "If you want to remove it, please run:\n"
+                                    "\"infrasim init -f \"")
 
         if force:
             destroy_existing_nodes()
