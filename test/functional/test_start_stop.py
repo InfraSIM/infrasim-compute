@@ -12,6 +12,10 @@ from infrasim import config
 from infrasim import run_command
 from test import fixtures
 from infrasim.workspace import Workspace
+from infrasim import InfraSimError
+from infrasim import helper
+import time
+import paramiko
 
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
@@ -345,3 +349,116 @@ class test_control_by_cli(unittest.TestCase):
         self.assertFalse(os.path.exists("/proc/{}".format(pid_socat)))
         self.assertFalse(os.path.exists("/proc/{}".format(pid_ipmi)))
         self.assertFalse(os.path.exists("/proc/{}".format(pid_qemu)))
+
+class test_node_restart_workspace(unittest.TestCase):
+    # Check file created in kcs os still exists after node reboot
+    global test_img_file
+    global tmp_conf_file
+    global conf
+    test_img_file = "/tmp/kcs.img"
+    tmp_conf_file = "/tmp/test.yml"
+    conf = {}
+
+    def start_node(self):
+        global conf
+        global tmp_conf_file
+        global test_img_file
+
+        fake_config = fixtures.FakeConfig()
+        conf = fake_config.get_node_info()
+        conf["compute"]["storage_backend"] = [{
+            "type": "ahci",
+            "max_drive_per_controller": 6,
+            "drives": [{"size": 8, "file": test_img_file}]
+        }]
+
+        with open(tmp_conf_file, "w") as yaml_file:
+            yaml.dump(conf, yaml_file, default_flow_style=False)
+
+        node = model.CNode(conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+    def prepare_ssh(self):
+        time.sleep(3)
+        import telnetlib
+        tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
+        tn.read_until("(qemu)")
+        tn.write("hostfwd_add ::2222-:22\n")
+        tn.read_until("(qemu)")
+        tn.close()
+
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        paramiko.util.log_to_file("filename.log")
+        helper.try_func(600, paramiko.SSHClient.connect, ssh, "127.0.0.1",
+                        port=2222, username="root", password="root", timeout=120)
+        ssh.close()
+        time.sleep(5)
+
+    def stop_node(self):
+        global conf
+        global tmp_conf_file
+
+        node = model.CNode(conf)
+        node.init()
+        node.stop()
+        node.terminate_workspace()
+        conf = {}
+        if os.path.exists(tmp_conf_file):
+            os.unlink(tmp_conf_file)
+
+        time.sleep(5)
+
+    def setUp(cls):
+        os.environ["PATH"] = new_path
+        DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
+        MD5_KCS_IMG = "cfdf7d855d2f69c67c6e16cc9b53f0da"
+        global test_img_file
+        try:
+            helper.fetch_image(DOWNLOAD_URL, MD5_KCS_IMG, test_img_file)
+        except InfraSimError, e:
+            print e.value
+            assert False
+
+        cls.start_node()
+        cls.prepare_ssh()
+
+    def tearDown(cls):
+        global conf
+        if conf:
+            cls.stop_node()
+        os.environ["PATH"] = old_path
+
+    def test_file_existance_after_node_restart(self):
+        node_name = conf["name"]
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect("127.0.0.1", port=2222, username="root",
+                password="root", timeout=10)
+        stdin, stdout, stderr = ssh.exec_command("touch test_file")
+        while not stdout.channel.exit_status_ready():
+            pass
+
+        stdin, stdout, stderr = ssh.exec_command("ls")
+        while not stdout.channel.exit_status_ready():
+            pass
+
+        lines = stdout.channel.recv(2048)
+        assert "test_file" in lines
+
+        run_command("infrasim node restart {}".format(node_name))
+        self.prepare_ssh()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect("127.0.0.1", port=2222, username="root",
+                password="root", timeout=10)
+
+        stdin, stdout, stderr = ssh.exec_command("ls")
+        while not stdout.channel.exit_status_ready():
+            pass
+
+        lines = stdout.channel.recv(2048)
+        assert "test_file" in lines
+
+        ssh.close()
