@@ -338,7 +338,8 @@ def command_handler():
     init_parser.add_argument("-f", "--force", action="store_true", 
                             help="Destroy existing Nodes")
     init_parser.add_argument("-i", "--infrasim-home", action="store",
-                             help="Target infrasim home foler, default $HOME/.infrasim")
+                             help="Target infrasim home folder,"
+                                  " default $HOME/.infrasim")
     exclusive_group = init_parser.add_mutually_exclusive_group()
     exclusive_group.add_argument("-c", "--config-file", action="store", help="Node configuration file")
     exclusive_group.add_argument("-t", "--type", action="store", default="dell_r730", help="Node type")
@@ -354,18 +355,10 @@ def command_handler():
         try:
             infrasim_init(args.type, args.skip_installation, args.force, args.infrasim_home, args.config_file)
             print "Infrasim init OK"
-        except CommandNotFound as e:
-            print "command:{} not found\n" \
-                  "Infrasim init failed".format(e.value)
-        except CommandRunFailed as e:
-            print "command:{} run failed\n" \
-                  "Infrasim init failed".format(e.value)
-        except WorkspaceExisting as e:
-            logger.error(e.value)
-            print "{} \n" \
-                  "There is node workspace existing.\n" \
-                  "If you want to remove it, please run:\n" \
-                  "\"infrasim init -f \" ".format(e.value)
+        except Exception as e:
+            sys.exit("Infrasim init failed\nException Type: {}\n"
+                     "Error Message:\n{}".format(e.__class__.__name__,
+                                                 eval(str(e))))
 
     elif hasattr(args, "version"):
         # Print version

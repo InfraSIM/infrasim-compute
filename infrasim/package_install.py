@@ -5,8 +5,8 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 """
 
 import requests
-import shutil
 import os
+import hashlib
 from infrasim import run_command
 
 """
@@ -34,12 +34,21 @@ def install_bintray_packages(repo, package):
     latest_time = data[0]["created"]
     path = ""
     file_name = ""
+    sha256 = ""
     for item in data:
         if item["created"] >= latest_time:
             latest_time = item["created"]
             path = item["path"]
             file_name = item["name"]
-    response = requests.get("https://dl.bintray.com/infrasim/" + repo + "/" + path)
+            sha256 = item["sha256"]
+    response = requests.get(
+        "https://dl.bintray.com/infrasim/" + repo + "/" + path)
+    if not response:
+        raise Exception("Failed to fetch package {} from bintray.\n"
+                        "response code is {}".format(package, response))
+    if not len(response.content):
+        raise Exception("Failed to fetch package {} from bintray.\n"
+                        "Length of file is zero.".format(package))
     if package is "Seabios":
         file_name = os.path.join("/usr/local/share/qemu/", "bios-256k.bin")
     else:
@@ -47,6 +56,9 @@ def install_bintray_packages(repo, package):
     with open(file_name, "wb") as f:
         for chunk in response.iter_content(8192):
             f.write(chunk)
+    if hashlib.sha256(open(file_name, "rb").read()).hexdigest() != sha256:
+        raise Exception(
+            "The file {} downloaded is not complete, please try again!")
     if package is not "Seabios":
         print "installing " + package + "..."
         run_command("dpkg -i " + file_name)

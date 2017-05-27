@@ -8,11 +8,12 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import os
 import unittest
+import subprocess
 import yaml
 import re
 import time
 import infrasim.config as config
-from infrasim import run_command
+from infrasim import run_command, CommandRunFailed
 from test.fixtures import FakeConfig
 import infrasim.model as model
 from infrasim.workspace import Workspace
@@ -280,12 +281,12 @@ class test_node_cli(unittest.TestCase):
         output_info['start'] = run_command("infrasim node info")
         self.assertEqual(output_info['start'][0], 0)
 
-        output_init = run_command("infrasim init -s")
-        self.assertEqual(output_init[0], 0)
+        self.assertRaises(CommandRunFailed, run_command,
+                          cmd="infrasim init -s", shell=True,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        output_init_force = run_command("infrasim init -s -f")
-        self.assertEqual(output_init_force[0], 0)
-        self.assertTrue(config.infrasim_home)
+        run_command("infrasim init -s -f")
+        self.assertEqual(len(os.listdir(config.infrasim_home)), 1)
 
 
 class test_config_cli_with_runtime_node(unittest.TestCase):
