@@ -81,6 +81,12 @@ class ConfigCommands(object):
                                    "{}.yml".format(node_name))
         try:
             os.system("{} {}".format(editor, config_path))
+            if Workspace.check_workspace_exists(node_name):
+                print "Warning: " \
+                      "\033[93mPlease destroy node {}\033[0m " \
+                      "before start or restart, " \
+                      "or this edit won't work." .format(node_name)
+
         except OSError, e:
             print e
 
