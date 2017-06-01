@@ -1,0 +1,43 @@
+{% macro get_rotation(drive) %}
+    {% if drive.rotation %}{{ drive.rotation }}{% else %}7200{% endif %}
+{% endmacro %}
+{% macro random_n_element(n)%}
+    {% for i in range(n) %}{{ '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'|random }}{% endfor %}
+{% endmacro %}
+{% macro get_part_number(drive) %}
+    {% if get_rotation(drive)|int < 2 %}PH077K162640262E0{{ random_n_element(3) }}A00{% else %}TH0XWM1W212336360{{ random_n_element(3) }}A00{% endif %}
+{% endmacro %}
+
+Disk.Bay.{{ drive.slot }}:Enclosure.Internal.0-1:NonRAID.Integrated.1-1
+   Status                           = Ok
+   DeviceDescription                = Disk {{ drive.slot }} in Backplane 1 of Integrated Storage Controller 1
+   RollupStatus                     = Ok
+   Name                             = {% if get_rotation(drive)|int < 2 %}Solid State Disk{% else %}Physical Disk{% endif %} 0:1:{{ drive.slot }}
+   State                            = Non-Raid
+   OperationState                   = Not Applicable
+   PowerStatus                      = Spun-Up
+   Size                             = {{ drive.size_gb }} GB
+   FailurePredicted                 = NO
+   RemainingRatedWriteEndurance     = Not Applicable
+   SecurityStatus                   = Not Capable
+   BusProtocol                      = SAS
+   MediaType                        = HDD
+   UsedRaidDiskSpace                = 0.00 GB
+   AvailableRaidDiskSpace           = 0.00 GB
+   Hotspare                         = NO
+   Manufacturer                     = {{ drive.vendor }}
+   ProductId                        = {{ drive.product }}
+   Revision                         = {{ drive.version }}
+   SerialNumber                     = {{ drive.serial }}
+   PartNumber                       = {{ get_part_number(drive) }}
+   NegotiatedSpeed                  = 12.0 Gb/s
+   ManufacturedDay                  = 2
+   ManufacturedWeek                 = 9
+   ManufacturedYear                 = 2016
+   SasAddress                       = {{ drive.wwn }}
+   FormFactor                       = 3.5 Inch
+   RaidNominalMediumRotationRate    = {{ get_rotation(drive) }}
+   T10PICapability                  = Not Capable
+   BlockSizeInBytes                 = 512
+   MaxCapableSpeed                  = 12 Gb/s
+   SelfEncryptingDriveCapability    = Not Capable

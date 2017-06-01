@@ -1,0 +1,4 @@
+{% include "storage_drive_satadom.j2" ignore missing with context %}
+{% for drive in drives %}
+{% include "storage_drive_scsi.j2" ignore missing with context %}
+{% endfor %}

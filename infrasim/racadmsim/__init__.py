@@ -12,16 +12,26 @@ import re
 import paramiko
 import os
 import logging
+import jinja2
 from os import linesep
 from infrasim import sshim
 from infrasim.repl import REPL, register, parse, QuitREPL
-from infrasim.log import LoggerType, infrasim_log
-import sys
+from infrasim.yaml_loader import YAMLLoader
+
 
 auth_map = {}
 racadm_data = None
-logger_r = infrasim_log.get_logger(LoggerType.racadm.value)
-
+r_log = None
+node_name = None
+node_info = None
+j2_env = jinja2.Environment(
+                loader=jinja2.FileSystemLoader(
+                    os.path.join(config.infrasim_template, "racadmsim"),
+                    followlinks=True
+                ),
+                trim_blocks=True,
+                lstrip_blocks=True
+            )
 
 def auth(username, password):
     global auth_map
@@ -42,6 +52,41 @@ def fake_data(name):
         return rsp
     else:
         return None
+
+
+def init_log():
+    """
+    Create log folder, prepare handler and recording level
+    """
+    global node_name
+    global r_log
+
+    r_log = logging.getLogger(__name__)
+
+    log_folder = os.path.join(config.infrasim_logdir, node_name)
+    if not os.path.exists(log_folder):
+        os.mkdir(log_folder)
+    log_path = os.path.join(log_folder, "racadmsim.log")
+
+    r_hdl = logging.FileHandler(log_path)
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    r_hdl.setFormatter(formatter)
+    r_log.addHandler(r_hdl)
+    r_log.setLevel(logging.NOTSET)
+
+
+def get_node_info():
+    """
+    Get runtime node information
+    """
+    global node_name
+
+    runtime_yml_path = os.path.join(config.infrasim_home,
+                                    node_name, "etc", "infrasim.yml")
+    with open(runtime_yml_path, 'r') as fp:
+        node_info = YAMLLoader(fp).get_data()
+
+    return node_info
 
 
 class RacadmConsole(REPL):
@@ -82,7 +127,16 @@ class RacadmConsole(REPL):
         [RACADM] get storage information
         """
         if args == ["storage", "get", "pdisks", "-o"]:
-            return fake_data("storage_get_pdisks_o")
+            j2_tmpl = j2_env.get_template("storage.j2")
+            node_info = get_node_info()
+
+            d = node_info["compute"]["storage_backend"][0]["drives"][0]
+
+            scsi_drives = node_info["compute"]["storage_backend"][1]["drives"]
+
+            t = j2_tmpl.render(satadom = d, drives = scsi_drives)
+
+            return t
         else:
             return None
 
@@ -271,31 +325,29 @@ def start(instance="default",
     # Init environment
     global auth_map
     global racadm_data
-    global logger_r
-
-    logger_r = infrasim_log.get_logger(LoggerType.racadm.value, instance)
-
-    cmd_rev = 'racadmsim '
-    for word in sys.argv[1:]:
-        cmd_rev += word+' '
-    logger_r.info('racadmsim command rev: {}'.format(cmd_rev))
+    global node_name
 
     auth_map[username] = password
+    node_name = instance
     if os.path.exists(data_src):
         racadm_data = data_src
+    init_log()
 
     server = sshim.Server(iDRACServer,
                           logger=logger_r,
                           address=ipaddr,
                           port=int(port),
                           handler=iDRACHandler)
-    logger_r.info("{}-racadm start on ip: {}, port: {}".
-                  format(instance, ipaddr, port))
+    logger.info("{}-racadm start on ip: {}, port: {}".
+                format(node_name, ipaddr, port))
     server.run()
 
 if __name__ == "__main__":
     # Try to run this from code root directory, with command:
     #     python -m infrasim.racadmsim
+    auth_map["admin"] = "admin"
+    node_name = "default"
+    init_log()
 
     auth_map["admin"] = "admin"
     server = sshim.Server(iDRACServer, logger=logger_r, port=10022, handler=iDRACHandler)
