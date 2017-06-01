@@ -109,7 +109,7 @@ class qemu_functions(unittest.TestCase):
         try:
             node.precheck()
         except ArgsNotCorrect, e:
-            assert "The 'menu' must be either 'on' or 'off'" in e.value
+            assert "menu invalid" in e.value
 
     def test_set_menu_unsupported_string_value(self):
         with open(config.infrasim_default_config, "r") as f_yml:
@@ -120,7 +120,7 @@ class qemu_functions(unittest.TestCase):
         try:
             node.precheck()
         except ArgsNotCorrect, e:
-            assert "The 'menu' must be either 'on' or 'off'" in e.value
+            assert "menu invalid" in e.value
 
     def test_set_menu_legal_value(self):
         with open(config.infrasim_default_config, "r") as f_yml:
