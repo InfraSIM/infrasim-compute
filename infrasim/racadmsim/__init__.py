@@ -12,58 +12,26 @@ import re
 import paramiko
 import os
 import logging
-import jinja2
 from os import linesep
-from infrasim import sshim
-from infrasim.repl import REPL, register, parse, QuitREPL
-from infrasim.yaml_loader import YAMLLoader
+from infrasim import sshim, logger, config
+from . import env
+from .api import iDRACConsole
 
-
-auth_map = {}
-racadm_data = None
-r_log = None
-node_name = None
-node_info = None
-j2_env = jinja2.Environment(
-                loader=jinja2.FileSystemLoader(
-                    os.path.join(config.infrasim_template, "racadmsim"),
-                    followlinks=True
-                ),
-                trim_blocks=True,
-                lstrip_blocks=True
-            )
 
 def auth(username, password):
-    global auth_map
-    if username in auth_map and auth_map[username] == password:
+    if username in env.auth_map and env.auth_map[username] == password:
         return paramiko.AUTH_SUCCESSFUL
     else:
         return paramiko.AUTH_FAILED
-
-
-def fake_data(name):
-    global racadm_data
-    if not racadm_data:
-        return None
-    data_path = os.path.join(racadm_data, name)
-    if os.path.exists(data_path):
-        with open(data_path) as fp:
-            rsp = linesep.join(fp.read().splitlines())
-        return rsp
-    else:
-        return None
 
 
 def init_log():
     """
     Create log folder, prepare handler and recording level
     """
-    global node_name
-    global r_log
+    env.r_log = logging.getLogger(__name__)
 
-    r_log = logging.getLogger(__name__)
-
-    log_folder = os.path.join(config.infrasim_logdir, node_name)
+    log_folder = os.path.join(config.infrasim_logdir, env.node_name)
     if not os.path.exists(log_folder):
         os.mkdir(log_folder)
     log_path = os.path.join(log_folder, "racadmsim.log")
@@ -71,185 +39,8 @@ def init_log():
     r_hdl = logging.FileHandler(log_path)
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
     r_hdl.setFormatter(formatter)
-    r_log.addHandler(r_hdl)
-    r_log.setLevel(logging.NOTSET)
-
-
-def get_node_info():
-    """
-    Get runtime node information
-    """
-    global node_name
-
-    runtime_yml_path = os.path.join(config.infrasim_home,
-                                    node_name, "etc", "infrasim.yml")
-    with open(runtime_yml_path, 'r') as fp:
-        node_info = YAMLLoader(fp).get_data()
-
-    return node_info
-
-
-class RacadmConsole(REPL):
-
-    def __init__(self):
-        super(RacadmConsole, self).__init__()
-        self.prompt = "racadmsim>>"
-
-    def refine_cmd(self, cmd):
-        """
-        For racadm console, it allows write racadm as prefix.
-        So when you enter `racadm getled`, you actually run
-        `getled`, the cmd need to be revised.
-        """
-        while True:
-            if cmd and cmd[0] == "racadm":
-                del cmd[0]
-            else:
-                return cmd
-
-    @register
-    def getled(self, ctx, args):
-        """
-        [RACADM] get led status
-        """
-        return fake_data("getled")
-
-    @register
-    def getsysinfo(self, ctx, args):
-        """
-        [RACADM] get system info
-        """
-        return fake_data("getsysinfo")
-
-    @register
-    def storage(self, ctx, args):
-        """
-        [RACADM] get storage information
-        """
-        if args == ["storage", "get", "pdisks", "-o"]:
-            j2_tmpl = j2_env.get_template("storage.j2")
-            node_info = get_node_info()
-
-            d = node_info["compute"]["storage_backend"][0]["drives"][0]
-
-            scsi_drives = node_info["compute"]["storage_backend"][1]["drives"]
-
-            t = j2_tmpl.render(satadom = d, drives = scsi_drives)
-
-            return t
-        else:
-            return None
-
-    @register
-    def get(self, ctx, args):
-        """
-        [RACADM] get device information
-        """
-        if args == ["get", "BIOS"]:
-            return fake_data("get_bios")
-        elif args == ["get", "BIOS.MemSettings"]:
-            return fake_data("get_bios_mem_setting")
-        elif args == ["get", "IDRAC"]:
-            return fake_data("get_idrac")
-        elif args == ["get", "LifeCycleController"]:
-            return fake_data("get_life_cycle_controller")
-        elif args == ["get", "LifeCycleController.LCAttributes"]:
-            return fake_data("get_life_cycle_controller_lc_attributes")
-        else:
-            return None
-
-    @register
-    def hwinventory(self, ctx, args):
-        """
-        [RACADM] hwinventory
-        """
-        if args == ["hwinventory"]:
-            return fake_data("hwinventory")
-        elif args == ["hwinventory", "nic"]:
-            return fake_data("hwinventory_nic")
-        elif args == ["hwinventory", "nic.Integrated.1-1-1"]:
-            return fake_data("hwinventory_nic_integrated_1-1-1")
-        elif args == ["hwinventory", "nic.Integrated.1-2-1"]:
-            return fake_data("hwinventory_nic_integrated_1-2-1")
-        elif args == ["hwinventory", "nic.Integrated.1-3-1"]:
-            return fake_data("hwinventory_nic_integrated_1-3-1")
-        elif args == ["hwinventory", "nic.Integrated.1-4-1"]:
-            return fake_data("hwinventory_nic_integrated_1-4-1")
-        else:
-            return None
-
-    @register
-    def setled(self, ctx, args):
-        """
-        [RACADM] set led status
-        """
-        if args == ["setled", "-l", "0"]:
-            return fake_data("setled_l_0")
-        else:
-            return None
-
-    def run(self):
-        self.welcome()
-        while True:
-            # READ
-            inp = self.input(self.prompt)
-
-            # EVAL
-            cmd = self.refine_cmd(parse(inp))
-            logger_r.info("[req][repl] {}".format(inp))
-
-            try:
-                out = self.do(cmd)
-            except EOFError:
-                logger_r.warning("[rsp][repl] EOFError")
-                return
-            except QuitREPL:
-                logger_r.info("[rsp][repl] Quite REPL")
-                return
-
-            # PRINT
-            self.output(linesep)
-            self.output(" ".join(["racadm"]+cmd))
-            logger_r.info("[rsp][repl]{}{}".format(linesep, out))
-            if out is not None:
-                self.output(out)
-                self.output(linesep)
-
-
-class iDRACConsole(REPL):
-
-    def __init__(self):
-        super(iDRACConsole, self).__init__()
-        self.prompt = "/admin1-> "
-
-    def welcome(self):
-        lines = ["Connecting to {ip}:{port}...",
-                 "Connection established.",
-                 "To escape to local shell, press \'Ctrl+Alt+]\'.",
-                 "", ""]
-        self.output(linesep.join(lines))
-
-    @register
-    def racadm(self, ctx, args):
-        """
-        Enter racadmsim console or call sub commands
-        """
-        if len(args) == 1:
-            racadm = RacadmConsole()
-            racadm.set_input(self.input)
-            racadm.set_output(self.output)
-            racadm.run()
-        else:
-            logger_r.info("[req][inline] {}".format(" ".join(args)))
-            racadm = RacadmConsole()
-            racadm.set_output(self.output)
-            racadm_cmd = parse(" ".join(args[1:]))
-            rsp = racadm.do(racadm_cmd)
-            logger_r.info("[rsp][inline]{}{}".format(linesep, rsp))
-            if rsp:
-                racadm.output(rsp.strip(linesep))
-            else:
-                racadm.output(linesep)
+    env.r_log.addHandler(r_hdl)
+    env.r_log.setLevel(logging.NOTSET)
 
 
 class iDRACHandler(sshim.Handler):
@@ -323,30 +114,26 @@ def start(instance="default",
           password="admin",
           data_src="auto"):
     # Init environment
-    global auth_map
-    global racadm_data
-    global node_name
-
-    auth_map[username] = password
-    node_name = instance
+    env.auth_map[username] = password
+    env.node_name = instance
     if os.path.exists(data_src):
-        racadm_data = data_src
+        env.racadm_data = data_src
     init_log()
-
+    print env.r_log
     server = sshim.Server(iDRACServer,
                           logger=logger_r,
                           address=ipaddr,
                           port=int(port),
                           handler=iDRACHandler)
     logger.info("{}-racadm start on ip: {}, port: {}".
-                format(node_name, ipaddr, port))
+                format(env.node_name, ipaddr, port))
     server.run()
 
 if __name__ == "__main__":
     # Try to run this from code root directory, with command:
     #     python -m infrasim.racadmsim
-    auth_map["admin"] = "admin"
-    node_name = "default"
+    env.auth_map["admin"] = "admin"
+    env.node_name = "default"
     init_log()
 
     auth_map["admin"] = "admin"
