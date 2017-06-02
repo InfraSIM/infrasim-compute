@@ -22,8 +22,11 @@ import json
 import helper
 import stat
 from workspace import Workspace
-from . import logger, run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
+from . import run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
 from infrasim.helper import run_in_namespace, double_fork
+from .log import infrasim_log, LoggerType
+
+logger_model = infrasim_log.get_logger(LoggerType.model.value)
 
 """
 This module majorly defines infrasim element models.
@@ -47,7 +50,7 @@ For each element class, they need to implement methods:
 class Utility(object):
     @staticmethod
     @double_fork
-    def execute_command(command, log_path=""):
+    def execute_command(command, logger, log_path="",):
         args = shlex.split(command)
         proc = subprocess.Popen(args, stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE,
@@ -71,6 +74,7 @@ class Utility(object):
                 logger.error(errout)
 
         if not os.path.isdir("/proc/{}".format(proc.pid)):
+            logger.exception("command {} run failed".format(command))
             raise CommandRunFailed(command)
 
         return proc.pid
@@ -98,6 +102,15 @@ class CElement(object):
     def __init__(self):
         self.__option_list = []
         self.__owner = None
+        self.__logger = infrasim_log.get_logger(LoggerType.model.value)
+
+    @property
+    def logger(self):
+        return self.__logger
+
+    @logger.setter
+    def logger(self, logger):
+        self.__logger = logger
 
     @property
     def owner(self):
@@ -108,12 +121,15 @@ class CElement(object):
         self.__owner = o
 
     def precheck(self):
+        self.__logger.exception('Precheck is not implemented')
         raise NotImplementedError("precheck is not implemented")
 
     def init(self):
+        self.__logger.exception('init is not implemented')
         raise NotImplementedError("init is not implemented")
 
     def handle_parms(self):
+        self.__logger.exception('handle_parms is not implemented')
         raise NotImplementedError("handle_parms is not implemented")
 
     def add_option(self, option, pos=1):
@@ -121,6 +137,7 @@ class CElement(object):
             return
 
         if option in self.__option_list:
+            self.__logger.warning('option {} already added'.format(option))
             print "Warning: option {} already added.".format(option)
             return
 
@@ -131,6 +148,7 @@ class CElement(object):
 
     def get_option(self):
         if len(self.__option_list) == 0:
+            self.__logger.exception("No option in the list")
             raise Exception("No option in the list")
 
         return " ".join(self.__option_list)
@@ -153,13 +171,19 @@ class CCPU(CElement):
         Check if the CPU quantities exceeds the real physical CPU cores
         """
         if self.__quantities <= 0:
+            self.logger.exception(
+                '[CPU] quantities invalid: {}, should be positive'.
+                format(self.__quantities))
             raise ArgsNotCorrect(
-                '[model:cpu] quantities invalid: {}, should be positive'.
+                '[CPU] quantities invalid: {}, should be positive'.
                 format(self.__quantities))
 
         if self.__quantities % self.__socket != 0:
+            self.logger.exception(
+                '[CPU] quantities: {} is not divided by socket: {}'.
+                format(self.__quantities, self.__socket))
             raise ArgsNotCorrect(
-                '[model:cpu] quantities: {} is not divided by socket: {}'.
+                '[CPU] quantities: {} is not divided by socket: {}'.
                 format(self.__quantities, self.__socket))
 
     def init(self):
@@ -212,10 +236,13 @@ class CCharDev(CElement):
 
     def precheck(self):
         if self.__port and helper.check_if_port_in_use("0.0.0.0", self.__port):
+            self.logger.exception("[Chardev] Monitor port {} is already in use".
+                                  format(self.__port))
             raise ArgsNotCorrect("Monitor port {} is already in use.".format(self.__port))
 
     def init(self):
         if 'backend' not in self.__chardev:
+            self.logger.exception("[Chardev] Backend should be set.")
             raise Exception("Backend should be set.")
 
         self.__backend_type = self.__chardev.get('backend')
@@ -270,6 +297,7 @@ class CMemory(CElement):
         Check if the memory size exceeds the system available size
         """
         if self.__memory_size is None:
+            self.logger.exception("[Memory] Please set memory size.")
             raise ArgsNotCorrect("Please set memory size.")
 
     def init(self):
@@ -359,6 +387,7 @@ class LSISASController(CBaseStorageController):
         idx = 0
         for drive_info in self._controller_info.get("drives", []):
             sd_obj = SCSIDrive(drive_info)
+            sd_obj.logger = self.logger
             sd_obj.index = idx
             sd_obj.owner = self
             sd_obj.set_bus(self.controller_index + idx / self._max_drive_per_controller)
@@ -477,6 +506,7 @@ class AHCIController(CBaseStorageController):
         idx = 0
         for drive_info in self._controller_info.get("drives", []):
             ide_obj = IDEDrive(drive_info)
+            ide_obj.logger = self.logger
             ide_obj.index = idx
             ide_obj.owner = self
             ide_obj.set_bus(self.controller_index + idx / self._max_drive_per_controller)
@@ -602,12 +632,13 @@ class CBaseDrive(CElement):
             self.__drive_file = os.path.join(disk_file_base, "disk{0}{1}.img".format(self.__bus, self.__index))
 
         if not os.path.exists(self.__drive_file):
-            logger.info("Creating drive: {}".format(self.__drive_file))
+            self.logger.info("[BaseDrive] Creating drive: {}".format(self.__drive_file))
             command = "qemu-img create -f {0} -o cluster_size={1}K {2} {3}G".format(self.__format, self.__cluster_size,
                                                                                     self.__drive_file, self.__size)
             try:
                 run_command(command)
             except CommandRunFailed as e:
+                self.logger.exception("[BaseDrive] {}".format(e.value))
                 raise e
 
     def build_host_option(self, *args, **kwargs):
@@ -801,8 +832,10 @@ class CBackendStorage(CElement):
         elif "ahci" in model:
             controller_obj = AHCIController(controller_info)
         else:
+            self.logger.exception("[BackendStorage] Unsupported controller type")
             raise ArgsNotCorrect("Unsupported controller type.")
 
+        controller_obj.logger = self.logger
         # set owner
         controller_obj.owner = self
         return controller_obj
@@ -855,24 +888,34 @@ class CNetwork(CElement):
         if self.__network_mode == "bridge":
             if self.__bridge_name is None:
                 if "br0" not in helper.get_all_interfaces():
+                    self.logger.exception('[Network] network_name(br0) is not exists')
                     raise ArgsNotCorrect("ERROR: network_name(br0) is not exists")
             else:
                 if self.__bridge_name not in helper.get_all_interfaces():
+                    self.logger.exception('[Network] network_name({}) is not exists'.
+                                          format(self.__bridge_name))
                     raise ArgsNotCorrect("ERROR: network_name({}) is not exists".
                                          format(self.__bridge_name))
             if "mac" not in self.__network:
+                self.logger.exception("[Network] mac address is not specified for"
+                                      "target network:\n{}".
+                                      format(json.dumps(self.__network, indent=4)))
                 raise ArgsNotCorrect("ERROR: mac address is not specified for "
                                      "target network:\n{}".
                                      format(json.dumps(self.__network, indent=4)))
             else:
                 list_addr = self.__mac_address.split(":")
                 if len(list_addr) != 6:
+                    self.logger.exception("[Network] mac address invalid: {}".
+                                          format(self.__mac_address))
                     raise ArgsNotCorrect("ERROR: mac address invalid: {}".
                                          format(self.__mac_address))
                 for each_addr in list_addr:
                     try:
                         int(each_addr, 16)
                     except:
+                        self.logger.exception("[Network] mac address invalid: {}".
+                                              format(self.__mac_address))
                         raise ArgsNotCorrect("ERROR: mac address invalid: {}".
                                              format(self.__mac_address))
 
@@ -900,6 +943,8 @@ class CNetwork(CElement):
         elif self.__network_mode == "nat":
             netdev_option = ",".join(["user", "id=netdev{}".format(self.__index)])
         else:
+            self.logger.exception("[Network] {} is not supported now.".
+                                  format(self.__network_mode))
             raise Exception("ERROR: {} is not supported now.".
                             format(self.__network_mode))
 
@@ -924,12 +969,14 @@ class CBackendNetwork(CElement):
             try:
                 network_obj.precheck()
             except ArgsNotCorrect as e:
+                self.logger.exception('[BackendNetwork] {}'.format(e.value))
                 raise e
 
     def init(self):
         index = 0
         for network in self.__backend_network_list:
             network_obj = CNetwork(network)
+            network_obj.logger = self.logger
             network_obj.set_index(index)
             self.__network_list.append(network_obj)
             index += 1
@@ -967,6 +1014,7 @@ class CIPMI(CElement):
         Check if internal socket port is used.
         """
         if self.__chardev_obj is None:
+            self.logger.exception("[IPMI] -chardev should set.")
             raise Exception("-chardev should set.")
 
     def init(self):
@@ -974,6 +1022,7 @@ class CIPMI(CElement):
 
         if 'chardev' in self.__ipmi:
             self.__chardev_obj = CCharDev(self.__ipmi['chardev'])
+            self.__chardev_obj.logger = self.logger
             self.__chardev_obj.set_id("ipmi0")
             self.__chardev_obj.set_host(self.__host)
             self.__chardev_obj.set_port(self.__bmc_connection_port)
@@ -1034,6 +1083,7 @@ class CPCIBridge(CElement):
 
     def precheck(self):
         if self.__current_bridge_device is None:
+            self.logger.exception("[PCIBridge] bridge device is required.")
             raise ArgsNotCorrect("bridge device is required.")
 
     def init(self):
@@ -1050,6 +1100,7 @@ class CPCIBridge(CElement):
         current_bus_nr = self.__bus + 1
         for child_br in self.__bridge_info['downstream_bridge']:
             child_obj = CPCIBridge(child_br)
+            child_obj.logger = self.logger
             child_obj.set_bus(current_bus_nr)
             child_obj.__can_use_bus = True
             child_obj.set_parent("pci.{}".format(self.__bus))
@@ -1107,6 +1158,7 @@ class CPCITopologyManager(CElement):
         current_bus_nr = 1
         for bri in self.__pci_topology_info:
             bridge_obj = CPCIBridge(bri)
+            bridge_obj.logger = self.logger
             bridge_obj.set_bus(current_bus_nr)
             bridge_obj.set_parent("pcie.0")
             self.__bridge_list.append(bridge_obj)
@@ -1137,6 +1189,7 @@ class CMonitor(CElement):
         try:
             self.__chardev.precheck()
         except ArgsNotCorrect, e:
+            self.logger.exception("[Monitor] {}".format(e.value))
             print e.value
             raise e
 
@@ -1144,6 +1197,7 @@ class CMonitor(CElement):
         self.__mode = self.__monitor.get('mode', "readline")
         if 'chardev' in self.__monitor:
             self.__chardev = CCharDev(self.__monitor['chardev'])
+            self.__chardev.logger = self.logger
             self.__chardev.set_id("monitorchardev")
             self.__chardev.init()
 
@@ -1165,6 +1219,7 @@ class Task(object):
         self.__workspace = None
         self.__task_name = None
         self.__log_path = ""
+        self.__logger = infrasim_log.get_logger(LoggerType.model.value)
 
         # If any task set the __asyncronous to True,
         # this task shall only be maintained with information
@@ -1193,6 +1248,7 @@ class Task(object):
         return self.__task_name
 
     def get_commandline(self):
+        self.__logger.exception("get_commandline not implemented")
         raise NotImplementedError("get_commandline not implemented")
 
     def set_workspace(self, directory):
@@ -1203,6 +1259,14 @@ class Task(object):
 
     def set_log_path(self, log_path):
         self.__log_path = log_path
+
+    @property
+    def logger(self):
+        return self.__logger
+
+    @logger.setter
+    def logger(self, logger):
+        self.__logger = logger
 
     def set_asyncronous(self, asyncr):
         self.__asyncronous = asyncr
@@ -1228,6 +1292,7 @@ class Task(object):
 
     @run_in_namespace
     def run(self):
+
         if self.__asyncronous:
             start = time.time()
             while True:
@@ -1240,28 +1305,36 @@ class Task(object):
             if not self._task_is_running():
                 print "[ {} ] {} fail to start".\
                     format("ERROR", self.__task_name)
+                self.__logger.error("[ {} ] {} fail to start".
+                                    format("ERROR", self.__task_name))
             else:
                 print "[ {:<6} ] {} is running".format(self.get_task_pid(), self.__task_name)
+                self.__logger.info("[ {:<6} ] {} is running".
+                                   format(self.get_task_pid(), self.__task_name))
             return
 
         cmdline = self.get_commandline()
 
-        logger.info(cmdline)
+        self.__logger.info("{}'s command line: {}".
+                           format(self.__task_name, cmdline))
 
         pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
 
         if self._task_is_running():
             print "[ {:<6} ] {} is already running".format(
                 self.get_task_pid(), self.__task_name)
+            self.__logger.info("[ {:<6} ] {} is already running".
+                               format(self.get_task_pid(), self.__task_name))
             return
         elif os.path.exists(pid_file):
             # If the qemu quits exceptionally when starts, pid file is also
             # created, but actually the qemu died.
             os.remove(pid_file)
 
-        pid = Utility.execute_command(cmdline, log_path=self.__log_path)
+        pid = Utility.execute_command(cmdline, self.__logger, log_path=self.__log_path)
 
         print "[ {:<6} ] {} starts to run".format(pid, self.__task_name)
+        self.__logger.info("[ {:<6} ] {} starts to run".format(pid, self.__task_name))
 
         with open(pid_file, "w") as f:
             if os.path.exists("/proc/{}".format(pid)):
@@ -1274,11 +1347,15 @@ class Task(object):
             if task_pid > 0:
                 os.kill(int(task_pid), signal.SIGTERM)
                 print "[ {:<6} ] {} stop".format(task_pid, self.__task_name)
+                self.__logger.info("[ {:<6} ] {} stop".
+                                   format(task_pid, self.__task_name))
                 time.sleep(1)
                 if os.path.exists("/proc/{}".format(task_pid)):
                     os.kill(int(task_pid), signal.SIGKILL)
             else:
                 print "[ {:<6} ] {} is stopped".format("", self.__task_name)
+                self.__logger.info("[ {:<6} ] {} is stopped".
+                                   format("", self.__task_name))
 
             if os.path.exists(pid_file):
                 os.remove(pid_file)
@@ -1287,9 +1364,13 @@ class Task(object):
                 os.remove(pid_file)
             if not os.path.exists("/proc/{}".format(task_pid)):
                 print "[ {:<6} ] {} is stopped".format(task_pid, self.__task_name)
+                self.__logger.info("[ {:<6} ] {} is stopped".
+                                   format(task_pid, self.__task_name))
             else:
                 print("[ {:<6} ] {} stop failed.".
                       format(task_pid, self.__task_name))
+                self.__logger.info("[ {:<6} ] {} stop failed.".
+                                   format(task_pid, self.__task_name))
 
     def status(self):
         task_pid = self.get_task_pid()
@@ -1366,28 +1447,38 @@ class CCompute(Task, CElement):
         try:
             run_command("which {}".format(self.__qemu_bin))
         except CommandRunFailed:
+            self.logger.exception("[Compute] Can not find file {}".format(self.__qemu_bin))
             raise CommandNotFound(self.__qemu_bin)
 
         # check if smbios exists
         if not os.path.isfile(self.__smbios):
-            raise ArgsNotCorrect("Target SMBIOS file doesn't exist: {}".
-                                 format(self.__smbios))
+            self.logger.exception("[Compute] Target SMBIOS file doesn't exist: {}".
+                                  format(self.__smbios))
+            raise ArgsNotCorrect("Target SMBIOS file doesn't exist: {}".format(self.__smbios))
 
         if self.__kernel and os.path.exists(self.__kernel) is False:
+            self.logger.exception("[Compute] Kernel {} does not exist.".
+                                  format(self.__kernel))
             raise ArgsNotCorrect("Kernel {} does not exist.".format(self.__kernel))
 
         if self.__initrd and os.path.exists(self.__initrd) is False:
+            self.logger.exception("[Compute] Kernel {} does not exist.".
+                                  format(self.__initrd))
             raise ArgsNotCorrect("Kernel {} does not exist.".format(self.__initrd))
 
         # check if VNC port is in use
         if helper.check_if_port_in_use("0.0.0.0", self.__display + 5900):
-            raise ArgsNotCorrect("VNC port {} is already in use.".format(self.__display + 5900))
+            self.logger.exception("[Compute] VNC port {} is already in use.".
+                                  format(self.__display + 5900))
+            raise ArgsNotCorrect("VNC port {} is already in use.".
+                                 format(self.__display + 5900))
 
         # check sub-elements
         for element in self.__element_list:
             try:
                 element.precheck()
             except Exception as e:
+                self.logger.exception("[Compute] {}".format(str(e)))
                 raise e
 
         if 'boot' in self.__compute:
@@ -1395,14 +1486,19 @@ class CCompute(Task, CElement):
                 if isinstance(self.__compute['boot']['menu'], str):
                     menu_option = str(self.__compute['boot']['menu']).strip(" ").lower()
                     if menu_option not in ["on", "off"]:
-                        raise ArgsNotCorrect("Error: illegal config option. The 'menu' must be either 'on' or 'off'.")
+                        msg = "Error: illegal config option. " \
+                              "The 'menu' must be either 'on' or 'off'."
+                        self.logger.exception(msg)
+                        raise ArgsNotCorrect(msg)
                 elif not isinstance(self.__compute['boot']['menu'], bool):
-                    raise ArgsNotCorrect("Error: illegal config option. The 'menu' must be either 'on' or 'off'.")
+                    msg = "Error: illegal config option. The 'menu' " \
+                          "must be either 'on' or 'off'."
+                    self.logger.exception(msg)
+                    raise ArgsNotCorrect(msg)
 
 
     @run_in_namespace
     def init(self):
-
         if 'kvm_enabled' in self.__compute and not helper.check_kvm_existence():
             self.__enable_kvm = False
         else:
@@ -1437,11 +1533,11 @@ class CCompute(Task, CElement):
                 if self.__class__.numactl is None:
                     self.__class__.numactl = NumaCtl()
                 self.__numactl_enable = True
-                logger.info('[model:compute] infrasim has '
-                            'enabled numa control')
+                self.logger.info('[compute] infrasim has '
+                                 'enabled numa control')
             else:
-                logger.info('[model:compute] infrasim can\'t '
-                            'find numactl in this environment')
+                self.logger.info('[compute] infrasim can\'t '
+                                 'find numactl in this environment')
 
         self.__display = self.__compute.get('vnc_display', 1)
         self.__kernel = self.__compute.get('kernel')
@@ -1455,10 +1551,12 @@ class CCompute(Task, CElement):
         self.__qemu_bin = self.__compute.get("qemu_bin", self.__qemu_bin)
 
         cpu_obj = CCPU(self.__compute['cpu'])
+        cpu_obj.logger = self.logger
         self.__element_list.append(cpu_obj)
         self.__cpu_obj = cpu_obj
 
         memory_obj = CMemory(self.__compute['memory'])
+        memory_obj.logger = self.logger
         self.__element_list.append(memory_obj)
 
         # If PCI device wants to sit on one specific PCI bus, the bus should be
@@ -1467,9 +1565,11 @@ class CCompute(Task, CElement):
         pci_topology_manager_obj = None
         if 'pci_bridge_topology' in self.__compute:
             pci_topology_manager_obj = CPCITopologyManager(self.__compute['pci_bridge_topology'])
+            pci_topology_manager_obj.logger = self.logger
             self.__element_list.append(pci_topology_manager_obj)
 
         backend_storage_obj = CBackendStorage(self.__compute['storage_backend'])
+        backend_storage_obj.logger = self.logger
         backend_storage_obj.owner = self
         if pci_topology_manager_obj:
             backend_storage_obj.set_pci_topology_mgr(pci_topology_manager_obj)
@@ -1477,6 +1577,7 @@ class CCompute(Task, CElement):
         self.__element_list.append(backend_storage_obj)
 
         backend_network_obj = CBackendNetwork(self.__compute['networks'])
+        backend_network_obj.logger = self.logger
         self.__element_list.append(backend_network_obj)
 
         if has_option(self.__compute, "ipmi"):
@@ -1490,6 +1591,7 @@ class CCompute(Task, CElement):
                 }
             }
             ipmi_obj = CIPMI(ipmi_info)
+        ipmi_obj.logger = self.logger
         ipmi_obj.set_bmc_conn_port(self.__port_qemu_ipmi)
         self.__element_list.append(ipmi_obj)
 
@@ -1506,6 +1608,7 @@ class CCompute(Task, CElement):
                     'wait': False
                 }
             })
+        monitor_obj.logger = self.logger
         self.__element_list.append(monitor_obj)
 
         for element in self.__element_list:
@@ -1528,7 +1631,7 @@ class CCompute(Task, CElement):
                 bind_cpu_list = [str(x) for x in self.__class__.numactl.get_cpu_list(cpu_number)]
             except Exception, e:
                 bind_cpu_list = []
-                logger.warning(str(e))
+                self.logger.warning('[Compute] {}'.format(str(e)))
             if len(bind_cpu_list) > 0:
                 numactl_option = 'numactl --physcpubind={} --localalloc'.format(','.join(bind_cpu_list))
                 qemu_commandline = " ".join([numactl_option, qemu_commandline])
@@ -1593,6 +1696,7 @@ class CCompute(Task, CElement):
                 "path": self.__socket_serial,
                 "wait": "off"
             })
+            chardev.logger = self.logger
             chardev.set_id("serial0")
             chardev.init()
             chardev.handle_parms()
@@ -1687,87 +1791,127 @@ class CBMC(Task):
         try:
             run_command("which {}".format(self.__bin))
         except CommandRunFailed:
+            self.logger.exception("[BMC] Cannot find {}".format(self.__bin))
             raise CommandNotFound(self.__bin)
 
         # check script exits
         if not os.path.exists(self.__lancontrol_script):
+            self.logger.exception("[BMC] Lan control script {} doesn\'t exist".
+                                  format(self.__lancontrol_script))
             raise ArgsNotCorrect("Lan control script {} doesn\'t exist".
                                  format(self.__lancontrol_script))
 
         if not os.path.exists(self.__chassiscontrol_script):
+            self.logger.exception("[BMC] Chassis control script {} doesn\'t exist".
+                                  format(self.__chassiscontrol_script))
             raise ArgsNotCorrect("Chassis control script {} doesn\'t exist".
                                  format(self.__chassiscontrol_script))
 
         if not os.path.exists(self.__startcmd_script):
+            self.logger.exception("[BMC] startcmd script {} desn\'t exist".
+                                  format(self.__startcmd_script))
             raise ArgsNotCorrect("startcmd script {} doesn\'t exist".
                                  format(self.__startcmd_script))
 
         # check if self.__port_qemu_ipmi in use
         if helper.check_if_port_in_use("0.0.0.0", self.__port_qemu_ipmi):
+            self.logger.exception("[BMC] Port {} is already in use.".
+                                  format(self.__port_qemu_ipmi))
             raise ArgsNotCorrect("Port {} is already in use.".format(self.__port_qemu_ipmi))
 
         if helper.check_if_port_in_use("0.0.0.0", self.__port_ipmi_console):
+            self.logger.exception("[BMC] Port {} is already in use.".
+                                  format(self.__port_ipmi_console))
             raise ArgsNotCorrect("Port {} is already in use.".format(self.__port_ipmi_console))
 
         # check lan interface exists
         if self.__lan_interface not in helper.get_all_interfaces():
             print "Specified BMC interface {} doesn\'t exist, but BMC will still start."\
                 .format(self.__lan_interface)
-            logger.warning("Specified BMC interface {} doesn\'t exist.".format(
-                self.__lan_interface))
+            self.logger.warning("[BMC] Specified BMC interface {} doesn\'t exist.".
+                                format(self.__lan_interface))
 
         # check if lan interface has IP address
         elif not self.__ipmi_listen_range:
             print "No IP is found on interface {}, but BMC will still start.".format(self.__lan_interface)
-            logger.warning("No IP is found on BMC interface {}.".format(self.__lan_interface))
+            self.logger.warning("[BMC] No IP is found on BMC interface {}.".
+                                format(self.__lan_interface))
 
         # check attribute
         if self.__poweroff_wait < 0:
+            self.logger.exception("[BMC] poweroff_wait is expected to be >= 0, "
+                                  "it's set to {} now".
+                                  format(self.__poweroff_wait))
             raise ArgsNotCorrect("poweroff_wait is expected to be >= 0, "
                                  "it's set to {} now".
                                  format(self.__poweroff_wait))
 
         if type(self.__poweroff_wait) is not int:
+            self.logger.exception("[BMC] poweroff_wait is expected to be integer, "
+                                  "it's set to {} now".
+                                  format(self.__poweroff_wait))
             raise ArgsNotCorrect("poweroff_wait is expected to be integer, "
                                  "it's set to {} now".
                                  format(self.__poweroff_wait))
 
         if self.__kill_wait < 0:
+            self.logger.exception("[BMC] kill_wait is expected to be >= 0, "
+                                  "it's set to {} now".
+                                  format(self.__kill_wait))
             raise ArgsNotCorrect("kill_wait is expected to be >= 0, "
                                  "it's set to {} now".
                                  format(self.__kill_wait))
 
         if type(self.__kill_wait) is not int:
+            self.logger.exception("[BMC] kill_wait is expected to be integer, "
+                                  "it's set to {} now".
+                                  format(self.__kill_wait))
             raise ArgsNotCorrect("kill_wait is expected to be integer, "
                                  "it's set to {} now".
                                  format(self.__kill_wait))
 
         if self.__port_iol < 0:
+            self.logger.exception("[BMC] Port for IOL(IPMI over LAN) is expected "
+                                  "to be integer, it's set to {} now".
+                                  format(self.__port_iol))
             raise ArgsNotCorrect("Port for IOL(IPMI over LAN) is expected "
                                  "to be >= 0, it's set to {} now".
                                  format(self.__port_iol))
 
         if type(self.__port_iol) is not int:
+            self.logger.exception("[BMC] Port for IOL(IPMI over LAN) is expected "
+                                  "to be integer, it's set to {} now".
+                                  format(self.__port_iol))
             raise ArgsNotCorrect("Port for IOL(IPMI over LAN) is expected "
                                  "to be integer, it's set to {} now".
                                  format(self.__port_iol))
 
         if self.__historyfru < 0:
+            self.logger.exception("[BMC] History FRU is expected to be >= 0, "
+                                  "it's set to {} now".
+                                  format(self.__historyfru))
             raise ArgsNotCorrect("History FRU is expected to be >= 0, "
                                  "it's set to {} now".
                                  format(self.__historyfru))
 
         if type(self.__historyfru) is not int:
+            self.logger.exception("[BMC] History FRU is expected to be integer, "
+                                  "it's set to {} now".
+                                  format(self.__historyfru))
             raise ArgsNotCorrect("History FRU is expected to be integer, "
                                  "it's set to {} now".
                                  format(self.__historyfru))
 
         # check configuration file exists
         if not os.path.isfile(self.__emu_file):
+            self.logger.exception("[BMC] Target emulation file does not exist: {}".
+                                  format(self.__emu_file))
             raise ArgsNotCorrect("Target emulation file doesn't exist: {}".
                                  format(self.__emu_file))
 
         if not os.path.isfile(self.__config_file):
+            self.logger.exception("[BMC] Target config file does not exist: {}".
+                                  format(self.__config_file))
             raise ArgsNotCorrect("Target config file doesn't exist: {}".
                                  format(self.__config_file))
 
@@ -1938,6 +2082,7 @@ class CBMC(Task):
         elif os.path.exists(os.path.join(self.get_workspace(), "etc/vbmc.conf")):
             self.__config_file = os.path.join(self.get_workspace(), "etc/vbmc.conf")
         else:
+            self.logger.exception("[BMC] Can not find vbmc.conf")
             raise Exception("Couldn't find vbmc.conf!")
 
     def get_commandline(self):
@@ -1971,12 +2116,15 @@ class CSocat(Task):
             code, socat_cmd = run_command("which socat")
             self.__bin = socat_cmd.strip(os.linesep)
         except CommandRunFailed:
+            self.logger.exception("[Socat] Can't find file socat")
             raise CommandNotFound("socat")
 
         if not self.__sol_device:
+            self.logger.exception("[Socat] No SOL device is defined")
             raise ArgsNotCorrect("No SOL device is defined")
 
         if not self.__socket_serial:
+            self.logger.exception("[Socat] No socket file for serial is defined")
             raise ArgsNotCorrect("No socket file for serial is defined")
 
     def init(self):
@@ -2025,10 +2173,16 @@ class CRacadm(Task):
 
     def precheck(self):
         if not self.__ip:
+            self.logger.exception("[Racadm] Specified racadm interface {} "
+                                  "doesn\'t exist".
+                                  format(self.__interface))
             raise ArgsNotCorrect("Specified racadm interface {} doesn\'t exist".
                                  format(self.__interface))
 
         if helper.check_if_port_in_use(self.__ip, self.__port_idrac):
+            self.logger.exception("[Racadm] Racadm port {}:{} is already in use.".
+                                  format(self.__ip,
+                                         self.__port_idrac))
             raise ArgsNotCorrect("Racadm port {}:{} is already in use.".
                                  format(self.__ip,
                                         self.__port_idrac))
@@ -2068,6 +2222,7 @@ class CNode(object):
         self.workspace = None
         self.__sol_enabled = None
         self.__netns = None
+        self.__logger = infrasim_log.get_logger(LoggerType.model.value)
 
     @property
     def netns(self):
@@ -2094,11 +2249,14 @@ class CNode(object):
             try:
                 task.precheck()
             except ArgsNotCorrect as e:
+                self.__logger.exception("[Node] {}".format(e.value))
                 raise e
 
     def terminate_workspace(self):
         if Workspace.check_workspace_exists(self.__node_name):
             shutil.rmtree(self.workspace.get_workspace())
+        self.__logger.info("[Node] Node {} runtime workspcace is destroyed".
+                           format(self.__node_name))
         print "Node {} runtime workspace is destroyed.".format(self.__node_name)
 
     def init(self):
@@ -2108,14 +2266,19 @@ class CNode(object):
         2. Then use this information to init workspace
         3. Use this information to init sub module
         """
-
-        if self.__node['compute'] is None:
-            raise Exception("No compute information")
-
         if 'name' in self.__node:
             self.set_node_name(self.__node['name'])
         else:
+            self.__logger.exception("[Node] No node name is "
+                                    "given in node information")
             raise ArgsNotCorrect("No node name is given in node information.")
+
+        self.__logger = infrasim_log.get_logger(LoggerType.model.value,
+                                                self.__node_name)
+
+        if self.__node['compute'] is None:
+            self.__logger.exception("[Node] No compute information")
+            raise Exception("No compute information")
 
         if 'sol_enable' not in self.__node:
             self.__node['sol_enable'] = True
@@ -2135,12 +2298,14 @@ class CNode(object):
 
         if self.__sol_enabled:
             socat_obj = CSocat()
+            socat_obj.logger = self.__logger
             socat_obj.set_priority(0)
             socat_obj.set_task_name("{}-socat".format(self.__node_name))
             self.__tasks_list.append(socat_obj)
 
         bmc_info = self.__node.get('bmc', {})
         bmc_obj = CBMC(bmc_info)
+        bmc_obj.logger = self.__logger
         bmc_obj.set_priority(1)
         bmc_obj.set_task_name("{}-bmc".format(self.__node_name))
         bmc_obj.enable_sol(self.__sol_enabled)
@@ -2150,6 +2315,7 @@ class CNode(object):
         self.__tasks_list.append(bmc_obj)
 
         compute_obj = CCompute(self.__node['compute'])
+        compute_obj.logger = self.__logger
         asyncr = bmc_info.get("startnow", True)
         compute_obj.set_asyncronous(asyncr)
         compute_obj.enable_sol(self.__sol_enabled)
@@ -2162,6 +2328,7 @@ class CNode(object):
         if "type" in self.__node and "dell" in self.__node["type"]:
             racadm_info = self.__node.get("racadm", {})
             racadm_obj = CRacadm(racadm_info)
+            racadm_obj.logger = self.__logger
             racadm_obj.set_priority(3)
             racadm_obj.set_node_name(self.__node_name)
             racadm_obj.set_task_name("{}-racadm".format(self.__node_name))
@@ -2171,6 +2338,7 @@ class CNode(object):
 
         # Set interface
         if "type" not in self.__node:
+            self.__logger.exception("[Node] Can't get infrasim type")
             raise ArgsNotCorrect("Can't get infrasim type")
         else:
             bmc_obj.set_type(self.__node['type'])
@@ -2212,6 +2380,7 @@ class CNode(object):
             for task in self.__tasks_list:
                 task.init()
         except Exception, e:
+            self.__logger.exception("[Node] {}".format(str(e)))
             raise e
 
     # Run tasks list as the priority
@@ -2271,7 +2440,7 @@ class NumaCtl(object):
             for field in ["processor", "core id", "physical id"]:
                 if field not in core:
                     err = "Error getting '%s' value from /proc/cpuinfo".format(field)
-                    logger.error(err)
+                    logger_model.exception(err)
                     raise Exception(err)
                 core[field] = int(core[field])
 
@@ -2313,6 +2482,7 @@ class NumaCtl(object):
                 processor_use_up = False
                 break
         if processor_use_up or socket_to_use < 0:
+            logger_model.exception("All sockets don't have enough processor to bind.")
             raise Exception("All sockets don't have enough processor to bind.")
 
         # Append core which all HT processor are available

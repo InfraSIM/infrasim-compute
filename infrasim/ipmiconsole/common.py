@@ -19,13 +19,12 @@ from infrasim import run_command
 from infrasim.workspace import Workspace
 from infrasim import helper
 from infrasim import ArgsNotCorrect
-
+from infrasim import log
 
 lock = threading.Lock()
 
 # logger
 logger = logging.getLogger("ipmi-console")
-
 
 # telnet to vBMC
 tn = telnetlib.Telnet()
@@ -45,13 +44,10 @@ def init_logger(instance="default"):
 
     logger.setLevel(logging.ERROR)
 
-    log_folder = os.path.join(config.infrasim_logdir, instance)
+    log_folder = os.path.join(log.infrasim_logdir, instance)
     if not os.path.exists(log_folder):
         os.mkdir(log_folder)
     log_path = os.path.join(log_folder, "ipmi-console.log")
-
-    if os.path.isfile(log_path) is True:
-        os.remove(log_path)
 
     # create file handler which logs even debug messages
     fh = logging.FileHandler(log_path)
@@ -62,10 +58,13 @@ def init_logger(instance="default"):
     logger.setLevel(logging.INFO)
 
     # create formatter and add it to the handlers
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    formatter = logging.Formatter("%(asctime)s - %(name)s - "
+                                  "%(filename)s:%(lineno)s - "
+                                  "%(levelname)s - %(message)s")
     fh.setFormatter(formatter)
 
     # add the handlers to the logger
+    logger.handlers = []
     logger.addHandler(fh)
 
 
@@ -79,6 +78,8 @@ def init_env(instance):
     cur_path = os.environ["PATH"]
     os.environ["PATH"] = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), cur_path)
     if not Workspace.check_workspace_exists(instance):
+        logger.error("Warning: there is no node {} workspace. "
+                     "Please start node {} first.".format(instance, instance))
         raise IpmiError(
             "Warning: there is no node {} workspace. "
             "Please start node {} first.".format(instance, instance))
@@ -89,6 +90,8 @@ def init_env(instance):
             if not os.path.exists("/proc/{}".format(pid)):
                 raise Exception
     except Exception:
+        logger.error("Warning: node {} has not started BMC. "
+                     "Please start node {} first.".format(instance, instance))
         raise IpmiError(
             "Warning: node {} has not started BMC. "
             "Please start node {} first.".format(instance, instance))
@@ -130,6 +133,7 @@ def init_env(instance):
             env.PORT_TELNET_TO_VBMC = int(s_telnet.group("port_telnet_to_vbmc"))
             logger.info("PORT_TELNET_TO_VBMC: {}".format(env.PORT_TELNET_TO_VBMC))
         else:
+            logger.error("PORT_TELNET_TO_VBMC is not found")
             raise Exception("PORT_TELNET_TO_VBMC is not found")
 
         p_vbmc = re.compile(r"^\s*addr\s*(?P<vbmc_ip>[\d:\.]+)\s*(?P<vbmc_port>\d+)",
@@ -145,6 +149,7 @@ def init_env(instance):
             env.VBMC_PORT = int(s_vbmc.group("vbmc_port"))
             logger.info("VBMC_PORT: {}".format(env.VBMC_PORT))
         else:
+            logger.error("VBMC_IP and VBMC_PORT is not found")
             raise Exception("VBMC_IP and VBMC_PORT is not found")
 
     # Get variable and set to ipmi-console env
@@ -163,6 +168,7 @@ def init_env(instance):
 
         # check if ipmi_console_ssh port is in use
         if helper.check_if_port_in_use("0.0.0.0", env.PORT_SSH_FOR_CLIENT):
+            logger.error("ssh port {} is already in use.".format(env.PORT_SSH_FOR_CLIENT))
             raise IpmiError("ssh port {} is already in use.".format(env.PORT_SSH_FOR_CLIENT))
 
 def get_logger():

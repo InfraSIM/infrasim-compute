@@ -270,7 +270,6 @@ class Command_Handler:
             info mode value
         """
         if len(args) == 0:
-            self.add_msg(self.handle_sensor_command.__doc__+'\n')
             msg_queue.put(self.handle_sensor_command.__doc__+'\n')
             return
         if args[0] == "info":
@@ -468,7 +467,6 @@ class Command_Handler:
             # TODO add more command here
             err_msg = 'illegal command\n'
             msg_queue.put(err_msg)
-            self.add_msg(err_msg)
             return
 
         # Keep track of previous commands

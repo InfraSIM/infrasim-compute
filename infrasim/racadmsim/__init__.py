@@ -13,12 +13,14 @@ import paramiko
 import os
 import logging
 from os import linesep
-from infrasim import sshim, logger, config
+from infrasim import sshim
 from infrasim.repl import REPL, register, parse, QuitREPL
+from infrasim.log import LoggerType, infrasim_log
+import sys
 
 auth_map = {}
 racadm_data = None
-r_log = None
+logger_r = infrasim_log.get_logger(LoggerType.racadm.value)
 
 
 def auth(username, password):
@@ -40,26 +42,6 @@ def fake_data(name):
         return rsp
     else:
         return None
-
-
-def init_log(instance="default"):
-    """
-    Create log folder, prepare handler and recording level
-    """
-    global r_log
-
-    r_log = logging.getLogger(__name__)
-
-    log_folder = os.path.join(config.infrasim_logdir, instance)
-    if not os.path.exists(log_folder):
-        os.mkdir(log_folder)
-    log_path = os.path.join(log_folder, "racadmsim.log")
-
-    r_hdl = logging.FileHandler(log_path)
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    r_hdl.setFormatter(formatter)
-    r_log.addHandler(r_hdl)
-    r_log.setLevel(logging.NOTSET)
 
 
 class RacadmConsole(REPL):
@@ -160,21 +142,21 @@ class RacadmConsole(REPL):
 
             # EVAL
             cmd = self.refine_cmd(parse(inp))
-            r_log.info("[req][repl] {}".format(inp))
+            logger_r.info("[req][repl] {}".format(inp))
 
             try:
                 out = self.do(cmd)
             except EOFError:
-                r_log.warning("[rsp][repl] EOFError")
+                logger_r.warning("[rsp][repl] EOFError")
                 return
             except QuitREPL:
-                r_log.info("[rsp][repl] Quite REPL")
+                logger_r.info("[rsp][repl] Quite REPL")
                 return
 
             # PRINT
             self.output(linesep)
             self.output(" ".join(["racadm"]+cmd))
-            r_log.info("[rsp][repl]{}{}".format(linesep, out))
+            logger_r.info("[rsp][repl]{}{}".format(linesep, out))
             if out is not None:
                 self.output(out)
                 self.output(linesep)
@@ -204,12 +186,12 @@ class iDRACConsole(REPL):
             racadm.set_output(self.output)
             racadm.run()
         else:
-            r_log.info("[req][inline] {}".format(" ".join(args)))
+            logger_r.info("[req][inline] {}".format(" ".join(args)))
             racadm = RacadmConsole()
             racadm.set_output(self.output)
             racadm_cmd = parse(" ".join(args[1:]))
             rsp = racadm.do(racadm_cmd)
-            r_log.info("[rsp][inline]{}{}".format(linesep, rsp))
+            logger_r.info("[rsp][inline]{}{}".format(linesep, rsp))
             if rsp:
                 racadm.output(rsp.strip(linesep))
             else:
@@ -237,7 +219,6 @@ class iDRACHandler(sshim.Handler):
 
     def check_channel_exec_request(self, channel, command):
         cmds = command.split()
-
         with channel:
             # If commands is racadmsim, go to racadmsim console
             if cmds == ["racadm"]:
@@ -267,6 +248,7 @@ class iDRACServer(threading.Thread):
     def repl_input(self, msg):
         self.script.write(msg)
         groups = self.script.expect(re.compile('(?P<cmd>.*)')).groupdict()
+        logger_r.info("command rev: {}".format(groups['cmd']))
         return groups["cmd"]
 
     def repl_output(self, msg):
@@ -289,24 +271,32 @@ def start(instance="default",
     # Init environment
     global auth_map
     global racadm_data
+    global logger_r
+
+    logger_r = infrasim_log.get_logger(LoggerType.racadm.value, instance)
+
+    cmd_rev = 'racadmsim '
+    for word in sys.argv[1:]:
+        cmd_rev += word+' '
+    logger_r.info('racadmsim command rev: {}'.format(cmd_rev))
+
     auth_map[username] = password
     if os.path.exists(data_src):
         racadm_data = data_src
-    init_log(instance)
 
     server = sshim.Server(iDRACServer,
+                          logger=logger_r,
                           address=ipaddr,
                           port=int(port),
                           handler=iDRACHandler)
-    logger.info("{}-racadm start on ip: {}, port: {}".
-                format(instance, ipaddr, port))
+    logger_r.info("{}-racadm start on ip: {}, port: {}".
+                  format(instance, ipaddr, port))
     server.run()
 
 if __name__ == "__main__":
     # Try to run this from code root directory, with command:
     #     python -m infrasim.racadmsim
-    auth_map["admin"] = "admin"
-    init_log("default")
 
-    server = sshim.Server(iDRACServer, port=10022, handler=iDRACHandler)
+    auth_map["admin"] = "admin"
+    server = sshim.Server(iDRACServer, logger=logger_r, port=10022, handler=iDRACHandler)
     server.run()

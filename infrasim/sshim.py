@@ -13,7 +13,9 @@ import sys
 import six
 from six.moves import queue
 
+
 logger = logging.getLogger(__name__)
+
 
 DEFAULT_KEY = paramiko.rsakey.RSAKey(file_obj=
 six.StringIO("""-----BEGIN RSA PRIVATE KEY-----
@@ -114,8 +116,9 @@ class Server(threading.Thread):
     """
 
     """
-    def __init__(self, delegate, address='', port=22, backlog=5, key=None, timeout=None, encoding='ascii', handler=Handler):
+    def __init__(self, delegate, logger=None, address='', port=22, backlog=5, key=None, timeout=None, encoding='ascii', handler=Handler):
         threading.Thread.__init__(self, name='sshim.Server')
+        self.logger = logger
         self.exceptions = queue.Queue()
 
         self.encoding = encoding
@@ -130,8 +133,14 @@ class Server(threading.Thread):
         # self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((address, port))
         self.socket.listen(backlog)
-        logging.info('sshim.Server listening on %s:%d', *self.socket.getsockname())
+        msg = 'sshim.Server listening on {}:{}'.\
+            format(self.socket.getsockname()[0], self.socket.getsockname()[1])
+        self.add_msg(msg)
         self.key = key or DEFAULT_KEY
+
+    def add_msg(self, msg):
+        if self.logger:
+            self.logger.info(msg)
 
     @property
     def address(self):
@@ -154,7 +163,7 @@ class Server(threading.Thread):
         """
             Stop the server, waiting for the runloop to exit.
         """
-        logging.info('closing socket')
+        self.add_msg('closing socket')
         self.socket.close()
         if self.is_alive():
             self.join()
@@ -175,7 +184,9 @@ class Server(threading.Thread):
                     r, w, x = select.select([self.socket], [], [], 1)
                     if r:
                         connection, address = self.socket.accept()
-                        logging.info('sshim.Server accepted connection from %s:%d', *address)
+                        msg = 'sshim.Server accepted connection from {}:{}'.\
+                            format(address[0], address[1])
+                        self.add_msg(msg)
                         #if connection.recv(1, socket.MSG_PEEK):
                         self.handler(self, (connection, address))
             except (select.error, socket.error) as exception:

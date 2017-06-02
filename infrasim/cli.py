@@ -12,9 +12,11 @@ from infrasim.config_manager import NodeMap
 from infrasim.workspace import Workspace
 from texttable import Texttable
 from global_status import InfrasimMonitor
-from infrasim import WorkspaceExisting, CommandRunFailed, logger,CommandNotFound, InfraSimError
+from infrasim import WorkspaceExisting, CommandRunFailed, CommandNotFound, InfraSimError
+from .log import LoggerType, infrasim_log
 
 nm = NodeMap()
+logger_cmd = infrasim_log.get_logger(LoggerType.cmd.value)
 
 
 def args(*args, **kwargs):
@@ -32,6 +34,7 @@ def node_workspace_exists(func):
         node_name = values["args"][1]
         if not Workspace.check_workspace_exists(node_name):
             print "Node {} runtime workspace doesn't exist".format(node_name)
+            logger_cmd.warning("cmd res: Node {} runtime workspace doesn't exist".format(node_name))
             return
         return func(*args, **kwargs)
     return wrapper
@@ -43,23 +46,29 @@ class ConfigCommands(object):
     def add(self, node_name, config_file):
         try:
             nm.add(node_name, config_file)
+            logger_cmd.info("cmd res: add node {} OK".format(node_name))
         except InfraSimError, e:
             print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
 
     @args("node_name", help="Specify node name to delete configuration mapping")
     def delete(self, node_name):
         try:
             nm.delete(node_name)
+            logger_cmd.info("cmd res: delete node {} OK".format(node_name))
         except InfraSimError, e:
             print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
 
     @args("node_name", help="Specify node name to update configuration mapping")
     @args("config_file", help="Node Config File Path")
     def update(self, node_name, config_file):
         try:
             nm.update(node_name, config_file)
+            logger_cmd.info("cmd res: update node {} OK".format(node_name))
         except InfraSimError, e:
             print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
 
         if Workspace.check_workspace_exists(node_name):
             print "Node {0} runtime workspace exists.\n" \
@@ -67,6 +76,8 @@ class ConfigCommands(object):
                   "You can run commands: \n" \
                   "    infrasim node destroy {0}\n" \
                   "    infrasim node start {0}".format(node_name)
+            logger_cmd.warning("Node {0} runtime workspace exists. "
+                               "Need to destroy node runtime workspace first".format(node_name))
 
     @args("node_name", nargs='?', default="default",
           help="Specify node name to open its configuration in editor")
@@ -74,6 +85,8 @@ class ConfigCommands(object):
         if node_name not in nm.get_name_list():
             print "Fail to find node {0} configuration. It is not registered. Check by:\n" \
                   "    infrasim config list".format(node_name)
+            logger_cmd.warning("cmd res: Fail to find node {0} configuration. It is not registered. Check by:\n"
+                               "    infrasim config list".format(node_name))
             return
 
         editor = os.environ.get('EDITOR', 'vi')
@@ -86,15 +99,18 @@ class ConfigCommands(object):
                       "\033[93mPlease destroy node {}\033[0m " \
                       "before start or restart, " \
                       "or this edit won't work." .format(node_name)
-
+            logger_cmd.info("cmd res: edit node {} OK".format(node_name))
         except OSError, e:
             print e
+            logger_cmd.error("cmd res: {}".format(e))
 
     def list(self):
         try:
             nm.list()
+            logger_cmd.info("cmd res: list OK")
         except InfraSimError, e:
             print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
 
 
 class NodeCommands(object):
@@ -116,8 +132,10 @@ class NodeCommands(object):
                 node_info = nm.get_node_info(node_name)
             node = model.CNode(node_info)
             self._node_preinit(node)
+
         except InfraSimError, e:
             print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
             return
 
         node.start()
@@ -129,8 +147,13 @@ class NodeCommands(object):
             "Node {} graphic interface accessible via: \n" \
             "VNC port: {} \n" \
             "Either host IP: {} \n" \
-            "depending on host in which network VNC viewer is running". \
-            format(node.get_node_name(), vnc_port, helper.ip4_addresses(netns=node_info.get("namespace")))
+            "depending on host in which network VNC viewer is running \n"\
+            "Node log folder: {}". \
+            format(node.get_node_name(),
+                   vnc_port,
+                   helper.ip4_addresses(netns=node_info.get("namespace")),
+                   infrasim_log.get_log_path(node_name))
+        logger_cmd.info("cmd res: start node {} OK".format(node_name))
 
     @node_workspace_exists
     @args("node_name", nargs='?', default="default", help="Specify node name to stop")
@@ -140,8 +163,10 @@ class NodeCommands(object):
             node = model.CNode(node_info)
             self._node_preinit(node, ignore_check=True)
             node.stop()
+            logger_cmd.info("cmd res: stop node {} OK".format(node_name))
         except InfraSimError, e:
             print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
             return
 
     @node_workspace_exists
@@ -150,6 +175,7 @@ class NodeCommands(object):
         self.stop(node_name)
         time.sleep(0.5)
         self.start(node_name)
+        logger_cmd.info("cmd res: restart node {} OK".format(node_name))
 
     @node_workspace_exists
     @args("node_name", nargs='?', default="default", help="Specify node name to check status")
@@ -159,8 +185,10 @@ class NodeCommands(object):
             node = model.CNode(node_info)
             self._node_preinit(node, ignore_check=True)
             node.status()
+            logger_cmd.info("cmd res: get node {} status OK".format(node_name))
         except InfraSimError, e:
             print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
 
     @args("node_name", nargs='?', default="default", help="Specify node name to destroy")
     def destroy(self, node_name):
@@ -169,10 +197,13 @@ class NodeCommands(object):
                 node_info = Workspace.get_node_info_in_workspace(node_name)
             except InfraSimError, e:
                 print e.value
+                logger_cmd.error("cmd res: {}".format(e.value))
                 return
         else:
             print "Node {} runtime workspace is not found, destroy action is not applied.".\
                 format(node_name)
+            logger_cmd.warning("cmd res: Node {} runtime workspace is not found, "
+                               "destroy action is not applied.".format(node_name))
             return
         node = model.CNode(node_info)
         try:
@@ -180,7 +211,9 @@ class NodeCommands(object):
             node.stop()
         except InfraSimError, e:
             print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
         node.terminate_workspace()
+        logger_cmd.info("cmd res: destroy node {} OK".format(node_name))
 
     @node_workspace_exists
     @args("node_name", nargs='?', default="default", help="Specify node name to get information")
@@ -232,9 +265,10 @@ class NodeCommands(object):
                         row.append([" " * 17, "", "", drive['size']])
             table.add_rows(row)
             print table.draw()
-
+            logger_cmd.info("cmd res: get node {} info OK".format(node_name))
         except InfraSimError, e:
             print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
             return
 
 
@@ -242,18 +276,22 @@ class ChassisCommands(object):
     @args("node_name", nargs='?', help="Node name")
     def start(self, node_name=None):
         print node_name
+        logger_cmd.info("cmd res: start node {} chassis OK".format(node_name))
 
     @args("node_name", nargs='?', help="Node name")
     def stop(self, node_name=None):
         print node_name
+        logger_cmd.info("cmd res: stop node {} chassis OK".format(node_name))
 
     @args("node_name", nargs='?', help="Node name")
     def restart(self, node_name=None):
         print node_name
+        logger_cmd.info("cmd res: restart node {} chassis OK".format(node_name))
 
     @args("node_name", nargs='?', help="Node name")
     def destroy(self, node_name=None):
         print node_name
+        logger_cmd.info("cmd res: destroy node {} chassis OK".format(node_name))
 
 
 class InfrasimCommands(object):
@@ -262,7 +300,7 @@ class InfrasimCommands(object):
         monitor = InfrasimMonitor()
         monitor.init()
         monitor.print_global_status()
-
+        logger_cmd.info("cmd res: get global status OK")
 
 def methods_of(obj):
     result = []
@@ -341,7 +379,7 @@ def command_handler():
     init_parser.set_defaults(init="init")
     init_parser.add_argument("-s", "--skip-installation", action="store_true",
                              help="Ignore qemu/openipmi package installation")
-    init_parser.add_argument("-f", "--force", action="store_true", 
+    init_parser.add_argument("-f", "--force", action="store_true",
                             help="Destroy existing Nodes")
     init_parser.add_argument("-i", "--infrasim-home", action="store",
                              help="Target infrasim home folder,"
@@ -355,20 +393,29 @@ def command_handler():
     version_parser.set_defaults(version="version")
 
     args = parser.parse_args(sys.argv[1:])
-
+    cmd = ''
+    for word in sys.argv[1:]:
+        cmd += word+" "
+    logger_cmd.info("cmd rev: infrasim {}".format(cmd))
     if hasattr(args, "init"):
         # Do init
         try:
-            infrasim_init(args.type, args.skip_installation, args.force, args.infrasim_home, args.config_file)
+            infrasim_init(args.type, args.skip_installation,
+                          args.force, args.infrasim_home,
+                          args.config_file)
             print "Infrasim init OK"
         except Exception as e:
-            sys.exit("Infrasim init failed\nException Type: {}\n"
-                     "Error Message:\n{}".format(e.__class__.__name__,
-                                                 eval(str(e))))
+            msg = "Infrasim init failed\nException Type: {}\n" \
+                  "Error Message:\n{}".format(e.__class__.__name__,
+                                              eval(str(e)))
+            logger_cmd.error("cmd res: {} \n".format(msg))
+            sys.exit(msg)
+
 
     elif hasattr(args, "version"):
         # Print version
         print version()
+        logger_cmd.info("cmd res: print version Ok")
     else:
         fn = args.action_fn
 
