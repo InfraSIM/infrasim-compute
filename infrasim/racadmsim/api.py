@@ -148,21 +148,22 @@ class RacadmConsole(REPL):
 
             # EVAL
             cmd = self.refine_cmd(parse(inp))
-            env.r_log.info("[req][repl] {}".format(inp))
+            env.logger_r.info("[req][repl] {}".format(inp))
 
             try:
                 out = self.do(cmd)
             except EOFError:
-                env.r_log.warning("[rsp][repl] EOFError")
+                env.logger_r.warning("[rsp][repl] EOFError")
                 return
             except QuitREPL:
-                env.r_log.info("[rsp][repl] Quite REPL")
+                env.logger_r.info("[rsp][repl] Quite REPL")
                 return
+
 
             # PRINT
             self.output(linesep)
             self.output(" ".join(["racadm"]+cmd))
-            env.r_log.info("[rsp][repl]{}{}".format(linesep, out))
+            env.logger_r.info("[rsp][repl]{}{}".format(linesep, out))
             if out is not None:
                 self.output(out)
                 self.output(linesep)
@@ -192,12 +193,12 @@ class iDRACConsole(REPL):
             racadm.set_output(self.output)
             racadm.run()
         else:
-            env.r_log.info("[req][inline] {}".format(" ".join(args)))
+            env.logger_r.info("[req][inline] {}".format(" ".join(args)))
             racadm = RacadmConsole()
             racadm.set_output(self.output)
             racadm_cmd = parse(" ".join(args[1:]))
             rsp = racadm.do(racadm_cmd)
-            env.r_log.info("[rsp][inline]{}{}".format(linesep, rsp))
+            env.logger_r.info("[rsp][inline]{}{}".format(linesep, rsp))
             if rsp:
                 racadm.output(rsp.strip(linesep))
             else:

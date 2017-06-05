@@ -47,6 +47,7 @@ def get_drive_topology():
                     the_drive["slot"] = drive_slot
                     curr_hdd_slot += 1
                 else:
+                    env.logger_r.exception("Invalid HDD slot")
                     raise Exception("Invalid HDD slot")
 
             # SSD
@@ -56,6 +57,7 @@ def get_drive_topology():
                     the_drive["slot"] = drive_slot
                     curr_hdd_slot += 1
                 else:
+                    env.logger_r.exception("Invalid SSD slot")
                     raise Exception("Invalid SSD slot")
 
         # Map drives to certain controller index

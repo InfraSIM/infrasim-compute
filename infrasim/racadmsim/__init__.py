@@ -13,34 +13,19 @@ import paramiko
 import os
 import logging
 from os import linesep
-from infrasim import sshim, logger, config
+from infrasim import sshim
 from . import env
 from .api import iDRACConsole
+from infrasim.log import LoggerType, infrasim_log
+import sys
 
+env.logger_r = infrasim_log.get_logger(LoggerType.racadm.value)
 
 def auth(username, password):
     if username in env.auth_map and env.auth_map[username] == password:
         return paramiko.AUTH_SUCCESSFUL
     else:
         return paramiko.AUTH_FAILED
-
-
-def init_log():
-    """
-    Create log folder, prepare handler and recording level
-    """
-    env.r_log = logging.getLogger(__name__)
-
-    log_folder = os.path.join(config.infrasim_logdir, env.node_name)
-    if not os.path.exists(log_folder):
-        os.mkdir(log_folder)
-    log_path = os.path.join(log_folder, "racadmsim.log")
-
-    r_hdl = logging.FileHandler(log_path)
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    r_hdl.setFormatter(formatter)
-    env.r_log.addHandler(r_hdl)
-    env.r_log.setLevel(logging.NOTSET)
 
 
 class iDRACHandler(sshim.Handler):
@@ -93,7 +78,7 @@ class iDRACServer(threading.Thread):
     def repl_input(self, msg):
         self.script.write(msg)
         groups = self.script.expect(re.compile('(?P<cmd>.*)')).groupdict()
-        logger_r.info("command rev: {}".format(groups['cmd']))
+        env.logger_r.info("command rev: {}".format(groups['cmd']))
         return groups["cmd"]
 
     def repl_output(self, msg):
@@ -114,19 +99,23 @@ def start(instance="default",
           password="admin",
           data_src="auto"):
     # Init environment
+    env.logger_r = infrasim_log.get_logger(LoggerType.racadm.value, instance)
     env.auth_map[username] = password
     env.node_name = instance
+
+    cmd_rev = 'racadmsim '
+    for word in sys.argv[1:]:
+        cmd_rev += word+' '
+    env.logger_r.info('racadmsim command rev: {}'.format(cmd_rev))
     if os.path.exists(data_src):
         env.racadm_data = data_src
-    init_log()
-    print env.r_log
     server = sshim.Server(iDRACServer,
-                          logger=logger_r,
+                          logger=env.logger_r,
                           address=ipaddr,
                           port=int(port),
                           handler=iDRACHandler)
-    logger.info("{}-racadm start on ip: {}, port: {}".
-                format(env.node_name, ipaddr, port))
+    env.logger_r.info("{}-racadm start on ip: {}, port: {}".
+                      format(env.node_name, ipaddr, port))
     server.run()
 
 if __name__ == "__main__":
@@ -134,8 +123,7 @@ if __name__ == "__main__":
     #     python -m infrasim.racadmsim
     env.auth_map["admin"] = "admin"
     env.node_name = "default"
-    init_log()
 
-    auth_map["admin"] = "admin"
-    server = sshim.Server(iDRACServer, logger=logger_r, port=10022, handler=iDRACHandler)
+    server = sshim.Server(iDRACServer, logger=env.logger_r, port=10022, handler=iDRACHandler)
     server.run()
+
