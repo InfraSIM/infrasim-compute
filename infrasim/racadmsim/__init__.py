@@ -18,6 +18,7 @@ from . import env
 from .api import iDRACConsole
 from infrasim.log import LoggerType, infrasim_log
 import sys
+from infrasim.helper import literal_string
 
 env.logger_r = infrasim_log.get_logger(LoggerType.racadm.value)
 
@@ -78,8 +79,9 @@ class iDRACServer(threading.Thread):
     def repl_input(self, msg):
         self.script.write(msg)
         groups = self.script.expect(re.compile('(?P<cmd>.*)')).groupdict()
-        env.logger_r.info("command rev: {}".format(groups['cmd']))
-        return groups["cmd"]
+        cmd = literal_string(groups['cmd'])
+        env.logger_r.info("command rev: {}".format(cmd))
+        return cmd
 
     def repl_output(self, msg):
         for line in msg.splitlines():

@@ -5,6 +5,9 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 import os
 import time
+import sys
+import hashlib
+import re
 import socket
 import multiprocessing
 from functools import wraps
@@ -17,8 +20,6 @@ from ctypes import (
     c_char_p, c_uint, c_uint16,
     c_uint32
 )
-import hashlib
-import sys
 from infrasim import InfraSimError
 from . import logger
 
@@ -331,3 +332,17 @@ def try_func(times, func, *args, **kwargs):
     raise Exception(
         "Tried {} times already, but still failed to run {}".format(
             times, func))
+
+def literal_string(s):
+    char_backspace = re.compile("[^\b]\b")
+    any_backspaces = re.compile("\b+")
+
+    while True:
+        t = char_backspace.sub("", s)
+        for x in t:
+            print x
+        print "t = \n" + t
+        if len(s) == len(t):
+            return any_backspaces.sub("", t)
+        s = t
+ 
