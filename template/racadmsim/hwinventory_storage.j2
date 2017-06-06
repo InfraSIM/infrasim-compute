@@ -1,0 +1,6 @@
+{% include "hwinventory_storage_drive_satadom.j2" ignore missing with context %}
+{% for controller_idx, drives in mapping.iteritems() %}
+{% for drive in drives%}
+{% include "hwinventory_storage_drive_scsi.j2" ignore missing with context %}
+{% endfor %}
+{% endfor %}

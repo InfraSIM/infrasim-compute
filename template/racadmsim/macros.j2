@@ -1,0 +1,59 @@
+{% macro get_rotation(drive) %}
+    {% if drive.rotation -%}
+        {{ drive.rotation }}
+    {%- else -%}
+        7200
+    {%- endif %}
+{% endmacro %}
+
+{# note: how to get part number is undetermined
+{% macro random_n_element(n)%}
+    {% for i in range(n) %}{{ '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'|random }}{% endfor %}
+{% endmacro %}
+{% macro get_part_number(drive) %}
+    {% if get_rotation(drive)|int < 2 -%}
+        PH077K162640262E0{{ random_n_element(3) }}A00
+    {%- else -%}
+        TH0XWM1W212336360{{ random_n_element(3) }}A00
+    {%- endif %}
+{% endmacro %}
+#}
+
+{% macro get_part_number(drive) %}
+    {% if get_rotation(drive)|int < 2 -%}
+        PH077K162640262E014RA00
+    {%- else -%}
+        TH0XWM1W2123363601QAA00
+    {%- endif %}
+{% endmacro %}
+
+{% macro get_media_type(drive) %}
+    {% if get_rotation(drive)|int < 2 -%}
+        SSD
+    {%- else -%}
+        HDD
+    {%- endif %}
+{% endmacro %}
+
+{% macro in_hex_string(str) %}
+    {% if str|truncate(2, True, '')|upper == "0X" %}{{ true }}}{% else %}{{ false }}{% endif %}
+{% endmacro %}
+
+{% macro get_wwn(drive, prefix=true)%}
+    {% if drive.wwn %}
+        {% if drive.wwn is number %}
+            {% set wwn_str = "{0:#x}".format(drive.wwn) %}
+        {% elif drive.wwn is string %}
+            {% set wwn_str = drive.wwn %}
+        {% else %}
+            {% set wwn_str = "" %}
+        {% endif %}
+        {% if in_hex_string(wwn_str) and prefix -%}
+            {{ wwn_str }}
+        {%- elif in_hex_string(wwn_str) -%}
+            {{ wwn_str[2:] }}
+        {%- else -%}
+            {{ wwn_str }}
+        {%- endif %}
+    {% else %}{% endif %}
+{% endmacro %}

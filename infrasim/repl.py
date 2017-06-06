@@ -16,6 +16,7 @@ from os import linesep
 import inspect
 import traceback
 import sys
+from infrasim.helper import literal_string
 
 
 class register(object):
@@ -103,7 +104,7 @@ class REPL(object):
             inp = self.input(self.prompt)
 
             # EVAL
-            cmd = parse(inp)
+            cmd = parse(literal_string(inp))
             try:
                 out = self.do(cmd)
             except EOFError:
