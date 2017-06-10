@@ -112,11 +112,7 @@ class test_kcs_io(unittest.TestCase):
     def setUp(cls):
         DOWNLOAD_URL = 'https://github.com/InfraSIM/test/raw/master/image/kcs.img'
         MD5_KCS_IMG = 'cfdf7d855d2f69c67c6e16cc9b53f0da'
-        try:
-            helper.fetch_image(DOWNLOAD_URL, MD5_KCS_IMG, test_img_file)
-        except InfraSimError as e:
-            print e.value
-            assert False
+        helper.fetch_image(DOWNLOAD_URL, MD5_KCS_IMG, test_img_file)
 
         cls.start_node()
         cls.port_forward()
@@ -152,16 +148,13 @@ class test_kcs_io(unittest.TestCase):
             pass
 
         ssh.close()
-        try:
-            ssh = self.prepare_ssh()
-            stdin, stdout, stderr = ssh.exec_command(
-                'dd if=/root/source.bin of=/dev/sdb bs=512 seek=0 count=1 conv=fsync')
-            while not stdout.channel.exit_status_ready():
-                pass
+        ssh = self.prepare_ssh()
+        stdin, stdout, stderr = ssh.exec_command(
+            'dd if=/root/source.bin of=/dev/sdb bs=512 seek=0 count=1 conv=fsync')
+        while not stdout.channel.exit_status_ready():
+            pass
 
-            ssh.close()
-        except Exception as e:
-            raise e
+        ssh.close()
 
         # Check disk content intact after node restart
         run_command("infrasim node restart {}".format(node_name))
@@ -230,31 +223,23 @@ class test_kcs_io(unittest.TestCase):
         while not stdout.channel.exit_status_ready():
             pass
 
-        try:
-            for i in ('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
-                stdin, stdout, stderr = ssh.exec_command(
-                    'dd if=/root/source.bin of=/dev/sd' + i + ' bs=512 seek=0 count=1 conv=fsync')
-                while not stdout.channel.exit_status_ready():
-                    pass
+        for i in ('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
+            stdin, stdout, stderr = ssh.exec_command(
+                'dd if=/root/source.bin of=/dev/sd' + i + ' bs=512 seek=0 count=1 conv=fsync')
+            while not stdout.channel.exit_status_ready():
+                pass
 
-        except Exception as e:
-            raise e
+        for i in ('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
+            stdin, stdout, stderr = ssh.exec_command(
+                'dd if=/dev/sd' + i + ' of=/root/target_' + i + '.bin bs=512 skip=0 count=1 conv=fsync')
+            while not stdout.channel.exit_status_ready():
+                pass
 
-        try:
-            for i in ('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
-                stdin, stdout, stderr = ssh.exec_command(
-                    'dd if=/dev/sd' + i + ' of=/root/target_' + i + '.bin bs=512 skip=0 count=1 conv=fsync')
-                while not stdout.channel.exit_status_ready():
-                    pass
-
-            for i in ('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
-                stdin, stdout, stderr = ssh.exec_command(
-                    'cat /root/target_' + i + '.bin')
-                lines = stdout.channel.recv(2048)
-                assert 'Test message is found! :D' in lines
-
-        except Exception as e:
-            raise e
+        for i in ('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
+            stdin, stdout, stderr = ssh.exec_command(
+                'cat /root/target_' + i + '.bin')
+            lines = stdout.channel.recv(2048)
+            assert 'Test message is found! :D' in lines
 
         stdin, stdout, stderr = ssh.exec_command('rm /root/source.bin')
         while not stdout.channel.exit_status_ready():
