@@ -147,6 +147,8 @@ class test_kcs_io(unittest.TestCase):
         while not stdout.channel.exit_status_ready():
             pass
 
+        # FIXME: close ssh is walk around to issue of ssh connection go inactive
+        # which seems like a paramiko issue? So as other ssh.close() in file.
         ssh.close()
         ssh = self.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command(
