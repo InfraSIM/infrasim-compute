@@ -320,6 +320,7 @@ class CBaseStorageController(CElement):
         self._attributes = {}
         # record the controller index inside this instance
         self.__controller_index = 0
+        self._ses_list = []
 
         # remember the start index for the first controller
         # managed by this class
@@ -363,8 +364,14 @@ class CBaseStorageController(CElement):
         for drive_obj in self._drive_list:
             drive_obj.handle_parms()
 
+        for ses_obj in self._ses_list:
+            ses_obj.handle_parms()
+
         for drive_obj in self._drive_list:
             self.add_option(drive_obj.get_option())
+
+        for ses_obj in self._ses_list:
+            self.add_option(ses_obj.get_option())
 
         # controller attributes if there are some
         # common attributes for all controllers
@@ -375,6 +382,8 @@ class LSISASController(CBaseStorageController):
     def __init__(self, controller_info):
         super(LSISASController, self).__init__()
         self._controller_info = controller_info
+        self.__expander_count = None;
+        self._iothread_id = None
 
     def precheck(self):
         # call parent precheck()
@@ -382,6 +391,9 @@ class LSISASController(CBaseStorageController):
 
     def init(self):
         super(LSISASController, self).init()
+
+        self.__expander_count = self._controller_info.get("expander-count")
+        self._iothread_id = self._controller_info.get("iothread")
 
         self._start_idx = self.controller_index
         idx = 0
@@ -395,8 +407,16 @@ class LSISASController(CBaseStorageController):
             self._drive_list.append(sd_obj)
             idx += 1
 
+        for ses_info in self._controller_info.get("seses", []):
+            ses_obj = SESDevice(ses_info)
+            ses_obj.set_bus(self.controller_index + idx / self._max_drive_per_controller)
+            self._ses_list.append(ses_obj)
+
         for drive_obj in self._drive_list:
             drive_obj.init()
+
+        for ses_obj in self._ses_list:
+            ses_obj.init()
 
         # Update controller index, tell CBackendStorage what the controller index
         # should be for the next
@@ -409,6 +429,12 @@ class LSISASController(CBaseStorageController):
         cntrl_nums = int(math.ceil(float(drive_nums)/self._max_drive_per_controller)) or 1
         for cntrl_index in range(0, cntrl_nums):
             self._attributes["id"] = "scsi{}".format(self._start_idx + cntrl_index)
+            if self.__expander_count:
+                self._attributes["expander-count"] = self.__expander_count
+
+            if self._iothread_id:
+                self._attributes["iothread"] = self._iothread_id
+
             self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)
 
 
@@ -815,6 +841,86 @@ class IDEDrive(CBaseDrive):
             self._dev_attrs["unit"] = self.__unit
 
         self.add_option(self.build_device_option(self._name, **self._dev_attrs))
+
+
+class SESDevice(CElement):
+    def __init__(self, ses_info):
+        super(SESDevice, self).__init__()
+        self._ses_info = ses_info
+
+        self.prefix = "scsi"
+
+        self.__port_wwn = None
+        self.__channel = None
+        self.__scsi_id = None
+        self.__serial = None
+        self.__wwn = None
+        self.__lun = None
+        self.__vendor = None
+        self.__product = None
+        self.__serial = None
+        self.__version = None
+        self.__bus = 0
+        self.__dae_type = None
+
+    def set_bus(self, bus):
+        self.__bus = bus
+
+    def precheck(self):
+        pass
+
+    def init(self):
+        self.__port_wwn = self._ses_info.get("port_wwn")
+        self.__channel = self._ses_info.get("channel")
+        self.__scsi_id = self._ses_info.get("scsi-id")
+        self.__lun = self._ses_info.get("lun")
+
+        self.__vendor = self._ses_info.get("vendor")
+        self.__product = self._ses_info.get("product")
+        self.__serial = self._ses_info.get("serial")
+        self.__wwn = self._ses_info.get("wwn")
+        self.__version = self._ses_info.get("version")
+        self.__dae_type = self._ses_info.get("dae_type")
+
+    def handle_parms(self):
+        options = {}
+
+        if self.__channel:
+            options["channel"] = self.__channel
+
+        if self.__scsi_id:
+            options["scsi-id"] = self.__scsi_id
+
+        if self.__lun:
+            options["lun"] = self.__lun
+
+        if self.__product:
+            options["product"] = self.__product
+
+        if self.__vendor:
+            options["vendor"] = self.__vendor
+
+        if self.__serial:
+            options["serial"] = self.__serial
+
+        if self.__version:
+            options["version"] = self.__version
+
+        if self.__wwn:
+            options["wwn"] = self.__wwn
+
+        if self.__dae_type:
+            options["dae_type"] = self.__dae_type
+
+        options["bus"] = "{}{}.{}".format(self.prefix, self.__bus, 0)
+
+        options_list = []
+        for k, v in options.items():
+            options_list.append("{}={}".format(k, v))
+
+        ses_device_arguments = ",".join(options_list)
+
+        self.add_option(",".join(["-device ses", ses_device_arguments]))
 
 
 class CBackendStorage(CElement):
@@ -1508,7 +1614,6 @@ class CCompute(Task, CElement):
                           "must be either 'on' or 'off'."
                     self.logger.exception(msg)
                     raise ArgsNotCorrect(msg)
-
 
     @run_in_namespace
     def init(self):
