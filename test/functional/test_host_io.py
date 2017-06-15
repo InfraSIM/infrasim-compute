@@ -7,7 +7,6 @@ import unittest
 import os
 import yaml
 from infrasim import model
-from infrasim import config
 from infrasim import run_command
 from test import fixtures
 from infrasim import helper
