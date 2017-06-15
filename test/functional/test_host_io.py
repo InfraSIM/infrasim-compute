@@ -10,8 +10,6 @@ from infrasim import model
 from infrasim import config
 from infrasim import run_command
 from test import fixtures
-from infrasim.workspace import Workspace
-from infrasim import InfraSimError
 from infrasim import helper
 import time
 import paramiko
