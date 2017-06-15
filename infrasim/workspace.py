@@ -44,22 +44,29 @@ class Workspace(object):
     def init(self):
         """
         Create workspace: <HOME>/.infrasim/<node_name>
-        .infrasim/<node_name>    # Root folder
-            data                 # Data folder
-                infrasim.yml     # Save runtime infrasim.yml
-                vbmc.conf        # Render template with data from infrasim.yml
-                vbmc.emu         # Emulation data
-                bios.bin         # BIOS
-            script               # Script folder
+        .infrasim/<node_name>        # root folder
+            etc/
+                infrasim.yml         # save runtime infrasim.yml
+                vbmc.conf            # render template with data from infrasim.yml
+            data/                    # data folder
+                vbmc.emu             # emulation data
+                bios.bin             # BIOS
+                ipmi_sim/            # ipmi_sim runtime, managed by ipmi_sim
+                    sdr              # runtime sdr
+                    sel              # runtime sel
+            script/                  # script folder
                 chassiscontrol
                 lancontrol
                 startcmd
                 stopcmd
                 resetcmd
-            .pty0                # Serial device, created by socat, not here
-            .<node_name>-socat   # pid file of socat
-            .<node_name>-ipmi    # pid file of ipmi
-            .<node_name>-qemu    # pid file of qemu
+            sda.img (sdb.img, etc)   # drive for nodes
+            .serial                  # unix socket file to forward serial data, managed by socat
+            .pty0                    # serial device, managed by socat
+            .<node_name>-socat       # pid file of socat
+            .<node_name>-ipmi        # pid file of ipmi
+            .<node_name>-qemu        # pid file of qemu
+            .<node_name>-racadm      # pid file of RACADM simulation
         What's done here:
             I. Create workspace
             II. Create log folder
