@@ -6,12 +6,15 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import unittest
 import os
 import yaml
-from infrasim import model
-from infrasim import run_command
-from test import fixtures
-from infrasim import helper
 import time
 import paramiko
+import subprocess
+from infrasim import model
+from infrasim import run_command
+from infrasim import helper
+from test import fixtures
+
+
 old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
 
@@ -211,7 +214,6 @@ class test_kcs_io(unittest.TestCase):
         assert 'source.bin' not in lines
 
     def test_copy_file_across_drives(self):
-        node_name = conf['name']
         ssh = self.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command('touch /root/source.bin')
         while not stdout.channel.exit_status_ready():
