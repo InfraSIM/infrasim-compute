@@ -7,7 +7,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import requests
 import os
 import hashlib
-from infrasim import run_command
+from infrasim import run_command, CommandRunFailed
 
 """
 this script is used to install the necessary packages before starting infrasim-compute
@@ -63,9 +63,36 @@ def install_bintray_packages(repo, package):
         print "installing " + package + "..."
         run_command("dpkg -i " + file_name)
 
+def check_package(package = "Qemu", cmd = "which qemu-system-x86_64"):
+    ''' Return True if Package needs to install'''
+    install_package = False
+    # Check if package installed
+    try:
+        qemu_installed = run_command(cmd)
+    except CommandRunFailed:
+        install_package = True
+    else:
+        while True:
+            ans = raw_input(package+" already exists. Overwrite it? (Y/n)")
+            if ans.lower() not in ('yes', 'no', 'y', 'n'):
+                print("Sorry, I didn't understand that.")
+                continue
+            else:
+                break
+        if ans.lower() in ('yes', 'y'):
+            install_package = True
+
+    return install_package
 
 def package_install():
     install_official_packages()
-    install_bintray_packages("deb", "Qemu")
-    install_bintray_packages("deb", "OpenIpmi")
-    install_bintray_packages("generic", "Seabios")
+
+    install_qemu = check_package("Qemu", "which qemu-system-x86_64")
+    install_openipmi = check_package("Openipmi", "which ipmi_sim")
+    install_seabios = check_package("Seabios", "ls /usr/local/share/qemu/bios-256k.bin")
+    if install_qemu:
+        install_bintray_packages("deb", "Qemu")
+    if install_openipmi:
+        install_bintray_packages("deb", "OpenIpmi")
+    if install_seabios:
+        install_bintray_packages("generic", "Seabios")
