@@ -13,7 +13,7 @@ import yaml
 import re
 import time
 import infrasim.config as config
-from infrasim import run_command, CommandRunFailed
+from infrasim import run_command, run_command_with_user_input, CommandRunFailed
 from test.fixtures import FakeConfig
 import infrasim.model as model
 from infrasim.workspace import Workspace
@@ -287,6 +287,22 @@ class test_node_cli(unittest.TestCase):
 
         run_command("infrasim init -s -f")
         self.assertEqual(len(os.listdir(config.infrasim_home)), 1)
+
+        # Verify if it will reinstall packages when user confirmed 'Y'
+        result = run_command_with_user_input("infrasim init", True, subprocess.PIPE, subprocess.PIPE, subprocess.PIPE, "Y\nY\nY\n")
+        assert "downloading Qemu" in result[1]
+        assert "downloading OpenIpmi" in result[1]
+        assert "downloading Seabios" in result[1]
+
+        result = run_command_with_user_input("infrasim init", True, subprocess.PIPE, subprocess.PIPE, subprocess.PIPE, "Y\nyes\nn\n")
+        assert "downloading Qemu" in result[1]
+        assert "downloading OpenIpmi" in result[1]
+        assert "downloading Seabios" not in result[1]
+
+        result = run_command_with_user_input("infrasim init", True, subprocess.PIPE, subprocess.PIPE, subprocess.PIPE, "no\nN\nY\n")
+        assert "downloading Qemu" not in result[1]
+        assert "downloading OpenIpmi" not in result[1]
+        assert "downloading Seabios" in result[1]
 
 
 class test_config_cli_with_runtime_node(unittest.TestCase):
