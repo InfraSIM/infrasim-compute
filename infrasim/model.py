@@ -575,7 +575,8 @@ class CBaseDrive(CElement):
 
         self.__l2_cache_size = None  # unit: byte
         self.__refcount_cache_size = None  # unit: byte
-        self.__cluster_size = 128  # unit: KB
+        self.__cluster_size = None  # unit: KB
+        self.__preallocation_mode = None
 
     @property
     def index(self):
@@ -608,6 +609,8 @@ class CBaseDrive(CElement):
 
         self.__l2_cache_size = self._drive_info.get("l2-cache-size")
         self.__refcount_cache_size = self._drive_info.get("refcount-cache-size")
+        self.__cluster_size = self._drive_info.get("cluster-size")
+        self.__preallocation_mode = self._drive_info.get("preallocation")
 
         # assume the files starts with "/dev/" are block device
         # all the block devices are assumed to be raw format
@@ -633,8 +636,18 @@ class CBaseDrive(CElement):
 
         if not os.path.exists(self.__drive_file):
             self.logger.info("[BaseDrive] Creating drive: {}".format(self.__drive_file))
-            command = "qemu-img create -f {0} -o cluster_size={1}K {2} {3}G".format(self.__format, self.__cluster_size,
-                                                                                    self.__drive_file, self.__size)
+            create_option_list = []
+            if self.__cluster_size:
+                create_option_list.append("=".join(["cluster_size", self.__cluster_size]))
+
+            if self.__preallocation_mode:
+                create_option_list.append("=".join(["preallocation", self.__preallocation_mode]))
+
+            command = "qemu-img create -f {0} {1} {2}G".format(self.__format, self.__drive_file, self.__size)
+            if len(create_option_list) > 0:
+                command = "{} -o {}".format(command, ",".join(create_option_list))
+
+
             try:
                 run_command(command)
             except CommandRunFailed as e:
