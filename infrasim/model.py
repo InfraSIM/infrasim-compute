@@ -384,6 +384,10 @@ class LSISASController(CBaseStorageController):
         self._controller_info = controller_info
         self.__expander_count = None;
         self._iothread_id = None
+        self.__expander_downstream_start_phy = None
+        self.__expander_upstream_start_phy = None
+        self.__expander_all_phys = None
+        self.__use_msix = None
 
     def precheck(self):
         # call parent precheck()
@@ -393,7 +397,11 @@ class LSISASController(CBaseStorageController):
         super(LSISASController, self).init()
 
         self.__expander_count = self._controller_info.get("expander-count")
+        self.__expander_downstream_start_phy = self._controller_info.get("expander-downstream-start-phy")
+        self.__expander_upstream_start_phy = self._controller_info.get("expander-upstream-start-phy")
+        self.__expander_all_phys = self._controller_info.get("expander-phys")
         self._iothread_id = self._controller_info.get("iothread")
+        self.__use_msix = self._controller_info.get('use_msix')
 
         self._start_idx = self.controller_index
         idx = 0
@@ -432,8 +440,20 @@ class LSISASController(CBaseStorageController):
             if self.__expander_count:
                 self._attributes["expander-count"] = self.__expander_count
 
+            if self.__expander_downstream_start_phy is not None:
+                self._attributes["downstream-start-phy"] = self.__expander_downstream_start_phy
+
+            if self.__expander_upstream_start_phy is not None:
+                self._attributes["upstream-start-phy"] = self.__expander_upstream_start_phy
+
+            if self.__expander_all_phys is not None:
+                self._attributes["expander-phys"] = self.__expander_all_phys
+
             if self._iothread_id:
                 self._attributes["iothread"] = self._iothread_id
+
+            if self.__use_msix is not None:
+                self._attributes["use_msix"] = self.__use_msix
 
             self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)
 
