@@ -1547,7 +1547,8 @@ class CCompute(Task, CElement):
         self.__vendor_type = None
         # remember cpu object
         self.__cpu_obj = None
-        self.__numactl_enable = False
+        self.__numactl_info = False
+        self.__numactl_mode = None
         self.__cdrom_file = None
         self.__monitor = None
         self.__display = None
@@ -1666,17 +1667,18 @@ class CCompute(Task, CElement):
 
         self.__cdrom_file = self.__compute.get('cdrom')
 
-        if 'numa_control' in self.__compute \
-                and self.__compute['numa_control']:
-            if os.path.exists("/usr/bin/numactl"):
-                if self.__class__.numactl is None:
-                    self.__class__.numactl = NumaCtl()
-                self.__numactl_enable = True
-                self.logger.info('[compute] infrasim has '
-                                 'enabled numa control')
-            else:
-                self.logger.info('[compute] infrasim can\'t '
-                                 'find numactl in this environment')
+        self.__numactl_info = self.__compute.get("numa_control")
+        if self.__numactl_info and os.path.exists("/usr/bin/numactl"):
+            self.__numactl_mode = self.__numactl_info.get("mode", "auto")
+            if self.__class__.numactl is None:
+                self.__class__.numactl = NumaCtl()
+
+
+            self.logger.info('[compute] infrasim has '
+                                'enabled numa control')
+        else:
+            self.logger.info('[compute] infrasim can\'t '
+                                'find numactl in this environment')
 
         self.__display = self.__compute.get('vnc_display', 1)
         self.__kernel = self.__compute.get('kernel')
@@ -1765,7 +1767,7 @@ class CCompute(Task, CElement):
         qemu_commandline = " ".join([self.__qemu_bin, self.get_option(), qemu_commandline])
 
         # set cpu affinity
-        if self.__numactl_enable:
+        if self.__numactl_mode == "auto":
             cpu_number = self.__cpu_obj.get_cpu_quantities()
             try:
                 bind_cpu_list = [str(x) for x in self.__class__.numactl.get_cpu_list(cpu_number)]
@@ -1775,6 +1777,13 @@ class CCompute(Task, CElement):
             if len(bind_cpu_list) > 0:
                 numactl_option = 'numactl --physcpubind={} --localalloc'.format(','.join(bind_cpu_list))
                 qemu_commandline = " ".join([numactl_option, qemu_commandline])
+        elif self.__numactl_mode == "manual":
+            bind_cpu_list = self.__numactl_info.get("cores").split(",")
+            numactl_option = 'numactl --physcpubind={} --localalloc'.format(self.__numactl_info.get("cores"))
+            mem_node_id = self.__numactl_info.get("node-id")
+            if mem_node_id is not None:
+                numactl_option = " ".join([numactl_option, "--membind={}".format(mem_node_id)])
+            qemu_commandline = " ".join([numactl_option, qemu_commandline])
 
         return qemu_commandline
 
