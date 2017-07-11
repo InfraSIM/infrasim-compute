@@ -1561,6 +1561,7 @@ class CCompute(Task, CElement):
         self.__cmdline = None
         self.__mem_path = None
         self.__extra_option = None
+        self.__iommu = False
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -1687,6 +1688,7 @@ class CCompute(Task, CElement):
 
         self.__extra_option = self.__compute.get("extra_option")
         self.__qemu_bin = self.__compute.get("qemu_bin", self.__qemu_bin)
+        self.__iommu = self.__compute.get("iommu")
 
         cpu_obj = CCPU(self.__compute['cpu'])
         cpu_obj.logger = self.logger
@@ -1823,7 +1825,10 @@ class CCompute(Task, CElement):
         tmp = ","
         self.add_option("-boot {}".format(tmp.join(boot_param)))
 
-        self.add_option("-machine q35,usb=off,vmport=off")
+        machine_option = "-machine q35,usb=off,vmport=off"
+        if self.__iommu:
+            machine_option = ",".join([machine_option, "iommu=on"])
+        self.add_option(machine_option)
 
         if self.__cdrom_file:
             self.add_option("-cdrom {}".format(self.__cdrom_file))
