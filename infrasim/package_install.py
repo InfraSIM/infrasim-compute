@@ -7,7 +7,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import requests
 import os
 import hashlib
-from infrasim import run_command
+from infrasim import run_command, CommandRunFailed
 
 """
 this script is used to install the necessary packages before starting infrasim-compute
@@ -63,9 +63,50 @@ def install_bintray_packages(repo, package):
         print "installing " + package + "..."
         run_command("dpkg -i " + file_name)
 
+def check_package(package = "Qemu", cmd = "which qemu-system-x86_64"):
+    has_package = True
+    # Check if package installed
+    try:
+        run_command(cmd)
+    except CommandRunFailed:
+        has_package = False
+
+    # Confirm whether to install package
+    install_package = True
+    if has_package:
+        while True:
+            ans = raw_input(package+" already exists. Overwrite it? (Y/n)")
+            if ans.lower() not in ('yes', 'no', 'y', 'n'):
+                print("Invalid input. Please respond with 'yes' or 'no' (or 'y' or 'n').")
+                continue
+            else:
+                break
+        if ans.lower() in ('no', 'n'):
+            install_package = False
+
+    return has_package, install_package
 
 def package_install():
     install_official_packages()
-    install_bintray_packages("deb", "Qemu")
-    install_bintray_packages("deb", "OpenIpmi")
-    install_bintray_packages("generic", "Seabios")
+
+    has_qemu, install_qemu = check_package("Qemu", "which qemu-system-x86_64")
+    has_openipmi, install_openipmi = check_package("Openipmi", "which ipmi_sim")
+    has_seabios, install_seabios = check_package("Seabios", "ls /usr/local/share/qemu/bios-256k.bin")
+
+    if install_qemu:
+        if not has_qemu:
+            install_bintray_packages("deb", "Qemu")
+        elif not install_seabios:
+            run_command("mv /usr/local/share/qemu/bios-256k.bin /usr/local/share/qemu/bios-256k.bin.bk")
+            run_command("dpkg -r infrasim-qemu")
+            install_bintray_packages("deb", "Qemu")
+            run_command("mv /usr/local/share/qemu/bios-256k.bin.bk /usr/local/share/qemu/bios-256k.bin")
+        else:
+            run_command("dpkg -r infrasim-qemu")
+            install_bintray_packages("deb", "Qemu")
+    if install_openipmi:
+        if has_openipmi:
+            run_command("dpkg -r infrasim-openipmi")
+        install_bintray_packages("deb", "OpenIpmi")
+    if install_seabios:
+        install_bintray_packages("generic", "Seabios")
