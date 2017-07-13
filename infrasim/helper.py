@@ -10,6 +10,7 @@ import hashlib
 import re
 import socket
 import multiprocessing
+import types
 from functools import wraps
 from ctypes import cdll
 from socket import AF_INET, AF_INET6, inet_ntop
@@ -345,4 +346,33 @@ def literal_string(s):
         if len(s) == len(t):
             return any_backspaces.sub("", t)
         s = t
- 
+
+def is_valid_ip(ip):
+    '''
+    [Function]: This function is to judge if ip is a valid IP, in str or int list
+    [Input   ]: ip - the IP to judge, should be string or list
+    [Output  ]: True - ip is valid
+                False - ip is not valid
+    '''
+
+    if type(ip) in [types.StringType, types.UnicodeType]:
+        p = re.search('^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$', ip)
+        if p:
+            for i in range(1,5):
+                if int(p.group(i),0) not in range(0,256):
+                    return False
+            return True
+        else:
+            return False
+    elif type(ip) is types.ListType:
+        if len(ip) != 4:
+            return False
+        else:
+            for i in range(4):
+                if type(ip[i]) is not types.IntType:
+                    return False
+                elif ip[i] not in range(0,256):
+                    return False
+            return True
+    else:
+        return False

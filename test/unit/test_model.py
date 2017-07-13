@@ -470,6 +470,243 @@ class qemu_functions(unittest.TestCase):
         compute.handle_parms()
         assert "msg timestamp=on" in compute.get_commandline()
 
+    def test_chardev_correct_backend(self):
+        chardev_info = {
+            "backend": "socket",
+            "server": "on",
+            "wait": "off",
+            "path": "/tmp/monitor.sock"
+        }
+        chardev = model.CCharDev(chardev_info)
+        chardev.init()
+        chardev.precheck()
+        chardev.handle_parms()
+        assert "-chardev socket" in chardev.get_option()
+
+    @raises(ArgsNotCorrect)
+    def test_chardev_empty_backend(self):
+        chardev_info = {
+            "backend": "",
+            "server": "on",
+            "wait": "off",
+            "path": "/tmp/monitor.sock"
+        }
+        chardev = model.CCharDev(chardev_info)
+        chardev.init()
+        chardev.precheck()
+
+    @raises(ArgsNotCorrect)
+    def test_chardev_none_backend(self):
+        chardev_info = {
+            "server": "on",
+            "wait": "off",
+            "path": "/tmp/monitor.sock"
+        }
+        chardev = model.CCharDev(chardev_info)
+        chardev.init()
+        chardev.precheck()
+
+    def test_monitor_auto_complete_control_mode_1(self):
+        monitor_info = {
+            "mode": "control"
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        monitor.precheck()
+        monitor.handle_parms()
+        assert "-mon chardev" in monitor.get_option()
+        assert "mode=control" in monitor.get_option()
+        assert "-chardev socket" in monitor.get_option()
+        assert "server" in monitor.get_option()
+        assert "nowait" in monitor.get_option()
+        assert "path={}".format(os.path.join(config.infrasim_etc, ".monitor")) in monitor.get_option()
+
+    def test_monitor_auto_complete_control_mode_2(self):
+        monitor_info = {
+            "mode": "control",
+            "chardev": {}
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        monitor.precheck()
+        monitor.handle_parms()
+        assert "-mon chardev" in monitor.get_option()
+        assert "mode=control" in monitor.get_option()
+        assert "-chardev socket" in monitor.get_option()
+        assert "server" in monitor.get_option()
+        assert "nowait" in monitor.get_option()
+        assert "path={}".format(os.path.join(config.infrasim_etc, ".monitor")) in monitor.get_option()
+
+    def test_monitor_auto_complete_readline_mode_1(self):
+        monitor_info = {
+            "mode": "readline"
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        monitor.precheck()
+        monitor.handle_parms()
+        assert "-mon chardev" in monitor.get_option()
+        assert "mode=readline" in monitor.get_option()
+        assert "-chardev socket" in monitor.get_option()
+        assert "server" in monitor.get_option()
+        assert "nowait" in monitor.get_option()
+        assert "host=127.0.0.1" in monitor.get_option()
+        assert "port=2345" in monitor.get_option()
+
+    def test_monitor_auto_complete_readline_mode_2(self):
+        monitor_info = {
+            "mode": "readline",
+            "chardev": {}
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        monitor.precheck()
+        monitor.handle_parms()
+        assert "-mon chardev" in monitor.get_option()
+        assert "mode=readline" in monitor.get_option()
+        assert "-chardev socket" in monitor.get_option()
+        assert "server" in monitor.get_option()
+        assert "nowait" in monitor.get_option()
+        assert "host=127.0.0.1" in monitor.get_option()
+        assert "port=2345" in monitor.get_option()
+
+    def test_monitor_fault_mode(self):
+        monitor_info = {
+            "mode": "fault"
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        try:
+            monitor.precheck()
+        except ArgsNotCorrect, e:
+            assert "Invalid monitor mode: fault" in e.value
+
+    def test_monitor_fault_backend_in_control_mode(self):
+        monitor_info = {
+            "mode": "control",
+            "chardev": {
+                "backend": "file"
+            }
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        try:
+            monitor.precheck()
+        except ArgsNotCorrect, e:
+            assert "Invalid monitor chardev backend: file" in e.value
+
+    def test_monitor_fault_backend_in_readline_mode(self):
+        monitor_info = {
+            "mode": "readline",
+            "chardev": {
+                "backend": "file"
+            }
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        try:
+            monitor.precheck()
+        except ArgsNotCorrect, e:
+            assert "Invalid monitor chardev backend: file" in e.value
+
+    def test_monitor_fault_server_in_control_mode(self):
+        monitor_info = {
+            "mode": "control",
+            "chardev": {
+                "server": "ok"
+            }
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        try:
+            monitor.precheck()
+        except ArgsNotCorrect, e:
+            assert "Invalid monitor chardev server: ok" in e.value
+
+    def test_monitor_fault_server_in_readline_mode(self):
+        monitor_info = {
+            "mode": "readline",
+            "chardev": {
+                "server": "ok"
+            }
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        try:
+            monitor.precheck()
+        except ArgsNotCorrect, e:
+            assert "Invalid monitor chardev server: ok" in e.value
+
+    def test_monitor_fault_wait_in_control_mode(self):
+        monitor_info = {
+            "mode": "control",
+            "chardev": {
+                "wait": "ok"
+            }
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        try:
+            monitor.precheck()
+        except ArgsNotCorrect, e:
+            assert "Invalid monitor chardev wait: ok" in e.value
+
+    def test_monitor_fault_wait_in_readline_mode(self):
+        monitor_info = {
+            "mode": "readline",
+            "chardev": {
+                "wait": "ok"
+            }
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        try:
+            monitor.precheck()
+        except ArgsNotCorrect, e:
+            assert "Invalid monitor chardev wait: ok" in e.value
+
+    def test_monitor_fault_host_in_readline_mode(self):
+        monitor_info = {
+            "mode": "readline",
+            "chardev": {
+                "host": "localhost"
+            }
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        try:
+            monitor.precheck()
+        except ArgsNotCorrect, e:
+            assert "Invalid chardev host: localhost" in e.value
+
+    def test_monitor_fault_port_in_readline_mode(self):
+        monitor_info = {
+            "mode": "readline",
+            "chardev": {
+                "port": "someport"
+            }
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        try:
+            monitor.precheck()
+        except ArgsNotCorrect, e:
+            assert "Port is not a valid integer: someport" in e.value
+
+    def test_monitor_fault_path_in_control_mode(self):
+        monitor_info = {
+            "mode": "control",
+            "chardev": {
+                "path": "/fake/path/.monitor"
+            }
+        }
+        monitor = model.CMonitor(monitor_info)
+        monitor.init()
+        try:
+            monitor.precheck()
+        except ArgsNotCorrect, e:
+            assert "Path folder doesn't exist: /fake/path" in e.value
+
 
 class bmc_configuration(unittest.TestCase):
 
