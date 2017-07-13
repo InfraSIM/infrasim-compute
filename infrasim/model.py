@@ -320,6 +320,7 @@ class CBaseStorageController(CElement):
         self._attributes = {}
         # record the controller index inside this instance
         self.__controller_index = 0
+        self._ses_list = []
 
         # remember the start index for the first controller
         # managed by this class
@@ -363,8 +364,14 @@ class CBaseStorageController(CElement):
         for drive_obj in self._drive_list:
             drive_obj.handle_parms()
 
+        for ses_obj in self._ses_list:
+            ses_obj.handle_parms()
+
         for drive_obj in self._drive_list:
             self.add_option(drive_obj.get_option())
+
+        for ses_obj in self._ses_list:
+            self.add_option(ses_obj.get_option())
 
         # controller attributes if there are some
         # common attributes for all controllers
@@ -375,6 +382,12 @@ class LSISASController(CBaseStorageController):
     def __init__(self, controller_info):
         super(LSISASController, self).__init__()
         self._controller_info = controller_info
+        self.__expander_count = None;
+        self._iothread_id = None
+        self.__expander_downstream_start_phy = None
+        self.__expander_upstream_start_phy = None
+        self.__expander_all_phys = None
+        self.__use_msix = None
 
     def precheck(self):
         # call parent precheck()
@@ -382,6 +395,13 @@ class LSISASController(CBaseStorageController):
 
     def init(self):
         super(LSISASController, self).init()
+
+        self.__expander_count = self._controller_info.get("expander-count")
+        self.__expander_downstream_start_phy = self._controller_info.get("expander-downstream-start-phy")
+        self.__expander_upstream_start_phy = self._controller_info.get("expander-upstream-start-phy")
+        self.__expander_all_phys = self._controller_info.get("expander-phys")
+        self._iothread_id = self._controller_info.get("iothread")
+        self.__use_msix = self._controller_info.get('use_msix')
 
         self._start_idx = self.controller_index
         idx = 0
@@ -395,8 +415,16 @@ class LSISASController(CBaseStorageController):
             self._drive_list.append(sd_obj)
             idx += 1
 
+        for ses_info in self._controller_info.get("seses", []):
+            ses_obj = SESDevice(ses_info)
+            ses_obj.set_bus(self.controller_index + idx / self._max_drive_per_controller)
+            self._ses_list.append(ses_obj)
+
         for drive_obj in self._drive_list:
             drive_obj.init()
+
+        for ses_obj in self._ses_list:
+            ses_obj.init()
 
         # Update controller index, tell CBackendStorage what the controller index
         # should be for the next
@@ -409,6 +437,24 @@ class LSISASController(CBaseStorageController):
         cntrl_nums = int(math.ceil(float(drive_nums)/self._max_drive_per_controller)) or 1
         for cntrl_index in range(0, cntrl_nums):
             self._attributes["id"] = "scsi{}".format(self._start_idx + cntrl_index)
+            if self.__expander_count:
+                self._attributes["expander-count"] = self.__expander_count
+
+            if self.__expander_downstream_start_phy is not None:
+                self._attributes["downstream-start-phy"] = self.__expander_downstream_start_phy
+
+            if self.__expander_upstream_start_phy is not None:
+                self._attributes["upstream-start-phy"] = self.__expander_upstream_start_phy
+
+            if self.__expander_all_phys is not None:
+                self._attributes["expander-phys"] = self.__expander_all_phys
+
+            if self._iothread_id:
+                self._attributes["iothread"] = self._iothread_id
+
+            if self.__use_msix is not None:
+                self._attributes["use_msix"] = self.__use_msix
+
             self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)
 
 
@@ -815,6 +861,86 @@ class IDEDrive(CBaseDrive):
             self._dev_attrs["unit"] = self.__unit
 
         self.add_option(self.build_device_option(self._name, **self._dev_attrs))
+
+
+class SESDevice(CElement):
+    def __init__(self, ses_info):
+        super(SESDevice, self).__init__()
+        self._ses_info = ses_info
+
+        self.prefix = "scsi"
+
+        self.__port_wwn = None
+        self.__channel = None
+        self.__scsi_id = None
+        self.__serial = None
+        self.__wwn = None
+        self.__lun = None
+        self.__vendor = None
+        self.__product = None
+        self.__serial = None
+        self.__version = None
+        self.__bus = 0
+        self.__dae_type = None
+
+    def set_bus(self, bus):
+        self.__bus = bus
+
+    def precheck(self):
+        pass
+
+    def init(self):
+        self.__port_wwn = self._ses_info.get("port_wwn")
+        self.__channel = self._ses_info.get("channel")
+        self.__scsi_id = self._ses_info.get("scsi-id")
+        self.__lun = self._ses_info.get("lun")
+
+        self.__vendor = self._ses_info.get("vendor")
+        self.__product = self._ses_info.get("product")
+        self.__serial = self._ses_info.get("serial")
+        self.__wwn = self._ses_info.get("wwn")
+        self.__version = self._ses_info.get("version")
+        self.__dae_type = self._ses_info.get("dae_type")
+
+    def handle_parms(self):
+        options = {}
+
+        if self.__channel:
+            options["channel"] = self.__channel
+
+        if self.__scsi_id:
+            options["scsi-id"] = self.__scsi_id
+
+        if self.__lun:
+            options["lun"] = self.__lun
+
+        if self.__product:
+            options["product"] = self.__product
+
+        if self.__vendor:
+            options["vendor"] = self.__vendor
+
+        if self.__serial:
+            options["serial"] = self.__serial
+
+        if self.__version:
+            options["version"] = self.__version
+
+        if self.__wwn:
+            options["wwn"] = self.__wwn
+
+        if self.__dae_type:
+            options["dae_type"] = self.__dae_type
+
+        options["bus"] = "{}{}.{}".format(self.prefix, self.__bus, 0)
+
+        options_list = []
+        for k, v in options.items():
+            options_list.append("{}={}".format(k, v))
+
+        ses_device_arguments = ",".join(options_list)
+
+        self.add_option(",".join(["-device ses", ses_device_arguments]))
 
 
 class CBackendStorage(CElement):
@@ -1421,7 +1547,8 @@ class CCompute(Task, CElement):
         self.__vendor_type = None
         # remember cpu object
         self.__cpu_obj = None
-        self.__numactl_enable = False
+        self.__numactl_info = False
+        self.__numactl_mode = None
         self.__cdrom_file = None
         self.__monitor = None
         self.__display = None
@@ -1435,6 +1562,7 @@ class CCompute(Task, CElement):
         self.__cmdline = None
         self.__mem_path = None
         self.__extra_option = None
+        self.__iommu = False
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -1509,7 +1637,6 @@ class CCompute(Task, CElement):
                     self.logger.exception(msg)
                     raise ArgsNotCorrect(msg)
 
-
     @run_in_namespace
     def init(self):
         if 'kvm_enabled' in self.__compute and not helper.check_kvm_existence():
@@ -1540,17 +1667,18 @@ class CCompute(Task, CElement):
 
         self.__cdrom_file = self.__compute.get('cdrom')
 
-        if 'numa_control' in self.__compute \
-                and self.__compute['numa_control']:
-            if os.path.exists("/usr/bin/numactl"):
-                if self.__class__.numactl is None:
-                    self.__class__.numactl = NumaCtl()
-                self.__numactl_enable = True
-                self.logger.info('[compute] infrasim has '
-                                 'enabled numa control')
-            else:
-                self.logger.info('[compute] infrasim can\'t '
-                                 'find numactl in this environment')
+        self.__numactl_info = self.__compute.get("numa_control")
+        if self.__numactl_info and os.path.exists("/usr/bin/numactl"):
+            self.__numactl_mode = self.__numactl_info.get("mode", "auto")
+            if self.__class__.numactl is None:
+                self.__class__.numactl = NumaCtl()
+
+
+            self.logger.info('[compute] infrasim has '
+                                'enabled numa control')
+        else:
+            self.logger.info('[compute] infrasim can\'t '
+                                'find numactl in this environment')
 
         self.__display = self.__compute.get('vnc_display', 1)
         self.__kernel = self.__compute.get('kernel')
@@ -1562,6 +1690,7 @@ class CCompute(Task, CElement):
 
         self.__extra_option = self.__compute.get("extra_option")
         self.__qemu_bin = self.__compute.get("qemu_bin", self.__qemu_bin)
+        self.__iommu = self.__compute.get("iommu")
 
         cpu_obj = CCPU(self.__compute['cpu'])
         cpu_obj.logger = self.logger
@@ -1638,7 +1767,7 @@ class CCompute(Task, CElement):
         qemu_commandline = " ".join([self.__qemu_bin, self.get_option(), qemu_commandline])
 
         # set cpu affinity
-        if self.__numactl_enable:
+        if self.__numactl_mode == "auto":
             cpu_number = self.__cpu_obj.get_cpu_quantities()
             try:
                 bind_cpu_list = [str(x) for x in self.__class__.numactl.get_cpu_list(cpu_number)]
@@ -1648,6 +1777,13 @@ class CCompute(Task, CElement):
             if len(bind_cpu_list) > 0:
                 numactl_option = 'numactl --physcpubind={} --localalloc'.format(','.join(bind_cpu_list))
                 qemu_commandline = " ".join([numactl_option, qemu_commandline])
+        elif self.__numactl_mode == "manual":
+            bind_cpu_list = self.__numactl_info.get("cores").split(",")
+            numactl_option = 'numactl --physcpubind={} --localalloc'.format(self.__numactl_info.get("cores"))
+            mem_node_id = self.__numactl_info.get("node-id")
+            if mem_node_id is not None:
+                numactl_option = " ".join([numactl_option, "--membind={}".format(mem_node_id)])
+            qemu_commandline = " ".join([numactl_option, qemu_commandline])
 
         return qemu_commandline
 
@@ -1698,7 +1834,10 @@ class CCompute(Task, CElement):
         tmp = ","
         self.add_option("-boot {}".format(tmp.join(boot_param)))
 
-        self.add_option("-machine q35,usb=off,vmport=off")
+        machine_option = "-machine q35,usb=off,vmport=off"
+        if self.__iommu:
+            machine_option = ",".join([machine_option, "iommu=on"])
+        self.add_option(machine_option)
 
         if self.__cdrom_file:
             self.add_option("-cdrom {}".format(self.__cdrom_file))
