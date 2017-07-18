@@ -336,8 +336,7 @@ class test_start_node_with_conflict_port(unittest.TestCase):
             node2.init()
             node2.precheck()
         except ArgsNotCorrect, e:
-            assert "Monitor port 2345 is already in use." in e.value
-            assert True
+            assert "Port 2345 is already in use" in e.value
         else:
             assert False
 

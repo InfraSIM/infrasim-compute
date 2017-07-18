@@ -27,11 +27,35 @@
     {%- endif %}
 {% endmacro %}
 
-{% macro get_media_type(drive) %}
+{% macro get_media_type(drive, isabbr=true) %}
     {% if get_rotation(drive)|int < 2 -%}
-        SSD
+        {%- if isabbr -%}
+            SSD
+        {%- else -%}
+            Solid State Drive
+        {%- endif -%}
     {%- else -%}
         HDD
+    {%- endif %}
+{% endmacro %}
+
+{% macro get_form_factor(drive) %}
+    {% if get_media_type(drive) == "SSD" -%}
+        2.5
+    {%- else -%}
+        3.5
+    {%- endif %}
+{% endmacro %}
+
+{% macro get_endurance(drive, isdigit=true) %}
+    {% if get_media_type(drive) == "SSD" -%}
+        100%
+    {%- else -%}
+        {%- if isdigit -%}
+            0%
+        {%- else -%}
+            Not Applicable
+        {%- endif -%}
     {%- endif %}
 {% endmacro %}
 
