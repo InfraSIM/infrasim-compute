@@ -1220,7 +1220,7 @@ class CMonitor(CElement):
         self.__workspace = ws
 
     def precheck(self):
-        if not self.__mode in ["readline", "control"]:
+        if self.__mode not in ["readline", "control"]:
             self.logger.exception("[Monitor] Invalid monitor mode: {}".format(self.__mode))
             raise ArgsNotCorrect("Invalid monitor mode: {}".format(self.__mode))
 
@@ -1254,25 +1254,25 @@ class CMonitor(CElement):
         chardev_info = {}
         if self.__mode == "readline":
             chardev_info = self.__monitor.get("chardev", {})
-            if not "backend" in chardev_info:
+            if "backend" not in chardev_info:
                 chardev_info["backend"] = "socket"
-            if not "server" in chardev_info:
+            if "server" not in chardev_info:
                 chardev_info["server"] = True
-            if not "wait" in chardev_info:
+            if "wait" not in chardev_info:
                 chardev_info["wait"] = False
-            if not "host" in chardev_info:
+            if "host" not in chardev_info:
                 chardev_info["host"] = "127.0.0.1"
-            if not "port" in chardev_info:
+            if "port" not in chardev_info:
                 chardev_info["port"] = 2345
         elif self.__mode == "control":
             chardev_info = self.__monitor.get("chardev", {})
-            if not "backend" in chardev_info:
+            if "backend" not in chardev_info:
                 chardev_info["backend"] = "socket"
-            if not "server" in chardev_info:
+            if "server" not in chardev_info:
                 chardev_info["server"] = True
-            if not "wait" in chardev_info:
+            if "wait" not in chardev_info:
                 chardev_info["wait"] = False
-            if not "path" in chardev_info:
+            if "path" not in chardev_info:
                 if self.get_workspace():
                     chardev_path = os.path.join(self.get_workspace(), ".monitor")
                 else:
