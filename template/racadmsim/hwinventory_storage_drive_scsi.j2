@@ -1,20 +1,20 @@
 {% import "macros.j2" as lib %}
 
 
-[InstanceID: Disk.Bay.{{ drive.slot }}:Enclosure.Internal.0-1:NonRAID.Integrated.1-{{ controller_idx }}]
+[InstanceID: Disk.Bay.{{ drive.slot_number }}:Enclosure.Internal.0-1:NonRAID.Integrated.1-{{ controller_idx }}]
 Device Type = PhysicalDisk
 LastUpdateTime = 2016-12-20T08:37:44
 LastSystemInventoryTime = 2016-12-20T08:37:44
-RemainingRatedWriteEndurance = 0%
+RemainingRatedWriteEndurance = {{ lib.get_endurance(drive, isdigit=true) }}
 OperationPercentComplete = 0%
 OperationName = None
-DriveFormFactor = 3.5 inch
+DriveFormFactor = {{ lib.get_form_factor(drive) }} inch
 PPID = {{ lib.get_part_number(drive) }}
 SASAddress = {{ lib.get_wwn(drive, prefix=false) }}
 MaxCapableSpeed = 12Gbs
 UsedSizeInBytes = 0 Bytes
 FreeSizeInBytes = 0 Bytes
-MediaType = {{ lib.get_media_type(drive) }}
+MediaType = {{ lib.get_media_type(drive, isabbr=false) }}
 BlockSizeInBytes = 512 Bytes
 T10PICapability = Not supported
 SecurityState = Unknown
@@ -29,12 +29,12 @@ ManufacturingDay = 2
 Manufacturer = {{ drive.vendor }}
 Model = {{ drive.product }}
 SizeInBytes = 4000787029504 Bytes
-Slot = {{ drive.slot }}
+Slot = {{ drive.slot_number }}
 Connector = 0
 RaidStatus = Non-RAID
 RollupStatus = OK
 PrimaryStatus = OK
-DeviceDescription = Disk {{ drive.slot }} in Backplane 1 of Integrated Storage Controller {{ controller_idx }}
-FQDD = Disk.Bay.{{ drive.slot }}:Enclosure.Internal.0-1:NonRAID.Integrated.1-{{ controller_idx }}
-InstanceID = Disk.Bay.{{ drive.slot }}:Enclosure.Internal.0-1:NonRAID.Integrated.1-{{ controller_idx }}
+DeviceDescription = Disk {{ drive.slot_number }} in Backplane 1 of Integrated Storage Controller {{ controller_idx }}
+FQDD = Disk.Bay.{{ drive.slot_number }}:Enclosure.Internal.0-1:NonRAID.Integrated.1-{{ controller_idx }}
+InstanceID = Disk.Bay.{{ drive.slot_number }}:Enclosure.Internal.0-1:NonRAID.Integrated.1-{{ controller_idx }}
 -------------------------------------------------------------------

@@ -1,16 +1,16 @@
 {% import "macros.j2" as lib %}
 
-Disk.Bay.{{ drive.slot }}:Enclosure.Internal.0-1:NonRAID.Integrated.1-{{ controller_idx }}
+Disk.Bay.{{ drive.slot_number }}:Enclosure.Internal.0-1:NonRAID.Integrated.1-{{ controller_idx }}
    Status                           = Ok
-   DeviceDescription                = Disk {{ drive.slot }} in Backplane 1 of Integrated Storage Controller {{ controller_idx }}
+   DeviceDescription                = Disk {{ drive.slot_number }} in Backplane 1 of Integrated Storage Controller {{ controller_idx }}
    RollupStatus                     = Ok
-   Name                             = {% if lib.get_rotation(drive)|int < 2 %}Solid State Disk{% else %}Physical Disk{% endif %} 0:1:{{ drive.slot }}
+   Name                             = {% if lib.get_rotation(drive)|int < 2 %}Solid State Disk{% else %}Physical Disk{% endif %} 0:1:{{ drive.slot_number }}
    State                            = Non-Raid
    OperationState                   = Not Applicable
    PowerStatus                      = Spun-Up
    Size                             = {{ drive.size }} GB
    FailurePredicted                 = NO
-   RemainingRatedWriteEndurance     = Not Applicable
+   RemainingRatedWriteEndurance     = {{ lib.get_endurance(drive, isdigit=false) }}
    SecurityStatus                   = Not Capable
    BusProtocol                      = SAS
    MediaType                        = {{ lib.get_media_type(drive) }}
@@ -27,7 +27,7 @@ Disk.Bay.{{ drive.slot }}:Enclosure.Internal.0-1:NonRAID.Integrated.1-{{ control
    ManufacturedWeek                 = 9
    ManufacturedYear                 = 2016
    SasAddress                       = {{ lib.get_wwn(drive, prefix=true) }}
-   FormFactor                       = 3.5 Inch
+   FormFactor                       = {{ lib.get_form_factor(drive) }} Inch
    RaidNominalMediumRotationRate    = {{ lib.get_rotation(drive) }}
    T10PICapability                  = Not Capable
    BlockSizeInBytes                 = 512

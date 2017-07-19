@@ -235,20 +235,34 @@ class CCharDev(CElement):
         return self.__id
 
     def precheck(self):
-        if self.__port and helper.check_if_port_in_use("0.0.0.0", self.__port):
-            self.logger.exception("[Chardev] Monitor port {} is already in use".
-                                  format(self.__port))
-            raise ArgsNotCorrect("Monitor port {} is already in use.".format(self.__port))
+        if not self.__backend_type:
+            self.logger.exception("[Chardev] Backend should be set.")
+            raise ArgsNotCorrect("Backend of chardev should be set.")
+
+        if self.__host and not helper.is_valid_ip(self.__host):
+            self.logger.exception("[CharDev] Invalid chardev host: {}".format(self.__host))
+            raise ArgsNotCorrect("Invalid chardev host: {}".format(self.__host))
+
+        if self.__port:
+            try:
+                int(self.__port)
+            except ValueError, e:
+                self.logger.exception("[Chardev] Port is not a valid integer: {}".format(self.__port))
+                raise ArgsNotCorrect("Port is not a valid integer: {}".format(self.__port))
+
+            if helper.check_if_port_in_use("0.0.0.0", self.__port):
+                self.logger.exception("[Chardev] Port {} is already in use".format(self.__port))
+                raise ArgsNotCorrect("Port {} is already in use".format(self.__port))
+
+        if self.__path:
+            dir_path = os.path.dirname(self.__path)
+            if not os.path.isdir(dir_path):
+                self.logger.exception("[Chardev] Path folder doesn't exist: {}".format(dir_path))
+                raise ArgsNotCorrect("Path folder doesn't exist: {}".format(dir_path))
 
     def init(self):
-        if 'backend' not in self.__chardev:
-            self.logger.exception("[Chardev] Backend should be set.")
-            raise Exception("Backend should be set.")
-
         self.__backend_type = self.__chardev.get('backend')
-
         self.__is_server = self.__chardev.get('server', False)
-
         self.__host = self.__chardev.get('host')
         self.__port = self.__chardev.get('port', self.__port)
         self.__wait = self.__chardev.get('wait', True)
@@ -1323,8 +1337,19 @@ class CMonitor(CElement):
         self.__monitor = monitor_info
         self.__chardev = None
         self.__mode = "readline"
+        self.__workspace = ""
+
+    def get_workspace(self):
+        return self.__workspace
+
+    def set_workspace(self, ws):
+        self.__workspace = ws
 
     def precheck(self):
+        if self.__mode not in ["readline", "control"]:
+            self.logger.exception("[Monitor] Invalid monitor mode: {}".format(self.__mode))
+            raise ArgsNotCorrect("Invalid monitor mode: {}".format(self.__mode))
+
         try:
             self.__chardev.precheck()
         except ArgsNotCorrect, e:
@@ -1332,13 +1357,61 @@ class CMonitor(CElement):
             print e.value
             raise e
 
+        # Monitor specific chardev attribution
+        if self.__monitor["chardev"]["backend"] != "socket":
+            self.logger.exception("[Monitor] Invalid monitor chardev backend: {}".
+                                    format(self.__monitor["chardev"]["backend"]))
+            raise ArgsNotCorrect("Invalid monitor chardev backend: {}".
+                                    format(self.__monitor["chardev"]["backend"]))
+        if self.__monitor["chardev"]["server"] is not True:
+            self.logger.exception("[Monitor] Invalid monitor chardev server: {}".
+                                    format(self.__monitor["chardev"]["server"]))
+            raise ArgsNotCorrect("Invalid monitor chardev server: {}".
+                                    format(self.__monitor["chardev"]["server"]))
+        if self.__monitor["chardev"]["wait"] is not False:
+            self.logger.exception("[Monitor] Invalid monitor chardev wait: {}".
+                                    format(self.__monitor["chardev"]["wait"]))
+            raise ArgsNotCorrect("Invalid monitor chardev wait: {}".
+                                    format(self.__monitor["chardev"]["wait"]))
+
+
     def init(self):
-        self.__mode = self.__monitor.get('mode', "readline")
-        if 'chardev' in self.__monitor:
-            self.__chardev = CCharDev(self.__monitor['chardev'])
-            self.__chardev.logger = self.logger
-            self.__chardev.set_id("monitorchardev")
-            self.__chardev.init()
+        self.__mode = self.__monitor.get("mode", "readline")
+        chardev_info = {}
+        if self.__mode == "readline":
+            chardev_info = self.__monitor.get("chardev", {})
+            if "backend" not in chardev_info:
+                chardev_info["backend"] = "socket"
+            if "server" not in chardev_info:
+                chardev_info["server"] = True
+            if "wait" not in chardev_info:
+                chardev_info["wait"] = False
+            if "host" not in chardev_info:
+                chardev_info["host"] = "127.0.0.1"
+            if "port" not in chardev_info:
+                chardev_info["port"] = 2345
+        elif self.__mode == "control":
+            chardev_info = self.__monitor.get("chardev", {})
+            if "backend" not in chardev_info:
+                chardev_info["backend"] = "socket"
+            if "server" not in chardev_info:
+                chardev_info["server"] = True
+            if "wait" not in chardev_info:
+                chardev_info["wait"] = False
+            if "path" not in chardev_info:
+                if self.get_workspace():
+                    chardev_path = os.path.join(self.get_workspace(), ".monitor")
+                else:
+                    chardev_path = os.path.join(config.infrasim_etc, ".monitor")
+                chardev_info["path"] = chardev_path
+        else:
+            pass
+
+        self.__monitor["chardev"] = chardev_info
+        self.__chardev = CCharDev(chardev_info)
+        self.__chardev.logger = self.logger
+        self.__chardev.set_id("monitorchardev")
+        self.__chardev.init()
 
     def handle_parms(self):
         self.__chardev.handle_parms()
@@ -1737,7 +1810,7 @@ class CCompute(Task, CElement):
         ipmi_obj.set_bmc_conn_port(self.__port_qemu_ipmi)
         self.__element_list.append(ipmi_obj)
 
-        if 'monitor' in self.__compute:
+        if self.__compute.get('monitor', ''):
             monitor_obj = CMonitor(self.__compute['monitor'])
         else:
             monitor_obj = CMonitor({
@@ -1750,6 +1823,7 @@ class CCompute(Task, CElement):
                     'wait': False
                 }
             })
+        monitor_obj.set_workspace(self.get_workspace())
         monitor_obj.logger = self.logger
         self.__element_list.append(monitor_obj)
 
