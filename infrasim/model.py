@@ -21,6 +21,8 @@ import config
 import json
 import helper
 import stat
+import socket
+from telnetlib import Telnet
 from workspace import Workspace
 from . import run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
 from infrasim.helper import run_in_namespace, double_fork
@@ -225,14 +227,27 @@ class CCharDev(CElement):
     def set_id(self, chardev_id):
         self.__id = chardev_id
 
-    def set_host(self, host):
-        self.__host = host
+    @property
+    def host(self):
+        return self.__host
 
-    def set_port(self, port):
-        self.__port = port
+    @host.setter
+    def host(self, h):
+        self.__host = h
+
+    @property
+    def port(self):
+        return self.__port
+
+    @port.setter
+    def port(self, p):
+        self.__port = p
 
     def get_id(self):
         return self.__id
+
+    def get_path(self):
+        return self.__path
 
     def precheck(self):
         if not self.__backend_type:
@@ -1177,8 +1192,8 @@ class CIPMI(CElement):
             self.__chardev_obj = CCharDev(self.__ipmi['chardev'])
             self.__chardev_obj.logger = self.logger
             self.__chardev_obj.set_id("ipmi0")
-            self.__chardev_obj.set_host(self.__host)
-            self.__chardev_obj.set_port(self.__bmc_connection_port)
+            self.__chardev_obj.host = self.__host
+            self.__chardev_obj.port = self.__bmc_connection_port
             self.__chardev_obj.init()
 
         self.__ioport = self.__ipmi.get('ioport')
@@ -1338,6 +1353,7 @@ class CMonitor(CElement):
         self.__chardev = None
         self.__mode = "readline"
         self.__workspace = ""
+        self.__monitor_handle = None
 
     def get_workspace(self):
         return self.__workspace
@@ -1418,6 +1434,37 @@ class CMonitor(CElement):
         self.add_option(self.__chardev.get_option())
         self.add_option("-mon chardev={},mode={}".format(self.__chardev.get_id(), self.__mode))
 
+    def get_mode(self):
+        return self.__mode
+
+    def open(self):
+        if self.__mode == "readline":
+            self.__monitor_handle = Telnet(self.__chardev.host, self.__chardev.port)
+        elif self.__mode == "control":
+            self.__monitor_handle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.__monitor_handle.connect(self.__chardev.get_path())
+
+            # enable qmp capabilities
+            qmp_payload = {
+                "execute": "qmp_capabilities"
+            }
+            self.send(qmp_payload)
+        else:
+            raise ArgsNotCorrect("[Monitor] Monitor mode {} is unknown.".format(self.__mode))
+        self.logger.info("[Monitor] monitor opened({}).".format(self.__monitor_handle))
+
+    def send(self, command):
+        if self.__monitor_handle:
+            self.logger.info("[Monitor] send command {}".format(command))
+            if self.__mode == "readline":
+                self.__monitor_handle.write(command)
+            else:
+                self.__monitor_handle.send(json.dumps(command))
+
+    def close(self):
+        if self.__monitor_handle:
+            self.__monitor_handle.close()
+            self.logger.info("[Monitor] monitor closed.")
 
 class Task(object):
     def __init__(self):
@@ -1483,10 +1530,12 @@ class Task(object):
     def set_asyncronous(self, asyncr):
         self.__asyncronous = asyncr
 
+    def get_pid_file(self):
+        return "{}/.{}.pid".format(self.__workspace, self.__task_name)
+
     def get_task_pid(self):
-        pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
         try:
-            with open(pid_file, "r") as f:
+            with open(self.get_pid_file(), "r") as f:
                 pid = f.readline().strip()
         except Exception:
             return -1
@@ -1530,7 +1579,7 @@ class Task(object):
         self.__logger.info("{}'s command line: {}".
                            format(self.__task_name, cmdline))
 
-        pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
+        pid_file = self.get_pid_file()
 
         if self._task_is_running():
             print "[ {:<6} ] {} is already running".format(
@@ -1554,7 +1603,7 @@ class Task(object):
 
     def terminate(self):
         task_pid = self.get_task_pid()
-        pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
+        pid_file = self.get_pid_file()
         try:
             if task_pid > 0:
                 os.kill(int(task_pid), signal.SIGTERM)
@@ -1636,6 +1685,9 @@ class CCompute(Task, CElement):
         self.__mem_path = None
         self.__extra_option = None
         self.__iommu = False
+        self.__monitor = None
+
+        self.__force_shutdown = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -1764,6 +1816,7 @@ class CCompute(Task, CElement):
         self.__extra_option = self.__compute.get("extra_option")
         self.__qemu_bin = self.__compute.get("qemu_bin", self.__qemu_bin)
         self.__iommu = self.__compute.get("iommu")
+        self.__force_shutdown = self.__compute.get("force_shutdown", True)
 
         cpu_obj = CCPU(self.__compute['cpu'])
         cpu_obj.logger = self.logger
@@ -1811,9 +1864,9 @@ class CCompute(Task, CElement):
         self.__element_list.append(ipmi_obj)
 
         if self.__compute.get('monitor', ''):
-            monitor_obj = CMonitor(self.__compute['monitor'])
+            self.__monitor = CMonitor(self.__compute['monitor'])
         else:
-            monitor_obj = CMonitor({
+            self.__monitor = CMonitor({
                 'mode': 'readline',
                 'chardev': {
                     'backend': 'socket',
@@ -1823,10 +1876,9 @@ class CCompute(Task, CElement):
                     'wait': False
                 }
             })
-        monitor_obj.set_workspace(self.get_workspace())
-        monitor_obj.logger = self.logger
-        self.__element_list.append(monitor_obj)
-
+        self.__monitor.set_workspace(self.get_workspace())
+        self.__monitor.logger = self.logger
+        self.__element_list.append(self.__monitor)
         for element in self.__element_list:
             element.init()
 
@@ -1941,6 +1993,29 @@ class CCompute(Task, CElement):
         for element_obj in self.__element_list:
             element_obj.handle_parms()
 
+    # override Task.terminate, use monitor to shutdown qemu
+    def terminate(self):
+        if self.__force_shutdown:
+            super(CCompute, self).terminate()
+            return
+
+        if self._task_is_running():
+            self.__monitor.open()
+            if self.__monitor.get_mode() == "readline":
+                self.__monitor.send("system_powerdown\n")
+            elif self.__monitor.get_mode() == "control":
+                self.__monitor.send({"execute": "system_powerdown"})
+            self.__monitor.close()
+
+        start = time.time()
+        while time.time() - start < 2 * 60:
+            if not self._task_is_running():
+                if os.path.exists(self.get_pid_file()):
+                    os.remove(self.get_pid_file())
+                break
+            time.sleep(1)
+        else:
+            super(CCompute, self).terminate()
 
 class CBMC(Task):
 
