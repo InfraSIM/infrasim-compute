@@ -621,6 +621,7 @@ class CBaseDrive(CElement):
         self.__aio = None
         self.__drive_file = None
         self.__format = None
+        self.__page_file = None
 
         # other option
         self.__size = None
@@ -654,7 +655,10 @@ class CBaseDrive(CElement):
         self._scsi_id = scsi_id
 
     def precheck(self):
-        pass
+        if self.__page_file and not os.path.exists(self.__page_file):
+            self.logger.exception("[CBaseDrive] page file {0} doesnot exist".format(self.__page_file))
+            raise ArgsNotCorrect("[CBaseDrive] page file {0} doesnot exist".format(self.__page_file))
+
 
     def init(self):
         self.__bootindex = self._drive_info.get("bootindex")
@@ -666,6 +670,7 @@ class CBaseDrive(CElement):
         self.__size = self._drive_info.get("size", 8)
         self.__drive_file = self._drive_info.get("file")
         self.__wwn = self._drive_info.get("wwn")
+        self.__page_file = self._drive_info.get("page-file")
 
         self.__l2_cache_size = self._drive_info.get("l2-cache-size")
         self.__refcount_cache_size = self._drive_info.get("refcount-cache-size")
@@ -783,6 +788,9 @@ class CBaseDrive(CElement):
                                                           self._channel, self._scsi_id, self._lun)
 
         self._dev_attrs["id"] = "dev-{}".format(self._dev_attrs["drive"])
+
+        if self.__page_file:
+            self._dev_attrs["page_file"] = self.__page_file
 
 
 class SCSIDrive(CBaseDrive):

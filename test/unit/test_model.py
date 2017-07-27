@@ -7,6 +7,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import os
 import unittest
 import yaml
+import re
 from infrasim import ArgsNotCorrect
 from infrasim import model
 from infrasim import socat
@@ -14,6 +15,7 @@ from infrasim import config
 from infrasim import helper
 from test import fixtures
 from nose.tools import raises
+
 
 TMP_CONF_FILE = "/tmp/test.yml"
 
@@ -402,7 +404,7 @@ class qemu_functions(unittest.TestCase):
         except:
             assert False
 
-    def test_set_scsi_lun(self):
+    def test_set_scsi_slot(self):
         try:
             backend_storage_info = [{
                 "type": "megasas-gen2",
@@ -420,6 +422,61 @@ class qemu_functions(unittest.TestCase):
             assert "slot_number=2" in storage.get_option()
         except:
             assert False
+
+    def test_set_drive_page_file_exist(self):
+        file_name = "/tmp/an_avaiable_page_file.bin"
+        os.system("touch {0}".format(file_name))
+        ps = r"-device \S+page_file={0}[\s,]".format(file_name)
+        p = re.compile(ps)
+        try:
+            backend_storage_info = [{
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [{
+                    "size": 8, "model": "SATADOM",
+                    "serial": "HUSMM442", "vendor": "Hitachi",
+                    "rotation": 1, "file": "/tmp/sda.img",
+                    "page-file": file_name
+                }]
+            }]
+
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            m = p.search(storage.get_option())
+            assert m is not None
+        except Exception, e:
+            assert False
+        finally:
+            os.system("rm -f {0}".format(file_name))
+
+    def test_set_drive_page_file_not_exist(self):
+        file_name = "/tmp/an_avaiable_page_file.bin"
+        os.system("rm -f {0}".format(file_name))
+
+        try:
+            backend_storage_info = [{
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [{
+                    "size": 8, "model": "SATADOM",
+                    "serial": "HUSMM442", "vendor": "Hitachi",
+                    "rotation": 1, "file": "/tmp/sda.img",
+                    "page-file": file_name
+                }]
+            }]
+
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+
+        except ArgsNotCorrect, e:
+            assert "page file {0} doesnot exist".format(file_name) in e.value
+        except:
+            assert False
+
 
     def test_set_smbios(self):
         with open(config.infrasim_default_config, "r") as f_yml:
@@ -706,6 +763,7 @@ class qemu_functions(unittest.TestCase):
             monitor.precheck()
         except ArgsNotCorrect, e:
             assert "Path folder doesn't exist: /fake/path" in e.value
+
 
 
 class bmc_configuration(unittest.TestCase):
