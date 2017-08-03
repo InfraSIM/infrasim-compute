@@ -58,17 +58,18 @@ def start_node(node_type):
     global conf
     global tmp_conf_file
     global ssh
-    # create the test for test.
+    # create a empty image for test.
     os.system("touch {0}".format(test_drive_image))
     fake_config = fixtures.FakeConfig()
     conf = fake_config.get_node_info()
     conf["type"] = node_type
 
     conf["compute"]["storage_backend"] = [{
-        "type": "ahci",
-        "max_drive_per_controller": 6,
-        "drives": [{"size": 8, "file": test_img_file}]},
-        {"type": "lsisas3008",
+            "type": "ahci",
+            "max_drive_per_controller": 6,
+            "drives": [{"size": 8, "file": test_img_file}]},
+            {
+            "type": "lsisas3008",
             "max_drive_per_controller": 16,
             "drives": [ 
                    {"file": test_drive_image,
@@ -94,8 +95,8 @@ def start_node(node_type):
                    "aio": "native",
                    "scsi-id": 1,
                    "slot_number": 1}]                  
-                   
-    }]
+            }
+        ]
 
     with open(tmp_conf_file, "w") as yaml_file:
         yaml.dump(conf, yaml_file, default_flow_style=False)
@@ -113,6 +114,7 @@ def start_node(node_type):
     tn.read_until("(qemu)")
     tn.close()
     
+    time.sleep(3)
     #wait until system is ready for ssh.
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -122,12 +124,9 @@ def start_node(node_type):
                     
     
     ssh.close()
-    time.sleep(1)
+    
     
 def stop_node():
-    pass
-    
-def foo():
     global conf
     global tmp_conf_file
     node = model.CNode(conf)
@@ -137,7 +136,8 @@ def foo():
     conf = {}
     if os.path.exists(tmp_conf_file):
         os.unlink(tmp_conf_file)
-        
+
+    # remove the empty image for test.
     os.remove(test_drive_image)
     time.sleep(5)
 
