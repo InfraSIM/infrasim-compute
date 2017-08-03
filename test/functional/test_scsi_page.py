@@ -52,8 +52,8 @@ def teardown_module():
 
 def start_node(node_type):
     """
-    create two drive for comparasion. 
-    First drive has additional page, second doesn't 
+    create two drive for comparasion.
+    First drive has additional page, second doesn't
     """
     global conf
     global tmp_conf_file
@@ -71,7 +71,7 @@ def start_node(node_type):
             {
             "type": "lsisas3008",
             "max_drive_per_controller": 16,
-            "drives": [ 
+            "drives": [
                    {"file": test_drive_image,
                    "format": "raw",
                    "vendor": "SEAGATE",
@@ -94,13 +94,13 @@ def start_node(node_type):
                    "cache": "none",
                    "aio": "native",
                    "scsi-id": 1,
-                   "slot_number": 1}]                  
+                   "slot_number": 1}]
             }
         ]
 
     with open(tmp_conf_file, "w") as yaml_file:
         yaml.dump(conf, yaml_file, default_flow_style=False)
-        
+
     node = model.CNode(conf)
     node.init()
     node.precheck()
@@ -113,7 +113,7 @@ def start_node(node_type):
     tn.write("hostfwd_add ::2222-:22\n")
     tn.read_until("(qemu)")
     tn.close()
-    
+
     time.sleep(3)
     #wait until system is ready for ssh.
     ssh = paramiko.SSHClient()
@@ -121,11 +121,11 @@ def start_node(node_type):
     paramiko.util.log_to_file("filename.log")
     helper.try_func(600, paramiko.SSHClient.connect, ssh, "127.0.0.1",
                     port=2222, username="root", password="root", timeout=120)
-                    
-    
+
+
     ssh.close()
-    
-    
+
+
 def stop_node():
     global conf
     global tmp_conf_file
@@ -148,7 +148,7 @@ def run_cmd(cmd):
     paramiko.util.log_to_file("filename.log")
     helper.try_func(600, paramiko.SSHClient.connect, ssh, "127.0.0.1",
                     port=2222, username="root", password="root", timeout=120)
-                    
+
     stdin, stdout, stderr = ssh.exec_command(cmd)
     while not stdout.channel.exit_status_ready():
         pass
@@ -174,7 +174,7 @@ class test_scsi_drive_pages(unittest.TestCase):
         assert "0x8a" in lines
         assert "0xc1" in lines
         assert "0xc2" in lines
-        
+
     def test_inq_page_0_no_page_file(self):
         lines = run_cmd("sg_inq /dev/sdb --page=0")
         print("\n")
@@ -183,13 +183,13 @@ class test_scsi_drive_pages(unittest.TestCase):
         assert "0x8a" not in lines
         assert "0xc1" not in lines
         assert "0xc2" not in lines
-        
+
     def test_inq_page_c2(self):
         lines = run_cmd("sg_inq /dev/sda --page=0xc2 -H")
         print("\n")
         print(lines)
         assert "00 c2 00 02 3c 3c" in lines
-        
+
     def test_mode_pages_with_extra(self):
         lines = run_cmd("sg_modes /dev/sda -HH")
         print("\n")
@@ -202,7 +202,7 @@ class test_scsi_drive_pages(unittest.TestCase):
         assert "page_code=0x4" in lines
         assert "page_code=0x5" in lines
         assert "page_code=0x8" in lines
-    
+
     def test_mode_pages_origin(self):
         lines = run_cmd("sg_modes /dev/sdb -HH")
         print("\n")
@@ -215,5 +215,3 @@ class test_scsi_drive_pages(unittest.TestCase):
         assert "page_code=0x4" in lines
         assert "page_code=0x5" in lines
         assert "page_code=0x8" in lines
-        
-        
