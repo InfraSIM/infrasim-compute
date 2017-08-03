@@ -17,7 +17,6 @@ from test import fixtures
 """
 Test inquiry/mode sense data injection of scsi drive
 """
-
 file_prefix = os.path.dirname(os.path.realpath(__file__))
 
 test_img_file = "/tmp/kcs.img"
@@ -65,38 +64,36 @@ def start_node(node_type):
     conf["type"] = node_type
 
     conf["compute"]["storage_backend"] = [{
-            "type": "ahci",
-            "max_drive_per_controller": 6,
-            "drives": [{"size": 8, "file": test_img_file}]},
-            {
-            "type": "lsisas3008",
-            "max_drive_per_controller": 16,
-            "drives": [
-                   {"file": test_drive_image,
-                   "format": "raw",
-                   "vendor": "SEAGATE",
-                   "product": "ST4000NM0005",
-                   "serial": "Z4C00D38",
-                   "version": "MS05",
-                   "wwn": "0x5000C500852E2971",
-                   "cache": "none",
-                   "aio": "native",
-                   "scsi-id": 0,
-                   "slot_number": 0,
-                   "page-file": page_file},
-                   {"file": test_drive_image,
-                   "format": "raw",
-                   "vendor": "SEAGATE",
-                   "product": "ST4000NM0005",
-                   "serial": "Z4C00D39",
-                   "version": "MS05",
-                   "wwn": "0x5000C500852E3141",
-                   "cache": "none",
-                   "aio": "native",
-                   "scsi-id": 1,
-                   "slot_number": 1}]
-            }
-        ]
+        "type": "ahci",
+        "max_drive_per_controller": 6,
+        "drives": [{"size": 8, "file": test_img_file}]},
+        {
+        "type": "megasas",
+        "max_drive_per_controller": 16,
+        "drives": [
+               {"file": test_drive_image,
+               "format": "raw",
+               "vendor": "SEAGATE",
+               "product": "ST4000NM0005",
+               "serial": "Z4C00D38",
+               "version": "MS05",
+               "wwn": "0x5000C500852E2971",
+               "cache": "none",
+               "scsi-id": 0,
+               "slot_number": 0,
+               "page-file": page_file},
+               {"file": test_drive_image,
+               "format": "raw",
+               "vendor": "SEAGATE",
+               "product": "ST4000NM0005",
+               "serial": "Z4C00D39",
+               "version": "MS05",
+               "wwn": "0x5000C500852E3141",
+               "cache": "none",
+               "scsi-id": 1,
+               "slot_number": 1}]
+        }
+    ]
 
     with open(tmp_conf_file, "w") as yaml_file:
         yaml.dump(conf, yaml_file, default_flow_style=False)
