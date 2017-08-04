@@ -18,17 +18,16 @@ from test import fixtures
 Test inquiry/mode sense data injection of scsi drive
 """
 file_prefix = os.path.dirname(os.path.realpath(__file__))
-
 test_img_file = "/tmp/kcs.img"
 test_drive_image = "/tmp/empty_scsi.img"
 page_file = file_prefix+"/fake_page.bin"
-
 conf = {}
 tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
+ssh = None
 
-ssh=None
+
 def setup_module():
     test_img_file = "/tmp/kcs.img"
     DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
@@ -66,32 +65,34 @@ def start_node(node_type):
     conf["compute"]["storage_backend"] = [{
         "type": "ahci",
         "max_drive_per_controller": 6,
-        "drives": [{"size": 8, "file": test_img_file}]},
-        {
+        "drives": [{"size": 8, "file": test_img_file}]
+        }, {
         "type": "megasas",
         "max_drive_per_controller": 16,
-        "drives": [
-               {"file": test_drive_image,
-               "format": "raw",
-               "vendor": "SEAGATE",
-               "product": "ST4000NM0005",
-               "serial": "Z4C00D38",
-               "version": "MS05",
-               "wwn": "0x5000C500852E2971",
-               "cache": "none",
-               "scsi-id": 0,
-               "slot_number": 0,
-               "page-file": page_file},
-               {"file": test_drive_image,
-               "format": "raw",
-               "vendor": "SEAGATE",
-               "product": "ST4000NM0005",
-               "serial": "Z4C00D39",
-               "version": "MS05",
-               "wwn": "0x5000C500852E3141",
-               "cache": "none",
-               "scsi-id": 1,
-               "slot_number": 1}]
+        "drives": [{
+                    "file": test_drive_image,
+                    "format": "raw",
+                    "vendor": "SEAGATE",
+                    "product": "ST4000NM0005",
+                    "serial": "01234567",
+                    "version": "M001",
+                    "wwn": "0x5000C500852E2971",
+                    "cache": "none",
+                    "scsi-id": 0,
+                    "slot_number": 0,
+                    "page-file": page_file
+                    }, {
+                    "file": test_drive_image,
+                    "format": "raw",
+                    "vendor": "SEAGATE",
+                    "product": "ST4000NM0005",
+                    "serial": "12345678",
+                    "version": "M001",
+                    "wwn": "0x5000C500852E3141",
+                    "cache": "none",
+                    "scsi-id": 1,
+                    "slot_number": 1
+                    }]
         }
     ]
 
@@ -112,14 +113,12 @@ def start_node(node_type):
     tn.close()
 
     time.sleep(3)
-    #wait until system is ready for ssh.
+# wait until system is ready for ssh.
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     paramiko.util.log_to_file("filename.log")
     helper.try_func(600, paramiko.SSHClient.connect, ssh, "127.0.0.1",
                     port=2222, username="root", password="root", timeout=120)
-
-
     ssh.close()
 
 
@@ -152,6 +151,7 @@ def run_cmd(cmd):
     lines = stdout.channel.recv(4096)
     ssh.close()
     return lines
+
 
 class test_scsi_drive_pages(unittest.TestCase):
 
@@ -205,7 +205,7 @@ class test_scsi_drive_pages(unittest.TestCase):
         print("\n")
         print(lines)
         assert "page_code=0x2" not in lines
-        assert "82 0e"  not in lines
+        assert "82 0e" not in lines
         assert "page_code=0x1a" not in lines
         assert "9a 26" not in lines
         assert "page_code=0x1" in lines
