@@ -48,7 +48,7 @@ new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 def setup_module():
     test_img_file = "/tmp/kcs.img"
     DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
-    MD5_KCS_IMG = "cfdf7d855d2f69c67c6e16cc9b53f0da"
+    MD5_KCS_IMG = "986e5e63e8231a307babfbe9c81ca210"
     try:
         helper.fetch_image(DOWNLOAD_URL, MD5_KCS_IMG, test_img_file)
     except InfraSimError, e:

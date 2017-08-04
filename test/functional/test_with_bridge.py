@@ -207,7 +207,7 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
         try:
             helper.fetch_image(
                 "https://github.com/InfraSIM/test/raw/master/image/kcs.img",
-                "cfdf7d855d2f69c67c6e16cc9b53f0da", "/tmp/kcs.img")
+                "986e5e63e8231a307babfbe9c81ca210", "/tmp/kcs.img")
         except InfraSimError, e:
             print e.value
 
