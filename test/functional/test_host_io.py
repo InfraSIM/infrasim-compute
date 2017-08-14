@@ -91,9 +91,6 @@ class test_kcs_io(unittest.TestCase):
                 {'size': 8, 'file': '/tmp/sdl.img', 'format': 'raw'}]
         }]
 
-        with open(tmp_conf_file, 'w') as yaml_file:
-            yaml.dump(conf, yaml_file, default_flow_style=False)
-        os.system('infrasim config add test {}'.format(tmp_conf_file))
         node = model.CNode(conf)
         node.init()
         node.precheck()
@@ -107,8 +104,7 @@ class test_kcs_io(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         conf = {}
-        if os.path.exists(tmp_conf_file):
-            os.unlink(tmp_conf_file)
+
         time.sleep(5)
 
     def port_forward(self):
@@ -147,6 +143,10 @@ class test_kcs_io(unittest.TestCase):
     def tearDown(cls):
         if conf:
             cls.stop_node()
+        for i in range(97, 109):
+            disk_file = "/tmp/sd{}.img".format(chr(i));
+            if os.path.exists(disk_file):
+                os.unlink(disk_file)
 
     def run_command(
             cmd='',
@@ -163,8 +163,8 @@ class test_kcs_io(unittest.TestCase):
         return (0, cmd_result[0])
 
     def test_file_existance_after_node_restart(self):
+        global conf
         # Write disk
-        node_name = conf['name']
         ssh = self.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command('touch /root/source.bin')
         while not stdout.channel.exit_status_ready():
@@ -188,7 +188,7 @@ class test_kcs_io(unittest.TestCase):
         ssh.close()
 
         # Check disk content intact after node restart
-        run_command("infrasim node restart {}".format(node_name))
+        run_command("infrasim node restart {}".format(conf["name"]))
         self.port_forward()
         ssh = self.prepare_ssh()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -304,38 +304,46 @@ class test_kcs_io(unittest.TestCase):
             pass
         drive = self.get_drive(sas_drive_serial)
         stdin, stdout, stderr = ssh.exec_command(
-            'dd if=test_file of=/dev/'+drive+' bs=10M seek=0 count=1 conv=fsync')
+            'dd if=test_file of=/dev/'+drive+' bs=10M seek=8388607 count=1 conv=fsync')
         while not stdout.channel.exit_status_ready():
             pass
         ssh.exec_command('rm -rf test_file')
         ssh.close()
 
         ssh = self.prepare_ssh()
+
+        # Check disk size, which should be 4GB
+        stdin, stdout, stderr = ssh.exec_command('sg_readcap /dev/' + drive)
+        while not stdout.channel.exit_status_ready():
+            pass
+        lines = stdout.channel.recv(2048)
+        assert "Device size: 4294967296 bytes, 4096.0 MiB, 4.29 GB" in lines
+
         stdin, stdout, stderr = ssh.exec_command(
             'sg_format --format /dev/'+drive)
         while not stdout.channel.exit_status_ready():
             pass
 
-        stdin, stdout, stderr = ssh.exec_command(
-            'sg_requests -p /dev/'+drive)
-        while not stdout.channel.exit_status_ready():
-            pass
-        lines = stdout.channel.recv(2048)
-        # Expects format complete, and no "Progress indication" message from "sg_requests"
-        assert 'Progress indication' not in lines
+        while True:
+            stdin, stdout, stderr = ssh.exec_command(
+                'sg_requests -p /dev/'+drive)
+            while not stdout.channel.exit_status_ready():
+                pass
+            lines = stdout.channel.recv(2048)
+            # Expects format complete, and no "Progress indication" message from "sg_requests"
+            if 'Progress indication' in lines:
+                time.sleep(1)
+            else:
+                break
 
-        stdin, stdout, stderr = ssh.exec_command(
-            'hexdump /dev/'+drive)
-        while not stdout.channel.exit_status_ready():
-            pass
+        stdin, stdout, stderr = ssh.exec_command('dd if=/dev/{} skip=8388607 count=1 | hexdump -C'.format(drive))
         lines = stdout.channel.recv(2048)
-
-        # Expects hexdump shows drive data is all zero. That is something like below:
-        # 0000000 0000 0000 0000 0000 0000 0000 0000 000
-        # *
-        # 200000000
         print "hexdump result after formating:\r\n", lines
-        assert re.match(r"0000000 0000 0000 0000 0000 0000 0000 0000 0000\s+\*\s+\d+[1-9]\d+", lines)
+        # Expects hexdump shows drive data in the last sector is all zero. That is something like below:
+        # 00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+        # *
+        # 00000200
+        assert re.match(r"00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|\*\00000200", lines)
 
     def test_sata_drive_erase_master_pw(self):
         # Only format 1 sata drive here.
@@ -355,6 +363,7 @@ class test_kcs_io(unittest.TestCase):
         lines = stdout.channel.recv(2048)
         print 'hdparm -I /dev/'+drive+'\r\n', lines
         assert re.search(r"\*\s+Security Mode feature set", lines)
+        assert re.search(r"\s+device size with M = 1024\*1024:\s+4096 MBytes", lines)
 
         ssh.close()
 
@@ -362,20 +371,20 @@ class test_kcs_io(unittest.TestCase):
         # Write disk
         stdin, stdout, stderr = ssh.exec_command('echo abcdefg > test_file')
         stdin, stdout, stderr = ssh.exec_command(
-            'dd if=test_file of=/dev/'+drive+' bs=10M seek=0 count=1 conv=fsync')
+            'dd if=test_file of=/dev/'+drive+' bs=10M seek=8388607 count=1 conv=fsync')
         ssh.exec_command('rm -rf test_file')
         # Erase disk
         stdin, stdout, stderr = ssh.exec_command('hdparm --user-master m --security-erase '+master_pw+' /dev/'+drive)
         while not stdout.channel.exit_status_ready():
             pass
-        stdin, stdout, stderr = ssh.exec_command('hexdump /dev/'+drive)
+        stdin, stdout, stderr = ssh.exec_command('dd if=/dev/{} skip=8388607 count=1 | hexdump -C'.format(drive))
         lines = stdout.channel.recv(2048)
         print "hexdump result after formating:\r\n", lines
-        # Expects hexdump shows drive data is all zero. That is something like below:
-        # 0000000 0000 0000 0000 0000 0000 0000 0000 000
+        # Expects hexdump shows drive data in the last sector is all zero. That is something like below:
+        # 00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
         # *
-        # 200000000
-        assert re.match(r"0000000 0000 0000 0000 0000 0000 0000 0000 0000\s+\*\s+\d+[1-9]\d+", lines)
+        # 00000200
+        assert re.match(r"00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|\*\00000200", lines)
 
         stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/'+drive)
         lines = stdout.channel.recv(2048)
@@ -397,9 +406,10 @@ class test_kcs_io(unittest.TestCase):
 
         stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/'+drive)
         lines = stdout.channel.recv(2048)
-        # Expect "Security Mode feature set" to be disabled after set user password
+        # Expect "Security Mode feature set" to be enabled after set user password
         print "hdparm -I /dev/'"+drive+'\r\n', lines
         assert re.search(r"\*\s+Security Mode feature set", lines)
+        assert re.search(r"\s+device size with M = 1024\*1024:\s+4096 MBytes", lines)
 
         ssh.close()
 
@@ -411,23 +421,24 @@ class test_kcs_io(unittest.TestCase):
 
         ssh = self.prepare_ssh()
 
+        # Write to the last block of drive
         stdin, stdout, stderr = ssh.exec_command(
-            'dd if=test_file of=/dev/'+drive+' bs=10M seek=0 count=1 conv=fsync')
+            'dd if=test_file of=/dev/'+drive+' bs=10M seek=8388607 count=1 conv=fsync')
 
         ssh.exec_command('rm -rf test_file')
 
         stdin, stdout, stderr = ssh.exec_command('hdparm --user-master u --security-erase '+usr_pw+' /dev/'+drive)
         while not stdout.channel.exit_status_ready():
             pass
-        stdin, stdout, stderr = ssh.exec_command('hexdump /dev/'+drive)
+        stdin, stdout, stderr = ssh.exec_command('dd if=/dev/{} skip=8388607 count=1 | hexdump -C'.format(drive))
         lines = stdout.channel.recv(2048)
 
-        # Expects hexdump shows drive data is all zero. That is something like below:
-        # 0000000 0000 0000 0000 0000 0000 0000 0000 000
+        # Expects hexdump shows drive data in the last sector is all zero. That is something like below:
+        # 00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
         # *
-        # 200000000
+        # 00000200
         print "hexdump result after formating:\r\n", lines
-        assert re.match(r"0000000 0000 0000 0000 0000 0000 0000 0000 0000\s+\*\s+\d+[1-9]\d+", lines)
+        assert re.match(r"00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|\*\00000200", lines)
 
         stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/'+drive)
         lines = stdout.channel.recv(2048)
