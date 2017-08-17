@@ -5,7 +5,6 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 """
 import unittest
 import os
-import yaml
 import time
 import paramiko
 import subprocess
@@ -51,7 +50,7 @@ class test_kcs_io(unittest.TestCase):
                         port=2222, username="root", password="root", timeout=120)
         stdin, stdout, stderr = ssh.exec_command("ls /dev")
         drives = stdout.channel.recv(2048)
-        drives = [e for e in filter(lambda x:"sd" in x, drives.split())]
+        drives = [e for e in filter(lambda x: "sd" in x, drives.split())]
 
         for drive in drives:
             stdin, stdout, stderr = ssh.exec_command('sg_inq /dev/'+drive)
@@ -268,7 +267,7 @@ class test_kcs_io(unittest.TestCase):
                 stdin, stdout, stderr = ssh.exec_command(
                     'dd if=/dev/sd' + i + ' of=/root/target_' + i + '.bin bs=512 skip=0 count=1 conv=fsync')
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
-            if 'sd'+i not in[boot_drive, sas_drive, sata_drive] :
+            if 'sd'+i not in[boot_drive, sas_drive, sata_drive]:
                 stdin, stdout, stderr = ssh.exec_command(
                     'cat /root/target_' + i + '.bin')
                 lines = stdout.channel.recv(2048)
@@ -283,7 +282,7 @@ class test_kcs_io(unittest.TestCase):
         sas_drive = self.get_drive(sas_drive_serial)
         sata_drive = self.get_drive(sata_drive_serial)
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
-            if 'sd'+i not in[boot_drive, sas_drive, sata_drive] :
+            if 'sd'+i not in[boot_drive, sas_drive, sata_drive]:
                 stdin, stdout, stderr = ssh.exec_command(
                     'rm /root/target_' + i + '.bin')
 
@@ -403,6 +402,9 @@ class test_kcs_io(unittest.TestCase):
 
         usr_pw = "user_password"
         stdin, stdout, stderr = ssh.exec_command('hdparm --security-set-pass '+usr_pw+' /dev/'+drive)
+
+        ssh.close()
+        ssh = self.prepare_ssh()
 
         stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/'+drive)
         lines = stdout.channel.recv(2048)
