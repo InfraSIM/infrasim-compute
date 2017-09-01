@@ -349,7 +349,7 @@ class test_connection(unittest.TestCase):
 
         with open(self.bmc_conf, "r") as fp:
             bmc_conf = fp.read()
-        assert 'serial 15 0.0.0.0 9102 codec VM ipmb 0x20' in bmc_conf
+        assert 'serial kcs 0.0.0.0 9102 codec VM ipmb 0x20' in bmc_conf
 
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
