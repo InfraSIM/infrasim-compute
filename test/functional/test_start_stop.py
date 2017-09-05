@@ -196,6 +196,10 @@ class test_control_by_lib(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
+        for i in range(97, 106):
+            drive_file = "{}/sd{}.img".format(cls.node_root, chr(i))
+            if os.path.exists(drive_file):
+                os.unlink(drive_file)
 
     def test_lib_start_stop(self):
         node = model.CNode(self.conf)
@@ -292,6 +296,10 @@ class test_control_by_cli(unittest.TestCase):
         os.system("pkill socat")
         os.system("pkill ipmi")
         os.system("pkill qemu")
+        for i in range(97, 106):
+            drive_file = "{}/sd{}.img".format(self.image_path, chr(i))
+            if os.path.exists(drive_file):
+                os.unlink(drive_file)
 
     def test_normal_start_stop(self):
 
