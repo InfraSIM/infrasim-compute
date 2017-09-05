@@ -71,6 +71,10 @@ class test_compute_configuration_change(unittest.TestCase):
         self.conf = None
         # if os.path.exists(TMP_CONF_FILE):
         #    os.unlink(TMP_CONF_FILE)
+        drive_files = ["/tmp/sda.img", "/tmp/sdb.img"]
+        for drive_file in drive_files:
+            if os.path.exists(drive_file):
+                os.unlink(drive_file)
 
     def test_set_vcpu(self):
         self.conf["compute"]["cpu"]["quantities"] = 8
@@ -193,6 +197,7 @@ class test_bmc_configuration_change(unittest.TestCase):
         node.init()
         node.stop()
         node.terminate_workspace()
+
         # if os.path.exists(TMP_CONF_FILE):
         #    os.unlink(TMP_CONF_FILE)
         self.conf = None

@@ -29,12 +29,13 @@ old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
 # download the Cirros timy os image for boot order test.
-MD5_CIRROS_IMG = "ee1eca47dc88f4879d8a229cc70a07c6"
-DOWNLOAD_URL = "http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img"
-test_img_file = "/tmp/cirros-0.3.4-x86_64-disk.img"
+MD5_IMG = "986e5e63e8231a307babfbe9c81ca210"
+DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
+test_img_file = "/tmp/kcs.img"
 
 try:
-    helper.fetch_image(DOWNLOAD_URL, MD5_CIRROS_IMG, test_img_file)
+    helper.fetch_image(DOWNLOAD_URL, MD5_IMG, test_img_file)
+
 except InfraSimError, e:
     print e.value
     assert False
@@ -71,6 +72,9 @@ class test_ahci_controller_with_two_drives(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
+        for drive in drive2:
+            if os.path.exists(drive["file"]):
+                os.unlink(drive["file"])
 
     def test_controller_with_drive2(self):
         # Update ahci controller with two drives
@@ -118,6 +122,10 @@ class test_megasas_controller_with_two_drives(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
+        for drive in drive2:
+            if os.path.exists(drive["file"]):
+                os.unlink(drive["file"])
+
 
     def test_controller_with_drive2(self):
         # Update megasas controller with two drives
@@ -165,6 +173,10 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
+        for drive in drive2:
+            if os.path.exists(drive["file"]):
+                os.unlink(drive["file"])
+
 
     def test_controller_with_drive2(self):
         # Update lsi controller with two drives
@@ -221,6 +233,10 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
+        for i in range(97,108):
+            disk_file = "/tmp/sd{}.img".format(chr(i))
+            if os.path.exists(disk_file):
+                os.unlink(disk_file)
 
     def test_controller_with_drive7(self):
         # Update ahci controller with seven drives
@@ -358,6 +374,11 @@ class test_ahci_controller_with_six_drives(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
+        for i in range(97,102):
+            disk_file = "/tmp/sd{}.img".format(chr(i))
+            if os.path.exists(disk_file):
+                os.unlink(disk_file)
+
 
     def test_controller_with_drive6(self):
         # Update ahci controller with six drives
@@ -409,6 +430,11 @@ class test_megasas_controller_with_six_drives(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
+        for i in range(97,102):
+            disk_file = "/tmp/sd{}.img".format(chr(i))
+            if os.path.exists(disk_file):
+                os.unlink(disk_file)
+
 
     def test_controller_with_drive6(self):
         # Update megasas controller with six drives
@@ -460,6 +486,11 @@ class test_lsi_controller_with_six_drives(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
+        for i in range(97,102):
+            disk_file = "/tmp/sd{}.img".format(chr(i))
+            if os.path.exists(disk_file):
+                os.unlink(disk_file)
+
 
     def test_controller_with_drive6(self):
         # Update lsi controller with six drives
@@ -511,6 +542,11 @@ class test_three_storage_controllers(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
+        for i in range(97,114):
+            disk_file = "/tmp/sd{}.img".format(chr(i))
+            if os.path.exists(disk_file):
+                os.unlink(disk_file)
+
 
     def test_three_controllers_each_with_six_drives(self):
 
@@ -626,6 +662,11 @@ class test_four_storage_controllers(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
+        for i in range(97,120):
+            disk_file = "/tmp/sd{}.img".format(chr(i))
+            if os.path.exists(disk_file):
+                os.unlink(disk_file)
+
 
     def test_four_controllers_each_with_six_drives(self):
         image_path = "{}/{}".format(config.infrasim_home, self.conf["name"])
@@ -764,8 +805,8 @@ def set_port_forward_try_ssh():
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     paramiko.util.log_to_file("filename.log")
     helper.try_func(600, paramiko.SSHClient.connect, ssh,
-                    "127.0.0.1", port=2222, username="cirros",
-                    password="cubswin:)", timeout=120)
+                    "127.0.0.1", port=2222, username="root",
+                    password="root", timeout=120)
     ssh.close()
     time.sleep(5)
 
@@ -784,6 +825,10 @@ class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         self.conf = None
+        for i in range(97,102):
+            disk_file = "/tmp/sd{}.img".format(chr(i))
+            if os.path.exists(disk_file):
+                os.unlink(disk_file)
 
     def test_qemu_boot_from_disk_img(self):
 
@@ -856,6 +901,10 @@ class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         self.conf = None
+        for i in range(97,102):
+            disk_file = "/tmp/sd{}.img".format(chr(i))
+            if os.path.exists(disk_file):
+                os.unlink(disk_file)
 
     def test_qemu_boot_from_disk_img(self):
         #
@@ -928,6 +977,10 @@ class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
         node.terminate_workspace()
         self.conf = None
         os.system("rm /tmp/cirros-0.3.4-x86_64-disk.img")
+        for i in range(97,102):
+            disk_file = "/tmp/sd{}.img".format(chr(i))
+            if os.path.exists(disk_file):
+                os.unlink(disk_file)
 
     def test_qemu_boot_from_disk_img(self):
         image_path = "{}/{}".format(config.infrasim_home, self.conf["name"])
