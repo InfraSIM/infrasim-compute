@@ -147,9 +147,9 @@ class test_compute_configuration_change(unittest.TestCase):
         assert "format=qcow2" in qemu_cmdline
 
     def test_qemu_boot_from_disk_img(self):
-        MD5_CIRROS_IMG = "ee1eca47dc88f4879d8a229cc70a07c6"
-        DOWNLOAD_URL = "http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img"
-        test_img_file = "/tmp/cirros-0.3.4-x86_64-disk.img"
+        MD5_CIRROS_IMG = "986e5e63e8231a307babfbe9c81ca210"
+        DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
+        test_img_file = "/tmp/kcs.img"
         try:
             helper.fetch_image(DOWNLOAD_URL, MD5_CIRROS_IMG, test_img_file)
         except InfraSimError, e:
@@ -181,8 +181,8 @@ class test_compute_configuration_change(unittest.TestCase):
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         paramiko.util.log_to_file("filename.log")
         helper.try_func(600, paramiko.SSHClient.connect, ssh,
-                        "127.0.0.1", port=2222, username="cirros",
-                        password="cubswin:)", timeout=120)
+                        "127.0.0.1", port=2222, username="root",
+                        password="root", timeout=120)
         ssh.close()
 
 
