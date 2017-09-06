@@ -233,7 +233,7 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
-        for i in range(97,108):
+        for i in range(97, 108):
             disk_file = "/tmp/sd{}.img".format(chr(i))
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
@@ -374,7 +374,7 @@ class test_ahci_controller_with_six_drives(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
-        for i in range(97,102):
+        for i in range(97, 102):
             disk_file = "/tmp/sd{}.img".format(chr(i))
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
@@ -430,7 +430,7 @@ class test_megasas_controller_with_six_drives(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
-        for i in range(97,102):
+        for i in range(97, 102):
             disk_file = "/tmp/sd{}.img".format(chr(i))
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
@@ -486,7 +486,7 @@ class test_lsi_controller_with_six_drives(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
-        for i in range(97,102):
+        for i in range(97, 102):
             disk_file = "/tmp/sd{}.img".format(chr(i))
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
@@ -542,7 +542,7 @@ class test_three_storage_controllers(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
-        for i in range(97,114):
+        for i in range(97, 114):
             disk_file = "/tmp/sd{}.img".format(chr(i))
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
@@ -662,7 +662,7 @@ class test_four_storage_controllers(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         cls.conf = None
-        for i in range(97,120):
+        for i in range(97, 120):
             disk_file = "/tmp/sd{}.img".format(chr(i))
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
@@ -825,7 +825,7 @@ class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         self.conf = None
-        for i in range(97,102):
+        for i in range(97, 102):
             disk_file = "/tmp/sd{}.img".format(chr(i))
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
@@ -901,7 +901,7 @@ class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         self.conf = None
-        for i in range(97,102):
+        for i in range(97, 102):
             disk_file = "/tmp/sd{}.img".format(chr(i))
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
@@ -977,7 +977,7 @@ class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
         node.terminate_workspace()
         self.conf = None
         os.system("rm /tmp/cirros-0.3.4-x86_64-disk.img")
-        for i in range(97,102):
+        for i in range(97, 102):
             disk_file = "/tmp/sd{}.img".format(chr(i))
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
