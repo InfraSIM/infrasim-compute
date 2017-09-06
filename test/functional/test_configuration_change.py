@@ -147,11 +147,11 @@ class test_compute_configuration_change(unittest.TestCase):
         assert "format=qcow2" in qemu_cmdline
 
     def test_qemu_boot_from_disk_img(self):
-        MD5_CIRROS_IMG = "986e5e63e8231a307babfbe9c81ca210"
+        MD5_IMG = "986e5e63e8231a307babfbe9c81ca210"
         DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
         test_img_file = "/tmp/kcs.img"
         try:
-            helper.fetch_image(DOWNLOAD_URL, MD5_CIRROS_IMG, test_img_file)
+            helper.fetch_image(DOWNLOAD_URL, MD5_IMG, test_img_file)
         except InfraSimError, e:
             print e.value
             assert False
