@@ -71,6 +71,10 @@ class test_compute_configuration_change(unittest.TestCase):
         self.conf = None
         # if os.path.exists(TMP_CONF_FILE):
         #    os.unlink(TMP_CONF_FILE)
+        drive_files = ["/tmp/sda.img", "/tmp/sdb.img"]
+        for drive_file in drive_files:
+            if os.path.exists(drive_file):
+                os.unlink(drive_file)
 
     def test_set_vcpu(self):
         self.conf["compute"]["cpu"]["quantities"] = 8
@@ -143,11 +147,11 @@ class test_compute_configuration_change(unittest.TestCase):
         assert "format=qcow2" in qemu_cmdline
 
     def test_qemu_boot_from_disk_img(self):
-        MD5_CIRROS_IMG = "ee1eca47dc88f4879d8a229cc70a07c6"
-        DOWNLOAD_URL = "http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img"
-        test_img_file = "/tmp/cirros-0.3.4-x86_64-disk.img"
+        MD5_IMG = "986e5e63e8231a307babfbe9c81ca210"
+        DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
+        test_img_file = "/tmp/kcs.img"
         try:
-            helper.fetch_image(DOWNLOAD_URL, MD5_CIRROS_IMG, test_img_file)
+            helper.fetch_image(DOWNLOAD_URL, MD5_IMG, test_img_file)
         except InfraSimError, e:
             print e.value
             assert False
@@ -177,8 +181,8 @@ class test_compute_configuration_change(unittest.TestCase):
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         paramiko.util.log_to_file("filename.log")
         helper.try_func(600, paramiko.SSHClient.connect, ssh,
-                        "127.0.0.1", port=2222, username="cirros",
-                        password="cubswin:)", timeout=120)
+                        "127.0.0.1", port=2222, username="root",
+                        password="root", timeout=120)
         ssh.close()
 
 
@@ -193,6 +197,7 @@ class test_bmc_configuration_change(unittest.TestCase):
         node.init()
         node.stop()
         node.terminate_workspace()
+
         # if os.path.exists(TMP_CONF_FILE):
         #    os.unlink(TMP_CONF_FILE)
         self.conf = None
@@ -349,7 +354,7 @@ class test_connection(unittest.TestCase):
 
         with open(self.bmc_conf, "r") as fp:
             bmc_conf = fp.read()
-        assert 'serial 15 0.0.0.0 9102 codec VM ipmb 0x20' in bmc_conf
+        assert 'serial kcs 0.0.0.0 9102 codec VM ipmb 0x20' in bmc_conf
 
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
