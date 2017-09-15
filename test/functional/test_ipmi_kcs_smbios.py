@@ -122,7 +122,7 @@ def verify_qemu_local_fru(expect):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10)
+                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("ipmitool fru print")
     while not stdout.channel.exit_status_ready():
         pass
@@ -136,7 +136,7 @@ def verify_qemu_local_lan(expect):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10)
+                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("ipmitool lan print")
     while not stdout.channel.exit_status_ready():
         pass
@@ -150,7 +150,7 @@ def verify_qemu_local_sensor(expect):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10)
+                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("ipmitool sensor list")
     while not stdout.channel.exit_status_ready():
         pass
@@ -164,7 +164,7 @@ def verify_qemu_local_sdr(expect):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10)
+                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("ipmitool sdr list")
     while not stdout.channel.exit_status_ready():
         pass
@@ -178,7 +178,7 @@ def verify_qemu_local_sel(expect):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10)
+                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("ipmitool sel clear")
     while not stdout.channel.exit_status_ready():
         pass
@@ -196,7 +196,7 @@ def verify_qemu_local_user(expect):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10)
+                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("ipmitool user list")
     while not stdout.channel.exit_status_ready():
         pass
@@ -210,7 +210,7 @@ def verify_smbios_data(expect_mfg, expect_product_name):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10)
+                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("dmidecode -t1")
     while not stdout.channel.exit_status_ready():
         pass
