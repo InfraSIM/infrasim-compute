@@ -105,22 +105,21 @@ class Workspace(object):
         node_type = self.__node_info["type"]
         # V. Move emulation data
         # Update identifier accordingly
-        path_emu_dst = os.path.join(self.__workspace, "data")
+        path_data_dst = os.path.join(self.__workspace, "data")
         if has_option(self.__node_info, "bmc", "emu_file"):
-            shutil.copy(self.__node_info["bmc"]["emu_file"], path_emu_dst)
-        elif not os.path.exists(os.path.join(self.__workspace, "{0}/{0}.emu".format(node_type))):
+            shutil.copy(self.__node_info["bmc"]["emu_file"], path_data_dst)
+        elif not os.path.exists(os.path.join(path_data_dst, "{0}.emu".format(node_type))):
             path_emu_src = os.path.join(config.infrasim_data, "{0}/{0}.emu".format(node_type))
-            shutil.copy(path_emu_src, os.path.join(path_emu_dst, "{}.emu".
+            shutil.copy(path_emu_src, os.path.join(path_data_dst, "{}.emu".
                                                    format(node_type)))
 
         # VI. Move bios.bin
-        path_bios_dst = os.path.join(self.__workspace, "data")
         if has_option(self.__node_info, "compute", "smbios"):
-            shutil.copy(self.__node_info["compute"]["smbios"], path_bios_dst)
-        elif not os.path.exists(os.path.join(self.__workspace, "{0}/{0}_smbios.bin".format(node_type))):
+            shutil.copy(self.__node_info["compute"]["smbios"], path_data_dst)
+        elif not os.path.exists(os.path.join(path_data_dst, "{0}_smbios.bin".format(node_type))):
             path_bios_src = os.path.join(config.infrasim_data,
                                          "{0}/{0}_smbios.bin".format(node_type))
-            shutil.copy(path_bios_src, os.path.join(path_emu_dst,
+            shutil.copy(path_bios_src, os.path.join(path_data_dst,
                                                     "{}_smbios.bin".
                                                     format(node_type)))
             # Place holder to sync serial number
