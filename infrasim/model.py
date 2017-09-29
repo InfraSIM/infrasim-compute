@@ -821,6 +821,8 @@ class SCSIDrive(CBaseDrive):
         self.__product = None
         self.__vendor = None
         self.__port_index = None
+        self.__atta_wwn = None
+        self.__atta_phy_id = None
 
     def precheck(self):
         super(SCSIDrive, self).precheck()
@@ -837,6 +839,8 @@ class SCSIDrive(CBaseDrive):
         self.__product = self._drive_info.get('product')
         self.__vendor = self._drive_info.get('vendor')
         self.__rotation = self._drive_info.get('rotation')
+        self.__atta_wwn = self._drive_info.get('atta_wwn')
+        self.__atta_phy_id = self._drive_info.get('atta_phy_id')
 
     def handle_parms(self):
         super(SCSIDrive, self).handle_parms()
@@ -867,6 +871,12 @@ class SCSIDrive(CBaseDrive):
 
         if self.__slot_number is not None:
             self._dev_attrs["slot_number"] = self.__slot_number
+
+        if self.__atta_wwn:
+            self._dev_attrs["atta_wwn"] = self.__atta_wwn
+
+        if self.__atta_phy_id:
+            self._dev_attrs["atta_phy_id"] = self.__atta_phy_id
 
         self.add_option(self.build_device_option(self._name, **self._dev_attrs))
 
