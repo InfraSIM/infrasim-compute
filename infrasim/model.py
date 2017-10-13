@@ -1782,10 +1782,15 @@ class CCompute(Task, CElement):
 
     @run_in_namespace
     def init(self):
-        if 'kvm_enabled' in self.__compute and not helper.check_kvm_existence():
+        if not helper.check_kvm_existence():
             self.__enable_kvm = False
+        elif 'kvm_enabled' in self.__compute and helper.check_kvm_existence():
+            if self.__compute['kvm_enabled'] == "true":
+                self.__enable_kvm = True
+            else:
+                self.__enable_kvm = False
         else:
-            self.__enable_kvm = helper.check_kvm_existence()
+            self.__enable_kvm = True
 
         if 'smbios' in self.__compute:
             self.__smbios = self.__compute['smbios']

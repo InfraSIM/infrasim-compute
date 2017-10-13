@@ -30,22 +30,6 @@ class qemu_functions(unittest.TestCase):
     def tearDownClass(cls):
         pass
 
-    def test_set_cpu(self):
-        try:
-            cpu_info = {
-                "quantities": 2,
-                "type": "Haswell"
-            }
-
-            cpu = model.CCPU(cpu_info)
-            cpu.init()
-            cpu.precheck()
-            cpu.handle_parms()
-            assert "-cpu Haswell" in cpu.get_option()
-            assert "-smp 2" in cpu.get_option()
-        except:
-            assert False
-
     def test_set_cpu_no_info(self):
         try:
             cpu_info = {}
@@ -764,7 +748,107 @@ class qemu_functions(unittest.TestCase):
         except ArgsNotCorrect, e:
             assert "Path folder doesn't exist: /fake/path" in e.value
 
+	
+    def test_kvm_enabled_yaml_true_env_true(self):
+        if os.path.exists("/dev/kvm")== False:
+            self.skipTest(' os.path.exists("/dev/kvm") == False, skip test_kvm_enabled_yaml_true_env_true')
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+        compute_info = node_info["compute"]
+        compute_info["kvm_enabled"] = "true"
+        workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
+        compute = model.CCompute(compute_info)
+        compute.set_workspace(workspace)
+        compute.init()
+        compute.handle_parms()
+        assert "--enable-kvm" in compute.get_commandline()
+    
+    def test_kvm_enabled_yaml_true_env_False(self):
+        if os.path.exists("/dev/kvm")== True: 
+            self.skipTest(' os.path.exists("/dev/kvm") == True, skip test_kvm_enabled_yaml_true_env_False')
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+        compute_info = node_info["compute"]
+        compute_info["kvm_enabled"] = "true"
+        workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
+        compute = model.CCompute(compute_info)
+        compute.set_workspace(workspace)
+        compute.init()
+        compute.handle_parms()
+        assert "--enable-kvm" not in compute.get_commandline()
 
+    def test_kvm_enabled_yaml_false_env_true(self):
+        if os.path.exists("/dev/kvm")== False:
+            self.skipTest(' os.path.exists("/dev/kvm") == False, skip test_kvm_enabled_yaml_false_env_true')
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+        compute_info = node_info["compute"]
+        compute_info["kvm_enabled"] = "false"
+        workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
+        compute = model.CCompute(compute_info)
+        compute.set_workspace(workspace)
+        compute.init()
+        compute.handle_parms()
+        assert "--enable-kvm" not in compute.get_commandline()
+    
+    def test_kvm_enabled_yaml_false_env_false(self):
+        if os.path.exists("/dev/kvm")== True: 
+            self.skipTest(' os.path.exists("/dev/kvm") == True, skip test_kvm_enabled_yaml_true_env_true')
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+        compute_info = node_info["compute"]
+        compute_info["kvm_enabled"] = "false"
+        workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
+        compute = model.CCompute(compute_info)
+        compute.set_workspace(workspace)
+        compute.init()
+        compute.handle_parms()
+        assert "--enable-kvm" not in compute.get_commandline()
+
+    def test_kvm_enabled_yaml_not_defined_env_True(self):
+        if os.path.exists("/dev/kvm")== False:
+            self.skipTest(' os.path.exists("/dev/kvm") == False, skip test_kvm_enabled_yaml_not_definded_env_true')
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+        compute_info = node_info["compute"]
+        compute_info.pop("kvm_enabled", None)
+        workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
+        compute = model.CCompute(compute_info)
+        compute.set_workspace(workspace)
+        compute.init()
+        compute.handle_parms()
+        assert "--enable-kvm" in compute.get_commandline()
+			
+    def test_kvm_enabled_yaml_not_defined_env_False(self):
+        if os.path.exists("/dev/kvm")== True:
+            self.skipTest(' os.path.exists("/dev/kvm") == False, skip test_kvm_enabled_yaml_not_defined_env_true')
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+        compute_info = node_info["compute"]
+        compute_info.pop("kvm_enabled", None)
+        workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
+        compute = model.CCompute(compute_info)
+        compute.set_workspace(workspace)
+        compute.init()
+        compute.handle_parms()
+        assert "--enable-kvm" not in compute.get_commandline()
+			
+    def test_set_cpu(self):
+        try:
+            cpu_info = {
+                "quantities": 2,
+                "type": "Haswell"
+            }
+
+            cpu = model.CCPU(cpu_info)
+            cpu.init()
+            cpu.precheck()
+            cpu.handle_parms()
+            assert "-cpu Haswell" in cpu.get_option()
+            assert "-smp 2" in cpu.get_option()
+        except:
+            assert False
+			
 
 class bmc_configuration(unittest.TestCase):
 
