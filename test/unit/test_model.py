@@ -30,6 +30,22 @@ class qemu_functions(unittest.TestCase):
     def tearDownClass(cls):
         pass
 
+    def test_set_cpu(self):
+        try:
+            cpu_info = {
+                "quantities": 2,
+                "type": "Haswell"
+            }
+
+            cpu = model.CCPU(cpu_info)
+            cpu.init()
+            cpu.precheck()
+            cpu.handle_parms()
+            assert "-cpu Haswell" in cpu.get_option()
+            assert "-smp 2" in cpu.get_option()
+        except:
+            assert False
+			
     def test_set_cpu_no_info(self):
         try:
             cpu_info = {}
@@ -833,21 +849,6 @@ class qemu_functions(unittest.TestCase):
         compute.handle_parms()
         assert "--enable-kvm" not in compute.get_commandline()
 			
-    def test_set_cpu(self):
-        try:
-            cpu_info = {
-                "quantities": 2,
-                "type": "Haswell"
-            }
-
-            cpu = model.CCPU(cpu_info)
-            cpu.init()
-            cpu.precheck()
-            cpu.handle_parms()
-            assert "-cpu Haswell" in cpu.get_option()
-            assert "-smp 2" in cpu.get_option()
-        except:
-            assert False
 			
 
 class bmc_configuration(unittest.TestCase):
