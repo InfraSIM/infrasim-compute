@@ -45,7 +45,7 @@ class qemu_functions(unittest.TestCase):
             assert "-smp 2" in cpu.get_option()
         except:
             assert False
-			
+
     def test_set_cpu_no_info(self):
         try:
             cpu_info = {}
@@ -764,7 +764,7 @@ class qemu_functions(unittest.TestCase):
         except ArgsNotCorrect, e:
             assert "Path folder doesn't exist: /fake/path" in e.value
 
-	
+
     def test_kvm_enabled_yaml_true_env_true(self):
         if not os.path.exists("/dev/kvm"):
             self.skipTest(' OS disable KVM, skip')
@@ -778,7 +778,7 @@ class qemu_functions(unittest.TestCase):
         compute.init()
         compute.handle_parms()
         assert "--enable-kvm" in compute.get_commandline()
-		
+
     def test_kvm_enabled_yaml_true_env_False(self):
         if os.path.exists("/dev/kvm"): 
             self.skipTest('OS enable KVM, skip')
@@ -806,7 +806,7 @@ class qemu_functions(unittest.TestCase):
         compute.init()
         compute.handle_parms()
         assert "--enable-kvm" not in compute.get_commandline()
-		
+
     def test_kvm_enabled_yaml_false_env_false(self):
         if os.path.exists("/dev/kvm"): 
             self.skipTest('OS enable KVM, skip')
@@ -834,7 +834,7 @@ class qemu_functions(unittest.TestCase):
         compute.init()
         compute.handle_parms()
         assert "--enable-kvm" in compute.get_commandline()
-			
+
     def test_kvm_enabled_yaml_not_defined_env_False(self):
         if os.path.exists("/dev/kvm"):
             self.skipTest(' OS enable KVM, skip')
@@ -848,8 +848,7 @@ class qemu_functions(unittest.TestCase):
         compute.init()
         compute.handle_parms()
         assert "--enable-kvm" not in compute.get_commandline()
-			
-			
+
 
 class bmc_configuration(unittest.TestCase):
 
