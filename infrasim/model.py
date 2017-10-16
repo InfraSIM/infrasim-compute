@@ -1780,17 +1780,19 @@ class CCompute(Task, CElement):
                     self.logger.exception(msg)
                     raise ArgsNotCorrect(msg)
 
+        # check kvm enabled is bool
+        if self.__enable_kvm is not True and self.__enable_kvm is not False:
+            self.logger.exception("[Compute] KVM enabled is not a boolean: {}".
+                                  format(self.__enable_kvm))
+            raise ArgsNotCorrect("KVM enabled is not a boolean: {}".
+                                 format(self.__enable_kvm))
+
     @run_in_namespace
     def init(self):
         if not helper.check_kvm_existence():
             self.__enable_kvm = False
         else:
-            if self.__compute['kvm_enabled']:
-                self.__enable_kvm = True
-            elif not self.__compute['kvm_enabled']:
-                self.__enable_kvm = False
-            else:
-                self.__enable_kvm = True
+            self.__enable_kvm = self.__compute.get('kvm_enabled', True)
 
         if 'smbios' in self.__compute:
             self.__smbios = self.__compute['smbios']

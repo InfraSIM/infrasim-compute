@@ -766,11 +766,11 @@ class qemu_functions(unittest.TestCase):
 
     def test_kvm_enabled_yaml_true_env_true(self):
         if not os.path.exists("/dev/kvm"):
-            self.skipTest(' OS disable KVM, skip')
+            self.skipTest("OS disable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
         compute_info = node_info["compute"]
-        compute_info["kvm_enabled"] = "true"
+        compute_info["kvm_enabled"] = True
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
         compute = model.CCompute(compute_info)
         compute.set_workspace(workspace)
@@ -778,13 +778,13 @@ class qemu_functions(unittest.TestCase):
         compute.handle_parms()
         assert "--enable-kvm" in compute.get_commandline()
 
-    def test_kvm_enabled_yaml_true_env_False(self):
+    def test_kvm_enabled_yaml_true_env_false(self):
         if os.path.exists("/dev/kvm"):
-            self.skipTest('OS enable KVM, skip')
+            self.skipTest("OS enable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
         compute_info = node_info["compute"]
-        compute_info["kvm_enabled"] = "true"
+        compute_info["kvm_enabled"] = True
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
         compute = model.CCompute(compute_info)
         compute.set_workspace(workspace)
@@ -794,11 +794,11 @@ class qemu_functions(unittest.TestCase):
 
     def test_kvm_enabled_yaml_false_env_true(self):
         if not os.path.exists("/dev/kvm"):
-            self.skipTest(' OS disable KVM, skip ')
+            self.skipTest("OS disable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
         compute_info = node_info["compute"]
-        compute_info["kvm_enabled"] = "false"
+        compute_info["kvm_enabled"] = False
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
         compute = model.CCompute(compute_info)
         compute.set_workspace(workspace)
@@ -808,11 +808,11 @@ class qemu_functions(unittest.TestCase):
 
     def test_kvm_enabled_yaml_false_env_false(self):
         if os.path.exists("/dev/kvm"):
-            self.skipTest('OS enable KVM, skip')
+            self.skipTest("OS enable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
         compute_info = node_info["compute"]
-        compute_info["kvm_enabled"] = "false"
+        compute_info["kvm_enabled"] = False
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
         compute = model.CCompute(compute_info)
         compute.set_workspace(workspace)
@@ -820,9 +820,9 @@ class qemu_functions(unittest.TestCase):
         compute.handle_parms()
         assert "--enable-kvm" not in compute.get_commandline()
 
-    def test_kvm_enabled_yaml_not_defined_env_True(self):
+    def test_kvm_enabled_yaml_not_defined_env_true(self):
         if not os.path.exists("/dev/kvm"):
-            self.skipTest(' OS disable KVM, skip')
+            self.skipTest("OS disable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
         compute_info = node_info["compute"]
@@ -834,9 +834,9 @@ class qemu_functions(unittest.TestCase):
         compute.handle_parms()
         assert "--enable-kvm" in compute.get_commandline()
 
-    def test_kvm_enabled_yaml_not_defined_env_False(self):
+    def test_kvm_enabled_yaml_not_defined_env_false(self):
         if os.path.exists("/dev/kvm"):
-            self.skipTest(' OS enable KVM, skip')
+            self.skipTest("OS enable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
         compute_info = node_info["compute"]
@@ -847,6 +847,23 @@ class qemu_functions(unittest.TestCase):
         compute.init()
         compute.handle_parms()
         assert "--enable-kvm" not in compute.get_commandline()
+
+    def test_kvm_enabled_yaml_invalid_env_true(self):
+        if not os.path.exists("/dev/kvm"):
+            self.skipTest("OS disable KVM, skip")
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+        compute_info = node_info["compute"]
+        compute_info["kvm_enabled"] = "invalid"
+        workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
+        compute = model.CCompute(compute_info)
+        compute.set_workspace(workspace)
+        compute.set_type("dell_r730")
+        compute.init()
+        try:
+            compute.precheck()
+        except ArgsNotCorrect, e:
+            assert "KVM enabled is not a boolean" in e.value
 
 
 class bmc_configuration(unittest.TestCase):
