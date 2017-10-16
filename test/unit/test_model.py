@@ -766,8 +766,8 @@ class qemu_functions(unittest.TestCase):
 
 	
     def test_kvm_enabled_yaml_true_env_true(self):
-        if os.path.exists("/dev/kvm")== False:
-            self.skipTest(' os.path.exists("/dev/kvm") == False, skip test_kvm_enabled_yaml_true_env_true')
+        if not os.path.exists("/dev/kvm"):
+            self.skipTest(' OS disable KVM, skip')
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
         compute_info = node_info["compute"]
@@ -778,10 +778,10 @@ class qemu_functions(unittest.TestCase):
         compute.init()
         compute.handle_parms()
         assert "--enable-kvm" in compute.get_commandline()
-    
+		
     def test_kvm_enabled_yaml_true_env_False(self):
-        if os.path.exists("/dev/kvm")== True: 
-            self.skipTest(' os.path.exists("/dev/kvm") == True, skip test_kvm_enabled_yaml_true_env_False')
+        if os.path.exists("/dev/kvm"): 
+            self.skipTest('OS enable KVM, skip')
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
         compute_info = node_info["compute"]
@@ -794,8 +794,8 @@ class qemu_functions(unittest.TestCase):
         assert "--enable-kvm" not in compute.get_commandline()
 
     def test_kvm_enabled_yaml_false_env_true(self):
-        if os.path.exists("/dev/kvm")== False:
-            self.skipTest(' os.path.exists("/dev/kvm") == False, skip test_kvm_enabled_yaml_false_env_true')
+        if not os.path.exists("/dev/kvm"):
+            self.skipTest(' OS disable KVM, skip ')
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
         compute_info = node_info["compute"]
@@ -806,10 +806,10 @@ class qemu_functions(unittest.TestCase):
         compute.init()
         compute.handle_parms()
         assert "--enable-kvm" not in compute.get_commandline()
-    
+		
     def test_kvm_enabled_yaml_false_env_false(self):
-        if os.path.exists("/dev/kvm")== True: 
-            self.skipTest(' os.path.exists("/dev/kvm") == True, skip test_kvm_enabled_yaml_true_env_true')
+        if os.path.exists("/dev/kvm"): 
+            self.skipTest('OS enable KVM, skip')
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
         compute_info = node_info["compute"]
@@ -822,8 +822,8 @@ class qemu_functions(unittest.TestCase):
         assert "--enable-kvm" not in compute.get_commandline()
 
     def test_kvm_enabled_yaml_not_defined_env_True(self):
-        if os.path.exists("/dev/kvm")== False:
-            self.skipTest(' os.path.exists("/dev/kvm") == False, skip test_kvm_enabled_yaml_not_definded_env_true')
+        if not os.path.exists("/dev/kvm"):
+            self.skipTest(' OS disable KVM, skip')
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
         compute_info = node_info["compute"]
@@ -836,8 +836,8 @@ class qemu_functions(unittest.TestCase):
         assert "--enable-kvm" in compute.get_commandline()
 			
     def test_kvm_enabled_yaml_not_defined_env_False(self):
-        if os.path.exists("/dev/kvm")== True:
-            self.skipTest(' os.path.exists("/dev/kvm") == False, skip test_kvm_enabled_yaml_not_defined_env_true')
+        if os.path.exists("/dev/kvm"):
+            self.skipTest(' OS enable KVM, skip')
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
         compute_info = node_info["compute"]
