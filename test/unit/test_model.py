@@ -860,6 +860,8 @@ class qemu_functions(unittest.TestCase):
         compute.set_workspace(workspace)
         compute.set_type("dell_r730")
         compute.init()
+        compute.set_smbios(os.path.join(config.infrasim_data,
+                                        "dell_r730/dell_r730_smbios.bin"))
         try:
             compute.precheck()
         except ArgsNotCorrect, e:
