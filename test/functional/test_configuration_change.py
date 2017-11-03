@@ -13,9 +13,11 @@ import os
 import yaml
 import time
 import paramiko
+import json
 from infrasim import model
 from infrasim import helper
 from infrasim import InfraSimError
+from infrasim.helper import UnixSocket
 from test import fixtures
 
 PS_QEMU = "ps ax | grep qemu"
@@ -169,14 +171,30 @@ class test_compute_configuration_change(unittest.TestCase):
         node.precheck()
         node.start()
 
-        import telnetlib
-        import paramiko
-        tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
-        tn.read_until("(qemu)")
-        tn.write("hostfwd_add ::2222-:22\n")
-        tn.read_until("(qemu)")
-        tn.close()
+        # Port forward from guest 22 to host 2222
+        path = os.path.join(node.workspace.get_workspace(), ".monitor")
+        s = UnixSocket(path)
+        s.connect()
+        s.recv()
 
+        payload_enable_qmp = {
+            "execute": "qmp_capabilities"
+        }
+
+        s.send(json.dumps(payload_enable_qmp))
+        s.recv()
+
+        payload_port_forward = {
+            "execute":"human-monitor-command",
+            "arguments": {
+                "command-line": "hostfwd_add ::2222-:22"
+            }
+        }
+        s.send(json.dumps(payload_port_forward))
+        s.recv()
+        s.close()
+
+        import paramiko
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         paramiko.util.log_to_file("filename.log")

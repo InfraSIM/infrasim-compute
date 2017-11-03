@@ -567,7 +567,7 @@ class qemu_functions(unittest.TestCase):
         monitor_info = {
             "mode": "control"
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         monitor.precheck()
         monitor.handle_parms()
@@ -583,7 +583,7 @@ class qemu_functions(unittest.TestCase):
             "mode": "control",
             "chardev": {}
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         monitor.precheck()
         monitor.handle_parms()
@@ -598,7 +598,7 @@ class qemu_functions(unittest.TestCase):
         monitor_info = {
             "mode": "readline"
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         monitor.precheck()
         monitor.handle_parms()
@@ -615,7 +615,7 @@ class qemu_functions(unittest.TestCase):
             "mode": "readline",
             "chardev": {}
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         monitor.precheck()
         monitor.handle_parms()
@@ -631,7 +631,7 @@ class qemu_functions(unittest.TestCase):
         monitor_info = {
             "mode": "fault"
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         try:
             monitor.precheck()
@@ -645,7 +645,7 @@ class qemu_functions(unittest.TestCase):
                 "backend": "file"
             }
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         try:
             monitor.precheck()
@@ -659,7 +659,7 @@ class qemu_functions(unittest.TestCase):
                 "backend": "file"
             }
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         try:
             monitor.precheck()
@@ -673,7 +673,7 @@ class qemu_functions(unittest.TestCase):
                 "server": "ok"
             }
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         try:
             monitor.precheck()
@@ -687,7 +687,7 @@ class qemu_functions(unittest.TestCase):
                 "server": "ok"
             }
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         try:
             monitor.precheck()
@@ -701,7 +701,7 @@ class qemu_functions(unittest.TestCase):
                 "wait": "ok"
             }
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         try:
             monitor.precheck()
@@ -715,7 +715,7 @@ class qemu_functions(unittest.TestCase):
                 "wait": "ok"
             }
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         try:
             monitor.precheck()
@@ -729,7 +729,7 @@ class qemu_functions(unittest.TestCase):
                 "host": "localhost"
             }
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         try:
             monitor.precheck()
@@ -743,7 +743,7 @@ class qemu_functions(unittest.TestCase):
                 "port": "someport"
             }
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         try:
             monitor.precheck()
@@ -757,7 +757,7 @@ class qemu_functions(unittest.TestCase):
                 "path": "/fake/path/.monitor"
             }
         }
-        monitor = model.CMonitor(monitor_info)
+        monitor = model.CQemuMonitor(monitor_info)
         monitor.init()
         try:
             monitor.precheck()
@@ -1248,6 +1248,72 @@ class socat_configuration(unittest.TestCase):
         cmd = socat_obj.get_commandline()
 
         assert "unix-listen:/tmp/serial_socket,fork".format(config.infrasim_etc) in cmd
+
+
+class monitor_configuration(unittest.TestCase):
+
+    def test_default_monitor_in_qemu(self):
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+        try:
+            del(node_info["monitor"])
+        except KeyError:
+            pass
+        node = model.CNode(node_info)
+        node.init()
+
+        for element in node.get_task_list():
+            if isinstance(element, model.CCompute):
+                assert "-chardev socket,path=/home/infrasim/.infrasim/default/.monitor,"\
+                       "id=monitorchardev,server,nowait "\
+                       "-mon chardev=monitorchardev,mode=control" \
+                    in element.get_commandline()
+
+    def test_enable_monitor_in_qemu(self):
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+
+        node_info["monitor"] = {
+            "enable": True
+        }
+        node = model.CNode(node_info)
+        node.init()
+
+        for element in node.get_task_list():
+            if isinstance(element, model.CCompute):
+                assert "-chardev socket,path=/home/infrasim/.infrasim/default/.monitor,"\
+                       "id=monitorchardev,server,nowait "\
+                        "-mon chardev=monitorchardev,mode=control" \
+                    in element.get_commandline()
+
+    def test_disable_monitor_in_qemu(self):
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+
+        node_info["monitor"] = {
+            "enable": False
+        }
+        node = model.CNode(node_info)
+        node.init()
+
+        for element in node.get_task_list():
+            if isinstance(element, model.CCompute):
+                assert "-mon" not in element.get_commandline()
+
+    def test_invalid_monitor_in_qemu(self):
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+
+        node_info["monitor"] = {
+            "enable": "invalid"
+        }
+        node = model.CNode(node_info)
+        try:
+            node.init()
+        except ArgsNotCorrect as e:
+            assert "[Monitor] Invalid setting" in e.value
+        else:
+            assert False
 
 
 class racadm_configuration(unittest.TestCase):

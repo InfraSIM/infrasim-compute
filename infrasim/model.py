@@ -22,7 +22,6 @@ import json
 import helper
 import stat
 import socket
-from telnetlib import Telnet
 from workspace import Workspace
 from . import run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
 from infrasim.helper import run_in_namespace, double_fork
@@ -1354,9 +1353,9 @@ class CPCITopologyManager(CElement):
             self.add_option(br_obj.get_option())
 
 
-class CMonitor(CElement):
+class CQemuMonitor(CElement):
     def __init__(self, monitor_info):
-        super(CMonitor, self).__init__()
+        super(CQemuMonitor, self).__init__()
         self.__monitor = monitor_info
         self.__chardev = None
         self.__mode = "readline"
@@ -1694,6 +1693,7 @@ class CCompute(Task, CElement):
         self.__extra_option = None
         self.__iommu = False
         self.__monitor = None
+        self.__enable_monitor = False
 
         self.__force_shutdown = None
 
@@ -1705,6 +1705,9 @@ class CCompute(Task, CElement):
 
     def set_port_qemu_ipmi(self, port):
         self.__port_qemu_ipmi = port
+
+    def enable_qemu_monitor(self):
+        self.__enable_monitor = True
 
     def set_socket_serial(self, o):
         self.__socket_serial = o
@@ -1871,22 +1874,20 @@ class CCompute(Task, CElement):
         ipmi_obj.set_bmc_conn_port(self.__port_qemu_ipmi)
         self.__element_list.append(ipmi_obj)
 
-        if self.__compute.get('monitor', ''):
-            self.__monitor = CMonitor(self.__compute['monitor'])
-        else:
-            self.__monitor = CMonitor({
-                'mode': 'readline',
+        if self.__enable_monitor:
+            self.__monitor = CQemuMonitor({
+                'mode': 'control',
                 'chardev': {
                     'backend': 'socket',
-                    'host': '127.0.0.1',
-                    'port': 2345,
+                    'path': os.path.join(self.get_workspace(), '.monitor'),
                     'server': True,
                     'wait': False
                 }
             })
-        self.__monitor.set_workspace(self.get_workspace())
-        self.__monitor.logger = self.logger
-        self.__element_list.append(self.__monitor)
+            self.__monitor.set_workspace(self.get_workspace())
+            self.__monitor.logger = self.logger
+            self.__element_list.append(self.__monitor)
+
         for element in self.__element_list:
             element.init()
 
@@ -2672,6 +2673,27 @@ class CNode(object):
         if "bmc_connection_port" in self.__node:
             bmc_obj.set_port_qemu_ipmi(self.__node["bmc_connection_port"])
             compute_obj.set_port_qemu_ipmi(self.__node["bmc_connection_port"])
+
+        # Init monitor task
+        monitor_info = {}
+        if "monitor" not in self.__node:
+            monitor_info = {
+                "enable": True,
+                # Host and port is for north bound REST service of
+                # infrasim-monitor, not the socket of QEMU monitor
+                "host": "0.0.0.0",
+                "port": 9005
+            }
+        else:
+            monitor_info = {
+                "enable": self.__node["monitor"].get("enable", True),
+                "host": self.__node["monitor"].get("host", "0.0.0.0"),
+                "port": self.__node["monitor"].get("port", 9005)
+            }
+        if not isinstance(monitor_info["enable"], bool):
+            raise ArgsNotCorrect("[Monitor] Invalid setting")
+        if monitor_info["enable"]:
+            compute_obj.enable_qemu_monitor()
 
         self.workspace = Workspace(self.__node)
 

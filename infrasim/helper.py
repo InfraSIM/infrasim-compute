@@ -8,6 +8,7 @@ import time
 import sys
 import hashlib
 import re
+import json
 import socket
 import multiprocessing
 import types
@@ -376,3 +377,30 @@ def is_valid_ip(ip):
             return True
     else:
         return False
+class UnixSocket(object):
+
+    def __init__(self, path):
+        self.path = path
+        self.s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
+    def connect(self):
+        self.s.connect(self.path)
+
+    def send(self, payload):
+        logger.info("C:"+json.dumps(payload, indent=4).decode('string_escape'))
+        self.s.send(payload)
+
+    def recv(self):
+        rsp = ""
+        while 1:
+            snip = self.s.recv(1024)
+            rsp += snip
+            if len(snip) < 1024:
+                break
+
+        logger.info("S:"+json.dumps(rsp, indent=4).decode('string_escape'))
+        return rsp
+
+    def close(self):
+        self.s.shutdown(2)
+        self.s.close()
