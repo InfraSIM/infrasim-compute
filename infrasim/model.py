@@ -2524,6 +2524,55 @@ class CRacadm(Task):
         return racadmsim_str
 
 
+class CMonitor(Task):
+    def __init__(self, monitor_info):
+        super(CMonitor, self).__init__()
+
+        self.__bin = "infrasim-monitor"
+
+        self.__monitor_info = monitor_info
+
+        self.__node_name = "default"
+        self.__interface = ""
+        self.__ip = ""
+        self.__port = ""
+
+        self.logger = None
+
+    def precheck(self):
+        if not helper.is_valid_ip(self.__ip):
+            self.logger.exception("[Monitor] Invalid IP: {} of interface: {}".
+                                  format(self.__ip, self.__interface))
+            raise ArgsNotCorrect("Invalid IP: {} of interface: {}".
+                                  format(self.__ip, self.__interface))
+
+        if helper.check_if_port_in_use(self.__ip, self.__port):
+            self.logger.exception("[Monitor] Monitor port {}:{} is already in use.".
+                                  format(self.__ip, self.__port))
+            raise ArgsNotCorrect("Monitor port {}:{} is already in use.".
+                                 format(self.__ip, self.__port))
+
+    @run_in_namespace
+    def init(self):
+        if self.__monitor_info.get("interface", None):
+            self.__interface = self.__monitor_info.get("interface", None)
+            self.__ip = helper.get_interface_ip(self.__interface)
+        else:
+            self.__ip = "0.0.0.0"
+        self.__port = self.__monitor_info.get("port", 9005)
+
+    def set_node_name(self, name):
+        self.__node_name = name
+
+    def get_commandline(self):
+        monitor_str = "{} {} {} {}".\
+            format(self.__bin,
+                   self.__node_name,
+                   self.__ip,
+                   self.__port)
+        return monitor_str
+
+
 class CNode(object):
     def __init__(self, node_info=None):
         self.__tasks_list = []
@@ -2679,21 +2728,29 @@ class CNode(object):
         if "monitor" not in self.__node:
             monitor_info = {
                 "enable": True,
-                # Host and port is for north bound REST service of
+                # Interface and port is for north bound REST service of
                 # infrasim-monitor, not the socket of QEMU monitor
-                "host": "0.0.0.0",
+                "inferface": None,
                 "port": 9005
             }
         else:
             monitor_info = {
                 "enable": self.__node["monitor"].get("enable", True),
-                "host": self.__node["monitor"].get("host", "0.0.0.0"),
+                "interface": self.__node["monitor"].get("interface", None),
                 "port": self.__node["monitor"].get("port", 9005)
             }
         if not isinstance(monitor_info["enable"], bool):
             raise ArgsNotCorrect("[Monitor] Invalid setting")
         if monitor_info["enable"]:
             compute_obj.enable_qemu_monitor()
+            monitor_obj = CMonitor(monitor_info)
+            monitor_obj.logger = self.__logger
+            monitor_obj.set_priority(4)
+            monitor_obj.set_node_name(self.__node_name)
+            monitor_obj.set_task_name("{}-monitor".format(self.__node_name))
+            monitor_obj.set_log_path("/var/log/infrasim/{}/monitor.log".
+                                     format(self.__node_name))
+            self.__tasks_list.append(monitor_obj)
 
         self.workspace = Workspace(self.__node)
 

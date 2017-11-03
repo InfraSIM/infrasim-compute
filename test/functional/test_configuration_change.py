@@ -16,6 +16,7 @@ import paramiko
 import re
 from infrasim import workspace
 import json
+import requests
 from infrasim import model
 from infrasim import helper
 from infrasim import InfraSimError
@@ -26,6 +27,7 @@ PS_QEMU = "ps ax | grep qemu"
 PS_IPMI = "ps ax | grep ipmi"
 PS_SOCAT = "ps ax | grep socat"
 PS_RACADM = "ps ax | grep racadmsim"
+PS_MONITOR = "ps ax | grep monitor"
 
 TMP_CONF_FILE = "/tmp/test.yml"
 
@@ -645,3 +647,108 @@ class test_racadm_configuration_change(unittest.TestCase):
                                  stderr=subprocess.PIPE)
         cmd_result = child.communicate()
         assert "Permission denied" in cmd_result[1]
+
+
+class test_infrasim_monitor_configuration_change(unittest.TestCase):
+
+    def setUp(self):
+        fake_config = fixtures.FakeConfig()
+        self.conf = fake_config.get_node_info()
+        self.old_path = os.environ.get("PATH")
+        os.environ["PATH"] = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), self.old_path)
+
+    def tearDown(self):
+        node = model.CNode(self.conf)
+        node.init()
+        node.stop()
+        node.terminate_workspace()
+        if os.path.exists(TMP_CONF_FILE):
+            os.unlink(TMP_CONF_FILE)
+        self.conf = None
+        os.environ["PATH"] = self.old_path
+
+    def test_default_config(self):
+        # Start service
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        # Check process
+        str_result = run_command(PS_MONITOR, True,
+                                 subprocess.PIPE, subprocess.PIPE)[1]
+        assert "infrasim-monitor test 0.0.0.0 9005" in str_result
+
+        # Verify connection
+        rsp = requests.get("http://localhost:9005/admin")
+        assert rsp.status_code == 200
+
+    def test_set_port(self):
+        self.conf["monitor"] = {
+            "enable": True,
+            "port": 9006
+        }
+
+        # Start service
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        # Check process
+        str_result = run_command(PS_MONITOR, True,
+                                 subprocess.PIPE, subprocess.PIPE)[1]
+        assert "infrasim-monitor test 0.0.0.0 9006" in str_result
+
+        # Connect with wrong port
+        try:
+            rsp = requests.get("http://localhost:9005/admin")
+        except requests.exceptions.ConnectionError:
+            pass
+        else:
+            assert False
+
+        # Connect with correct port
+        rsp = requests.get("http://localhost:9006/admin")
+        assert rsp.status_code == 200
+
+    def test_set_interface(self):
+        # Find two valid interface with IP in to a list, e.g:
+        # [{"interface":"ens160","ip":"192.168.190.9"}, {}]
+        # If the list has no less than 2 interface, do this test
+        valid_nic = []
+        for interface in helper.get_all_interfaces():
+            ip = helper.get_interface_ip(interface)
+            if ip:
+                valid_nic.append({"interface": interface, "ip": ip})
+
+        if len(valid_nic) < 2:
+            raise self.skipTest("No enough nic for test")
+
+        print valid_nic
+
+        # Set BMC to listen on first valid nic
+        # Try to access via first one, it works
+        # Try to access via second one, it fails
+        self.conf["monitor"] = {
+            "enable": True,
+            "interface": valid_nic[0]["interface"]
+        }
+        print self.conf["monitor"]
+
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        # Connect to wrong interface
+        try:
+            rsp = requests.get("http://{}:9005/admin".format(valid_nic[1]["ip"]))
+        except requests.exceptions.ConnectionError:
+            pass
+        else:
+            assert False
+
+        # Connect to correct interface
+        rsp = requests.get("http://{}:9005/admin".format(valid_nic[0]["ip"]))
+        assert rsp.status_code == 200
