@@ -12,6 +12,7 @@ import sys
 import re
 import signal
 import time
+import atexit
 
 from infrasim import daemon
 from infrasim import sshim
@@ -25,6 +26,9 @@ from infrasim.log import infrasim_log, LoggerType
 server = None
 logger_ic = infrasim_log.get_logger(LoggerType.ipmi_console.value)
 
+def atexit_cb(sig=signal.SIGTERM, stack=None):
+    _free_resource()
+    _stop_console()
 
 class IPMI_CONSOLE(threading.Thread):
     WELCOME = 'You have connected to the test server.'
@@ -153,6 +157,9 @@ def start(instance="default"):
     global logger_ic
     logger_ic = infrasim_log.get_logger(LoggerType.ipmi_console.value, instance)
     common.init_logger(instance)
+    #register the atexit call back function
+    atexit.register(atexit_cb)
+    signal.signal(signal.SIGTERM, atexit_cb)
     # initialize environment
     common.init_env(instance)
 
@@ -255,4 +262,3 @@ def console_main(instance="default"):
 
     except Exception as e:
         sys.exit(e)
-

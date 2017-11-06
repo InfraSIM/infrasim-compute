@@ -12,6 +12,8 @@ import re
 import paramiko
 import os
 import logging
+import atexit
+import signal
 from os import linesep
 from infrasim import sshim
 from . import env
@@ -21,6 +23,10 @@ import sys
 from infrasim.helper import literal_string
 
 env.logger_r = infrasim_log.get_logger(LoggerType.racadm.value)
+
+def atexit_cb(sig=signal.SIGTERM, stack=None):
+    server.stop()
+    
 
 def auth(username, password):
     if username in env.auth_map and env.auth_map[username] == password:
@@ -111,6 +117,7 @@ def start(instance="default",
     env.logger_r.info('racadmsim command rev: {}'.format(cmd_rev))
     if os.path.exists(data_src):
         env.racadm_data = data_src
+    global server
     server = sshim.Server(iDRACServer,
                           logger=env.logger_r,
                           address=ipaddr,
@@ -118,6 +125,8 @@ def start(instance="default",
                           handler=iDRACHandler)
     env.logger_r.info("{}-racadm start on ip: {}, port: {}".
                       format(env.node_name, ipaddr, port))
+    atexit.register(atexit_cb)
+    signal.signal(signal.SIGTERM, atexit_cb)
     server.run()
 
 if __name__ == "__main__":
