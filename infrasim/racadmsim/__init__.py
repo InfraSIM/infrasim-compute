@@ -22,10 +22,13 @@ from infrasim.log import LoggerType, infrasim_log
 import sys
 from infrasim.helper import literal_string
 
+
 env.logger_r = infrasim_log.get_logger(LoggerType.racadm.value)
 
+
 def atexit_cb(sig=signal.SIGTERM, stack=None):
-    server.stop()
+    if "server" in env.local_env.__dict__:
+        env.local_env.server.stop()
     
 
 def auth(username, password):
@@ -110,6 +113,8 @@ def start(instance="default",
     env.logger_r = infrasim_log.get_logger(LoggerType.racadm.value, instance)
     env.auth_map[username] = password
     env.node_name = instance
+    atexit.register(atexit_cb)
+    signal.signal(signal.SIGTERM, atexit_cb)
 
     cmd_rev = 'racadmsim '
     for word in sys.argv[1:]:
@@ -117,17 +122,14 @@ def start(instance="default",
     env.logger_r.info('racadmsim command rev: {}'.format(cmd_rev))
     if os.path.exists(data_src):
         env.racadm_data = data_src
-    global server
-    server = sshim.Server(iDRACServer,
+    env.local_env.server = sshim.Server(iDRACServer,
                           logger=env.logger_r,
                           address=ipaddr,
                           port=int(port),
                           handler=iDRACHandler)
     env.logger_r.info("{}-racadm start on ip: {}, port: {}".
                       format(env.node_name, ipaddr, port))
-    atexit.register(atexit_cb)
-    signal.signal(signal.SIGTERM, atexit_cb)
-    server.run()
+    env.local_env.server.run()
 
 if __name__ == "__main__":
     # Try to run this from code root directory, with command:

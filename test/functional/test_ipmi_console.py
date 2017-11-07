@@ -94,6 +94,8 @@ class test_ipmi_console_start_stop(unittest.TestCase):
         returncode, output = run_command(
             ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system("ipmi-console stop")
+
+        time.sleep(1)
         ipmi_stop_cmd = 'ps ax | grep ipmi-console'
         returncode1, output1 = run_command(
             ipmi_stop_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -118,6 +120,8 @@ class test_ipmi_console_start_stop(unittest.TestCase):
         returncode, output = run_command(
             ipmi_start_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system("ipmi-console stop {}".format(self.node_name))
+
+        time.sleep(1)
         ipmi_stop_cmd = 'ps ax | grep ipmi-console'
         returncode1, output1 = run_command(
             ipmi_stop_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
