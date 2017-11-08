@@ -25,7 +25,6 @@ import env, sdr, common
 from infrasim.log import infrasim_log, LoggerType
 
 
-env.local_env = None
 quit_flag = False
 logger_ic = infrasim_log.get_logger(LoggerType.ipmi_console.value)
 sensor_thread_list = []

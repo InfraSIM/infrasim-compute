@@ -192,10 +192,11 @@ class test_ipmi_console_start_stop(unittest.TestCase):
             ps_ipmi_console_cmd, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)[1]
         assert start_ipmi_console_cmd in output
+        time.sleep(20)
 
         node.stop()
-        # ipmi-console polls every 3s to see vbmc status, so wait 10s for it
-        time.sleep(10)
+        # ipmi-console polls every 3s to see vbmc status, so wait 5s for it
+        time.sleep(5)
         output = run_command(
             ps_ipmi_console_cmd, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)[1]
