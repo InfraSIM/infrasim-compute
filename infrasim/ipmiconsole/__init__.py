@@ -25,13 +25,12 @@ import env, sdr, common
 from infrasim.log import infrasim_log, LoggerType
 
 
-quit_flag = False
 logger_ic = infrasim_log.get_logger(LoggerType.ipmi_console.value)
 sensor_thread_list = []
 
 
 def atexit_cb(sig=signal.SIGTERM, stack=None):
-    quit_flag = True
+    env.local_env.quit_flag = True
     _free_resource()
     _stop_console()
 
@@ -102,10 +101,11 @@ class IPMI_CONSOLE(threading.Thread):
 
 
 def _start_console(instance="default"):
-    if quit_flag:
-        return
     global logger_ic
-    logger_ic = infrasim_log.get_logger(LoggerType.ipmi_console.value, instance)
+
+    if env.local_env.quit_flag:
+        return
+
     env.local_env.server = sshim.Server(IPMI_CONSOLE, logger_ic, port=env.PORT_SSH_FOR_CLIENT)
     try:
         logger_ic.info("command res: ipmi-console start {} "
@@ -125,7 +125,7 @@ def _stop_console():
 def _spawn_sensor_thread():
     for sensor_obj in sdr.sensor_list:
         if sensor_obj.get_event_type() == "threshold":
-            if quit_flag:
+            if env.local_env.quit_flag:
                 return
             t = threading.Thread(target=sensor_obj.execute)
             t.setDaemon(True)
@@ -163,12 +163,15 @@ def start(instance="default"):
     global logger_ic
     logger_ic = infrasim_log.get_logger(LoggerType.ipmi_console.value, instance)
     common.init_logger(instance)
-    # initialize environment
-    common.init_env(instance)
 
+    # initialize environment
+    env.local_env.quit_flag = False
+    common.init_env(instance)
     daemon.daemonize("{}/{}/.ipmi_console.pid".format(config.infrasim_home, instance))
+
     # parse the sdrs and build all sensors
     sdr.parse_sdrs()
+
     # running thread for each threshold based sensor
     _start_monitor(instance)
     _spawn_sensor_thread()

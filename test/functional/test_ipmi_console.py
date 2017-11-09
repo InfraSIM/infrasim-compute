@@ -255,7 +255,6 @@ class test_ipmi_console(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
 
-        cls.channel.send('quit\n')
         cls.channel.close()
         cls.ssh.close()
 
