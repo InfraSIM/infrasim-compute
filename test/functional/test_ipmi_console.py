@@ -202,6 +202,40 @@ class test_ipmi_console_start_stop(unittest.TestCase):
             stderr=subprocess.PIPE)[1]
         assert start_ipmi_console_cmd not in output
 
+    def test_ipmi_console_stops_followed_by_node_destroy(self):
+        node_info = FakeConfig().get_node_info()
+        self.node_name = node_info.get("name", "test")
+        self.node_workspace = os.path.join(
+            config.infrasim_home, self.node_name)
+        node = CNode(node_info)
+        node.init()
+        node.precheck()
+        node.start()
+        time.sleep(3)
+
+        ps_ipmi_console_cmd = "ps ax | grep ipmi-console"
+        start_ipmi_console_cmd = "ipmi-console start {}".format(
+            self.node_name)
+
+        returncode = run_command(
+            start_ipmi_console_cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)[0]
+        self.assertEqual(returncode, 0)
+        output = run_command(
+            ps_ipmi_console_cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)[1]
+        assert start_ipmi_console_cmd in output
+        time.sleep(20)
+
+        node.stop()
+        node.terminate_workspace()
+        # ipmi-console polls every 3s to see vbmc status, so wait 5s for it
+        time.sleep(5)
+        output = run_command(
+            ps_ipmi_console_cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)[1]
+        assert start_ipmi_console_cmd not in output
+
 
 class test_ipmi_console(unittest.TestCase):
 

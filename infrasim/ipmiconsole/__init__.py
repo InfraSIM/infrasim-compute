@@ -18,6 +18,7 @@ import traceback
 from infrasim import daemon
 from infrasim import sshim
 from infrasim import config
+from infrasim import run_command
 from .command import Command_Handler
 from .common import msg_queue
 from .common import IpmiError
@@ -228,6 +229,21 @@ def stop(instance="default"):
         os.kill(int(pid), signal.SIGTERM)
         logger_ic.info("SIGTERM is sent to pid: {}".format(pid))
         os.remove(file_ipmi_console_pid)
+    except IOError:
+        # When pid file is missing, by e.g., node destroy,
+        # find process id by instance name
+        if instance == "default":
+            process_name = "ipmi-console start$"
+        else:
+            process_name = "ipmi-console start {}".format(instance)
+
+        ps_cmd = r'ps ax | grep "{}" | cut -d " " -f2 | head -n1'.format(process_name)
+        logger_ic.warning("Fail to find ipmi console pid file, check by:")
+        logger_ic.warning("> {}".format(ps_cmd))
+        _, pid = run_command(cmd=ps_cmd)
+        logger_ic.warning("ipmi console pid got: {}".format(pid))
+
+        os.kill(int(pid), signal.SIGTERM)
     except:
         logger_ic.warning(traceback.format_exc())
         pass
