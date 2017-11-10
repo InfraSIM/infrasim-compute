@@ -605,6 +605,23 @@ class AHCIController(CBaseStorageController):
             self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)
 
 
+class NVMeController(CElement):
+    def __init__(self, controller_info):
+        super(NVMeController, self).__init__()
+        self._controller_info = controller_info
+        self._serial = ""
+        self._cmb_size_in_mb = 0
+
+    def init(self):
+        super(NVMeController, self).__init__()
+
+    def handle_parms(self):
+        pass
+
+    def precheck(self):
+        pass
+
+
 class CBaseDrive(CElement):
     '''
     for most of the drive, the host options '-drive ...' are the same, so handle them in CBaseDrive,
@@ -619,16 +636,14 @@ class CBaseDrive(CElement):
 
         # store drive device option
         self._dev_attrs = {}
+        self._host_opt = {}
         self.prefix = None
-
-        # private
 
         # device option
         self.__index = 0
         self.__serial = None
         self.__wwn = None
         self.__bootindex = None
-        self.__bus_address = None
         self.__version = None
 
         # host option
@@ -637,22 +652,13 @@ class CBaseDrive(CElement):
         self.__drive_file = None
         self.__format = None
         self.__page_file = None
-
-        # other option
-        self.__size = None
-
-        # identify a drive on which controller
-
-        # self.__bus is controller index
-        self.__bus = 0
-        self._scsi_id = 0
-        self._channel = 0
-        self._lun = 0
-
         self.__l2_cache_size = None  # unit: byte
         self.__refcount_cache_size = None  # unit: byte
         self.__cluster_size = None  # unit: KB
         self.__preallocation_mode = None
+
+        # other option
+        self.__size = None
 
     @property
     def index(self):
@@ -661,13 +667,6 @@ class CBaseDrive(CElement):
     @index.setter
     def index(self, idx):
         self.__index = idx
-
-    # controller index
-    def set_bus(self, bus):
-        self.__bus = bus
-
-    def set_scsi_id(self, scsi_id):
-        self._scsi_id = scsi_id
 
     def precheck(self):
         if self.__page_file and not os.path.exists(self.__page_file):
@@ -712,7 +711,7 @@ class CBaseDrive(CElement):
             # If user announce drive file in config, use it
             # else create for them.
             disk_file_base = os.path.join(config.infrasim_home, ws)
-            self.__drive_file = os.path.join(disk_file_base, "disk{0}{1}.img".format(self.__bus, self.__index))
+            self.__drive_file = os.path.join(disk_file_base, "disk{0}{1}.img".format(self.get_bus(), self.__index))
 
         if not os.path.exists(self.__drive_file):
             self.logger.info("[BaseDrive] Creating drive: {}".format(self.__drive_file))
@@ -726,7 +725,6 @@ class CBaseDrive(CElement):
             command = "qemu-img create -f {0} {1} {2}G".format(self.__format, self.__drive_file, self.__size)
             if len(create_option_list) > 0:
                 command = "{} -o {}".format(command, ",".join(create_option_list))
-
 
             try:
                 run_command(command)
@@ -752,29 +750,23 @@ class CBaseDrive(CElement):
 
     def handle_parms(self):
         # handle host option
-        host_opt = {}
         if self.__drive_file:
-            host_opt["file"] = self.__drive_file
+            self._host_opt["file"] = self.__drive_file
 
         if self.__format:
-            host_opt["format"] = self.__format
+            self._host_opt["format"] = self.__format
 
         if self.__l2_cache_size:
-            host_opt["l2-cache-size"] = self.__l2_cache_size
+            self._host_opt["l2-cache-size"] = self.__l2_cache_size
 
         if self.__refcount_cache_size:
-            host_opt["refcount-cache-size"] = self.__l2_cache_size
-
-        host_opt["if"] = "none"
-        host_opt["id"] = "{}{}-{}-{}-{}".format(self.prefix, self.__bus, self._channel, self._scsi_id, self._lun)
+            self._host_opt["refcount-cache-size"] = self.__l2_cache_size
 
         if self.__cache:
-            host_opt["cache"] = self.__cache
+            self._host_opt["cache"] = self.__cache
 
         if self.__aio and self.__cache == "none":
-            host_opt["aio"] = self.__aio
-
-        self.add_option(self.build_host_option(**host_opt))
+            self._host_opt["aio"] = self.__aio
 
         # The following options are common for all kind of drives.
 
@@ -790,19 +782,6 @@ class CBaseDrive(CElement):
 
         if self.__bootindex:
             self._dev_attrs["bootindex"] = self.__bootindex
-
-        # for ATA controller, one bus should only have one target, AHCI could support at most 6 target devices
-        # for SCSI controller, one controller only one Bus which could support at most 8 target devices
-        if self.__bus_address is None:
-            b = self._scsi_id if self.prefix == "sata" else self._channel
-            self.__bus_address = "{}{}.{}".format(self.prefix, self.__bus, b)
-
-        self._dev_attrs["bus"] = self.__bus_address
-
-        self._dev_attrs["drive"] = "{}{}-{}-{}-{}".format(self.prefix, self.__bus,
-                                                          self._channel, self._scsi_id, self._lun)
-
-        self._dev_attrs["id"] = "dev-{}".format(self._dev_attrs["drive"])
 
         if self.__page_file:
             self._dev_attrs["page_file"] = self.__page_file
@@ -823,9 +802,27 @@ class SCSIDrive(CBaseDrive):
         self.__port_index = None
         self.__atta_wwn = None
         self.__atta_phy_id = None
+        self.__bus_address = None
+
+        # identify a drive on which controller
+        # self.__bus is controller index
+        self.__bus = 0
+        self._scsi_id = 0
+        self._channel = 0
+        self._lun = 0
 
     def precheck(self):
         super(SCSIDrive, self).precheck()
+
+    # controller index
+    def set_bus(self, bus):
+        self.__bus = bus
+
+    def get_bus(self):
+        return self.__bus
+
+    def set_scsi_id(self, scsi_id):
+        self._scsi_id = scsi_id
 
     def init(self):
         super(SCSIDrive, self).init()
@@ -844,6 +841,32 @@ class SCSIDrive(CBaseDrive):
 
     def handle_parms(self):
         super(SCSIDrive, self).handle_parms()
+
+        drive_id = "{}{}-{}-{}-{}".format(self.prefix,
+                                          self.__bus,
+                                          self._channel,
+                                          self._scsi_id,
+                                          self._lun)
+
+        # Host option
+        self._host_opt["if"] = "none"
+        self._host_opt["id"] = drive_id
+
+        self.add_option(self.build_host_option(**self._host_opt))
+
+        # Device option
+
+        # For SCSI controller, one controller supports only one bus,
+        # with at most 8 drives on this bus.
+        if self.__bus_address is None:
+            b = self._channel
+            self.__bus_address = "{}{}.{}".format(self.prefix, self.__bus, b)
+
+        self._dev_attrs["bus"] = self.__bus_address
+
+        self._dev_attrs["drive"] = drive_id
+
+        self._dev_attrs["id"] = "dev-{}".format(self._dev_attrs["drive"])
 
         if self.__vendor:
             self._dev_attrs["vendor"] = self.__vendor
@@ -889,6 +912,24 @@ class IDEDrive(CBaseDrive):
         self._drive_info = drive_info
         self.__model = None
         self.__unit = None
+        self.__bus_address = None
+
+        # identify a drive on which controller
+        # self.__bus is controller index
+        self.__bus = 0
+        self._scsi_id = 0
+        self._channel = 0
+        self._lun = 0
+
+    # controller index
+    def set_bus(self, bus):
+        self.__bus = bus
+
+    def get_bus(self):
+        return self.__bus
+
+    def set_scsi_id(self, scsi_id):
+        self._scsi_id = scsi_id
 
     def set_unit(self, unit):
         self.__unit = unit
@@ -900,6 +941,32 @@ class IDEDrive(CBaseDrive):
 
     def handle_parms(self):
         super(IDEDrive, self).handle_parms()
+
+        drive_id = "{}{}-{}-{}-{}".format(self.prefix,
+                                          self.__bus,
+                                          self._channel,
+                                          self._scsi_id,
+                                          self._lun)
+
+        # Host option
+        self._host_opt["if"] = "none"
+        self._host_opt["id"] = drive_id
+
+        self.add_option(self.build_host_option(**self._host_opt))
+
+        # Device option
+
+        # For ATA controller, one bus holds only one target,
+        # AHCI could support at most 6 target devices each controller
+        if self.__bus_address is None:
+            b = self._scsi_id
+            self.__bus_address = "{}{}.{}".format(self.prefix, self.__bus, b)
+
+        self._dev_attrs["bus"] = self.__bus_address
+
+        self._dev_attrs["drive"] = drive_id
+
+        self._dev_attrs["id"] = "dev-{}".format(self._dev_attrs["drive"])
 
         if self.__model:
             self._dev_attrs["model"] = self.__model
