@@ -492,8 +492,8 @@ class MegaSASController(CBaseStorageController):
         super(MegaSASController, self).__init__()
         self.__use_jbod = None
         self.__sas_address = None
-        self.__use_msi = None
-        self.__use_msix = None
+        self.__msi = None
+        self.__msix = None
         self.__max_cmds = None
         self.__max_sge = None
         self._controller_info = controller_info
@@ -509,8 +509,9 @@ class MegaSASController(CBaseStorageController):
         self.__sas_address = self._controller_info.get('sas_address')
         self.__max_cmds = self._controller_info.get('max_cmds')
         self.__max_sge = self._controller_info.get('max_sge')
-        self.__use_msi = self._controller_info.get('use_msi')
         self.__use_jbod = self._controller_info.get('use_jbod')
+        self.__msi =  self._controller_info.get('msi')
+        self.__msix =  self._controller_info.get('msix')
 
         self._start_idx = self.controller_index
         idx = 0
@@ -548,8 +549,11 @@ class MegaSASController(CBaseStorageController):
             if self.__sas_address:
                 self._attributes["sas_address"] = self.__sas_address
 
-            if self.__use_msi:
-                self._attributes["use_msi"] = self.__use_msi
+            if self.__msi:
+                self._attributes["msi"] = self.__msi
+
+            if self.__msix:
+                self._attributes["msix"] = self.__msix
 
             if self.__max_cmds:
                 self._attributes["max_cmds"] = self.__max_cmds
@@ -653,6 +657,7 @@ class CBaseDrive(CElement):
         self.__refcount_cache_size = None  # unit: byte
         self.__cluster_size = None  # unit: KB
         self.__preallocation_mode = None
+        self.__share_rw = None
 
     @property
     def index(self):
@@ -691,6 +696,7 @@ class CBaseDrive(CElement):
         self.__refcount_cache_size = self._drive_info.get("refcount-cache-size")
         self.__cluster_size = self._drive_info.get("cluster-size")
         self.__preallocation_mode = self._drive_info.get("preallocation")
+        self.__share_rw = self._drive_info.get("share-rw")
 
         # assume the files starts with "/dev/" are block device
         # all the block devices are assumed to be raw format
@@ -790,6 +796,9 @@ class CBaseDrive(CElement):
 
         if self.__bootindex:
             self._dev_attrs["bootindex"] = self.__bootindex
+
+        if self.__share_rw:
+            self._dev_attrs["share-rw"] = self.__share_rw
 
         # for ATA controller, one bus should only have one target, AHCI could support at most 6 target devices
         # for SCSI controller, one controller only one Bus which could support at most 8 target devices
