@@ -12,18 +12,28 @@ import sys
 import re
 import signal
 import time
+import atexit
+import traceback
 
 from infrasim import daemon
 from infrasim import sshim
 from infrasim import config
+from infrasim import run_command
 from .command import Command_Handler
 from .common import msg_queue
 from .common import IpmiError
 import env, sdr, common
 from infrasim.log import infrasim_log, LoggerType
 
-server = None
+
 logger_ic = infrasim_log.get_logger(LoggerType.ipmi_console.value)
+sensor_thread_list = []
+
+
+def atexit_cb(sig=signal.SIGTERM, stack=None):
+    env.local_env.quit_flag = True
+    _free_resource()
+    _stop_console()
 
 
 class IPMI_CONSOLE(threading.Thread):
@@ -67,7 +77,6 @@ class IPMI_CONSOLE(threading.Thread):
 
             if not cmdline or len(cmdline) == 0:
                 continue
-
             try:
                 cmd = cmdline.split()[0]
                 logger_ic.info("command rev: {}".format(cmdline))
@@ -94,29 +103,31 @@ class IPMI_CONSOLE(threading.Thread):
 
 def _start_console(instance="default"):
     global logger_ic
-    logger_ic = infrasim_log.get_logger(LoggerType.ipmi_console.value, instance)
-    global server
-    server = sshim.Server(IPMI_CONSOLE, logger_ic, port=env.PORT_SSH_FOR_CLIENT)
+
+    if env.local_env.quit_flag:
+        return
+
+    env.local_env.server = sshim.Server(IPMI_CONSOLE, logger_ic, port=env.PORT_SSH_FOR_CLIENT)
     try:
         logger_ic.info("command res: ipmi-console start {} "
                        "is finished".format(instance))
-        server.run()
+        env.local_env.server.run()
 
     except KeyboardInterrupt as e:
         logger_ic.error("{} \nstart to stop ipmi-console".format(str(e)))
-        server.stop()
+        env.local_env.server.stop()
 
 
 def _stop_console():
-    if server:
-        server.stop()
-
-sensor_thread_list = []
+    if "server" in env.local_env.__dict__:
+        env.local_env.server.stop()
 
 
 def _spawn_sensor_thread():
     for sensor_obj in sdr.sensor_list:
         if sensor_obj.get_event_type() == "threshold":
+            if env.local_env.quit_flag:
+                return
             t = threading.Thread(target=sensor_obj.execute)
             t.setDaemon(True)
             sensor_thread_list.append(t)
@@ -153,15 +164,18 @@ def start(instance="default"):
     global logger_ic
     logger_ic = infrasim_log.get_logger(LoggerType.ipmi_console.value, instance)
     common.init_logger(instance)
-    # initialize environment
-    common.init_env(instance)
 
+    # initialize environment
+    env.local_env.quit_flag = False
+    common.init_env(instance)
     daemon.daemonize("{}/{}/.ipmi_console.pid".format(config.infrasim_home, instance))
+
     # parse the sdrs and build all sensors
     sdr.parse_sdrs()
+
     # running thread for each threshold based sensor
-    _spawn_sensor_thread()
     _start_monitor(instance)
+    _spawn_sensor_thread()
     _start_console(instance)
 
 
@@ -212,10 +226,26 @@ def stop(instance="default"):
         with open(file_ipmi_console_pid, "r") as f:
             pid = f.readline().strip()
 
+        os.kill(int(pid), signal.SIGTERM)
+        logger_ic.info("SIGTERM is sent to pid: {}".format(pid))
         os.remove(file_ipmi_console_pid)
+    except IOError:
+        # When pid file is missing, by e.g., node destroy,
+        # find process id by instance name
+        if instance == "default":
+            process_name = "ipmi-console start$"
+        else:
+            process_name = "ipmi-console start {}".format(instance)
+
+        ps_cmd = r'ps ax | grep "{}" | cut -d " " -f2 | head -n1'.format(process_name)
+        logger_ic.warning("Fail to find ipmi console pid file, check by:")
+        logger_ic.warning("> {}".format(ps_cmd))
+        _, pid = run_command(cmd=ps_cmd)
+        logger_ic.warning("ipmi console pid got: {}".format(pid))
 
         os.kill(int(pid), signal.SIGTERM)
     except:
+        logger_ic.warning(traceback.format_exc())
         pass
 
 
@@ -229,6 +259,9 @@ def console_main(instance="default"):
     for word in sys.argv[1:]:
         cmdline += word+" "
     try:
+        #register the atexit call back function
+        atexit.register(atexit_cb)
+        signal.signal(signal.SIGTERM, atexit_cb)
         arg_num = len(sys.argv)
         if arg_num < 2 or arg_num > 3:
             logger_ic.info('command rev: {}'.format(cmdline))
@@ -255,4 +288,3 @@ def console_main(instance="default"):
 
     except Exception as e:
         sys.exit(e)
-
