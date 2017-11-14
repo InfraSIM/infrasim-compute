@@ -13,6 +13,7 @@ import os
 import yaml
 import time
 import paramiko
+from infrasim import workspace
 from infrasim import model
 from infrasim import helper
 from infrasim import InfraSimError
@@ -184,6 +185,31 @@ class test_compute_configuration_change(unittest.TestCase):
                         "127.0.0.1", port=2222, username="root",
                         password="root", timeout=120)
         ssh.close()
+
+    @helper.qemu_version(">=2.10")
+    def test_auto_add_nvme_serial(self):
+        self.conf["compute"]["storage_backend"] = [{
+            "type": "nvme",
+            "cmb_size": 256,
+            "drives": [{"size": 8}]
+        }]
+
+        node = model.CNode(self.conf)
+        node.init()
+        node.precheck()
+        node.start()
+
+        # Check process option has nvme serial
+        str_result = run_command(PS_QEMU, True,
+                                 subprocess.PIPE, subprocess.PIPE)[1]
+        p = re.compile(r"-device nvme,serial=(\w+),cmb_size_mb=256,drive=nvme-0,id=dev-nvme-0")
+        m = p.search(str_result)
+        assert m is not None
+
+        # Check config in workspace has nvme serial
+        node_info = workspace.Workspace.get_node_info_in_workspace(self.conf["name"])
+        serial = node_info["compute"]["storage_backend"][0]["serial"]
+        assert m.group(1) == serial
 
 
 class test_bmc_configuration_change(unittest.TestCase):

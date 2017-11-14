@@ -150,6 +150,70 @@ class qemu_functions(unittest.TestCase):
         except:
             assert False
 
+    def test_set_nvme_controller(self):
+        try:
+            backend_storage_info = [{
+                "type": "nvme",
+                "cmb_size": 256,
+                "serial": "26E0A024T2VD",
+                "drives": [{"size": 8}]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "-device nvme" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_nvme_controller_default_serial(self):
+        try:
+            backend_storage_info = [{
+                "type": "nvme",
+                "cmb_size": 256,
+                "drives": [{"size": 8}]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            p = re.compile(r"-device nvme,serial=\w+,cmb_size_mb=256,drive=nvme-0,id=dev-nvme-0")
+            m = p.search(storage.get_option())
+            assert m is not None
+        except:
+            assert False
+
+    def test_set_nvme_controller_default_cmb_size(self):
+        try:
+            backend_storage_info = [{
+                "type": "nvme",
+                "serial": "26E0A024T2VD",
+                "drives": [{"size": 8}]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "-device nvme" in storage.get_option()
+            assert "cmb_size_mb=256" in storage.get_option()
+        except:
+            assert False
+
+    def test_set_nvme_controller_invalid_cmb_size(self):
+        try:
+            backend_storage_info = [{
+                "type": "nvme",
+                "cmb_size": 255,
+                "drives": [{"size": 8}]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+        except ArgsNotCorrect as e:
+            assert "CMB size" in e.value
+        else:
+            assert False
+
     def test_set_lsi_storage_controller(self):
         try:
             backend_storage_info = [{

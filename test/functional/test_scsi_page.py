@@ -62,14 +62,22 @@ def start_node(node_type):
     conf = fake_config.get_node_info()
     conf["type"] = node_type
 
-    conf["compute"]["storage_backend"] = [{
-        "type": "ahci",
-        "max_drive_per_controller": 6,
-        "drives": [{"size": 8, "file": test_img_file}]
-        }, {
-        "type": "megasas",
-        "max_drive_per_controller": 16,
-        "drives": [{
+    conf["compute"]["storage_backend"] = [
+        {
+            "type": "ahci",
+            "max_drive_per_controller": 6,
+            "drives": [
+                {
+                    "size": 8,
+                    "file": test_img_file
+                }
+            ]
+        },
+        {
+            "type": "megasas",
+            "max_drive_per_controller": 16,
+            "drives": [
+                {
                     "file": test_drive_image,
                     "format": "raw",
                     "vendor": "SEAGATE",
@@ -81,7 +89,8 @@ def start_node(node_type):
                     "scsi-id": 0,
                     "slot_number": 0,
                     "page-file": page_file
-                    }, {
+                },
+                {
                     "file": test_drive_image,
                     "format": "raw",
                     "vendor": "SEAGATE",
@@ -92,7 +101,8 @@ def start_node(node_type):
                     "cache": "none",
                     "scsi-id": 1,
                     "slot_number": 1
-                    }]
+                }
+            ]
         }
     ]
 
