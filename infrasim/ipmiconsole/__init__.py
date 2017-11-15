@@ -242,6 +242,9 @@ def stop(instance="default"):
         logger_ic.warning("> {}".format(ps_cmd))
         _, pid = run_command(cmd=ps_cmd)
         logger_ic.warning("ipmi console pid got: {}".format(pid))
+        if not pid:
+            logger_ic.warning("ipmi console for instance {} is not running".format(instance))
+            return
 
         os.kill(int(pid), signal.SIGTERM)
     except:
