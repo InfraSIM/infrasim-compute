@@ -11,6 +11,9 @@ import re
 import socket
 import multiprocessing
 import types
+import string
+import random
+import subprocess
 from functools import wraps
 from ctypes import cdll
 from socket import AF_INET, AF_INET6, inet_ntop
@@ -21,7 +24,7 @@ from ctypes import (
     c_char_p, c_uint, c_uint16,
     c_uint32
 )
-from infrasim import InfraSimError
+from infrasim import InfraSimError, run_command
 from . import logger
 
 libc = cdll.LoadLibrary('libc.so.6')
@@ -376,3 +379,94 @@ def is_valid_ip(ip):
             return True
     else:
         return False
+
+
+def random_serial(len=12):
+    '''
+    [Function]: Generate random serial number string, in upper case and digits
+                for certain use
+    [Input   ]: len - expected length of serial number string
+    [Output  ]: A string in expected length
+    '''
+    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(len))
+
+
+def version_parser(expression):
+    '''
+    [Function]: Extract punctuaion and revision from an expression
+    [Input   ]: expression - to be analyzed
+    [Output  ]: Extracted punctuation and revision string
+    '''
+    # RE to match:
+    #     >=, <=, ==, >, <
+    p = re.compile(r"(?P<punctuation>[><=]=|[><])?\s*(?P<version>(\d+\.)*\d+)")
+    m = p.search(expression)
+
+    if m is None:
+        return None, None
+
+    return m.group("punctuation"), m.group("version")
+
+
+def version_match(expression, runtime_version):
+    '''
+    [Function]: Given an expression in string to show expected version requirement,
+                and a runtime version in string, return if runtime version meets
+                the requirement
+    [Input   ]: expression - requirement in string
+                runtime_version - runtime version in string, in a form of "xx.xx.xx"
+    [Output  ]: True - runtime version meets requirement
+                False - fail to meet requirement
+    '''
+    p, v = version_parser(expression)
+
+    if p is None or v is None:
+        raise RuntimeError("Fail to identify version expression")
+
+    v_target = v.split(".")
+    v_runtime = runtime_version.split(".")
+    v_diff = [int(r)-int(t) for t, r in zip(v_target, v_runtime)]
+    symbol = 0
+    for x in v_diff:
+        if x != 0:
+            symbol = x
+            break
+    if symbol > 0:
+        if p in [">=", ">"]:
+            return True
+    elif symbol == 0:
+        if p in [">=", "<=", "=="]:
+            return True
+    else:
+        if p in ["<=", "<"]:
+            return True
+
+    return False
+
+
+class qemu_version(object):
+    '''
+    [Function]: Decorator to check qemu version in certain tests, skip if version
+                doesn't match, e.g.
+                - @helper.qemu_version(">=2.10")
+                - @helper.qemu_version("==2.6.2")
+    '''
+    def __init__(self, expression):
+        self.expression = expression
+
+    def __call__(self, func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Get QEMU runtime version
+            str_result = run_command("qemu-system-x86_64 --version", True,
+                                     subprocess.PIPE, subprocess.PIPE)[1]
+            p = re.compile(r"qemu_(?P<version>(\d+\.)*\d+)")
+            m = p.search(str_result)
+            qemu_version = m.group("version")
+            if not version_match(self.expression, qemu_version):
+                args[0].skipTest("Required qemu version: {}, runtime version: {}".
+                                 format(self.expression, qemu_version))
+
+            return func(*args, **kwargs)
+
+        return wrapper
