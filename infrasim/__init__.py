@@ -1,4 +1,5 @@
 import subprocess
+import inspect
 import pkg_resources
 from .log import infrasim_log, LoggerType
 
@@ -79,6 +80,8 @@ def has_option(config, *args):
 class InfraSimError(Exception):
     def __init__(self, value):
         self.value = value
+        logger.exception("{}, stack:\n{}".format(self.value,
+                         str(inspect.stack()[1:]).replace("), (", "),\n(")))
 
     def __str__(self):
         return repr(self.value)
@@ -108,4 +111,3 @@ class NodeAlreadyRunning(InfraSimError):
 
 class WorkspaceExisting(InfraSimError):
     pass
-

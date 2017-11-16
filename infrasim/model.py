@@ -628,13 +628,14 @@ class CBaseDrive(CElement):
         self.__wwn = None
         self.__bootindex = None
         self.__version = None
+        self.__share_rw = False
+        self.__page_file = None
 
         # host option
         self.__cache = None
         self.__aio = None
         self.__drive_file = None
         self.__format = None
-        self.__page_file = None
         self.__l2_cache_size = None  # unit: byte
         self.__refcount_cache_size = None  # unit: byte
         self.__cluster_size = None  # unit: KB
@@ -656,6 +657,9 @@ class CBaseDrive(CElement):
             self.logger.exception("[CBaseDrive] page file {0} doesnot exist".format(self.__page_file))
             raise ArgsNotCorrect("[CBaseDrive] page file {0} doesnot exist".format(self.__page_file))
 
+        if not isinstance(self.__share_rw, bool):
+            raise ArgsNotCorrect("[CBaseDrive] share-rw is not boolean: {}".format(self.__share_rw))
+
     @property
     def serial(self):
         return self.__serial
@@ -668,18 +672,20 @@ class CBaseDrive(CElement):
         self.__bootindex = self._drive_info.get("bootindex")
         self.__serial = self._drive_info.get("serial")
         self.__version = self._drive_info.get("version")
+        self.__wwn = self._drive_info.get("wwn")
+        self.__share_rw = self._drive_info.get("share-rw", False)
+        self.__page_file = self._drive_info.get("page-file")
+
         self.__format = self._drive_info.get("format", "qcow2")
         self.__cache = self._drive_info.get("cache", "writeback")
         self.__aio = self._drive_info.get("aio")
-        self.__size = self._drive_info.get("size", 8)
         self.__drive_file = self._drive_info.get("file")
-        self.__wwn = self._drive_info.get("wwn")
-        self.__page_file = self._drive_info.get("page-file")
-
         self.__l2_cache_size = self._drive_info.get("l2-cache-size")
         self.__refcount_cache_size = self._drive_info.get("refcount-cache-size")
         self.__cluster_size = self._drive_info.get("cluster-size")
         self.__preallocation_mode = self._drive_info.get("preallocation")
+
+        self.__size = self._drive_info.get("size", 8)
 
         # assume the files starts with "/dev/" are block device
         # all the block devices are assumed to be raw format
@@ -776,6 +782,9 @@ class CBaseDrive(CElement):
 
         if self.__page_file:
             self._dev_attrs["page_file"] = self.__page_file
+
+        if self.__share_rw:
+            self._dev_attrs["share-rw"] = self.__share_rw
 
 
 class SCSIDrive(CBaseDrive):
