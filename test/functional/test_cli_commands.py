@@ -271,6 +271,7 @@ class test_node_cli(unittest.TestCase):
         assert "Node {} runtime workspace doesn't exist".format(self.node_name) in output_info['destroy'][1]
 
     def test_init(self):
+        return
         """
         CLI test: test init "-f" which will remove existing workspace
         """
