@@ -541,6 +541,60 @@ class qemu_functions(unittest.TestCase):
         except:
             assert False
 
+    def test_enable_drive_share_rw(self):
+        try:
+            backend_storage_info = [{
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [{
+                    "size": 8,
+                    "file": "/tmp/sda.img",
+                    "share-rw": True
+                }]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "share-rw=True" in storage.get_option()
+        except:
+            assert False
+
+    def test_disable_drive_share_rw(self):
+        try:
+            backend_storage_info = [{
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [{
+                    "size": 8,
+                    "file": "/tmp/sda.img",
+                    "share-rw": False
+                }]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+            storage.handle_parms()
+            assert "share-rw" not in storage.get_option()
+        except:
+            assert False
+
+    def test_fault_drive_share_rw(self):
+        try:
+            backend_storage_info = [{
+                "type": "megasas-gen2",
+                "max_drive_per_controller": 6,
+                "drives": [{
+                    "size": 8,
+                    "file": "/tmp/sda.img",
+                    "share-rw": "fake"
+                }]
+            }]
+            storage = model.CBackendStorage(backend_storage_info)
+            storage.init()
+            storage.precheck()
+        except ArgsNotCorrect as e:
+            assert "share-rw is not boolean" in e.value
 
     def test_set_smbios(self):
         with open(config.infrasim_default_config, "r") as f_yml:
