@@ -13,7 +13,7 @@ def version():
     socat_ver_cmd = socat.get_socat() + " -V"
     version_str += "{:<10}: {}\n".format("Kernel", run_command("uname -sr")[1].split('\n')[0])
     version_str += "{:<10}: {}\n".format("Base OS", run_command("cat /etc/issue")[1].split('\\')[0])
-    version_str += "{:<10}: {}\n".format("QEMU", run_command(qemu_ver_cmd)[1].split(',')[0])
+    version_str += "{:<10}: {}\n".format("QEMU", run_command(qemu_ver_cmd)[1].split('\n')[0])
     version_str += "{:<10}: {}\n".format("OpenIPMI", run_command(ipmi_ver_cmd)[1].split('\n')[0])
     version_str += "{:<10}: {}\n".format("Socat",
                                         ' '.join(run_command(socat_ver_cmd)[1].split('\n')[1].split(' ')[0:3]))
