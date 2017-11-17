@@ -823,7 +823,7 @@ class SCSIDrive(CBaseDrive):
         self.__bus = bus
 
     def get_uniq_name(self):
-        return "{}-{}".format(self.__bus, self.__index)
+        return "{}-{}".format(self.__bus, self.index)
 
     def set_scsi_id(self, scsi_id):
         self._scsi_id = scsi_id
