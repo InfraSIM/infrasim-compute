@@ -492,8 +492,8 @@ class MegaSASController(CBaseStorageController):
         super(MegaSASController, self).__init__()
         self.__use_jbod = None
         self.__sas_address = None
-        self.__use_msi = None
-        self.__use_msix = None
+        self.__msi = None
+        self.__msix = None
         self.__max_cmds = None
         self.__max_sge = None
         self._controller_info = controller_info
@@ -509,8 +509,9 @@ class MegaSASController(CBaseStorageController):
         self.__sas_address = self._controller_info.get('sas_address')
         self.__max_cmds = self._controller_info.get('max_cmds')
         self.__max_sge = self._controller_info.get('max_sge')
-        self.__use_msi = self._controller_info.get('use_msi')
         self.__use_jbod = self._controller_info.get('use_jbod')
+        self.__msi = self._controller_info.get('msi')
+        self.__msix = self._controller_info.get('msix')
 
         self._start_idx = self.controller_index
         idx = 0
@@ -548,8 +549,11 @@ class MegaSASController(CBaseStorageController):
             if self.__sas_address:
                 self._attributes["sas_address"] = self.__sas_address
 
-            if self.__use_msi:
-                self._attributes["use_msi"] = self.__use_msi
+            if self.__msi:
+                self._attributes["msi"] = self.__msi
+
+            if self.__msix:
+                self._attributes["msix"] = self.__msix
 
             if self.__max_cmds:
                 self._attributes["max_cmds"] = self.__max_cmds
