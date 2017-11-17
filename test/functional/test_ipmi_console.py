@@ -195,12 +195,18 @@ class test_ipmi_console_start_stop(unittest.TestCase):
         time.sleep(20)
 
         node.stop()
-        # ipmi-console polls every 3s to see vbmc status, so wait 5s for it
-        time.sleep(5)
-        output = run_command(
-            ps_ipmi_console_cmd, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)[1]
-        assert start_ipmi_console_cmd not in output
+
+        # ipmi-console polls every 3s to see vbmc status, wait a while for
+        # possible resource collection
+        for _ in range(10):
+            time.sleep(3)
+            output = run_command(
+                ps_ipmi_console_cmd, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)[1]
+            if start_ipmi_console_cmd not in output:
+                break
+        else:
+            assert False
 
     def test_ipmi_console_stops_followed_by_node_destroy(self):
         node_info = FakeConfig().get_node_info()
@@ -229,12 +235,18 @@ class test_ipmi_console_start_stop(unittest.TestCase):
 
         node.stop()
         node.terminate_workspace()
-        # ipmi-console polls every 3s to see vbmc status, so wait 5s for it
-        time.sleep(5)
-        output = run_command(
-            ps_ipmi_console_cmd, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)[1]
-        assert start_ipmi_console_cmd not in output
+
+        # ipmi-console polls every 3s to see vbmc status, wait a while for
+        # possible resource collection
+        for _ in range(10):
+            time.sleep(3)
+            output = run_command(
+                ps_ipmi_console_cmd, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)[1]
+            if start_ipmi_console_cmd not in output:
+                break
+        else:
+            assert False
 
 
 class test_ipmi_console(unittest.TestCase):

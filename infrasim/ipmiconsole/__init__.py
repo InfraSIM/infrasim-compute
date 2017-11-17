@@ -237,7 +237,7 @@ def stop(instance="default"):
         else:
             process_name = "ipmi-console start {}".format(instance)
 
-        ps_cmd = r'ps ax | grep "{}" | cut -d " " -f2 | head -n1'.format(process_name)
+        ps_cmd = r'ps ax | grep "{}" | cut -d " " -f1 | head -n1'.format(process_name)
         logger_ic.warning("Fail to find ipmi console pid file, check by:")
         logger_ic.warning("> {}".format(ps_cmd))
         _, pid = run_command(cmd=ps_cmd)
