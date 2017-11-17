@@ -88,6 +88,7 @@ def start_node(node_type):
                     "cache": "none",
                     "scsi-id": 0,
                     "slot_number": 0,
+                    "share-rw": "true",
                     "page-file": page_file
                 },
                 {
@@ -100,6 +101,7 @@ def start_node(node_type):
                     "wwn": "0x5000C500852E3141",
                     "cache": "none",
                     "scsi-id": 1,
+                    "share-rw": "true",
                     "slot_number": 1
                 }
             ]
