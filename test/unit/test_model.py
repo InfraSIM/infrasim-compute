@@ -235,7 +235,7 @@ class qemu_functions(unittest.TestCase):
                 "type": "megasas",
                 "max_drive_per_controller": 6,
                 "use_jbod": True,
-                "use_msi": True,
+                "msi": True,
                 "max_cmds": 1024,
                 "max_sge": 128,
                 "sas_address": "000abc",
@@ -247,7 +247,7 @@ class qemu_functions(unittest.TestCase):
             storage.handle_parms()
             assert "-device megasas" in storage.get_option()
             assert "use_jbod=True" in storage.get_option()
-            assert "use_msi=True" in storage.get_option()
+            assert "msi=True" in storage.get_option()
             assert "max_cmds=1024" in storage.get_option()
             assert "max_sge=128" in storage.get_option()
             assert "sas_address=000abc" in storage.get_option()
