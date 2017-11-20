@@ -28,7 +28,8 @@ def install_official_packages():
 
 def install_bintray_packages(repo, package):
     print "downloading " + package + "..."
-    download_link = BASE_URL + repo + "/" + package + "/files"
+    qemu_version = "1.0"
+    download_link = BASE_URL + repo + "/" + package + "/versions/" + qemu_version + "/files"
     response = requests.get(download_link)
     data = response.json()
     latest_time = data[0]["created"]
@@ -95,15 +96,15 @@ def package_install():
 
     if install_qemu:
         if not has_qemu:
-            install_bintray_packages("deb", "Qemu")
+            install_bintray_packages("deb", "Infrasim_Qemu")
         elif not install_seabios:
             run_command("mv /usr/local/share/qemu/bios-256k.bin /usr/local/share/qemu/bios-256k.bin.bk")
             run_command("dpkg -r infrasim-qemu")
-            install_bintray_packages("deb", "Qemu")
+            install_bintray_packages("deb", "Infrasim_Qemu")
             run_command("mv /usr/local/share/qemu/bios-256k.bin.bk /usr/local/share/qemu/bios-256k.bin")
         else:
             run_command("dpkg -r infrasim-qemu")
-            install_bintray_packages("deb", "Qemu")
+            install_bintray_packages("deb", "Infrasim_Qemu")
     if install_openipmi:
         if has_openipmi:
             run_command("dpkg -r infrasim-openipmi")
