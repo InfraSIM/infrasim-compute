@@ -44,7 +44,7 @@ class test_version_command(unittest.TestCase):
             )
             self.assertIsNotNone(
                 re.search(
-                    'QEMU emulator version infrasim-qemu_(\d+.){2}\d+',
+                    'QEMU emulator version (\d+.){2}\d+\(infrasim-qemu \w+-\w+ (\d+.)*\d+ build-(\d+.)*(\d+)\)',
                     version_list[2]
                 ),
                 "qemu version is '{}', not expected".format(version_list[2])

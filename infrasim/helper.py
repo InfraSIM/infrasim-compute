@@ -460,7 +460,7 @@ class qemu_version(object):
             # Get QEMU runtime version
             str_result = run_command("qemu-system-x86_64 --version", True,
                                      subprocess.PIPE, subprocess.PIPE)[1]
-            p = re.compile(r"qemu_(?P<version>(\d+\.)*\d+)")
+            p = re.compile(r"(qemu_|version\s+)(?P<version>(\d+\.)*\d+)")
             m = p.search(str_result)
             qemu_version = m.group("version")
             if not version_match(self.expression, qemu_version):
