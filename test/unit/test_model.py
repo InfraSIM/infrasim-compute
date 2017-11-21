@@ -15,6 +15,7 @@ from infrasim import config
 from infrasim import helper
 from test import fixtures
 from nose.tools import raises
+from glob import *
 
 
 TMP_CONF_FILE = "/tmp/test.yml"
@@ -28,7 +29,15 @@ class qemu_functions(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        pass
+        img_files = glob(config.infrasim_home+"/*.img")
+        for img_file in img_files:
+            os.unlink(img_file)
+
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+        cls.node = model.CNode(node_info)
+        cls.node.init()
+        cls.node.terminate_workspace()
 
     def test_set_cpu(self):
         try:
