@@ -13,6 +13,7 @@ import os
 import yaml
 import time
 import paramiko
+import re
 from infrasim import workspace
 from infrasim import model
 from infrasim import helper

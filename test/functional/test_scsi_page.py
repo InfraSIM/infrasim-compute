@@ -85,6 +85,7 @@ def start_node(node_type):
                     "serial": "01234567",
                     "version": "M001",
                     "wwn": "0x5000C500852E2971",
+                    "share-rw": True,
                     "cache": "none",
                     "scsi-id": 0,
                     "slot_number": 0,
@@ -98,6 +99,7 @@ def start_node(node_type):
                     "serial": "12345678",
                     "version": "M001",
                     "wwn": "0x5000C500852E3141",
+                    "share-rw": True,
                     "cache": "none",
                     "scsi-id": 1,
                     "slot_number": 1
