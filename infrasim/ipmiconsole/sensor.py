@@ -70,7 +70,7 @@ class with_type(object):
                                 'requires "{}"'.
                                 format(obj_self.get_event_type(),
                                        fn.__name__,
-                                       self.expect_type))
+                                       self.expect_type_list))
         return wrapper
 
 

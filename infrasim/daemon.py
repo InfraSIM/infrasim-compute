@@ -16,7 +16,7 @@ def daemonize(pidfile, stdin='/dev/null', stdout='/dev/null',
         if pid > 0:
             sys.exit(0)
     except OSError, e:
-        sys.stderr.write("fork #1 failed: (%d) %s\n" % (e.errorno, e.strerror))
+        sys.stderr.write("fork #1 failed: (%d) %s\n" % (e.errno, e.strerror))
         sys.exit(1)
 
     os.chdir('/')
@@ -28,7 +28,7 @@ def daemonize(pidfile, stdin='/dev/null', stdout='/dev/null',
         if pid > 0:
             sys.exit(0)
     except OSError, e:
-        sys.stderr.write("fork #2 failed: (%d) %s\n" % (e.errorno, e.strerror))
+        sys.stderr.write("fork #2 failed: (%d) %s\n" % (e.errno, e.strerror))
         sys.exit(1)
 
     def atexit_cb():

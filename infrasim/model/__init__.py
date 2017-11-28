@@ -17,16 +17,16 @@ import signal
 import jinja2
 import math
 import shutil
-import config
 import json
-import helper
 import stat
 import socket
 from telnetlib import Telnet
-from workspace import Workspace
-from . import run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
+from infrasim import run_command, has_option # methods in package __init__
+from infrasim import CommandRunFailed, ArgsNotCorrect, CommandNotFound # exceptions
+from infrasim import config, helper # modules in package
+from infrasim.workspace import Workspace
 from infrasim.helper import run_in_namespace, double_fork
-from .log import infrasim_log, LoggerType
+from infrasim.log import infrasim_log, LoggerType
 
 logger_model = infrasim_log.get_logger(LoggerType.model.value)
 
@@ -77,7 +77,7 @@ class Utility(object):
 
         if not os.path.isdir("/proc/{}".format(proc.pid)):
             logger.exception("command {} run failed".format(command))
-            raise CommandRunFailed(command)
+            raise CommandRunFailed(command, errout)
 
         return proc.pid
 
@@ -671,6 +671,9 @@ class CBaseDrive(CElement):
     @serial.setter
     def serial(self, s):
         self.__serial = s
+
+    def get_uniq_name(self):
+        return ""
 
     def init(self):
         self.__bootindex = self._drive_info.get("bootindex")
@@ -2906,7 +2909,7 @@ class NumaCtl(object):
         for core in core_block:
             for field in ["processor", "core id", "physical id"]:
                 if field not in core:
-                    err = "Error getting '%s' value from /proc/cpuinfo".format(field)
+                    err = "Error getting '{}' value from /proc/cpuinfo".format(field)
                     logger_model.exception(err)
                     raise Exception(err)
                 core[field] = int(core[field])

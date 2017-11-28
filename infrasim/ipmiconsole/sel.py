@@ -566,6 +566,7 @@ class OEM_SEL_C0_DF:
         self.ts_4 = 0
         self.mfg_id_1 = 0
         self.mfg_id_2 = 0
+        self.mfg_id_3 = 0
 
         # byte 11 - byte 16
         self.oem_defined = []

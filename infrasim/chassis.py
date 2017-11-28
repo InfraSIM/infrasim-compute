@@ -1,5 +1,4 @@
-from model import CNode
-from model import NumaCtl
+from infrasim.model import CNode, NumaCtl
 
 
 class CChassis(object):
