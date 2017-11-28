@@ -1542,7 +1542,7 @@ class racadm_configuration(unittest.TestCase):
 class numa_configuration_1(unittest.TestCase):
 
     def setUp(self):
-        self.numactl = model.NumaCtl()
+        self.numactl = helper.NumaCtl()
         self.numactl.__class__.HT_FACTOR = 2
         self.numactl._socket_list = [0, 1]
         self.numactl._core_list = [0, 1, 2, 3, 4, 8, 9, 10, 11, 12]
@@ -1614,7 +1614,7 @@ class numa_configuration_1(unittest.TestCase):
 class numa_configuration_2(unittest.TestCase):
 
     def setUp(self):
-        self.numactl = model.NumaCtl()
+        self.numactl = helper.NumaCtl()
         self.numactl.__class__.HT_FACTOR = 1
         self.numactl._socket_list = [0, 1]
         self.numactl._core_list = [0, 1, 2, 3]
