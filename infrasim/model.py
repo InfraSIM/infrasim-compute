@@ -27,6 +27,7 @@ from workspace import Workspace
 from . import run_command, CommandRunFailed, ArgsNotCorrect, CommandNotFound, has_option
 from infrasim.helper import run_in_namespace, double_fork
 from .log import infrasim_log, LoggerType
+from dae import DAEProcessHelper
 
 logger_model = infrasim_log.get_logger(LoggerType.model.value)
 
@@ -350,6 +351,7 @@ class CBaseStorageController(CElement):
         # record the controller index inside this instance
         self.__controller_index = 0
         self._ses_list = []
+        self._dae = None
 
         # remember the start index for the first controller
         # managed by this class
@@ -386,8 +388,6 @@ class CBaseStorageController(CElement):
         return ",".join(controller_option_list)
 
     def handle_parms(self):
-        if len(self._drive_list) == 0:
-            return
 
         # handle drive options
         for drive_obj in self._drive_list:
@@ -406,17 +406,27 @@ class CBaseStorageController(CElement):
         # common attributes for all controllers
         # add them into self._attributes here.
 
+    def get_drvs_arg_option(self):
+        if len(self._drive_list) == 0:
+            return None
+        if self._controller_info.get('connectors', None) is None:
+            return None
+        # handle drive options
+        for drive_obj in self._drive_list:
+            drive_obj.handle_parms()
+        drv_args = []
+        for drive_obj in self._drive_list[:]:
+            drv_args.append(drive_obj.get_option())
+            self._drive_list.remove(drive_obj)
+        return drv_args, self._controller_info
 
 class LSISASController(CBaseStorageController):
     def __init__(self, controller_info):
         super(LSISASController, self).__init__()
         self._controller_info = controller_info
-        self.__expander_count = None;
         self._iothread_id = None
-        self.__expander_downstream_start_phy = None
-        self.__expander_upstream_start_phy = None
-        self.__expander_all_phys = None
         self.__use_msix = None
+        self.__dae_file = None
 
     def precheck(self):
         # call parent precheck()
@@ -425,10 +435,6 @@ class LSISASController(CBaseStorageController):
     def init(self):
         super(LSISASController, self).init()
 
-        self.__expander_count = self._controller_info.get("expander-count")
-        self.__expander_downstream_start_phy = self._controller_info.get("expander-downstream-start-phy")
-        self.__expander_upstream_start_phy = self._controller_info.get("expander-upstream-start-phy")
-        self.__expander_all_phys = self._controller_info.get("expander-phys")
         self._iothread_id = self._controller_info.get("iothread")
         self.__use_msix = self._controller_info.get('use_msix')
 
@@ -455,6 +461,9 @@ class LSISASController(CBaseStorageController):
         for ses_obj in self._ses_list:
             ses_obj.init()
 
+        if self._controller_info.get("dae_file", None):
+            self.__dae_file = self._controller_info["dae_file"]
+
         # Update controller index, tell CBackendStorage what the controller index
         # should be for the next
         self.controller_index += (idx / self._max_drive_per_controller)
@@ -466,17 +475,6 @@ class LSISASController(CBaseStorageController):
         cntrl_nums = int(math.ceil(float(drive_nums)/self._max_drive_per_controller)) or 1
         for cntrl_index in range(0, cntrl_nums):
             self._attributes["id"] = "scsi{}".format(self._start_idx + cntrl_index)
-            if self.__expander_count:
-                self._attributes["expander-count"] = self.__expander_count
-
-            if self.__expander_downstream_start_phy is not None:
-                self._attributes["downstream-start-phy"] = self.__expander_downstream_start_phy
-
-            if self.__expander_upstream_start_phy is not None:
-                self._attributes["upstream-start-phy"] = self.__expander_upstream_start_phy
-
-            if self.__expander_all_phys is not None:
-                self._attributes["expander-phys"] = self.__expander_all_phys
 
             if self._iothread_id:
                 self._attributes["iothread"] = self._iothread_id
@@ -484,7 +482,11 @@ class LSISASController(CBaseStorageController):
             if self.__use_msix is not None:
                 self._attributes["use_msix"] = self.__use_msix
 
+            if self.__dae_file is not None:
+                self._attributes["dae_file"] = self.__dae_file
+
             self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)
+            self.logger.info("get_option:\n{}".format(self.get_option()))
 
 
 class MegaSASController(CBaseStorageController):
@@ -1055,6 +1057,11 @@ class SESDevice(CElement):
         self.__version = None
         self.__bus = 0
         self.__dae_type = None
+        self.__side = None
+        self.__pri_port_att_sas_addr = 0
+        self.__exp_port_att_sas_addr = 0
+        self.__physical_port = 0
+
 
     def set_bus(self, bus):
         self.__bus = bus
@@ -1074,6 +1081,10 @@ class SESDevice(CElement):
         self.__wwn = self._ses_info.get("wwn")
         self.__version = self._ses_info.get("version")
         self.__dae_type = self._ses_info.get("dae_type")
+        self.__side = self._ses_info.get("side")
+        self.__pri_port_att_sas_addr = self._ses_info.get("pp_atta_sas_addr")
+        self.__exp_port_att_sas_addr = self._ses_info.get("ep_atta_sas_addr")
+        self.__physical_port = self._ses_info.get("physical_port")
 
     def handle_parms(self):
         options = {}
@@ -1104,6 +1115,19 @@ class SESDevice(CElement):
 
         if self.__dae_type:
             options["dae_type"] = self.__dae_type
+
+        if self.__side is not None:
+            options["side"] = self.__side
+
+        if self.__physical_port is not None:
+            options["physical_port"] = self.__physical_port
+
+        if self.__pri_port_att_sas_addr:
+            options["pp_atta_sas_addr"] = self.__pri_port_att_sas_addr
+
+        if self.__exp_port_att_sas_addr:
+            options["ep_atta_sas_addr"] = self.__exp_port_att_sas_addr
+
 
         options["bus"] = "{}{}.{}".format(self.prefix, self.__bus, 0)
 
@@ -1155,7 +1179,27 @@ class CBackendStorage(CElement):
         controller_obj.owner = self
         return controller_obj
 
+
+    def __get_ws_name(self):
+        parent = self.owner
+        while parent and not hasattr(parent, "get_workspace"):
+            parent = parent.owner
+
+        ws = None
+        if hasattr(parent, "get_workspace"):
+            ws = parent.get_workspace()
+
+        if ws is None or not os.path.exists(ws):
+            ws = ""
+
+        return ws
+
+
     def init(self):
+        # parse disk array definition in advance.
+        dae_helper = DAEProcessHelper(self.__backend_storage_info,
+                                   self.__get_ws_name())
+
         for controller in self.__backend_storage_info:
             controller_obj = self.__create_controller(controller)
             if self.__pci_topology_manager:
@@ -1171,6 +1215,9 @@ class CBackendStorage(CElement):
                 controller_obj.controller_index = self.__scsi_controller_index
 
             controller_obj.init()
+            # generate and save drives and traversal information.
+            if isinstance(controller_obj, CBaseStorageController):
+                dae_helper.create_dae_node(controller_obj.get_drvs_arg_option())
 
             if isinstance(controller_obj, AHCIController):
                 self.__sata_controller_index = controller_obj.controller_index + 1
@@ -1178,6 +1225,7 @@ class CBackendStorage(CElement):
                 self.__nvme_controller_index = controller_obj.controller_index + 1
             else:
                 self.__scsi_controller_index = controller_obj.controller_index + 1
+
 
     def handle_parms(self):
         for controller_obj in self.__controller_list:
