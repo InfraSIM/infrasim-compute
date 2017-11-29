@@ -10,7 +10,7 @@ import yaml
 import time
 import config
 from . import run_command, CommandNotFound, CommandRunFailed, ArgsNotCorrect, InfraSimError
-from model import CCompute
+from infrasim.model import CCompute
 from .log import infrasim_log, LoggerType
 
 logger_qemu = infrasim_log.get_logger(LoggerType.qemu.value)
@@ -102,12 +102,6 @@ def start_qemu(conf_file=config.infrasim_default_config):
         logger_qemu.info("qemu start")
 
         return
-    except CommandRunFailed as e:
-        logger_qemu.exception(e.value)
-        raise e
-    except ArgsNotCorrect as e:
-        logger_qemu.exception(e.value)
-        raise e
     except InfraSimError as e:
         logger_qemu.exception(e.value)
         raise e
@@ -149,6 +143,6 @@ def stop_qemu(conf_file=config.infrasim_default_config):
         compute.terminate()
 
         logger_qemu.info("qemu stopped")
-    except Exception, e:
+    except InfraSimError as e:
         logger_qemu.exception(e.value)
         raise e

@@ -9,7 +9,7 @@ import os
 import yaml
 import config
 from . import run_command, logger, ArgsNotCorrect, CommandNotFound, CommandRunFailed, InfraSimError
-from model import CBMC, CNode
+from infrasim.model import CBMC, CNode
 
 
 def get_ipmi():
