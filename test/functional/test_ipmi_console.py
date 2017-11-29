@@ -245,8 +245,8 @@ class test_ipmi_console_start_stop(unittest.TestCase):
                 stderr=subprocess.PIPE)[1]
             if start_ipmi_console_cmd not in output:
                 break
-            else:
-                assert False
+        else:
+            assert False
 
 
 class test_ipmi_console(unittest.TestCase):

@@ -168,7 +168,11 @@ def start(instance="default"):
     # initialize environment
     env.local_env.quit_flag = False
     common.init_env(instance)
-    daemon.daemonize("{}/{}/.ipmi_console.pid".format(config.infrasim_home, instance))
+    pid_file = "{}/{}/.ipmi_console.pid".format(config.infrasim_home, instance)
+    daemon.daemonize(pid_file)
+    with open(pid_file, "r") as fp:
+        logger_ic.info("ipmi-console of {} start with pid {}".
+                       format(instance, fp.read().strip()))
 
     # parse the sdrs and build all sensors
     sdr.parse_sdrs()
@@ -185,15 +189,21 @@ def monitor(instance="default"):
     If vbmc stops, ipmi-console will stop.
     :param instance: infrasim node name
     """
+    global logger_ic
     while True:
         try:
             with open("{}/{}/.{}-bmc.pid".format(
                     config.infrasim_home, instance, instance), "r") as f:
                 pid = f.readline().strip()
                 if not os.path.exists("/proc/{}".format(pid)):
+                    logger_ic.warning("Node {} vBMC {} is not running, "
+                                      "ipmi-console is ready to quit".
+                                      format(instance, pid))
                     break
             time.sleep(3)
         except IOError:
+            logger_ic.warning("Node {} workspace is possibly destroyed, "
+                              "ipmi-console is ready to quit".format(instance))
             break
     stop(instance)
 
@@ -237,7 +247,7 @@ def stop(instance="default"):
         else:
             process_name = "ipmi-console start {}".format(instance)
 
-        ps_cmd = r'ps ax | grep "{}" | cut -d " " -f1 | head -n1'.format(process_name)
+        ps_cmd = r"ps ax | grep '{}' | grep Sl | awk '{{print $1}}' | head -n1".format(process_name)
         logger_ic.warning("Fail to find ipmi console pid file, check by:")
         logger_ic.warning("> {}".format(ps_cmd))
         _, pid = run_command(cmd=ps_cmd)
@@ -247,6 +257,7 @@ def stop(instance="default"):
             return
 
         os.kill(int(pid), signal.SIGTERM)
+        logger_ic.info("SIGTERM is sent to pid: {}".format(pid))
     except:
         logger_ic.warning(traceback.format_exc())
         pass
