@@ -6,5 +6,6 @@ if __name__ == '__main__':
     instance = sys.argv[1]
     host = sys.argv[2]
     port = sys.argv[3]
-
-    monitor.app.run(host=host, port=port)
+    
+    monitor.start(instance, host=host, port=port)
+    #monitor.app.run(host=host, port=port)
