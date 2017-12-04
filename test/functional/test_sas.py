@@ -7,6 +7,7 @@ import unittest
 import os
 import time
 import yaml
+import shutil
 from infrasim import model
 from infrasim import helper
 from infrasim import InfraSimError
@@ -41,6 +42,7 @@ def setup_module():
         assert False
 
     os.environ["PATH"] = new_path
+    os.makedirs("/tmp/topo")
 
 
 def teardown_module():
@@ -60,7 +62,9 @@ def start_node(node_type):
     global ssh
     fake_config = fixtures.FakeConfig()
     conf = fake_config.get_node_info()
-    # conf["type"] = node_type
+    conf["compute"]["boot"] = {
+        "boot_order": "c"
+        }
 
     conf["compute"]["storage_backend"] = [
         {
@@ -106,7 +110,7 @@ def start_node(node_type):
                                 "format": "raw",
                                 "share-rw": "true",
                                 "version": "B29C",
-                                "file": "/home/infrasim/drives/sda{}.img",
+                                "file": "/tmp/topo/sda{}.img",
                                 "slot_number": 0,
                                 "serial": "ZABCD{}",
                                 "wwn": wwn_drv
@@ -188,6 +192,7 @@ def stop_node():
     node.stop()
     node.terminate_workspace()
     conf = {}
+    shutil.rmtree("/tmp/topo", True)
 
 
 def run_cmd(cmd):
