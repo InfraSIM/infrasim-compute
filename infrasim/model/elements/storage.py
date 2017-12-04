@@ -89,4 +89,4 @@ class CBaseStorageController(CElement):
         for drive_obj in self._drive_list[:]:
             drv_args.append(drive_obj.get_option())
             self._drive_list.remove(drive_obj)
-        return drv_args, self._controller_info
+        return {"drv_opt_list": drv_args, "controller_info": self._controller_info}

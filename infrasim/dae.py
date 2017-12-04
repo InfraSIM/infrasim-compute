@@ -6,7 +6,7 @@ import re
   DAEProcessHelper is the entry to this module.
   All other classes, including Const, Link, Enclosure, Drv, Expander and
   DAEController,  are used to store internal data for building topology.
-
+  Ref: https://github.com/InfraSIM/infrasim-compute/wiki/Disk-Array-Topology-Design
 """
 
 
@@ -30,10 +30,19 @@ class _Const:
 
 class _SNGenerator(object):
     INDEX = 0
+    SN_PREFIX = "Z4C03{0:03X}"
+
+    @classmethod
+    def reset(cls, prefix):
+        if prefix is not None:
+            cls.SN_PREFIX = prefix.replace("{}", "{0:03X}")
+        else:
+            cls.SN_PREFIX = "Z4C03{0:03X}"
+        cls.INDEX = 0
 
     @classmethod
     def getSN(cls):
-        sn = "Z4C03{0:03X}".format(cls.INDEX)
+        sn = cls.SN_PREFIX.format(cls.INDEX)
         cls.INDEX += 1
         return sn
 
@@ -50,9 +59,13 @@ class _Link(object):
         self.atta_slot = atta_slot_id
 
     def __str__(self):
-        return "{:2},{},{},{:2},{},{}".format(self.phy, self.num,
-                                              self.atta_type, self.atta_phy,
-                                              self.atta_wwn, self.atta_dev_name)
+        return "{:2},{},{},{:2},{},{}".format(
+            self.phy,
+            self.num,
+            self.atta_type,
+            self.atta_phy,
+            self.atta_wwn,
+            self.atta_dev_name)
 
     def get_obj_in_dict(self):
         """
@@ -306,6 +319,7 @@ class _Enclosure(object):
             number = drv_template.pop('repeat', None)
             if number is None:
                 number = 1
+            _SNGenerator.reset(drv_template.pop('serial', None))
             slot_number = drv_template['slot_number']
             start_phy_id = drv_template.pop(
                 'start_phy_id', _Const.DEFAULT_EXP_START_PHY)
@@ -413,12 +427,22 @@ class _DAEController(object):
             exp1 = self.find_enclosure(
                 link[1]['disk_array']).find_exp(link[1]['exp'])
 
-            exp0.connect(_Link(link[0]['phy'], link[0]['number'],
-                               _Const.EXP_DEVICE, link[1]['phy'], exp1.get_wwn(),
-                               exp1.get_dev_name()))
-            exp1.connect(_Link(link[1]['phy'], link[1]['number'],
-                               _Const.EXP_DEVICE, link[0]['phy'], exp0.get_wwn(),
-                               exp0.get_dev_name()))
+            exp0.connect(
+                _Link(
+                    link[0]['phy'],
+                    link[0]['number'],
+                    _Const.EXP_DEVICE,
+                    link[1]['phy'],
+                    exp1.get_wwn(),
+                    exp1.get_dev_name()))
+            exp1.connect(
+                _Link(
+                    link[1]['phy'],
+                    link[1]['number'],
+                    _Const.EXP_DEVICE,
+                    link[0]['phy'],
+                    exp0.get_wwn(),
+                    exp0.get_dev_name()))
 
     def find_enclosure(self, encl_name):
         """
@@ -529,12 +553,18 @@ class DAEProcessHelper(object):
                 exp.connect(tmp)
 
         # add sub items under expander.
-        ret = {"phy": link['phy'],
-               "phy_number": tmp.num,
-               "atta_type": _Const.EXP_DEVICE,
-               "atta_phy": tmp.phy,
-               "atta_wwn": exp.get_wwn(tmp.phy),
-               "expanders": exp.traversal(seses_dict, port_index, encl, scsi_id_index)}
+        ret = {
+            "phy": link['phy'],
+            "phy_number": tmp.num,
+            "atta_type": _Const.EXP_DEVICE,
+            "atta_phy": tmp.phy,
+            "atta_wwn": exp.get_wwn(
+                tmp.phy),
+            "expanders": exp.traversal(
+                seses_dict,
+                port_index,
+                encl,
+                scsi_id_index)}
 
         return ret
 
@@ -582,7 +612,7 @@ class DAEProcessHelper(object):
                 controller['dae_file'] = file_name
                 controller['drives'] = []
                 scsi_id_index = [0]
-                for link in controller['external_connectors']:
+                for link in controller.pop('external_connectors', []):
                     # fill external link first.
                     self.__fill_external_connector(link)
                 port_index = 0
@@ -591,10 +621,14 @@ class DAEProcessHelper(object):
                     result = self.__traversal(
                         seses_dict, port_index, link, scsi_id_index)
                     for hba_link in hba_links:
-                        if _Const.check_range_conflict(result['phy'], result['phy_number'],
-                                                       hba_link['phy'], hba_link['phy_number']):
-                            raise Exception("HBA port duplicate use for phy {} to phy {}".format(
-                                result['phy'], result['phy'] + result['phy_number'] - 1))
+                        if _Const.check_range_conflict(
+                                result['phy'],
+                                result['phy_number'],
+                                hba_link['phy'],
+                                hba_link['phy_number']):
+                            raise Exception(
+                                "HBA port duplicate use for phy {} to phy {}".format(
+                                    result['phy'], result['phy'] + result['phy_number'] - 1))
                     link.update(result)
                     hba_links.append(
                         {"phy": result['phy'], "phy_number": result['phy_number']})
@@ -613,8 +647,8 @@ class DAEProcessHelper(object):
         if args is None:
             return
         drv_args = []
-        drv_opt_list = args[0]
-        controller_info = args[1]
+        drv_opt_list = args["drv_opt_list"]
+        controller_info = args["controller_info"]
         for item in drv_opt_list:
             m = re.match("-drive (.*) -device (.*)", item)
             if m:
