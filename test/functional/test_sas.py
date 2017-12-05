@@ -242,8 +242,8 @@ class test_disk_array_topo(unittest.TestCase):
         # 8 drives(2 ports for each) and 2 enclosure.
         expect = {}
         for i in range(8):
-            expect["0 "+hex(wwn_drv + 1)] = False
-            expect["0 "+hex(wwn_drv + 2)] = False
+            expect["0 "+hex(wwn_drv + i * 4 + 1)] = False
+            expect["0 "+hex(wwn_drv + i * 4 + 2)] = False
         expect["13 "+hex(wwn_exp0 - 1)] = False
         expect["13 "+hex(wwn_exp1 - 1)] = False
         # check the returned content.

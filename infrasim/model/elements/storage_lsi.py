@@ -53,6 +53,9 @@ class LSISASController(CBaseStorageController):
         for ses_obj in self._ses_list:
             ses_obj.init()
 
+        # This attribute is not open to user assignment. It's set during the
+        # disk array topology processing. If user defines "dae_file" in yml,
+        # the value will be overwritten.
         if self._controller_info.get("dae_file", None):
             self.__dae_file = self._controller_info["dae_file"]
 

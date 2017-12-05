@@ -607,7 +607,7 @@ class DAEProcessHelper(object):
             seses_dict = []
             if 'connectors' in controller:
                 hba_links = []
-                file_name = "{0}/diskarray{1}.json".format(
+                file_name = "{0}/etc/diskarray{1}.json".format(
                     self.__ws_folder, index)
                 controller['dae_file'] = file_name
                 controller['drives'] = []
