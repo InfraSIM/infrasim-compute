@@ -14,6 +14,7 @@ import types
 import string
 import random
 import subprocess
+import struct
 from functools import wraps
 from ctypes import cdll
 from socket import AF_INET, AF_INET6, inet_ntop
@@ -605,3 +606,20 @@ class NumaCtl(object):
             for s in self._socket_list:
                 print str(self._core_map[(s, c)]).ljust(max_core_map_len),
             print "\n"
+
+
+def fw_cfg_file_create(cfg_list, workspace):
+    file_path = os.path.join(workspace, "data", "pci_topo_cfg")
+    f = open(file_path, 'wb')
+    sum = 0
+    for cfg in cfg_list:
+        bdf = cfg['bdf']
+        sec_bus = cfg['sec_bus']
+        bin_data = struct.pack('HBx', bdf, sec_bus)
+        f.write(bin_data)
+        sum = sum + bdf + sec_bus
+    sum = (-sum) & 0xFF
+    bin_sum = struct.pack('B', sum)
+    f.write(bin_sum)
+    f.close()
+    return file_path

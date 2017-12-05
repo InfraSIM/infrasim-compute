@@ -32,6 +32,7 @@ from infrasim.model.elements.backend import CBackendNetwork
 from infrasim.model.elements.network import CNetwork
 from infrasim.model.elements.ipmi import CIPMI
 from infrasim.model.elements.pci_topo import CPCITopologyManager
+from infrasim.model.elements.pcie_topology import CPCIETopology
 from infrasim.model.elements.pci_bridge import CPCIBridge
 from infrasim.model.elements.monitor import CMonitor
 
@@ -47,6 +48,7 @@ class CCompute(Task, CElement):
         self.__element_list = []
         self.__enable_kvm = True
         self.__smbios = None
+        self.__fwcfg = None
         self.__bios = None
         self.__boot_order = None
         self.__boot_menu = None
@@ -94,6 +96,9 @@ class CCompute(Task, CElement):
 
     def get_smbios(self):
         return self.__smbios
+
+    def set_fwcfg(self, fwcfg):
+        self.__fwcfg = fwcfg
 
     @run_in_namespace
     def precheck(self):
@@ -217,6 +222,13 @@ class CCompute(Task, CElement):
             pci_topology_manager_obj.logger = self.logger
             self.__element_list.append(pci_topology_manager_obj)
 
+        if 'pcie_topology' in self.__compute:
+            pcie_topology_obj = CPCIETopology(self.__compute['pcie_topology'])
+            pcie_topology_obj.set_workspace(self.get_workspace())
+            pcie_topology_obj.logger = self.logger
+            self.__element_list.append(pcie_topology_obj)
+
+
         backend_storage_obj = CBackendStorage(self.__compute['storage_backend'])
         backend_storage_obj.logger = self.logger
         backend_storage_obj.owner = self
@@ -263,6 +275,11 @@ class CCompute(Task, CElement):
         for element in self.__element_list:
             element.init()
 
+        for element in self.__element_list:
+            fw_cfg_file = getattr(element, 'fw_cfg_file', None)
+            if fw_cfg_file:
+                self.set_fwcfg(element.fw_cfg_file)
+
     def get_commandline(self):
         # handle params
         self.handle_parms()
@@ -304,6 +321,9 @@ class CCompute(Task, CElement):
 
         if self.__smbios:
             self.add_option("-smbios file={}".format(self.__smbios))
+
+        if self.__fwcfg:
+            self.add_option("-fw_cfg name=opt/bios.pci_topo,file={}".format(self.__fwcfg))
 
         if self.__bios:
             self.add_option("-bios {}".format(self.__bios))

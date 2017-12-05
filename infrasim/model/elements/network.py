@@ -24,6 +24,9 @@ class CNetwork(CElement):
         self.__nic_name = None
         self.__mac_address = None
         self.__index = 0
+        self.__bus = None
+        self.__addr = None
+        self.__multifunction = None
 
     def set_index(self, index):
         self.__index = index
@@ -60,6 +63,9 @@ class CNetwork(CElement):
         self.__bridge_name = self.__network.get('network_name')
         self.__nic_name = self.__network.get('device')
         self.__mac_address = self.__network.get('mac')
+        self.__bus = self.__network.get('bus')
+        self.__addr = self.__network.get('addr')
+        self.__multifunction = self.__network.get('multifunction')
 
     def handle_parms(self):
         if self.__network_mode == "bridge":
@@ -85,6 +91,16 @@ class CNetwork(CElement):
         nic_option = ",".join(["{}".format(self.__nic_name),
                                "netdev=netdev{}".format(self.__index),
                                "mac={}".format(self.__mac_address)])
+        if self.__bus:
+           nic_option = ",".join(["{}".format(nic_option),
+                                 "bus={}".format(self.__bus)])
+        if self.__addr:
+           nic_option = ",".join(["{}".format(nic_option),
+                                 "addr={}".format(self.__addr)])
+        if self.__multifunction:
+           nic_option = ",".join(["{}".format(nic_option),
+                                 "multifunction={}".format(self.__multifunction)])
+
 
         network_option = " ".join(["-netdev {}".format(netdev_option),
                                    "-device {}".format(nic_option)])

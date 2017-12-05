@@ -20,6 +20,7 @@ class NVMeController(CBaseDrive):
         self._cmb_size_in_mb = 0
         self._controller_info = dev_info
         self.__controller_index = 0
+        self.__bus = None
 
     def get_uniq_name(self):
         return "{}".format(self.__controller_index)
@@ -37,6 +38,9 @@ class NVMeController(CBaseDrive):
         self._cmb_size_in_mb = self._drive_info.get("cmb_size", 256)
         if not self.serial:
             self.serial = helper.random_serial()
+
+        if self._drive_info.get("bus"):
+            self.__bus = self._drive_info.get("bus")
 
     def precheck(self):
         # Since QEMU support CMB size in MB, we recognize 1k, 4k
@@ -61,5 +65,7 @@ class NVMeController(CBaseDrive):
         self._dev_attrs["drive"] = drive_id
         self._dev_attrs["id"] = "dev-{}".format(self._dev_attrs["drive"])
         self._dev_attrs["cmb_size_mb"] = self._cmb_size_in_mb
+        if self.__bus:
+            self._dev_attrs["bus"] = self.__bus
 
         self.add_option(self.build_device_option(self._name, **self._dev_attrs))
