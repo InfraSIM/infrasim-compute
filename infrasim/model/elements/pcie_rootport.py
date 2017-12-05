@@ -22,6 +22,7 @@ class CPCIERootport(CElement):
         self.bus = None
         self.rootport_option = None
         self.pci_topo = {}
+
     def set_bdf(self):
         if self.__addr and 'pri_bus' in self.__rootport_info:
             pri_bus = self.__rootport_info.get('pri_bus')
@@ -43,14 +44,16 @@ class CPCIERootport(CElement):
             self.rootport_option = ','.join([self.rootport_option,
                                              'addr={} '.format(self.__addr)])
 
-
     def precheck(self):
         if not self.__rootport_info:
-            self.logger.exception("[PCIERootport] Rootport device is required.")
+            self.logger.exception("[PCIERootport] Rootport device \
+                                  is required.")
             raise ArgsNotCorrect("Rootport device is required.")
         if not set(['id', 'bus', 'chassis', 'slot']).issubset(self.__rootport_info):
-            self.logger.exception("[PCIERootport] Rootport <id>/<bus>/<chassis>/<slot> are all required.")
-            raise ArgsNotCorrect("Rootport <id>/<bus>/<chassis>/<slot> are all required.")
+            self.logger.exception("[PCIERootport] Rootport \
+                 <id>/<bus>/<chassis>/<slot> are all required.")
+            raise ArgsNotCorrect("Rootport \
+                 <id>/<bus>/<chassis>/<slot> are all required.")
 
     def init(self):
         self.logger.info("Root port start ")

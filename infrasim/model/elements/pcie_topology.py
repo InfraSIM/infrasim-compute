@@ -61,7 +61,9 @@ class CPCIETopology(CElement):
 
     def init(self):
         self.logger.info("topology start ")
-        self.__component_list.append({ 'bus' :-1 , 'id' : 'pcie.0', 'option' : ""})
+        self.__component_list.append({'bus': -1,
+                                      'id': 'pcie.0',
+                                      'option': ""})
         pci_topo_list = []
         for root_port in self.__pcie_topology['root_port']:
             root_port_obj = CPCIERootport(root_port)
@@ -75,12 +77,13 @@ class CPCIETopology(CElement):
             self.__component_list.append(pick_info_dic)
             if root_port_obj.pci_topo:
                 pci_topo_list.append(root_port_obj.pci_topo)
-        self.fw_cfg_file = fw_cfg_file_create(pci_topo_list, self.get_workspace())
+        self.fw_cfg_file = fw_cfg_file_create(pci_topo_list,
+                                              self.get_workspace())
 
         switch = self.__pcie_topology['switch']
 
         for switch_element in switch:
-            for upstream in switch_element.get('upstream',[]):
+            for upstream in switch_element.get('upstream', []):
                 upstream_obj = CPCIEUpstream(upstream)
                 upstream_obj.precheck()
                 upstream_obj.init()
@@ -91,7 +94,7 @@ class CPCIETopology(CElement):
                 pick_info_dic["option"] = upstream_obj.upstream_option
                 self.__component_list.append(pick_info_dic)
 
-            for downstream in switch_element.get('downstream',[]):
+            for downstream in switch_element.get('downstream', []):
                 downstream_obj = CPCIEDownstream(downstream)
                 downstream_obj.precheck()
                 downstream_obj.init()

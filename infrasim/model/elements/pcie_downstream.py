@@ -32,12 +32,14 @@ class CPCIEDownstream(CElement):
 
     def precheck(self):
         if self.__downstream_info is None:
-            self.logger.exception("[PCIEDownstream] Downstream device is required.")
+            self.logger.exception("[PCIEDownstream] \
+                Downstream device is required.")
             raise ArgsNotCorrect("downstream device is required.")
         if not set(['id', 'bus', 'chassis', 'slot']).issubset(self.__downstream_info):
-            self.logger.exception("[PCIEDownstream] Downstream <id>/<bus>/<chassis>/<slot> are all required.")
-            raise ArgsNotCorrect("downstream <id>/<bus>/<chassis>/<slot> are all required.")
-
+            self.logger.exception("[PCIEDownstream] \
+                Downstream <id>/<bus>/<chassis>/<slot> are all required.")
+            raise ArgsNotCorrect("downstream \
+                <id>/<bus>/<chassis>/<slot> are all required.")
 
     def init(self):
         self.__device = self.__downstream_info.get('device')

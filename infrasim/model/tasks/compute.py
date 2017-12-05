@@ -323,7 +323,8 @@ class CCompute(Task, CElement):
             self.add_option("-smbios file={}".format(self.__smbios))
 
         if self.__fwcfg:
-            self.add_option("-fw_cfg name=opt/bios.pci_topo,file={}".format(self.__fwcfg))
+            self.add_option("-fw_cfg name=opt/bios.pci_topo,file={}".
+                                                format(self.__fwcfg))
 
         if self.__bios:
             self.add_option("-bios {}".format(self.__bios))

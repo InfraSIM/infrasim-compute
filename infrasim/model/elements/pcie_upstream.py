@@ -27,12 +27,13 @@ class CPCIEUpstream(CElement):
 
     def precheck(self):
         if self.__upstream_info is None:
-            self.logger.exception("[PCIEUpstream] Upstream device is required.")
+            self.logger.exception("[PCIEUpstream]  \
+                 Upstream device is required.")
             raise ArgsNotCorrect("upstream device is required.")
-        if not set(['id','bus']).issubset(self.__upstream_info):
-            self.logger.exception("[PCIEUpstream] Upstream <id>/<bus> are all required.")
+        if not set(['id', 'bus']).issubset(self.__upstream_info):
+            self.logger.exception("[PCIEUpstream]  \
+                 Upstream <id>/<bus> are all required.")
             raise ArgsNotCorrect("upstream <id>/<bus> are all required.")
-
 
     def init(self):
         self.__device = self.__upstream_info.get('device')
