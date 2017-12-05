@@ -33,7 +33,7 @@ from infrasim.model.elements.network import CNetwork
 from infrasim.model.elements.ipmi import CIPMI
 from infrasim.model.elements.pci_topo import CPCITopologyManager
 from infrasim.model.elements.pci_bridge import CPCIBridge
-from infrasim.model.elements.monitor import CMonitor
+from infrasim.model.elements.qemu_monitor import CQemuMonitor
 
 
 class CCompute(Task, CElement):
@@ -74,6 +74,7 @@ class CCompute(Task, CElement):
         self.__extra_option = None
         self.__iommu = False
         self.__monitor = None
+        self.__enable_monitor = False
 
         self.__force_shutdown = None
 
@@ -85,6 +86,9 @@ class CCompute(Task, CElement):
 
     def set_port_qemu_ipmi(self, port):
         self.__port_qemu_ipmi = port
+
+    def enable_qemu_monitor(self):
+        self.__enable_monitor = True
 
     def set_socket_serial(self, o):
         self.__socket_serial = o
@@ -244,22 +248,20 @@ class CCompute(Task, CElement):
         ipmi_obj.set_bmc_conn_port(self.__port_qemu_ipmi)
         self.__element_list.append(ipmi_obj)
 
-        if self.__compute.get('monitor', ''):
-            self.__monitor = CMonitor(self.__compute['monitor'])
-        else:
-            self.__monitor = CMonitor({
-                'mode': 'readline',
+        if self.__enable_monitor:
+            self.__monitor = CQemuMonitor({
+                'mode': 'control',
                 'chardev': {
                     'backend': 'socket',
-                    'host': '127.0.0.1',
-                    'port': 2345,
+                    'path': os.path.join(self.get_workspace(), '.monitor'),
                     'server': True,
                     'wait': False
                 }
             })
-        self.__monitor.set_workspace(self.get_workspace())
-        self.__monitor.logger = self.logger
-        self.__element_list.append(self.__monitor)
+            self.__monitor.set_workspace(self.get_workspace())
+            self.__monitor.logger = self.logger
+            self.__element_list.append(self.__monitor)
+
         for element in self.__element_list:
             element.init()
 
