@@ -20,38 +20,23 @@ class CPCIERootport(CElement):
         self.__addr = None
         self.id = None
         self.bus = None
-        self.rootport_option = None
-        self.pci_topo = {}
+        self.__rootport_option = None
+        self.pcie_topo = {}
 
     def set_bdf(self):
         if self.__addr and 'pri_bus' in self.__rootport_info:
             pri_bus = self.__rootport_info.get('pri_bus')
             device, func = self.__addr.split('.')
-            self.pci_topo['bdf'] = (int(pri_bus) << 8) + (int(device) << 3) + int(func)
+            self.pcie_topo['bdf'] = (int(pri_bus) << 8) + (int(device) << 3) + int(func)
 
     def set_sec_bus(self):
         if self.__rootport_info.get('sec_bus'):
-            self.pci_topo['sec_bus'] = self.__rootport_info.get('sec_bus')
-
-    def set_option(self):
-        self.rootport_option = " -device {},id={},bus={},chassis={},slot={}".format(
-                                                           self.__device,
-                                                           self.id,
-                                                           self.bus,
-                                                           self.__chassis,
-                                                           self.__slot)
-        if self.__addr:
-            self.rootport_option = ','.join([self.rootport_option,
-                                             'addr={} '.format(self.__addr)])
+            self.pcie_topo['sec_bus'] = self.__rootport_info.get('sec_bus')
 
     def precheck(self):
         if not self.__rootport_info:
-            self.logger.exception("[PCIERootport] Rootport device \
-                                  is required.")
             raise ArgsNotCorrect("Rootport device is required.")
         if not set(['id', 'bus', 'chassis', 'slot']).issubset(self.__rootport_info):
-            self.logger.exception("[PCIERootport] Rootport \
-                 <id>/<bus>/<chassis>/<slot> are all required.")
             raise ArgsNotCorrect("Rootport \
                  <id>/<bus>/<chassis>/<slot> are all required.")
 
@@ -67,6 +52,19 @@ class CPCIERootport(CElement):
         # step 1: set bdf
         self.set_bdf()
         # step 2: set sec_bus only when bdf is set
-        if self.pci_topo:
+        if self.pcie_topo:
             self.set_sec_bus()
+
         self.logger.info("Root port end ")
+
+    def handle_parms(self):
+        self.__rootport_option = " -device {},id={},bus={},chassis={},slot={}".format(
+                                                           self.__device,
+                                                           self.id,
+                                                           self.bus,
+                                                           self.__chassis,
+                                                           self.__slot)
+        if self.__addr:
+            self.__rootport_option = ','.join([self.__rootport_option,
+                                             'addr={} '.format(self.__addr)])
+        self.add_option(self.__rootport_option)

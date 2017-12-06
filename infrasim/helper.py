@@ -617,7 +617,7 @@ def fw_cfg_file_create(cfg_list, workspace):
         sec_bus = cfg['sec_bus']
         bin_data = struct.pack('HBx', bdf, sec_bus)
         f.write(bin_data)
-        sum = sum + bdf + sec_bus
+        sum = sum + ((bdf >> 8) & 0xff) + (bdf & 0xff) + sec_bus
     sum = (-sum) & 0xFF
     bin_sum = struct.pack('B', sum)
     f.write(bin_sum)

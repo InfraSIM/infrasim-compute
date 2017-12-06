@@ -10,7 +10,6 @@ from infrasim.model.core.element import CElement
 from pcie_rootport import CPCIERootport
 from pcie_upstream import CPCIEUpstream
 from pcie_downstream import CPCIEDownstream
-from infrasim.helper import fw_cfg_file_create
 from infrasim import ArgsNotCorrect
 
 
@@ -19,8 +18,7 @@ class CPCIETopology(CElement):
         super(CPCIETopology, self).__init__()
         self.__pcie_topology = pcie_topology
         self.__pcie_option = None
-        self.__workspace = None
-        self.fw_cfg_file = None
+        self.__fw_cfg_obj = None
         self.__component_list = []
 
     def set_own_option(self, option, position):
@@ -48,15 +46,19 @@ class CPCIETopology(CElement):
         self.set_own_option(component["option"], False)
         return
 
-    def set_workspace(self, ws):
-        self.__workspace = ws
+    def set_fw_cfg_obj(self, fw_cfg_obj):
+        self.__fw_cfg_obj = fw_cfg_obj
 
-    def get_workspace(self):
-        return self.__workspace
+    def check_id(self):
+        id_list = []
+        for component in self.__component_list:
+            id_list.append(component['id'])
+
+        if len(id_list) != len(set(id_list)):
+            raise ArgsNotCorrect("PCIE device id duplicated")
 
     def precheck(self):
         if self.__pcie_topology is None:
-            self.logger.exception("[PCIETopology] PCIE topology is required.")
             raise ArgsNotCorrect("pci topology is required.")
 
     def init(self):
@@ -64,46 +66,38 @@ class CPCIETopology(CElement):
         self.__component_list.append({'bus': -1,
                                       'id': 'pcie.0',
                                       'option': ""})
-        pci_topo_list = []
+        pcie_topo_obj_list = []
+
         for root_port in self.__pcie_topology['root_port']:
             root_port_obj = CPCIERootport(root_port)
-            root_port_obj.precheck()
-            root_port_obj.init()
-            root_port_obj.set_option()
+            pcie_topo_obj_list.append(root_port_obj)
+
+        if 'switch' in self.__pcie_topology:
+            switch = self.__pcie_topology['switch']
+
+            for switch_element in switch:
+                for upstream in switch_element.get('upstream', []):
+                    upstream_obj = CPCIEUpstream(upstream)
+                    pcie_topo_obj_list.append(upstream_obj)
+
+                for downstream in switch_element.get('downstream', []):
+                    downstream_obj = CPCIEDownstream(downstream)
+                    pcie_topo_obj_list.append(downstream_obj)
+
+        for pcie_obj in pcie_topo_obj_list:
+            pcie_obj.precheck()
+            pcie_obj.init()
+            if self.__fw_cfg_obj and pcie_obj.pcie_topo:
+                self.__fw_cfg_obj.add_topo(pcie_obj.pcie_topo)
+            pcie_obj.handle_parms()
             pick_info_dic = {}
-            pick_info_dic["bus"] = root_port_obj.bus
-            pick_info_dic["id"] = root_port_obj.id
-            pick_info_dic["option"] = root_port_obj.rootport_option
+            pick_info_dic["bus"] = pcie_obj.bus
+            pick_info_dic["id"] = pcie_obj.id
+            pick_info_dic["option"] = pcie_obj.get_option()
             self.__component_list.append(pick_info_dic)
-            if root_port_obj.pci_topo:
-                pci_topo_list.append(root_port_obj.pci_topo)
-        self.fw_cfg_file = fw_cfg_file_create(pci_topo_list,
-                                              self.get_workspace())
 
-        switch = self.__pcie_topology['switch']
+        self.check_id()
 
-        for switch_element in switch:
-            for upstream in switch_element.get('upstream', []):
-                upstream_obj = CPCIEUpstream(upstream)
-                upstream_obj.precheck()
-                upstream_obj.init()
-                upstream_obj.set_option()
-                pick_info_dic = {}
-                pick_info_dic["bus"] = upstream_obj.bus
-                pick_info_dic["id"] = upstream_obj.id
-                pick_info_dic["option"] = upstream_obj.upstream_option
-                self.__component_list.append(pick_info_dic)
-
-            for downstream in switch_element.get('downstream', []):
-                downstream_obj = CPCIEDownstream(downstream)
-                downstream_obj.precheck()
-                downstream_obj.init()
-                downstream_obj.set_option()
-                pick_info_dic = {}
-                pick_info_dic["bus"] = downstream_obj.bus
-                pick_info_dic["id"] = downstream_obj.id
-                pick_info_dic["option"] = downstream_obj.downstream_option
-                self.__component_list.append(pick_info_dic)
         self.logger.info("topology end")
 
     def handle_parms(self):
