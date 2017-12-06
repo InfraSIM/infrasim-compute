@@ -32,6 +32,8 @@ from infrasim.model.elements.backend import CBackendNetwork
 from infrasim.model.elements.network import CNetwork
 from infrasim.model.elements.ipmi import CIPMI
 from infrasim.model.elements.pci_topo import CPCITopologyManager
+from infrasim.model.elements.fw_cfg import CPCIEFwcfg
+from infrasim.model.elements.pcie_topology import CPCIETopology
 from infrasim.model.elements.pci_bridge import CPCIBridge
 from infrasim.model.elements.qemu_monitor import CQemuMonitor
 
@@ -98,6 +100,7 @@ class CCompute(Task, CElement):
 
     def get_smbios(self):
         return self.__smbios
+
 
     @run_in_namespace
     def precheck(self):
@@ -220,6 +223,17 @@ class CCompute(Task, CElement):
             pci_topology_manager_obj = CPCITopologyManager(self.__compute['pci_bridge_topology'])
             pci_topology_manager_obj.logger = self.logger
             self.__element_list.append(pci_topology_manager_obj)
+
+        if 'pcie_topology' in self.__compute:
+            fw_cfg_obj = CPCIEFwcfg()
+            fw_cfg_obj.logger = self.logger
+            fw_cfg_obj.set_workspace(self.get_workspace())
+            pcie_topology_obj = CPCIETopology(self.__compute['pcie_topology'])
+            pcie_topology_obj.set_fw_cfg_obj(fw_cfg_obj)
+            pcie_topology_obj.logger = self.logger
+            self.__element_list.append(pcie_topology_obj)
+            self.__element_list.append(fw_cfg_obj)
+
 
         backend_storage_obj = CBackendStorage(self.__compute['storage_backend'])
         backend_storage_obj.logger = self.logger

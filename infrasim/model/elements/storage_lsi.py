@@ -16,12 +16,9 @@ class LSISASController(CBaseStorageController):
     def __init__(self, controller_info):
         super(LSISASController, self).__init__()
         self._controller_info = controller_info
-        self.__expander_count = None;
         self._iothread_id = None
-        self.__expander_downstream_start_phy = None
-        self.__expander_upstream_start_phy = None
-        self.__expander_all_phys = None
         self.__use_msix = None
+        self.__dae_file = None
 
     def precheck(self):
         # call parent precheck()
@@ -30,10 +27,6 @@ class LSISASController(CBaseStorageController):
     def init(self):
         super(LSISASController, self).init()
 
-        self.__expander_count = self._controller_info.get("expander-count")
-        self.__expander_downstream_start_phy = self._controller_info.get("expander-downstream-start-phy")
-        self.__expander_upstream_start_phy = self._controller_info.get("expander-upstream-start-phy")
-        self.__expander_all_phys = self._controller_info.get("expander-phys")
         self._iothread_id = self._controller_info.get("iothread")
         self.__use_msix = self._controller_info.get('use_msix')
 
@@ -60,6 +53,12 @@ class LSISASController(CBaseStorageController):
         for ses_obj in self._ses_list:
             ses_obj.init()
 
+        # This attribute is not open to user assignment. It's set during the
+        # disk array topology processing. If user defines "dae_file" in yml,
+        # the value will be overwritten.
+        if self._controller_info.get("dae_file", None):
+            self.__dae_file = self._controller_info["dae_file"]
+
         # Update controller index, tell CBackendStorage what the controller index
         # should be for the next
         self.controller_index += (idx / self._max_drive_per_controller)
@@ -71,22 +70,14 @@ class LSISASController(CBaseStorageController):
         cntrl_nums = int(math.ceil(float(drive_nums)/self._max_drive_per_controller)) or 1
         for cntrl_index in range(0, cntrl_nums):
             self._attributes["id"] = "scsi{}".format(self._start_idx + cntrl_index)
-            if self.__expander_count:
-                self._attributes["expander-count"] = self.__expander_count
-
-            if self.__expander_downstream_start_phy is not None:
-                self._attributes["downstream-start-phy"] = self.__expander_downstream_start_phy
-
-            if self.__expander_upstream_start_phy is not None:
-                self._attributes["upstream-start-phy"] = self.__expander_upstream_start_phy
-
-            if self.__expander_all_phys is not None:
-                self._attributes["expander-phys"] = self.__expander_all_phys
 
             if self._iothread_id:
                 self._attributes["iothread"] = self._iothread_id
 
             if self.__use_msix is not None:
                 self._attributes["use_msix"] = self.__use_msix
+
+            if self.__dae_file is not None:
+                self._attributes["dae_file"] = self.__dae_file
 
             self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)
