@@ -131,15 +131,10 @@ class test_node_ports_no_conflict(unittest.TestCase):
             self.node_info_2['racadm'] = {}
             self.node_info_2['racadm']['port'] = 10023
         self.node_info_2['compute']['vnc_display'] = 2
-        self.node_info_2['compute']['monitor'] = {
-            'mode': 'readline',
-            'chardev': {
-                'backend': 'socket',
-                'host': '127.0.0.1',
-                'port': 2346,
-                'server': True,
-                'wait': False
-            }
+        self.node_info_2['monitor'] = {
+            'enable': True,
+            'interface': None,
+            'port': 9006
         }
 
         node2 = model.CNode(self.node_info_2)
@@ -231,15 +226,10 @@ class test_start_node_with_conflict_port(unittest.TestCase):
             self.node_info_2['racadm']['port'] = 10023
         # self.node_info_2['bmc_connection_port'] = 9101
         self.node_info_2['compute']['vnc_display'] = 2
-        self.node_info_2['compute']['monitor'] = {
-            'mode': 'readline',
-            'chardev': {
-                'backend': 'socket',
-                'host': '127.0.0.1',
-                'port': 2346,
-                'server': True,
-                'wait': False
-            }
+        self.node_info_2['monitor'] = {
+            'enable': True,
+            'interface': None,
+            'port': 9006
         }
 
         try:
@@ -279,15 +269,10 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         self.node_info_2['ipmi_console_port'] = 9001
         self.node_info_2['bmc_connection_port'] = 9101
         # self.node_info_2['compute']['vnc_display'] = 2
-        self.node_info_2['compute']['monitor'] = {
-            'mode': 'readline',
-            'chardev': {
-                'backend': 'socket',
-                'host': '127.0.0.1',
-                'port': 2346,
-                'server': True,
-                'wait': False
-            }
+        self.node_info_2['monitor'] = {
+            'enable': True,
+            'interface': None,
+            'port': 9006
         }
 
         try:
@@ -297,46 +282,6 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         except ArgsNotCorrect, e:
             assert "VNC port 5901 is already in use." in e.value
             assert True
-        else:
-            assert False
-
-    def test_start_node_with_conflict_monitor_port(self):
-        """
-        Port test: after node1 start, if node2 also use the same monitor_port to start, it won't start
-        """
-
-        socat_result = run_command(PS_SOCAT, True,
-                                   subprocess.PIPE, subprocess.PIPE)[1]
-        ipmi_result = run_command(PS_IPMI, True,
-                                  subprocess.PIPE, subprocess.PIPE)[1]
-        qemu_result = run_command(PS_QEMU, True,
-                                  subprocess.PIPE, subprocess.PIPE)[1]
-        if 'dell' in self.node_info['type']:
-            racadm_result = run_command(PS_RACADM, True,
-                                        subprocess.PIPE, subprocess.PIPE)[1]
-        # check if node test1 is running
-        assert "test1" in socat_result
-        assert "test1" in ipmi_result
-        assert "test1-node" in qemu_result
-        if 'dell' in self.node_info['type']:
-            assert "test1" in racadm_result
-
-        self.node_info_2['name'] = "test2"
-        # modify node configuration to resolve port conflict
-        self.node_info_2['ipmi_console_ssh'] = 9301
-        self.node_info_2['ipmi_console_port'] = 9001
-        self.node_info_2['bmc_connection_port'] = 9101
-        if 'dell' in self.node_info_2['type']:
-            self.node_info_2['racadm'] = {}
-            self.node_info_2['racadm']['port'] = 10023
-        self.node_info_2['compute']['vnc_display'] = 2
-
-        try:
-            node2 = model.CNode(self.node_info_2)
-            node2.init()
-            node2.precheck()
-        except ArgsNotCorrect, e:
-            assert "Port 2345 is already in use" in e.value
         else:
             assert False
 
@@ -369,15 +314,10 @@ class test_start_node_with_conflict_port(unittest.TestCase):
             self.node_info_2['racadm'] = {}
             self.node_info_2['racadm']['port'] = 10023
         self.node_info_2['compute']['vnc_display'] = 2
-        self.node_info_2['compute']['monitor'] = {
-            'mode': 'readline',
-            'chardev': {
-                'backend': 'socket',
-                'host': '127.0.0.1',
-                'port': 2346,
-                'server': True,
-                'wait': False
-            }
+        self.node_info_2['monitor'] = {
+            'enable': True,
+            'interface': None,
+            'port': 9006
         }
 
         try:
@@ -426,15 +366,10 @@ class test_start_node_with_conflict_port(unittest.TestCase):
             self.node_info_2['racadm'] = {}
             self.node_info_2['racadm']['port'] = 10023
         self.node_info_2['compute']['vnc_display'] = 2
-        self.node_info_2['compute']['monitor'] = {
-            'mode': 'readline',
-            'chardev': {
-                'backend': 'socket',
-                'host': '127.0.0.1',
-                'port': 2346,
-                'server': True,
-                'wait': False
-            }
+        self.node_info_2['monitor'] = {
+            'enable': True,
+            'interface': None,
+            'port': 9006
         }
 
         node2 = model.CNode(self.node_info_2)
