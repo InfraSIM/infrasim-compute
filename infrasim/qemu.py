@@ -95,6 +95,16 @@ def start_qemu(conf_file=config.infrasim_default_config):
         if "bmc_connection_port" in conf:
             compute.set_port_qemu_ipmi(conf["bmc_connection_port"])
 
+        if "monitor" not in conf:
+            b_enable_monitor = True
+        else:
+            b_enable_monitor = conf["monitor"].get("enable", True)
+
+        if not isinstance(b_enable_monitor, bool):
+            raise ArgsNotCorrect("[Monitor] Invalid setting")
+        if b_enable_monitor:
+            compute.enable_qemu_monitor()
+
         compute.init()
         compute.precheck()
         compute.run()

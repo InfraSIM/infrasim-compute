@@ -527,15 +527,10 @@ class test_global_status(unittest.TestCase):
         node_info_2['ipmi_console_port'] = 9001
         node_info_2['bmc_connection_port'] = 9101
         node_info_2['compute']['vnc_display'] = 2
-        node_info_2['compute']['monitor'] = {
-            'mode': 'readline',
-            'chardev': {
-                'backend': 'socket',
-                'host': '127.0.0.1',
-                'port': 2346,
-                'server': True,
-                'wait': False
-            }
+        node_info_2['monitor'] = {
+            'enable': True,
+            'interface': None,
+            'port': 9006
         }
         node_info_2["type"] = "dell_c6320"
         node2 = model.CNode(node_info_2)

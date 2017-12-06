@@ -9,6 +9,7 @@ import unittest
 import re
 import time
 import paramiko
+import json
 from test import fixtures
 from infrasim import run_command
 from infrasim import CommandRunFailed, InfraSimError
@@ -96,7 +97,7 @@ class test_node_with_bridge(unittest.TestCase):
 
     def test_start_node(self):
         """
-        Verify infrasim instance start with a ne
+        Verify infrasim instance start with a netdev
         """
         self.conf["compute"]["networks"].append(
             {
@@ -219,6 +220,9 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
             "max_drive_per_controller": 6,
             "drives": [{"file": "/tmp/kcs.img"}]
         }]
+        node = model.CNode(self.conf)
+        node.init()
+        self.workspace = node.workspace.get_workspace()
 
     def tearDown(self):
         node = model.CNode(self.conf)
@@ -229,12 +233,30 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
 
     def set_port_forward(self):
         time.sleep(3)
-        import telnetlib
-        tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
-        tn.read_until("(qemu)")
-        tn.write("hostfwd_add ::2222-:22\n")
-        tn.read_until("(qemu)")
-        tn.close()
+
+        # Port forward from guest 22 to host 2222
+        path = os.path.join(self.workspace, ".monitor")
+        s = helper.UnixSocket(path)
+        s.connect()
+        s.recv()
+
+        payload_enable_qmp = {
+            "execute": "qmp_capabilities"
+        }
+
+        s.send(json.dumps(payload_enable_qmp))
+        s.recv()
+
+        payload_port_forward = {
+            "execute":"human-monitor-command",
+            "arguments": {
+                "command-line": "hostfwd_add ::2222-:22"
+            }
+        }
+        s.send(json.dumps(payload_port_forward))
+        s.recv()
+
+        s.close()
 
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())

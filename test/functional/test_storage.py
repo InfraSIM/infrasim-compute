@@ -10,11 +10,13 @@ import os
 import unittest
 from test import fixtures
 import yaml
+import json
 from infrasim import config
 from infrasim import model
 from infrasim import helper
 from infrasim import run_command
 from infrasim import InfraSimError
+from infrasim.helper import UnixSocket
 
 """
 SAS controllers type includes:
@@ -790,16 +792,34 @@ class test_four_storage_controllers(unittest.TestCase):
         assert "format=qcow2" in qemu_cmdline
 
 
-def set_port_forward_try_ssh():
+def set_port_forward_try_ssh(node):
     import time
     import paramiko
     time.sleep(3)
-    import telnetlib
-    tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
-    tn.read_until("(qemu)")
-    tn.write("hostfwd_add ::2222-:22\n")
-    tn.read_until("(qemu)")
-    tn.close()
+
+    # Port forward from guest 22 to host 2222
+    path = os.path.join(node.workspace.get_workspace(), ".monitor")
+    s = UnixSocket(path)
+    s.connect()
+    s.recv()
+
+    payload_enable_qmp = {
+        "execute": "qmp_capabilities"
+    }
+
+    s.send(json.dumps(payload_enable_qmp))
+    s.recv()
+
+    payload_port_forward = {
+        "execute":"human-monitor-command",
+        "arguments": {
+            "command-line": "hostfwd_add ::2222-:22"
+        }
+    }
+    s.send(json.dumps(payload_port_forward))
+    s.recv()
+
+    s.close()
 
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -884,7 +904,7 @@ class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
         node.precheck()
         node.start()
 
-        set_port_forward_try_ssh()
+        set_port_forward_try_ssh(node)
 
 
 class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
@@ -959,7 +979,7 @@ class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
         node.precheck()
         node.start()
 
-        set_port_forward_try_ssh()
+        set_port_forward_try_ssh(node)
 
 
 class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
@@ -1028,4 +1048,4 @@ class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
-        set_port_forward_try_ssh()
+        set_port_forward_try_ssh(node)

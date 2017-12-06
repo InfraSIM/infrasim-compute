@@ -56,6 +56,7 @@ class LoggerType(Enum):
     socat = 'Socat'
     ipmi_console = 'Ipmi-console'
     racadm = 'Racadmsim'
+    monitor = 'Monitor'
     cmd = 'Cmd'
     config = 'Config'
     environment = 'Environment'
@@ -119,6 +120,10 @@ class LoggerList(object):
                 log_file = os.path.join(infrasim_logdir,
                                         self.__node_name,
                                         'racadm.log')
+            elif logger_name is LoggerType.monitor:
+                log_file = os.path.join(infrasim_logdir,
+                                        self.__node_name,
+                                        'monitor.log')
             else:
                 log_file = os.path.join(infrasim_logdir,
                                         self.__node_name,

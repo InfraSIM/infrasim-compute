@@ -37,7 +37,8 @@ class FakeConfig(object):
                         "network_name": "dummy0"
                     }
                 ]
-            }
+            },
+            "monitor": {}
         }
 
     def get_node_info(self):

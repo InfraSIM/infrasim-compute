@@ -54,7 +54,7 @@ compute:
             device: i82801b11-bridge
             addr: 0x1e.0x0
             multifunction: on
-            downstream_bridge:    
+            downstream_bridge:
                 -
                     device: pci-bridge
                     chassis_nr: 0x1
@@ -138,14 +138,6 @@ compute:
         ioport: 0xca8
         irq: 10
     smbios: chassis/node1/quanta_d51_smbios.bin
-    monitor:
-        mode: readline
-        chardev:
-            backend: socket
-            server: true
-            wait: false
-            host: 127.0.0.1
-            port: 2345
     # set vnc display <X>
     vnc_display: 1
 bmc:
@@ -188,3 +180,9 @@ bmc_connection_port: 9100
 
 # Socket file to bridge socat and qemu
 serial_socket: /tmp/serial
+
+# InfraSIM monitor
+monitor:
+    enable: true
+    interface: ens192
+    port: 9005

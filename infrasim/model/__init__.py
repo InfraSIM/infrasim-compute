@@ -30,12 +30,13 @@ from infrasim.model.elements.network import CNetwork
 from infrasim.model.elements.ipmi import CIPMI
 from infrasim.model.elements.pci_topo import CPCITopologyManager
 from infrasim.model.elements.pci_bridge import CPCIBridge
-from infrasim.model.elements.monitor import CMonitor
+from infrasim.model.elements.qemu_monitor import CQemuMonitor
 
 from infrasim.model.tasks.compute import CCompute
 from infrasim.model.tasks.bmc import CBMC
 from infrasim.model.tasks.socat import CSocat
 from infrasim.model.tasks.racadm import CRacadm
+from infrasim.model.tasks.monitor import CMonitor
 
 __all__ = ["CNode",
            "CCharDev",
@@ -56,7 +57,8 @@ __all__ = ["CNode",
            "CIPMI",
            "CPCITopologyManager",
            "CPCIBridge",
-           "CMonitor",
+           "CQemuMonitor",
            "CCompute",
            "CSocat",
+           "CMonitor",
            "CRacadm"]

@@ -18,6 +18,7 @@ from infrasim.model.tasks.compute import CCompute
 from infrasim.model.tasks.bmc import CBMC
 from infrasim.model.tasks.socat import CSocat
 from infrasim.model.tasks.racadm import CRacadm
+from infrasim.model.tasks.monitor import CMonitor
 
 
 class CNode(object):
@@ -169,6 +170,35 @@ class CNode(object):
         if "bmc_connection_port" in self.__node:
             bmc_obj.set_port_qemu_ipmi(self.__node["bmc_connection_port"])
             compute_obj.set_port_qemu_ipmi(self.__node["bmc_connection_port"])
+
+        # Init monitor task
+        monitor_info = {}
+        if "monitor" not in self.__node:
+            monitor_info = {
+                "enable": True,
+                # Interface and port is for north bound REST service of
+                # infrasim-monitor, not the socket of QEMU monitor
+                "inferface": None,
+                "port": 9005
+            }
+        else:
+            monitor_info = {
+                "enable": self.__node["monitor"].get("enable", True),
+                "interface": self.__node["monitor"].get("interface", None),
+                "port": self.__node["monitor"].get("port", 9005)
+            }
+        if not isinstance(monitor_info["enable"], bool):
+            raise ArgsNotCorrect("[Monitor] Invalid setting")
+        if monitor_info["enable"]:
+            compute_obj.enable_qemu_monitor()
+            monitor_obj = CMonitor(monitor_info)
+            monitor_obj.logger = self.__logger
+            monitor_obj.set_priority(4)
+            monitor_obj.set_node_name(self.__node_name)
+            monitor_obj.set_task_name("{}-monitor".format(self.__node_name))
+            monitor_obj.set_log_path("/var/log/infrasim/{}/monitor.log".
+                                     format(self.__node_name))
+            self.__tasks_list.append(monitor_obj)
 
         self.workspace = Workspace(self.__node)
 

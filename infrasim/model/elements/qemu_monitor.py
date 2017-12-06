@@ -16,9 +16,9 @@ from infrasim.model.core.element import CElement
 from infrasim.model.elements.chardev import CCharDev
 
 
-class CMonitor(CElement):
+class CQemuMonitor(CElement):
     def __init__(self, monitor_info):
-        super(CMonitor, self).__init__()
+        super(CQemuMonitor, self).__init__()
         self.__monitor = monitor_info
         self.__chardev = None
         self.__mode = "readline"
@@ -33,20 +33,32 @@ class CMonitor(CElement):
 
     def precheck(self):
         if self.__mode not in ["readline", "control"]:
-            raise ArgsNotCorrect("[Monitor] Invalid monitor mode: {}".format(self.__mode))
+            self.logger.exception("[Monitor] Invalid monitor mode: {}".format(self.__mode))
+            raise ArgsNotCorrect("Invalid monitor mode: {}".format(self.__mode))
 
-        self.__chardev.precheck()
+        try:
+            self.__chardev.precheck()
+        except ArgsNotCorrect, e:
+            self.logger.exception("[Monitor] {}".format(e.value))
+            print e.value
+            raise e
 
         # Monitor specific chardev attribution
         if self.__monitor["chardev"]["backend"] != "socket":
-            raise ArgsNotCorrect("[Monitor] Invalid monitor chardev backend: {}".
-                                 format(self.__monitor["chardev"]["backend"]))
+            self.logger.exception("[Monitor] Invalid monitor chardev backend: {}".
+                                    format(self.__monitor["chardev"]["backend"]))
+            raise ArgsNotCorrect("Invalid monitor chardev backend: {}".
+                                    format(self.__monitor["chardev"]["backend"]))
         if self.__monitor["chardev"]["server"] is not True:
-            raise ArgsNotCorrect("[Monitor] Invalid monitor chardev server: {}".
-                                 format(self.__monitor["chardev"]["server"]))
+            self.logger.exception("[Monitor] Invalid monitor chardev server: {}".
+                                    format(self.__monitor["chardev"]["server"]))
+            raise ArgsNotCorrect("Invalid monitor chardev server: {}".
+                                    format(self.__monitor["chardev"]["server"]))
         if self.__monitor["chardev"]["wait"] is not False:
-            raise ArgsNotCorrect("[Monitor] Invalid monitor chardev wait: {}".
-                                 format(self.__monitor["chardev"]["wait"]))
+            self.logger.exception("[Monitor] Invalid monitor chardev wait: {}".
+                                    format(self.__monitor["chardev"]["wait"]))
+            raise ArgsNotCorrect("Invalid monitor chardev wait: {}".
+                                    format(self.__monitor["chardev"]["wait"]))
 
 
     def init(self):

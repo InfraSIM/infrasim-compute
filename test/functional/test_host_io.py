@@ -10,9 +10,11 @@ import time
 import paramiko
 import subprocess
 import re
+import json
 from infrasim import model
 from infrasim import run_command
 from infrasim import helper
+from infrasim.helper import UnixSocket
 from test import fixtures
 
 old_path = os.environ.get('PATH')
@@ -59,8 +61,8 @@ class test_kcs_io(unittest.TestCase):
             if serial in lines:
                 return drive
 
-
-    def start_node(self):
+    @staticmethod
+    def start_node():
         global conf
         global sas_drive_serial
         global sata_drive_serial
@@ -97,7 +99,8 @@ class test_kcs_io(unittest.TestCase):
         node.start()
         time.sleep(3)
 
-    def stop_node(self):
+    @staticmethod
+    def stop_node():
         global conf
         node = model.CNode(conf)
         node.init()
@@ -107,13 +110,35 @@ class test_kcs_io(unittest.TestCase):
 
         time.sleep(5)
 
-    def port_forward(self):
-        import telnetlib
-        tn = telnetlib.Telnet(host='127.0.0.1', port=2345)
-        tn.read_until('(qemu)')
-        tn.write('hostfwd_add ::2222-:22\n')
-        tn.read_until('(qemu)')
-        tn.close()
+    @staticmethod
+    def port_forward():
+        global conf
+        node = model.CNode(conf)
+        node.init()
+
+        # Port forward from guest 22 to host 2222
+        path = os.path.join(node.workspace.get_workspace(), ".monitor")
+        s = UnixSocket(path)
+        s.connect()
+        s.recv()
+
+        payload_enable_qmp = {
+            "execute": "qmp_capabilities"
+        }
+
+        s.send(json.dumps(payload_enable_qmp))
+        s.recv()
+
+        payload_port_forward = {
+            "execute":"human-monitor-command",
+            "arguments": {
+                "command-line": "hostfwd_add ::2222-:22"
+            }
+        }
+        s.send(json.dumps(payload_port_forward))
+        s.recv()
+
+        s.close()
 
     def prepare_ssh(self):
         ssh = paramiko.SSHClient()
@@ -131,7 +156,8 @@ class test_kcs_io(unittest.TestCase):
         time.sleep(2)
         return ssh
 
-    def setUp(cls):
+    @classmethod
+    def setUpClass(cls):
         DOWNLOAD_URL = 'https://github.com/InfraSIM/test/raw/master/image/kcs.img'
         MD5_KCS_IMG = '986e5e63e8231a307babfbe9c81ca210'
         helper.fetch_image(DOWNLOAD_URL, MD5_KCS_IMG, test_img_file)
@@ -139,8 +165,8 @@ class test_kcs_io(unittest.TestCase):
         cls.start_node()
         cls.port_forward()
 
-
-    def tearDown(cls):
+    @classmethod
+    def tearDownClass(cls):
         if conf:
             cls.stop_node()
         for i in range(97, 109):
@@ -189,7 +215,7 @@ class test_kcs_io(unittest.TestCase):
 
         # Check disk content intact after node restart
         run_command("infrasim node restart {}".format(conf["name"]))
-        self.port_forward()
+        self.__class__.port_forward()
         ssh = self.prepare_ssh()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect("127.0.0.1", port=2222, username="root",
