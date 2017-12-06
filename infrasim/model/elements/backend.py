@@ -5,10 +5,12 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 # -*- coding: utf-8 -*-
 
-
+import os
 from infrasim import ArgsNotCorrect
+from infrasim.dae import DAEProcessHelper
 from infrasim.model.core.element import CElement
 from infrasim.model.elements.network import CNetwork
+from infrasim.model.elements.storage import CBaseStorageController
 from infrasim.model.elements.storage_mega import MegaSASController
 from infrasim.model.elements.storage_lsi import LSISASController
 from infrasim.model.elements.drive_nvme import NVMeController
@@ -85,7 +87,25 @@ class CBackendStorage(CElement):
         controller_obj.owner = self
         return controller_obj
 
+    def __get_ws_name(self):
+        parent = self.owner
+        while parent and not hasattr(parent, "get_workspace"):
+            parent = parent.owner
+
+        ws = None
+        if hasattr(parent, "get_workspace"):
+            ws = parent.get_workspace()
+
+        if ws is None or not os.path.exists(ws):
+            ws = ""
+
+        return ws
+
     def init(self):
+        # parse disk array definition in advance.
+        dae_helper = DAEProcessHelper(self.__backend_storage_info,
+                                      self.__get_ws_name())
+
         for controller in self.__backend_storage_info:
             controller_obj = self.__create_controller(controller)
             if self.__pci_topology_manager:
@@ -101,6 +121,9 @@ class CBackendStorage(CElement):
                 controller_obj.controller_index = self.__scsi_controller_index
 
             controller_obj.init()
+            # generate and save drives and traversal information.
+            if isinstance(controller_obj, CBaseStorageController):
+                dae_helper.create_dae_node(controller_obj.get_drvs_arg_option())
 
             if isinstance(controller_obj, AHCIController):
                 self.__sata_controller_index = controller_obj.controller_index + 1
