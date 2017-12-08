@@ -189,7 +189,7 @@ class test_compute_configuration_change(unittest.TestCase):
         s.recv()
 
         payload_port_forward = {
-            "execute":"human-monitor-command",
+            "execute": "human-monitor-command",
             "arguments": {
                 "command-line": "hostfwd_add ::2222-:22"
             }

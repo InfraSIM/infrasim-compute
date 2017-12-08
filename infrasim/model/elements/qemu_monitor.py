@@ -39,24 +39,16 @@ class CQemuMonitor(CElement):
         try:
             self.__chardev.precheck()
         except ArgsNotCorrect, e:
-            self.logger.exception("[Monitor] {}".format(e.value))
-            print e.value
             raise e
 
         # Monitor specific chardev attribution
         if self.__monitor["chardev"]["backend"] != "socket":
-            self.logger.exception("[Monitor] Invalid monitor chardev backend: {}".
-                                    format(self.__monitor["chardev"]["backend"]))
             raise ArgsNotCorrect("Invalid monitor chardev backend: {}".
                                     format(self.__monitor["chardev"]["backend"]))
         if self.__monitor["chardev"]["server"] is not True:
-            self.logger.exception("[Monitor] Invalid monitor chardev server: {}".
-                                    format(self.__monitor["chardev"]["server"]))
             raise ArgsNotCorrect("Invalid monitor chardev server: {}".
                                     format(self.__monitor["chardev"]["server"]))
         if self.__monitor["chardev"]["wait"] is not False:
-            self.logger.exception("[Monitor] Invalid monitor chardev wait: {}".
-                                    format(self.__monitor["chardev"]["wait"]))
             raise ArgsNotCorrect("Invalid monitor chardev wait: {}".
                                     format(self.__monitor["chardev"]["wait"]))
 

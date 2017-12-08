@@ -52,7 +52,7 @@ class test_infrasim_monitor(unittest.TestCase):
         os.environ["PATH"] = self.old_path
 
     def test_hmp_access(self):
-        #start service
+        # start service
         node = model.CNode(self.conf)
         node.init()
         node.precheck()
@@ -76,14 +76,14 @@ class test_infrasim_monitor(unittest.TestCase):
         url = "http://{}:{}/hmp/{}".format(ip, port, node_name)
         headers = {'content-type': 'application/json'}
         res = requests.post(url, headers = headers, data = json.dumps(payload), timeout = 1)
-        #res = requests.post(url)
+        # res = requests.post(url)
         if res.status_code == requests.codes.ok:
             return True
         else:
             return False
 
     def test_qmp_access(self):
-        #start service
+        # start service
         node = model.CNode(self.conf)
         node.init()
         node.precheck()
@@ -110,7 +110,7 @@ class test_infrasim_monitor(unittest.TestCase):
             return False
 
     def test_robust_error_hmp(self):
-        #start service
+        # start service
         node = model.CNode(self.conf)
         node.init()
         node.precheck()
@@ -125,7 +125,7 @@ class test_infrasim_monitor(unittest.TestCase):
             ip = "0.0.0.0"
 
         interface = self.conf["monitor"].get("interface",)
-        #send the error command
+        # send the error command
         payload = {
             "error": "error"
         }
@@ -139,7 +139,7 @@ class test_infrasim_monitor(unittest.TestCase):
             return False
 
     def test_robust_error_qmp(self):
-        #start service
+        # start service
         node = model.CNode(self.conf)
         node.init()
         node.precheck()
@@ -154,7 +154,7 @@ class test_infrasim_monitor(unittest.TestCase):
             ip = "0.0.0.0"
 
         interface = self.conf["monitor"].get("interface",)
-        #send the error command
+        # send the error command
         payload = {
             "error": "error"
         }
