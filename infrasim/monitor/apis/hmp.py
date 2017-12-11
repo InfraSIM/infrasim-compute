@@ -1,4 +1,4 @@
-from flask_restplus import Resource, abort, fields
+from flask_restplus import Resource, fields
 from infrasim.monitor.apis import api
 from infrasim.monitor.qemu_api import QemuMonitor
 
