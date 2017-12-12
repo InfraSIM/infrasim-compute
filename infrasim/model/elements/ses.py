@@ -29,10 +29,10 @@ class SESDevice(CElement):
         self.__bus = 0
         self.__dae_type = None
         self.__side = None
+        self.__ses_buffer_file = None
         self.__pri_port_att_sas_addr = 0
         self.__exp_port_att_sas_addr = 0
         self.__physical_port = 0
-
 
     def set_bus(self, bus):
         self.__bus = bus
@@ -56,6 +56,7 @@ class SESDevice(CElement):
         self.__pri_port_att_sas_addr = self._ses_info.get("pp_atta_sas_addr")
         self.__exp_port_att_sas_addr = self._ses_info.get("ep_atta_sas_addr")
         self.__physical_port = self._ses_info.get("physical_port")
+        self.__ses_buffer_file = self._ses_info.get("ses_buffer_file")
 
     def handle_parms(self):
         options = {}
@@ -90,6 +91,9 @@ class SESDevice(CElement):
         if self.__side is not None:
             options["side"] = self.__side
 
+        if self.__ses_buffer_file is not None:
+            options["ses_buffer_file"] = self.__ses_buffer_file
+
         if self.__physical_port is not None:
             options["physical_port"] = self.__physical_port
 
@@ -98,7 +102,6 @@ class SESDevice(CElement):
 
         if self.__exp_port_att_sas_addr:
             options["ep_atta_sas_addr"] = self.__exp_port_att_sas_addr
-
 
         options["bus"] = "{}{}.{}".format(self.prefix, self.__bus, 0)
 

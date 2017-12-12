@@ -148,23 +148,11 @@ class _Expander(object):
         self.name = cfg['name']
         self.phy_count = cfg['phy_count']
         # attributes of ses
-        self.__ses_attributes = {}
-        self.__ses_attributes['channel'] = 0
-        self.__ses_attributes['dae_type'] = dae_type
-        self.__ses_attributes['ep_atta_sas_addr'] = 0  # reset it later
-        self.__ses_attributes['lun'] = 0
-        self.__ses_attributes['physical_port'] = 0  # reset it later
-        self.__ses_attributes['pp_atta_sas_addr'] = 0  # reset it later
-        self.__ses_attributes['scsi-id'] = 0  # reset it later
-        self.__ses_attributes['side'] = cfg['side']
-        self.__ses_attributes['wwn'] = cfg['wwn'] - 1  # ses_wwn = exp_wwn - 1
-
+        self.__ses_attributes = None
         self.__visit_status = False
-        self.__ses_link = _Link(self.phy_count, 1, _Const.SES_DEVICE, 0,
-                                self.get_wwn() - 1, self.get_wwn() - 1)
-        self.connect(self.__ses_link)
         self.__port_link = []
         self.__init_ports(cfg['ports'])
+        self.__init_ses(dae_type)
 
     def __init_ports(self, ports):
         """
@@ -189,6 +177,32 @@ class _Expander(object):
                     "phy {}, num {}".format(self.name, link.phy, link.num))
 
         self.__link.append(link)
+
+    def __init_ses(self, dae_type):
+        """
+        init attributes of ses if specified
+        """
+        if self.__cfg.get('ses'):
+            # attributes of ses
+            self.__ses_attributes = {}
+            self.__ses_attributes['channel'] = 0
+            self.__ses_attributes['dae_type'] = dae_type
+            self.__ses_attributes['ep_atta_sas_addr'] = 0  # reset it later
+            self.__ses_attributes['lun'] = 0
+            self.__ses_attributes['physical_port'] = 0  # reset it later
+            self.__ses_attributes['pp_atta_sas_addr'] = 0  # reset it later
+            self.__ses_attributes['scsi-id'] = 0  # reset it later
+            self.__ses_attributes['side'] = self.__cfg['side']
+            # ses_wwn = exp_wwn - 1
+            self.__ses_attributes['wwn'] = self.__cfg['wwn'] - 1
+            # ses serial = ses wwn
+            self.__ses_attributes['serial'] = self.__cfg['wwn'] - 1
+            self.__ses_attributes['ses_buffer_file'] = self.__cfg['ses']['buffer_data']
+            self.__ses_link = _Link(self.phy_count, 1, _Const.SES_DEVICE, 0,
+                                    self.__ses_attributes['wwn'],
+                                    self.__ses_attributes['wwn'])
+            self.phy_count += 1
+            self.connect(self.__ses_link)
 
     def get_port_link(self):
         """
@@ -246,17 +260,20 @@ class _Expander(object):
 
         links.sort(key=lambda l: l['phy'])
         ret = [{"exp_wwn": self.__cfg['wwn'],
-                "phy_count": self.phy_count,  # expander's phy count excludes vphy
+                "phy_count": self.phy_count,
                 "start_scsi_id": start_scsi_id,
                 "links": links}]
 
         self.set_visited(True)
-        # plus the id of virtual phy.
-        scsi_id_index[0] = start_scsi_id + self.phy_count + 1
-        # set ses attributes
-        self.__ses_attributes['scsi-id'] = start_scsi_id + self.phy_count
-        self.__ses_attributes['physical_port'] = port
-        seses_dict.append(self.get_dict_of_ses())
+        scsi_id_index[0] = start_scsi_id + self.phy_count
+        if self.__ses_attributes:
+            # set ses attributes
+            self.__ses_attributes['scsi-id'] = start_scsi_id + \
+                self.phy_count - 1
+            self.__ses_attributes['physical_port'] = port
+        _ses = self.get_dict_of_ses()
+        if _ses:
+            seses_dict.append(_ses)
         for l in self.__link:
             if l.atta_type == _Const.EXP_DEVICE:
                 _exp = encl.find_expander(l.atta_wwn)
@@ -282,13 +299,14 @@ class _Expander(object):
            Fill in ses object's attribute dictionary from expander
            return: ses attributes dictionary
         """
-        for port in self.__port_link:
-            if ((port['id'] == 0 or port['id'] == "pp") and
-                    port['link'].atta_type != _Const.NON_DEVICE):
-                self.__ses_attributes['pp_atta_sas_addr'] = port['link'].atta_wwn
-            if ((port['id'] == 1 or port['id'] == "ep") and
-                    port['link'].atta_type != _Const.NON_DEVICE):
-                self.__ses_attributes['ep_atta_sas_addr'] = port['link'].atta_wwn
+        if self.__ses_attributes:
+            for port in self.__port_link:
+                if ((port['id'] == 0 or port['id'] == "pp") and
+                        port['link'].atta_type != _Const.NON_DEVICE):
+                    self.__ses_attributes['pp_atta_sas_addr'] = port['link'].atta_wwn
+                if ((port['id'] == 1 or port['id'] == "ep") and
+                        port['link'].atta_type != _Const.NON_DEVICE):
+                    self.__ses_attributes['ep_atta_sas_addr'] = port['link'].atta_wwn
         return self.__ses_attributes
 
 
