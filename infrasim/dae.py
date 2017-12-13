@@ -27,6 +27,13 @@ class _Const:
             return True
         return False
 
+    @staticmethod
+    def hex_string_to_int(hexstring):
+        if type(hexstring) is str:
+            return int(hexstring, 16)
+        else:
+            return hexstring
+
 
 class _SNGenerator(object):
     INDEX = 0
@@ -94,10 +101,11 @@ class _Drv(object):
     def __init__(self, cfg, index):
         self.__link = []
         self.__cfg = cfg.copy()
+        self.__cfg['wwn'] = _Const.hex_string_to_int(self.__cfg['wwn'])
         self.__cfg['slot_number'] = index
-        self.__cfg['file'] = cfg['file'].format(index)
+        self.__cfg['file'] = self.__cfg['file'].format(index)
         # each drive occupis 4 wwn. base wwn, 2 port wwns, target wwn.
-        self.__cfg['wwn'] = cfg['wwn'] + 4 * index
+        self.__cfg['wwn'] = self.__cfg['wwn'] + 4 * index
         self.__cfg['serial'] = _SNGenerator.getSN()
 
     def connect(self, link):
@@ -144,6 +152,7 @@ class _Drv(object):
 class _Expander(object):
     def __init__(self, cfg, dae_type):
         self.__cfg = cfg
+        cfg['wwn'] = _Const.hex_string_to_int(cfg['wwn'])
         self.__link = []
         self.name = cfg['name']
         self.phy_count = cfg['phy_count']
@@ -632,9 +641,11 @@ class DAEProcessHelper(object):
                 scsi_id_index = [0]
                 for link in controller.pop('external_connectors', []):
                     # fill external link first.
+                    link['wwn'] = _Const.hex_string_to_int(link['wwn'])
                     self.__fill_external_connector(link)
                 port_index = 0
                 for link in controller['connectors']:
+                    link['wwn'] = _Const.hex_string_to_int(link['wwn'])
                     # fill connections to local hba port
                     result = self.__traversal(
                         seses_dict, port_index, link, scsi_id_index)
