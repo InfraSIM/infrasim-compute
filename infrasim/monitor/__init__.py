@@ -20,4 +20,4 @@ def start(instance, host, port):
     app.logger.addHandler(mlog.handlers)
 
     api.init_app(app)
-    app.run(host=host, port=port)
+    app.run(host=host, port=int(port))
