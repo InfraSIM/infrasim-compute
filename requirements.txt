@@ -17,3 +17,4 @@ nose-cov==1.6
 pyyaml==3.11
 requests==2.11.1
 texttable==0.8.7
+flask==0.12.2
