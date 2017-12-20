@@ -8,17 +8,14 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 from infrasim.model.core.element import CElement
 from infrasim import ArgsNotCorrect
+from infrasim.model.elements.pcie_port import CPCIEPort
 
 
-class CPCIEUpstream(CElement):
+class CPCIEUpstream(CPCIEPort):
     def __init__(self, upstream_info):
-        super(CPCIEUpstream, self).__init__()
+        super(CPCIEUpstream, self).__init__(upstream_info)
         self.__upstream_info = upstream_info
-        self.bus = None
-        self.id = None
-        self.__device = None
         self.__upstream_option = None
-        self.pcie_topo = None
 
     def precheck(self):
         if self.__upstream_info is None:
