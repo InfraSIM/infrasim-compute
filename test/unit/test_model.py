@@ -8,6 +8,8 @@ import os
 import unittest
 import yaml
 import re
+import shutil
+import struct
 from infrasim import ArgsNotCorrect
 from infrasim import model
 from infrasim import socat
@@ -19,6 +21,7 @@ from glob import *
 
 
 TMP_CONF_FILE = "/tmp/test.yml"
+FW_CFG_DIR = "/tmp/data"
 
 
 class qemu_functions(unittest.TestCase):
@@ -994,6 +997,174 @@ class qemu_functions(unittest.TestCase):
         except ArgsNotCorrect, e:
             assert "KVM enabled is not a boolean" in e.value
 
+    @raises(ArgsNotCorrect)
+    def test_pcie_rootport_no_chassis_config(self):
+        rootport_info = {
+            "bus": "pcie.0",
+            "slot": 8,
+            "device": "ioh3420",
+            "id": "rootport1"
+        }
+        rootport = model.CPCIERootport(rootport_info)
+        rootport.init()
+        rootport.precheck()
+        rootport.handle_parms()
+
+    @raises(ArgsNotCorrect)
+    def test_pcie_rootport_no_slot_config(self):
+        rootport_info = {
+            "bus": "pcie.0",
+            "chassis": 1,
+            "device": "ioh3420",
+            "id": "rootport1"
+        }
+        rootport = model.CPCIERootport(rootport_info)
+        rootport.init()
+        rootport.precheck()
+        rootport.handle_parms()
+
+    @raises(ArgsNotCorrect)
+    def test_pcie_downstream_no_chassis_config(self):
+        downstream_info = {
+            "bus": "rootport1",
+            "slot": 8,
+            "device": "xio3130-downstream",
+            "id": "downstream1"
+        }
+        downstream = model.CPCIEDownstream(downstream_info)
+        downstream.init()
+        downstream.precheck()
+        downstream.handle_parms()
+
+    @raises(ArgsNotCorrect)
+    def test_pcie_downstream_no_slot_config(self):
+        downstream_info = {
+            "bus": "rootport1",
+            "chassis": 1,
+            "device": "xio3130-downstream",
+            "id": "downstream1"
+        }
+        downstream = model.CPCIEDownstream(downstream_info)
+        downstream.init()
+        downstream.precheck()
+        downstream.handle_parms()
+
+    @raises(ArgsNotCorrect)
+    def test_pcie_topology_id_duplicated(self):
+        pcie_topology = {
+            "root_port": [{
+                "bus": "pcie.0",
+                "chassis": 1,
+                "slot": 8,
+                "device": "ioh3420",
+                "id": "rootport1"
+                }],
+            "switch": [
+                {
+                    "downstream":[{
+                        "addr": "2.0",
+                        "bus" : "upstream1",
+                        "slot": 10,
+                        "chassis": 1,
+                        "device": "xio3130-downstream",
+                        "id": "downstream1"
+                    },{
+                        "addr": "3.0",
+                        "bus" : "upstream1",
+                        "slot": 11,
+                        "chassis": 1,
+                        "device": "xio3130-downstream",
+                        "id": "downstream1",
+                    }],
+                    "upstream":[{
+                        "bus": "2.0",
+                        "device": "x3130-upstream",
+                        "id": "upstream1"
+                    }]
+                }
+            ]
+        }
+        topo = model.CPCIETopology(pcie_topology)
+        topo.init()
+        topo.precheck()
+        topo.handle_parms()
+
+    @raises(AssertionError)
+    def test_pcie_fw_cfg_config(self):
+        pcie_topology = {
+            "root_port": [{
+                "addr": "7.0",
+                "bus": "pcie.0",
+                "chassis": 1,
+                "slot": 8,
+                "device": "ioh3420",
+                "id": "rootport1",
+                "pri_bus": 0,
+                "sec_bus": 20
+                }],
+            "switch": [
+                {
+                    "downstream":[{
+                        "addr": "2.0",
+                        "bus" : "upstream1",
+                        "slot": 10,
+                        "chassis": 1,
+                        "device": "xio3130-downstream",
+                        "id": "downstream1",
+                        "pri_bus": 21,
+                        "sec_bus": 25
+                    },{
+                        "addr": "3.0",
+                        "bus" : "upstream1",
+                        "slot": 11,
+                        "chassis": 1,
+                        "device": "xio3130-downstream",
+                        "id": "downstream2",
+                        "pri_bus": 21,
+                        "sec_bus": 28
+                    }],
+                    "upstream":[{
+                        "bus": "2.0",
+                        "device": "x3130-upstream",
+                        "id": "upstream1"
+                    }]
+                }
+            ]
+        }
+        os.makedirs(FW_CFG_DIR)
+        fw_cfg_obj = model.CPCIEFwcfg()
+        fw_cfg_obj.set_workspace('/tmp')
+        pcie_topology_obj = model.CPCIETopology(pcie_topology)
+        pcie_topology_obj.set_fw_cfg_obj(fw_cfg_obj)
+        pcie_topology_obj.init()
+
+        fw_cfg_obj.init()
+        fw_cfg_obj.precheck()
+        fw_cfg_obj.handle_parms()
+
+        cfg = fw_cfg_obj.get_option()
+        cfg_file = re.search(r'file=(.+)', cfg)
+        cfg_file_path = cfg_file.group(1)
+        with open(cfg_file_path, 'rb') as f:
+            cfg_lines = f.read()
+            cfg_list = []
+            for i in range(len(cfg_lines)-1)[::4]:
+                tmp_list = cfg_lines[i:i+4]
+                cfg_list.append(struct.unpack('HBx', tmp_list))
+
+        yml_cfg_list = []
+        rootport_list = [x for x in pcie_topology['root_port']]
+        downstream_list = []
+        for sw in pcie_topology['switch']:
+            for ds in sw['downstream']:
+                downstream_list.append(ds)
+        for rp in rootport_list + downstream_list:
+            pri_bus = rp['pri_bus']
+            device, func = rp['addr'].split('.')
+            bdf = (int(pri_bus) << 8) + (int(device, 16) << 3) + int(func)
+            yml_cfg_list.append((bdf, rp['sec_bus']))
+        assert set(yml_cfg_list) != set(cfg_list)
+
 
 class bmc_configuration(unittest.TestCase):
 
@@ -1017,6 +1188,8 @@ class bmc_configuration(unittest.TestCase):
         cls.node.terminate_workspace()
         if os.path.exists(TMP_CONF_FILE):
             os.unlink(TMP_CONF_FILE)
+        if os.path.exists(FW_CFG_DIR):
+            shutil.rmtree(FW_CFG_DIR, True)
 
     def test_set_bmc_type(self):
         bmc = model.CBMC()

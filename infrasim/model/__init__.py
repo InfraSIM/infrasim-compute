@@ -30,6 +30,12 @@ from infrasim.model.elements.network import CNetwork
 from infrasim.model.elements.ipmi import CIPMI
 from infrasim.model.elements.pci_topo import CPCITopologyManager
 from infrasim.model.elements.pci_bridge import CPCIBridge
+from infrasim.model.elements.pcie_topology import CPCIETopology
+from infrasim.model.elements.pcie_rootport import CPCIERootport
+from infrasim.model.elements.pcie_upstream import CPCIEUpstream
+from infrasim.model.elements.pcie_downstream import CPCIEDownstream
+from infrasim.model.elements.fw_cfg import CPCIEFwcfg
+
 from infrasim.model.elements.qemu_monitor import CQemuMonitor
 
 from infrasim.model.tasks.compute import CCompute
@@ -57,6 +63,11 @@ __all__ = ["CNode",
            "CIPMI",
            "CPCITopologyManager",
            "CPCIBridge",
+           "CPCIETopology",
+           "CPCIERootport",
+           "CPCIEUpstream",
+           "CPCIEDownstream",
+           "CPCIEFwcfg",
            "CQemuMonitor",
            "CCompute",
            "CSocat",

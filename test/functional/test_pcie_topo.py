@@ -96,6 +96,19 @@ def start_node(node_type):
             ]
         }]
 
+    conf["compute"]["networks"] = [{
+        "bus": "downstream1",
+        "device": "e1000",
+        "mac": "52:54:be:b9:77:dd",
+        "network_mode": "nat",
+        "network_name": "dummy0"
+    },{
+        "bus": "downstream2",
+        "device": "e1000",
+        "mac": "52:54:be:b9:77:dc",
+        "network_mode": "nat",
+        "network_name": "dummy0"
+    }]
     conf["compute"]["pcie_topology"] = {
       "root_port": [
         {
@@ -123,20 +136,24 @@ def start_node(node_type):
         {
           "downstream": [
             {
-              "addr": 2,
+              "addr": "2.0",
               "bus": "upstream1",
               "chassis": 1,
               "device": "xio3130-downstream",
               "id": "downstream1",
-              "slot": 190
+              "slot": 190,
+              "pri_bus": 41,
+              "sec_bus": 42
             },
             {
-              "addr": 3,
+              "addr": "3.0",
               "bus": "upstream1",
               "chassis": 1,
               "device": "xio3130-downstream",
               "id": "downstream2",
-              "slot": 162
+              "slot": 160,
+              "pri_bus": 41,
+              "sec_bus": 43
             }
           ],
           "upstream": [
@@ -150,20 +167,24 @@ def start_node(node_type):
         {
           "downstream": [
             {
-              "addr": 2,
+              "addr": "2.0",
               "bus": "upstream2",
               "chassis": 1,
               "device": "xio3130-downstream",
               "id": "downstream3",
-              "slot": 193
+              "slot": 193,
+              "pri_bus": 61,
+              "sec_bus": 62
             },
             {
-              "addr": 3,
+              "addr": "3.0",
               "bus": "upstream2",
               "chassis": 1,
               "device": "xio3130-downstream",
               "id": "downstream4",
-              "slot": 164
+              "slot": 164,
+              "pri_bus": 61,
+              "sec_bus": 63
             }
           ],
           "upstream": [
@@ -243,12 +264,7 @@ class test_pcie_topo(unittest.TestCase):
         for sl in switch_list:
             upstream_in_switch += len(sl["upstream"])
             downstream_in_switch += len(sl["downstream"])
-        print "upstream number:"
-        print upstream_num
         assert upstream_num == upstream_in_switch
-
-        print "downstream number:"
-        print downstream_num
         assert downstream_num == downstream_in_switch
 
     def test_pcie_upstream_bus(self):
@@ -261,12 +277,22 @@ class test_pcie_topo(unittest.TestCase):
             if 'sec_bus' in root:
                 sec_bus_list.append(hex(root['sec_bus'])[2:])
         sec_bus_list.sort()
-        print "upstream_bus_list:"
-        print upstream_bus_list
-        print "sec_bus_list:"
-        print sec_bus_list
         assert sec_bus_list == upstream_bus_list
 
+    def test_nic_bdf(self):
+        # check nic bdf match config
+        pcie_topo_list = run_cmd("lspci").split('\n')
+        nic_bus_list = [x.split(" ")[0].split(":")[0] for x in pcie_topo_list if 'Ethernet' in x]
+        rp_cfg_list = conf["compute"]["pcie_topology"]["root_port"]
+        downstream_cfg_list = []
+        for sw in conf["compute"]["pcie_topology"]["switch"]:
+            for ds in sw["downstream"]:
+                downstream_cfg_list.append(ds)
+        nic_cfg_list = conf["compute"]["networks"]
+        nic_cfg_bus_list = []
+        for rp in rp_cfg_list + downstream_cfg_list:
+            for nic in nic_cfg_list:
+                if nic["bus"] == rp["id"]:
+                    nic_cfg_bus_list.append(hex(rp["sec_bus"])[2:])
+        assert set(nic_bus_list) == set(nic_cfg_bus_list)
 
- #   def test_nic_name(self):
-        # check nic name match kcs rule
