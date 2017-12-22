@@ -27,9 +27,13 @@ def install_official_packages():
 
 
 def install_bintray_packages(repo, package):
-    print "downloading " + package + "..."
-    qemu_version = "1.0"
-    download_link = BASE_URL + repo + "/" + package + "/versions/" + qemu_version + "/files"
+    # get latest version number
+    package_link = BASE_URL + repo + "/" + package
+    response  = requests.get(package_link)
+    data = response.json()
+    max_version = max(map(float, data["versions"]))
+    print("downloading {} {}...".format(package, max_version))
+    download_link = BASE_URL + repo + "/" + package + "/versions/" + str(max_version) + "/files"
     response = requests.get(download_link)
     data = response.json()
     latest_time = data[0]["created"]
@@ -61,7 +65,7 @@ def install_bintray_packages(repo, package):
         raise Exception(
             "The file {} downloaded is not complete, please try again!")
     if package is not "Seabios":
-        print "installing " + package + "..."
+        print("installing {} {}...".format(package, max_version))
         run_command("dpkg -i " + file_name)
 
 def check_package(package = "Qemu", cmd = "which qemu-system-x86_64"):
