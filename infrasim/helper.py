@@ -637,6 +637,34 @@ class UnixSocket(object):
         self.s.shutdown(2)
         self.s.close()
 
+def port_forward(node):
+    # Port forward from guest 22 to host 2222
+    time.sleep(3)
+    path = os.path.join(node.workspace.get_workspace(), ".monitor")
+    s = UnixSocket(path)
+    s.connect()
+    s.recv()
+
+    payload_enable_qmp = {
+        "execute": "qmp_capabilities"
+    }
+
+    s.send(json.dumps(payload_enable_qmp))
+    s.recv()
+
+    payload_port_forward = {
+        "execute":"human-monitor-command",
+        "arguments": {
+            "command-line": "hostfwd_add ::2222-:22"
+        }
+    }
+    s.send(json.dumps(payload_port_forward))
+    s.recv()
+
+    s.close()
+    time.sleep(3)
+
+
 def fw_cfg_file_create(cfg_list, workspace):
     file_path = os.path.join(workspace, "data", "pci_topo_cfg")
     f = open(file_path, 'wb')

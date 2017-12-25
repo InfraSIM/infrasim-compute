@@ -167,15 +167,9 @@ def start_node(node_type):
     node.start()
 
     time.sleep(3)
-    import telnetlib
-    tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
-    tn.read_until("(qemu)")
-    tn.write("hostfwd_add ::2222-:22\n")
-    tn.read_until("(qemu)")
-    tn.close()
+    helper.port_forward(node)
 
-    time.sleep(3)
-# wait until system is ready for ssh.
+    # wait until system is ready for ssh.
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     paramiko.util.log_to_file("filename.log")
