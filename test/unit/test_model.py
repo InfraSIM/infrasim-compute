@@ -1061,22 +1061,22 @@ class qemu_functions(unittest.TestCase):
                 }],
             "switch": [
                 {
-                    "downstream":[{
+                    "downstream": [{
                         "addr": "2.0",
-                        "bus" : "upstream1",
+                        "bus": "upstream1",
                         "slot": 10,
                         "chassis": 1,
                         "device": "xio3130-downstream",
                         "id": "downstream1"
-                    },{
+                    }, {
                         "addr": "3.0",
-                        "bus" : "upstream1",
+                        "bus": "upstream1",
                         "slot": 11,
                         "chassis": 1,
                         "device": "xio3130-downstream",
                         "id": "downstream1",
                     }],
-                    "upstream":[{
+                    "upstream": [{
                         "bus": "2.0",
                         "device": "x3130-upstream",
                         "id": "upstream1"
@@ -1104,18 +1104,18 @@ class qemu_functions(unittest.TestCase):
                 }],
             "switch": [
                 {
-                    "downstream":[{
+                    "downstream": [{
                         "addr": "2.0",
-                        "bus" : "upstream1",
+                        "bus": "upstream1",
                         "slot": 10,
                         "chassis": 1,
                         "device": "xio3130-downstream",
                         "id": "downstream1",
                         "pri_bus": 21,
                         "sec_bus": 25
-                    },{
+                    }, {
                         "addr": "3.0",
-                        "bus" : "upstream1",
+                        "bus": "upstream1",
                         "slot": 11,
                         "chassis": 1,
                         "device": "xio3130-downstream",
@@ -1123,7 +1123,7 @@ class qemu_functions(unittest.TestCase):
                         "pri_bus": 21,
                         "sec_bus": 28
                     }],
-                    "upstream":[{
+                    "upstream": [{
                         "bus": "2.0",
                         "device": "x3130-upstream",
                         "id": "upstream1"
