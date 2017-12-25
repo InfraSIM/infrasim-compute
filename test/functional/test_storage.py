@@ -60,6 +60,14 @@ def get_qemu_pid(node):
     return None
 
 
+def set_port_forward_try_ssh(node):
+    import time
+    helper.port_forward(node)
+    ssh = helper.prepare_ssh()
+    ssh.close()
+    time.sleep(5)
+
+
 class test_ahci_controller_with_two_drives(unittest.TestCase):
 
     @classmethod
@@ -790,45 +798,6 @@ class test_four_storage_controllers(unittest.TestCase):
         assert "{}/sdw.img".format(image_path) in qemu_cmdline
         assert "{}/sdx.img".format(image_path) in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
-
-
-def set_port_forward_try_ssh(node):
-    import time
-    import paramiko
-    time.sleep(3)
-
-    # Port forward from guest 22 to host 2222
-    path = os.path.join(node.workspace.get_workspace(), ".monitor")
-    s = UnixSocket(path)
-    s.connect()
-    s.recv()
-
-    payload_enable_qmp = {
-        "execute": "qmp_capabilities"
-    }
-
-    s.send(json.dumps(payload_enable_qmp))
-    s.recv()
-
-    payload_port_forward = {
-        "execute":"human-monitor-command",
-        "arguments": {
-            "command-line": "hostfwd_add ::2222-:22"
-        }
-    }
-    s.send(json.dumps(payload_port_forward))
-    s.recv()
-
-    s.close()
-
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    paramiko.util.log_to_file("filename.log")
-    helper.try_func(600, paramiko.SSHClient.connect, ssh,
-                    "127.0.0.1", port=2222, username="root",
-                    password="root", timeout=120)
-    ssh.close()
-    time.sleep(5)
 
 
 class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
