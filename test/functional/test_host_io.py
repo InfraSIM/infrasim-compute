@@ -46,11 +46,7 @@ class test_kcs_io(unittest.TestCase):
     format_f = False
 
     def get_drive(self, serial):
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        paramiko.util.log_to_file("filename.log")
-        helper.try_func(600, paramiko.SSHClient.connect, ssh, "127.0.0.1",
-                        port=2222, username="root", password="root", timeout=120)
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command("ls /dev")
         drives = stdout.channel.recv(2048)
         drives = [e for e in filter(lambda x:"sd" in x, drives.split())]
@@ -59,7 +55,11 @@ class test_kcs_io(unittest.TestCase):
             stdin, stdout, stderr = ssh.exec_command('sg_inq /dev/'+drive)
             lines = stdout.channel.recv(2048)
             if serial in lines:
+                ssh.close()
+                time.sleep(2)
                 return drive
+        ssh.close()
+        time.sleep(2)
 
     @staticmethod
     def start_node():
@@ -98,6 +98,7 @@ class test_kcs_io(unittest.TestCase):
         node.precheck()
         node.start()
         time.sleep(3)
+        helper.port_forward(node)
 
     @staticmethod
     def stop_node():
@@ -110,52 +111,6 @@ class test_kcs_io(unittest.TestCase):
 
         time.sleep(5)
 
-    @staticmethod
-    def port_forward():
-        global conf
-        node = model.CNode(conf)
-        node.init()
-
-        # Port forward from guest 22 to host 2222
-        path = os.path.join(node.workspace.get_workspace(), ".monitor")
-        s = UnixSocket(path)
-        s.connect()
-        s.recv()
-
-        payload_enable_qmp = {
-            "execute": "qmp_capabilities"
-        }
-
-        s.send(json.dumps(payload_enable_qmp))
-        s.recv()
-
-        payload_port_forward = {
-            "execute":"human-monitor-command",
-            "arguments": {
-                "command-line": "hostfwd_add ::2222-:22"
-            }
-        }
-        s.send(json.dumps(payload_port_forward))
-        s.recv()
-
-        s.close()
-
-    def prepare_ssh(self):
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        paramiko.util.log_to_file('filename.log')
-        helper.try_func(
-            600,
-            paramiko.SSHClient.connect,
-            ssh,
-            '127.0.0.1',
-            port=2222,
-            username='root',
-            password='root',
-            timeout=120)
-        time.sleep(2)
-        return ssh
-
     @classmethod
     def setUpClass(cls):
         DOWNLOAD_URL = 'https://github.com/InfraSIM/test/raw/master/image/kcs.img'
@@ -163,7 +118,6 @@ class test_kcs_io(unittest.TestCase):
         helper.fetch_image(DOWNLOAD_URL, MD5_KCS_IMG, test_img_file)
 
         cls.start_node()
-        cls.port_forward()
 
     @classmethod
     def tearDownClass(cls):
@@ -191,7 +145,7 @@ class test_kcs_io(unittest.TestCase):
     def test_file_existance_after_node_restart(self):
         global conf
         # Write disk
-        ssh = self.prepare_ssh()
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command('touch /root/source.bin')
         while not stdout.channel.exit_status_ready():
             pass
@@ -204,8 +158,8 @@ class test_kcs_io(unittest.TestCase):
         # which seems like a paramiko issue? So as other ssh.close() in file.
         ssh.close()
         # FIXME
-        ssh = self.prepare_ssh()
         drive = self.get_drive(sas_drive_serial)
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command(
             'dd if=/root/source.bin of=/dev/'+drive+' bs=512 seek=0 count=1 conv=fsync')
         while not stdout.channel.exit_status_ready():
@@ -215,11 +169,10 @@ class test_kcs_io(unittest.TestCase):
 
         # Check disk content intact after node restart
         run_command("infrasim node restart {}".format(conf["name"]))
-        self.__class__.port_forward()
-        ssh = self.prepare_ssh()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("127.0.0.1", port=2222, username="root",
-                    password="root", timeout=10)
+        node = model.CNode(conf)
+        node.init()
+        helper.port_forward(node)
+        ssh = helper.prepare_ssh()
 
         stdin, stdout, stderr = ssh.exec_command('touch /root/source.bin')
         while not stdout.channel.exit_status_ready():
@@ -235,17 +188,18 @@ class test_kcs_io(unittest.TestCase):
 
         ssh.close()
 
-        ssh = self.prepare_ssh()
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command(
             'diff /root/source.bin /root/target.bin -B')
         while not stdout.channel.exit_status_ready():
             pass
 
         lines = stdout.channel.recv(2048)
+        print('Expect lines="", Actual lines="{}"'.format(lines))
         assert lines is ''
         ssh.close()
 
-        ssh = self.prepare_ssh()
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command('rm /root/target.bin')
         while not stdout.channel.exit_status_ready():
             pass
@@ -269,7 +223,7 @@ class test_kcs_io(unittest.TestCase):
         assert 'source.bin' not in lines
 
     def test_copy_file_across_drives(self):
-        ssh = self.prepare_ssh()
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command('touch /root/source.bin')
         while not stdout.channel.exit_status_ready():
             pass
@@ -278,38 +232,50 @@ class test_kcs_io(unittest.TestCase):
             "echo 'Test message is found! :D' >> /root/source.bin")
         while not stdout.channel.exit_status_ready():
             pass
+
+        ssh.close()
+
         drive = self.get_drive(boot_drive_serial)
+        ssh = helper.prepare_ssh()
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
             if 'sd'+i != drive:
                 stdin, stdout, stderr = ssh.exec_command(
                     'dd if=/root/source.bin of=/dev/sd' + i + ' bs=512 seek=0 count=1 conv=fsync')
+
         ssh.close()
 
-        ssh = self.prepare_ssh()
         boot_drive = self.get_drive(boot_drive_serial)
         sas_drive = self.get_drive(sas_drive_serial)
         sata_drive = self.get_drive(sata_drive_serial)
+
+        ssh = helper.prepare_ssh()
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
-            if 'sd'+i not in[boot_drive, sas_drive, sata_drive] :
+            if 'sd'+i not in[boot_drive, sas_drive, sata_drive]:
                 stdin, stdout, stderr = ssh.exec_command(
                     'dd if=/dev/sd' + i + ' of=/root/target_' + i + '.bin bs=512 skip=0 count=1 conv=fsync')
+        ssh.close()
+        ssh = helper.prepare_ssh()
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
-            if 'sd'+i not in[boot_drive, sas_drive, sata_drive] :
+            if 'sd'+i not in[boot_drive, sas_drive, sata_drive]:
                 stdin, stdout, stderr = ssh.exec_command(
                     'cat /root/target_' + i + '.bin')
                 lines = stdout.channel.recv(2048)
                 assert 'Test message is found! :D' in lines
         ssh.close()
 
-        ssh = self.prepare_ssh()
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command('rm /root/source.bin')
         while not stdout.channel.exit_status_ready():
             pass
+        ssh.close()
+
         boot_drive = self.get_drive(boot_drive_serial)
         sas_drive = self.get_drive(sas_drive_serial)
         sata_drive = self.get_drive(sata_drive_serial)
+
+        ssh = helper.prepare_ssh()
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
-            if 'sd'+i not in[boot_drive, sas_drive, sata_drive] :
+            if 'sd'+i not in[boot_drive, sas_drive, sata_drive]:
                 stdin, stdout, stderr = ssh.exec_command(
                     'rm /root/target_' + i + '.bin')
 
@@ -319,24 +285,25 @@ class test_kcs_io(unittest.TestCase):
                 lines = stdout.channel.recv(2048)
                 assert 'target_' + i + '.bin' not in lines
         ssh.close()
+        time.sleep(2)
 
     def test_sas_drive_erase(self):
         # Only format 1 sas drive here.
         # Otherwise, it will take long time which is not suitable for functional test.
         global sas_drive_serial
-        ssh = self.prepare_ssh()
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command('echo abcdefg > test_file')
         while not stdout.channel.exit_status_ready():
             pass
+        ssh.close()
+
         drive = self.get_drive(sas_drive_serial)
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command(
             'dd if=test_file of=/dev/'+drive+' bs=10M seek=8388607 count=1 conv=fsync')
         while not stdout.channel.exit_status_ready():
             pass
         ssh.exec_command('rm -rf test_file')
-        ssh.close()
-
-        ssh = self.prepare_ssh()
 
         # Check disk size, which should be 4GB
         stdin, stdout, stderr = ssh.exec_command('sg_readcap /dev/' + drive)
@@ -349,7 +316,9 @@ class test_kcs_io(unittest.TestCase):
             'sg_format --format /dev/'+drive)
         while not stdout.channel.exit_status_ready():
             pass
+        ssh.close()
 
+        ssh = helper.prepare_ssh()
         while True:
             stdin, stdout, stderr = ssh.exec_command(
                 'sg_requests -p /dev/'+drive)
@@ -370,15 +339,16 @@ class test_kcs_io(unittest.TestCase):
         # *
         # 00000200
         assert re.match(r"00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|\*\00000200", lines)
+        ssh.close()
 
     def test_sata_drive_erase_master_pw(self):
         # Only format 1 sata drive here.
         # Otherwise, it will take long time which is not suitable for functional test.
-        ssh = self.prepare_ssh()
         global sata_drive_serial
         drive = self.get_drive(sata_drive_serial)
         # Set master password
         master_pw = "master_password"
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command('hdparm --user-master m --security-set-pass '+master_pw+' /dev/'+drive)
 
         # Set user password and check if "Security Mode feature set" enabled.
@@ -393,13 +363,16 @@ class test_kcs_io(unittest.TestCase):
 
         ssh.close()
 
-        ssh = self.prepare_ssh()
+        ssh = helper.prepare_ssh()
         # Write disk
         stdin, stdout, stderr = ssh.exec_command('echo abcdefg > test_file')
         stdin, stdout, stderr = ssh.exec_command(
             'dd if=test_file of=/dev/'+drive+' bs=10M seek=8388607 count=1 conv=fsync')
         ssh.exec_command('rm -rf test_file')
+        ssh.close()
+
         # Erase disk
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command('hdparm --user-master m --security-erase '+master_pw+' /dev/'+drive)
         while not stdout.channel.exit_status_ready():
             pass
@@ -414,15 +387,15 @@ class test_kcs_io(unittest.TestCase):
 
         stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/'+drive)
         lines = stdout.channel.recv(2048)
-        ssh = self.prepare_ssh()
+        ssh.close()
 
         assert re.search(r"\*\s+Security Mode feature set", lines) is None
 
     def test_sata_drive_erase_usr_pw(self):
         # Only format 1 sata drive here.
         # Otherwise, it will take long time which is not suitable for functional test.
-        ssh = self.prepare_ssh()
         drive = self.get_drive(sata_drive_serial)
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/'+drive)
         lines = stdout.channel.recv(2048)
         assert re.search(r"\*\s+Security Mode feature set", lines) is None
@@ -439,20 +412,20 @@ class test_kcs_io(unittest.TestCase):
 
         ssh.close()
 
-        ssh = self.prepare_ssh()
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command('echo abcdefg > test_file')
         while not stdout.channel.exit_status_ready():
             pass
         ssh.close()
 
-        ssh = self.prepare_ssh()
-
+        ssh = helper.prepare_ssh()
         # Write to the last block of drive
         stdin, stdout, stderr = ssh.exec_command(
             'dd if=test_file of=/dev/'+drive+' bs=10M seek=8388607 count=1 conv=fsync')
-
         ssh.exec_command('rm -rf test_file')
+        ssh.close()
 
+        ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command('hdparm --user-master u --security-erase '+usr_pw+' /dev/'+drive)
         while not stdout.channel.exit_status_ready():
             pass

@@ -16,6 +16,7 @@ import string
 import random
 import subprocess
 import struct
+import paramiko
 from functools import wraps
 from ctypes import cdll
 from socket import AF_INET, AF_INET6, inet_ntop
@@ -636,6 +637,44 @@ class UnixSocket(object):
     def close(self):
         self.s.shutdown(2)
         self.s.close()
+
+
+def port_forward(node):
+    # Port forward from guest 22 to host 2222
+    time.sleep(3)
+    path = os.path.join(node.workspace.get_workspace(), ".monitor")
+    s = UnixSocket(path)
+    s.connect()
+    s.recv()
+
+    payload_enable_qmp = {
+        "execute": "qmp_capabilities"
+    }
+
+    s.send(json.dumps(payload_enable_qmp))
+    s.recv()
+
+    payload_port_forward = {
+        "execute":"human-monitor-command",
+        "arguments": {
+            "command-line": "hostfwd_add ::2222-:22"
+        }
+    }
+    s.send(json.dumps(payload_port_forward))
+    s.recv()
+
+    s.close()
+    time.sleep(3)
+
+def prepare_ssh():
+    # wait until system is ready for ssh.
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    paramiko.util.log_to_file("filename.log")
+    try_func(600, paramiko.SSHClient.connect, ssh,
+                    "127.0.0.1", port=2222, username="root",
+                    password="root", timeout=120)
+    return ssh
 
 def fw_cfg_file_create(cfg_list, workspace):
     file_path = os.path.join(workspace, "data", "pci_topo_cfg")

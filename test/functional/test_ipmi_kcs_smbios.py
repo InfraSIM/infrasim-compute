@@ -87,32 +87,7 @@ def start_node(node_type):
     node.init()
     node.precheck()
     node.start()
-
-    time.sleep(3)
-
-    # Port forward from guest 22 to host 2222
-    path = os.path.join(node.workspace.get_workspace(), ".monitor")
-    s = UnixSocket(path)
-    s.connect()
-    s.recv()
-
-    payload_enable_qmp = {
-        "execute": "qmp_capabilities"
-    }
-
-    s.send(json.dumps(payload_enable_qmp))
-    s.recv()
-
-    payload_port_forward = {
-        "execute": "human-monitor-command",
-        "arguments": {
-            "command-line": "hostfwd_add ::2222-:22"
-        }
-    }
-    s.send(json.dumps(payload_port_forward))
-    s.recv()
-
-    s.close()
+    helper.port_forward(node)
 
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
