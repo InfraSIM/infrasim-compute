@@ -82,6 +82,13 @@ def teardown_module():
     os.environ["PATH"] = old_path
 
 
+def set_port_forward_try_ssh(node):
+    helper.port_forward(node)
+    ssh = helper.prepare_ssh()
+    ssh.close()
+    time.sleep(5)
+
+
 class test_node_with_bridge(unittest.TestCase):
 
     def setUp(self):
@@ -231,43 +238,6 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
         node.terminate_workspace()
         self.conf = None
 
-    def set_port_forward(self):
-        time.sleep(3)
-
-        # Port forward from guest 22 to host 2222
-        path = os.path.join(self.workspace, ".monitor")
-        s = helper.UnixSocket(path)
-        s.connect()
-        s.recv()
-
-        payload_enable_qmp = {
-            "execute": "qmp_capabilities"
-        }
-
-        s.send(json.dumps(payload_enable_qmp))
-        s.recv()
-
-        payload_port_forward = {
-            "execute":"human-monitor-command",
-            "arguments": {
-                "command-line": "hostfwd_add ::2222-:22"
-            }
-        }
-        s.send(json.dumps(payload_port_forward))
-        s.recv()
-
-        s.close()
-
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        paramiko.util.log_to_file("filename.log")
-        helper.try_func(600, paramiko.SSHClient.connect, ssh,
-                        "127.0.0.1", port=2222, username="root",
-                        password="root", timeout=120)
-        ssh.close()
-
-        time.sleep(5)
-
     def verify_qemu_local_lan(self, expects):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -296,7 +266,7 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
         node.precheck()
         node.start()
 
-        self.set_port_forward()
+        set_port_forward_try_ssh(node)
         self.verify_qemu_local_lan({"IP Address": "0.0.0.0", "MAC Address": "00:00:00:00:00:00"})
 
     def test_bmc_intf_exists_no_ip(self):
@@ -312,7 +282,7 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
         node.start()
 
         mac_addr = run_command("cat /sys/class/net/{}/address".format(FAKE_BRIDGE))[1]
-        self.set_port_forward()
+        set_port_forward_try_ssh(node)
         self.verify_qemu_local_lan(
             {"IP Address": "0.0.0.0", "MAC Address": "{}".format(mac_addr)})
 

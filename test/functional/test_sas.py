@@ -42,6 +42,8 @@ def setup_module():
         assert False
 
     os.environ["PATH"] = new_path
+    if os.path.exists("/tmp/topo"):
+        shutil.rmtree("/tmp/topo")
     os.makedirs("/tmp/topo")
 
 
@@ -166,22 +168,8 @@ def start_node(node_type):
     node.precheck()
     node.start()
 
-    time.sleep(3)
-    import telnetlib
-    tn = telnetlib.Telnet(host="127.0.0.1", port=2345)
-    tn.read_until("(qemu)")
-    tn.write("hostfwd_add ::2222-:22\n")
-    tn.read_until("(qemu)")
-    tn.close()
-
-    time.sleep(3)
-# wait until system is ready for ssh.
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    paramiko.util.log_to_file("filename.log")
-    helper.try_func(600, paramiko.SSHClient.connect, ssh, "127.0.0.1",
-                    port=2222, username="root", password="root", timeout=120)
-    ssh.close()
+    helper.port_forward(node)
+    ssh = helper.prepare_ssh()
 
 
 def stop_node():
@@ -220,7 +208,7 @@ class test_disk_array_topo(unittest.TestCase):
     def tearDownClass(cls):
         stop_node()
 
-    def test_scsi_disk_serial(self):
+    def test_sasi_disk_serial(self):
         # check the availability of drives and enclosures.
         drv_list = run_cmd("ls /dev/sd*").split(" ")
         for i in drv_list:
