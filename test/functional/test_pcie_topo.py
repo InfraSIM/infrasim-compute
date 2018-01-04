@@ -310,7 +310,7 @@ class test_pcie_topo(unittest.TestCase):
 
     def test_nvme_bdf(self):
         # check nvme bdf match config
-        nvme_bus_list, cfg_list = self.get_cfg_list('f117')
+        nvme_bus_list, cfg_list = self.get_cfg_list('8606')
         nvme_cfg_list = [x for x in conf["compute"]["storage_backend"] if x['type'] == 'nvme']
         nvme_cfg_bus_list = []
         for rp in cfg_list:
