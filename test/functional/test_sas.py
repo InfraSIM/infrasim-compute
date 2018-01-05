@@ -135,7 +135,10 @@ def start_node(node_type):
                                     }
                                 ],
                                 "side": 0,
-                                "name": "lcc-a"
+                                "name": "lcc-a",
+                                "ses": {
+                                   "buffer_data": "/home/infrasim/workspace/bins/buffer.bin"
+                                }
                             },
                             {
                                 "phy_count": 36,
@@ -153,7 +156,10 @@ def start_node(node_type):
                                     }
                                 ],
                                 "side": 1,
-                                "name": "lcc-b"
+                                "name": "lcc-b",
+                                "ses": {
+                                   "buffer_data": "/home/infrasim/workspace/bins/buffer.bin"
+                                }
                             }
                         ]
                     },

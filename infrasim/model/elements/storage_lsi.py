@@ -19,6 +19,7 @@ class LSISASController(CBaseStorageController):
         self._iothread_id = None
         self.__use_msix = None
         self.__dae_file = None
+        self.__sas_address = None
 
     def precheck(self):
         # call parent precheck()
@@ -29,6 +30,7 @@ class LSISASController(CBaseStorageController):
 
         self._iothread_id = self._controller_info.get("iothread")
         self.__use_msix = self._controller_info.get('use_msix')
+        self.__sas_address = self._controller_info.get('sas_address')
 
         self._start_idx = self.controller_index
         idx = 0
@@ -76,6 +78,9 @@ class LSISASController(CBaseStorageController):
 
             if self.__use_msix is not None:
                 self._attributes["use_msix"] = self.__use_msix
+                
+            if self.__sas_address:
+                self._attributes["sas_address"] = self.__sas_address
 
             if self.__dae_file is not None:
                 self._attributes["dae_file"] = self.__dae_file
