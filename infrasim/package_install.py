@@ -27,23 +27,6 @@ def install_official_packages():
 
 
 def install_bintray_packages(repo, package):
-#    qemu_version = "1.0"
-#    download_link = BASE_URL + repo + "/" + package + \
-#         "/versions/" + qemu_version + "/files"
-#    response = requests.get(download_link)
-#    data = response.json()
-#    latest_time = data[0]["created"]
-#    path = ""
-#    file_name = ""
-#    sha256 = ""
-#    for item in data:
-#        if item["created"] >= latest_time:
-#            latest_time = item["created"]
-#            path = item["path"]
-#            file_name = item["name"]
-#            sha256 = item["sha256"]
-#    response = requests.get(
-#        "https://dl.bintray.com/infrasim/" + repo + "/" + path)
     print "downloading " + package + "..."
     if package is "Infrasim_Qemu":
         path = "pool/main/I/Infrasim_Qemu/"\
