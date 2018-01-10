@@ -27,9 +27,9 @@ def install_official_packages():
 
 
 def install_bintray_packages(repo, package):
-    print "downloading " + package + "..."
 #    qemu_version = "1.0"
-#    download_link = BASE_URL + repo + "/" + package + "/versions/" + qemu_version + "/files"
+#    download_link = BASE_URL + repo + "/" + package + \
+#         "/versions/" + qemu_version + "/files"
 #    response = requests.get(download_link)
 #    data = response.json()
 #    latest_time = data[0]["created"]
@@ -44,17 +44,23 @@ def install_bintray_packages(repo, package):
 #            sha256 = item["sha256"]
 #    response = requests.get(
 #        "https://dl.bintray.com/infrasim/" + repo + "/" + path)
+    print "downloading " + package + "..."
     if package is "Infrasim_Qemu":
-        path = "pool/main/I/Infrasim_Qemu/infrasim-qemu_2.10.1-ubuntu-xenial-1.0.202_amd64.deb"
+        path = "pool/main/I/Infrasim_Qemu/"\
+            "infrasim-qemu_2.10.1-ubuntu-xenial-1.0.202_amd64.deb"
         file_name = "infrasim-qemu_2.10.1-ubuntu-xenial-1.0.202_amd64.deb"
-        sha256 = "f7394ecb2a6b00acd9d21ad017043c2cdf44c5f37ed85992699618c8a8f4879c"
+        sha256 = "f7394ecb2a6b00acd9d21ad0170"\
+            "43c2cdf44c5f37ed85992699618c8a8f4879c"
     if package is "OpenIpmi":
-        path = "pool/main/O/OpenIpmi/infrasim-openipmi_2.0.22-1.0.26ubuntu16.04_amd64.deb"
+        path = "pool/main/O/OpenIpmi/"\
+            "infrasim-openipmi_2.0.22-1.0.26ubuntu16.04_amd64.deb"
         file_name = "infrasim-openipmi_2.0.22-1.0.26ubuntu16.04_amd64.deb"
-        sha256 = "2e1d81c6410263ce696310a14f4e9dea315aafc16b30dc9f04abb0c927970e5e"
+        sha256 = "2e1d81c6410263ce696310a14f4e9"\
+            "dea315aafc16b30dc9f04abb0c927970e5e"
     if package is "Seabios":
         path = "infrasim-seabios_1.0-6ubuntu16.04_amd64.bin"
-        sha256 = "1a5c2ca8c2ef1e136b5e01aa36b72369c2e7207e7f850fe56c304979f877681c"
+        sha256 = "1a5c2ca8c2ef1e136b5e01aa36b72"\
+            "369c2e7207e7f850fe56c304979f877681c"
     response = requests.get(
         "https://dl.bintray.com/infrasim/" + repo + "/" + path)
     if not response:
