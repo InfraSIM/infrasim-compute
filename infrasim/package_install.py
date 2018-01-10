@@ -27,25 +27,23 @@ def install_official_packages():
 
 
 def install_bintray_packages(repo, package):
-    # get latest version number
-    package_link = BASE_URL + repo + "/" + package
-    response  = requests.get(package_link)
-    data = response.json()
-    max_version = max(map(float, data["versions"]))
-    print("downloading {} {}...".format(package, max_version))
-    download_link = BASE_URL + repo + "/" + package + "/versions/" + str(max_version) + "/files"
-    response = requests.get(download_link)
-    data = response.json()
-    latest_time = data[0]["created"]
-    path = ""
-    file_name = ""
-    sha256 = ""
-    for item in data:
-        if item["created"] >= latest_time:
-            latest_time = item["created"]
-            path = item["path"]
-            file_name = item["name"]
-            sha256 = item["sha256"]
+    print "downloading " + package + "..."
+    if package is "Infrasim_Qemu":
+        path = "pool/main/I/Infrasim_Qemu/"\
+            "infrasim-qemu_2.10.1-ubuntu-xenial-1.0.202_amd64.deb"
+        file_name = "infrasim-qemu_2.10.1-ubuntu-xenial-1.0.202_amd64.deb"
+        sha256 = "f7394ecb2a6b00acd9d21ad0170"\
+            "43c2cdf44c5f37ed85992699618c8a8f4879c"
+    if package is "OpenIpmi":
+        path = "pool/main/O/OpenIpmi/"\
+            "infrasim-openipmi_2.0.22-1.0.26ubuntu16.04_amd64.deb"
+        file_name = "infrasim-openipmi_2.0.22-1.0.26ubuntu16.04_amd64.deb"
+        sha256 = "2e1d81c6410263ce696310a14f4e9"\
+            "dea315aafc16b30dc9f04abb0c927970e5e"
+    if package is "Seabios":
+        path = "infrasim-seabios_1.0-6ubuntu16.04_amd64.bin"
+        sha256 = "1a5c2ca8c2ef1e136b5e01aa36b72"\
+            "369c2e7207e7f850fe56c304979f877681c"
     response = requests.get(
         "https://dl.bintray.com/infrasim/" + repo + "/" + path)
     if not response:
@@ -65,7 +63,7 @@ def install_bintray_packages(repo, package):
         raise Exception(
             "The file {} downloaded is not complete, please try again!")
     if package is not "Seabios":
-        print("installing {} {}...".format(package, max_version))
+        print "installing " + package + "..."
         run_command("dpkg -i " + file_name)
 
 def check_package(package = "Qemu", cmd = "which qemu-system-x86_64"):
