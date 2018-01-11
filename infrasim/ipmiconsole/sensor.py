@@ -175,7 +175,7 @@ class Sensor:
     def set_threshold_value(self, value):
         self.value = value
         command = "sensor_set_value " + hex(self.mc) + " " \
-              + hex(self.lun) + " " + hex(self.ID) + " " + hex(value) + " 0x01\n"
+            + hex(self.lun) + " " + hex(self.ID) + " " + hex(value) + " 0x01\n"
         send_ipmi_sim_command(command)
 
     @with_type('discrete')
@@ -342,14 +342,14 @@ class Sensor:
         formula_2 = lambda x: (x / (10**Rexpo) - B*10**Bexpo) / M
         return (formula_1, formula_2)
 
-    #settable threshold mask
+    # settable threshold mask
     def set_stm(self, stm):
         self.stm = stm
 
     def get_stm(self):
         return self.stm
 
-    #readable threshold mask
+    # readable threshold mask
     def set_rtm(self, rtm):
         self.rtm = rtm
 
@@ -388,22 +388,22 @@ class Sensor:
     def get_lnr(self):
         return self.lnr
 
-    #set upper non-critical threshold
-    def set_unc(self,unc):
+    # set upper non-critical threshold
+    def set_unc(self, unc):
         self.unc = unc
 
     def get_unc(self):
         return self.unc
 
-    #set upper cirtical threshold
-    def set_uc(self,uc):
+    # set upper cirtical threshold
+    def set_uc(self, uc):
         self.uc = uc
 
     def get_uc(self):
         return self.uc
 
-    #set upper non-recoverable threshold
-    def set_unr(self,unr):
+    # set upper non-recoverable threshold
+    def set_unr(self, unr):
         self.unr = unr
 
     def get_unr(self):
@@ -594,19 +594,18 @@ class Sensor:
         while not self.quit:
             self.condition.acquire()
             try:
-                if self.mode == "user": # user mode
+                if self.mode == "user":  # user mode
                     self.condition.wait()
-                    if self.quit == True:
+                    if self.quit is True:
                         return
                 else:
-                    #(lnc, unc) = self.get_lnc_unc()
-                    if self.mode == "auto": # auto mode
+                    if self.mode == "auto":  # auto mode
                         s_value = self.get_random_value()
-                    else: # fault mode
+                    else:  # fault mode
                         s_value = self.get_fault_value()
                         self.mode = "user"
 
-                    if s_value == None:
+                    if s_value is None:
                         continue
 
                     self.value = s_value
@@ -615,9 +614,9 @@ class Sensor:
                         + hex(self.lun) + " " + hex(self.ID) + " " + hex(s_value) + " 0x01\n"
                     send_ipmi_sim_command(command)
 
-                    if self.mode == "auto": # auto mode
+                    if self.mode == "auto":  # auto mode
                         self.condition.wait(5)
-                        if self.quit == True:
+                        if self.quit is True:
                             return
             # we release the lock so that master thread could join us
             # and release the thread resource

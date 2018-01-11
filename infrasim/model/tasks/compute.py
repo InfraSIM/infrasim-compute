@@ -19,23 +19,13 @@ from infrasim.model.elements.chardev import CCharDev
 from infrasim.model.elements.cpu import CCPU
 from infrasim.model.elements.memory import CMemory
 from infrasim.model.elements.backend import CBackendStorage
-from infrasim.model.elements.storage import CBaseStorageController
-from infrasim.model.elements.storage_lsi import LSISASController
-from infrasim.model.elements.storage_mega import MegaSASController
-from infrasim.model.elements.storage_ahci import AHCIController
-from infrasim.model.elements.drive import CBaseDrive
-from infrasim.model.elements.drive_scsi import SCSIDrive
-from infrasim.model.elements.drive_ide import IDEDrive
-from infrasim.model.elements.drive_nvme import NVMeController
-from infrasim.model.elements.ses import SESDevice
 from infrasim.model.elements.backend import CBackendNetwork
-from infrasim.model.elements.network import CNetwork
 from infrasim.model.elements.ipmi import CIPMI
 from infrasim.model.elements.pci_topo import CPCITopologyManager
 from infrasim.model.elements.fw_cfg import CPCIEFwcfg
 from infrasim.model.elements.pcie_topology import CPCIETopology
-from infrasim.model.elements.pci_bridge import CPCIBridge
 from infrasim.model.elements.qemu_monitor import CQemuMonitor
+from infrasim.model.elements.machine import CMachine
 
 
 class CCompute(Task, CElement):
@@ -62,7 +52,6 @@ class CCompute(Task, CElement):
         self.__numactl_info = False
         self.__numactl_mode = None
         self.__cdrom_file = None
-        self.__monitor = None
         self.__display = None
 
         # Node wise attributes
@@ -74,7 +63,6 @@ class CCompute(Task, CElement):
         self.__cmdline = None
         self.__mem_path = None
         self.__extra_option = None
-        self.__iommu = False
         self.__monitor = None
         self.__enable_monitor = False
 
@@ -100,7 +88,6 @@ class CCompute(Task, CElement):
 
     def get_smbios(self):
         return self.__smbios
-
 
     @run_in_namespace
     def precheck(self):
@@ -200,11 +187,15 @@ class CCompute(Task, CElement):
         self.__cmdline = self.__compute.get("cmdline")
 
         self.__mem_path = self.__compute.get("mem_path")
+        self.__machine = self.__compute.get("machine")
 
         self.__extra_option = self.__compute.get("extra_option")
         self.__qemu_bin = self.__compute.get("qemu_bin", self.__qemu_bin)
-        self.__iommu = self.__compute.get("iommu")
         self.__force_shutdown = self.__compute.get("force_shutdown", True)
+
+        machine_obj = CMachine(self.__machine)
+        machine_obj.logger = self.logger
+        self.__element_list.append(machine_obj)
 
         cpu_obj = CCPU(self.__compute['cpu'])
         cpu_obj.logger = self.logger
@@ -233,7 +224,6 @@ class CCompute(Task, CElement):
             pcie_topology_obj.logger = self.logger
             self.__element_list.append(pcie_topology_obj)
             self.__element_list.append(fw_cfg_obj)
-
 
         backend_storage_obj = CBackendStorage(self.__compute['storage_backend'])
         backend_storage_obj.logger = self.logger
@@ -356,11 +346,6 @@ class CCompute(Task, CElement):
             boot_param.append("splash-time={}".format(self.__boot_splash_time))
         tmp = ","
         self.add_option("-boot {}".format(tmp.join(boot_param)))
-
-        machine_option = "-machine q35,usb=off,vmport=off"
-        if self.__iommu:
-            machine_option = ",".join([machine_option, "iommu=on"])
-        self.add_option(machine_option)
 
         if self.__cdrom_file:
             self.add_option("-cdrom {}".format(self.__cdrom_file))

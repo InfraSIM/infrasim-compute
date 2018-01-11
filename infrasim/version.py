@@ -16,7 +16,7 @@ def version():
     version_str += "{:<10}: {}\n".format("QEMU", run_command(qemu_ver_cmd)[1].split('\n')[0])
     version_str += "{:<10}: {}\n".format("OpenIPMI", run_command(ipmi_ver_cmd)[1].split('\n')[0])
     version_str += "{:<10}: {}\n".format("Socat",
-                                        ' '.join(run_command(socat_ver_cmd)[1].split('\n')[1].split(' ')[0:3]))
+                                         ' '.join(run_command(socat_ver_cmd)[1].split('\n')[1].split(' ')[0:3]))
 
     version_str += "{:<10}: infrasim-compute version {}\n".format("InfraSIM", infrasim.__version__)
     return version_str

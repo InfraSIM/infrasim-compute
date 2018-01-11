@@ -31,8 +31,8 @@ class CMonitor(Task):
         if not helper.is_valid_ip(self.__ip):
             self.logger.exception("[Monitor] Invalid IP: {} of interface: {}".
                                   format(self.__ip, self.__interface))
-            raise ArgsNotCorrect("Invalid IP: {} of interface: {}".
-                                  format(self.__ip, self.__interface))
+            raise ArgsNotCorrect("Invalid IP: {} of interface: {}".format(
+                self.__ip, self.__interface))
 
         if helper.check_if_port_in_use(self.__ip, self.__port):
             self.logger.exception("[Monitor] Monitor port {}:{} is already in use.".

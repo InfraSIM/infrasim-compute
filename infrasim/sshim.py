@@ -46,6 +46,7 @@ jCrc8nTlA0K0LtEnE+4g0an76nSWUNiP4kALROfZpXajRRaWdwFRAO17c9T7Uxc0
 Eez9wYRqHiuvU0rryYvGyokr62w1MtJO0tttnxe1Of6wzb1WeCU=
 -----END RSA PRIVATE KEY-----"""))
 
+
 class Counter(object):
     def __init__(self, mutex=None):
         self.mutex = mutex or threading.Lock()
@@ -68,6 +69,7 @@ class Counter(object):
         with self.condition:
             while self.count:
                 self.condition.wait()
+
 
 class Handler(paramiko.server.ServerInterface):
     def __init__(self, server, connection):
@@ -111,6 +113,7 @@ class Handler(paramiko.server.ServerInterface):
     def check_channel_pty_request(self, channel, term, width, height, pixelwidth, pixelheight, modes):
         logger.debug('Channel(%d) was granted a pty request', channel.chanid)
         return True
+
 
 class Server(threading.Thread):
     """
@@ -187,7 +190,6 @@ class Server(threading.Thread):
                         msg = 'sshim.Server accepted connection from {}:{}'.\
                             format(address[0], address[1])
                         self.add_msg(msg)
-                        #if connection.recv(1, socket.MSG_PEEK):
                         self.handler(self, (connection, address))
             except (select.error, socket.error) as exception:
                 if hasattr(exception, 'errno'):
@@ -198,8 +200,8 @@ class Server(threading.Thread):
                     if code != errno.EBADF:
                         raise
         except:
-          self.exceptions.put_nowait(sys.exc_info())
-          raise
+            self.exceptions.put_nowait(sys.exc_info())
+            raise
 
 
 class Actor(threading.Thread):
@@ -245,6 +247,7 @@ class Actor(threading.Thread):
                     self.channel.close()
                 except EOFError:
                     logger.debug('Channel already closed')
+
 
 class Script(object):
     """

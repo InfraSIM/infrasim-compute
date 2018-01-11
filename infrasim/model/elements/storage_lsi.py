@@ -78,7 +78,7 @@ class LSISASController(CBaseStorageController):
 
             if self.__use_msix is not None:
                 self._attributes["use_msix"] = self.__use_msix
-                
+
             if self.__sas_address:
                 self._attributes["sas_address"] = self.__sas_address
 

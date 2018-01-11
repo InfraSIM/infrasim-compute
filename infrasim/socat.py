@@ -17,7 +17,7 @@ def get_socat():
     try:
         code, socat_cmd = run_command("which socat")
         return socat_cmd.strip(os.linesep)
-    except CommandRunFailed as e:
+    except CommandRunFailed:
         raise CommandNotFound("/usr/bin/socat")
 
 
@@ -25,7 +25,7 @@ def status_socat():
     try:
         run_command("pidof socat")
         print "Infrasim Socat service is running"
-    except CommandRunFailed as e:
+    except CommandRunFailed:
         print "Inrasim Socat service is stopped"
 
 
@@ -69,5 +69,5 @@ def stop_socat(conf_file=config.infrasim_default_config):
     try:
         run_command(socat_stop_cmd, True, None, None)
         logger.info("socat stop")
-    except CommandRunFailed as e:
+    except CommandRunFailed:
         logger.error("socat stop failed")

@@ -207,10 +207,10 @@ def _get_all_interfaces():
                 logger.error(e)
                 logger.info("-------> {}".format(i))
 
-
         return retval.values()
     finally:
         libc.freeifaddrs(ifap)
+
 
 def get_all_interfaces():
     intf_list = []
@@ -219,6 +219,7 @@ def get_all_interfaces():
         intf_list.append(interface.get_interface_name())
 
     return intf_list
+
 
 @run_in_namespace
 def ip4_addresses(netns=None):
@@ -333,12 +334,13 @@ def try_func(times, func, *args, **kwargs):
     for i in range(times):
         try:
             return func(*args, **kwargs)
-        except Exception as e:
+        except Exception:
             time.sleep(0.5)
             continue
     raise Exception(
         "Tried {} times already, but still failed to run {}".format(
             times, func))
+
 
 def literal_string(s):
     char_backspace = re.compile("[^\b]\b")
@@ -353,6 +355,7 @@ def literal_string(s):
             return any_backspaces.sub("", t)
         s = t
 
+
 def is_valid_ip(ip):
     '''
     [Function]: This function is to judge if ip is a valid IP, in str or int list
@@ -364,20 +367,20 @@ def is_valid_ip(ip):
     if type(ip) in [types.StringType, types.UnicodeType]:
         p = re.search('^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$', ip)
         if p:
-            for i in range(1,5):
-                if int(p.group(i),0) not in range(0,256):
+            for i in range(1, 5):
+                if int(p.group(i), 0) not in range(0, 256):
                     return False
             return True
         else:
             return False
-    elif type(ip) is types.ListType:
+    elif isinstance(ip, types.ListType):
         if len(ip) != 4:
             return False
         else:
             for i in range(4):
-                if type(ip[i]) is not types.IntType:
+                if isinstance(ip[i], types.IntType):
                     return False
-                elif ip[i] not in range(0,256):
+                elif ip[i] not in range(0, 256):
                     return False
             return True
     else:
@@ -533,6 +536,7 @@ class NumaCtl(object):
         cpu_list = []
         assigned_count = 0
         socket_to_use = -1
+        socket = None
 
         # Find available socket (with enough processor) to bind
         for socket in self._socket_list:
@@ -655,7 +659,7 @@ def port_forward(node):
     s.recv()
 
     payload_port_forward = {
-        "execute":"human-monitor-command",
+        "execute": "human-monitor-command",
         "arguments": {
             "command-line": "hostfwd_add ::2222-:22"
         }
@@ -666,15 +670,17 @@ def port_forward(node):
     s.close()
     time.sleep(3)
 
+
 def prepare_ssh():
     # wait until system is ready for ssh.
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     paramiko.util.log_to_file("filename.log")
     try_func(600, paramiko.SSHClient.connect, ssh,
-                    "127.0.0.1", port=2222, username="root",
-                    password="root", timeout=120)
+             "127.0.0.1", port=2222, username="root",
+             password="root", timeout=120)
     return ssh
+
 
 def fw_cfg_file_create(cfg_list, workspace):
     file_path = os.path.join(workspace, "data", "pci_topo_cfg")

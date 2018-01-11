@@ -15,4 +15,3 @@ VBMC_PORT = 623
 
 # local_env is a thread-safe variable set
 local_env = threading.local()
-

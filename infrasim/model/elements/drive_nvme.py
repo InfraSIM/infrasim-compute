@@ -22,6 +22,11 @@ class NVMeController(CBaseDrive):
         self.__controller_index = 0
         self.__bus = None
         self.__config_file = None
+        self.__namespaces = None
+        self.__nlbaf = None
+        self.__lba_index = None
+        self.__vid = None
+        self.__did = None
 
     def get_uniq_name(self):
         return "{}".format(self.__controller_index)
@@ -44,13 +49,18 @@ class NVMeController(CBaseDrive):
             self.__bus = self._drive_info.get("bus")
 
         self.__config_file = self._drive_info.get("config_file")
+        self.__namespaces = self._drive_info.get("namespaces")
+        self.__nlbaf = self._drive_info.get("nlbaf")
+        self.__lba_index = self._drive_info.get("lba_index")
+        self.__vid = self._drive_info.get("vendor_id")
+        self.__did = self._drive_info.get("device_id")
 
     def precheck(self):
         # Since QEMU support CMB size in MB, we recognize 1k, 4k
         # CMB size as invalid here.
         if self._cmb_size_in_mb not in [1, 16, 256, 4096, 65536]:
-            raise ArgsNotCorrect("[NVMe{}] CMB size {} is invalid".
-                                  format(self.__controller_index, self._cmb_size_in_mb))
+            raise ArgsNotCorrect("[NVMe{}] CMB size {} is invalid".format(
+                self.__controller_index, self._cmb_size_in_mb))
 
     def handle_parms(self):
         super(NVMeController, self).handle_parms()
@@ -73,5 +83,14 @@ class NVMeController(CBaseDrive):
 
         if self.__config_file:
             self._dev_attrs["config_file"] = self.__config_file
+
+        if self.__namespaces:
+            self._dev_attrs["namespaces"] = self.__namespaces
+
+        if self.__nlbaf:
+            self._dev_attrs["nlbaf"] = self.__nlbaf
+
+        if self.__lba_index is not None:
+            self._dev_attrs["lba_index"] = self.__lba_index
 
         self.add_option(self.build_device_option(self._name, **self._dev_attrs))

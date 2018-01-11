@@ -17,7 +17,7 @@ class CChassis(object):
         "destroy": CNode.terminate_workspace
     }
 
-    def process_by_node_names(self,action, *args):
+    def process_by_node_names(self, action, *args):
         node_names = list(args) or self.__node_list.keys()
         all_node_names = set(self.__node_list.keys())
         selected_node_names = all_node_names.intersection(set(node_names))

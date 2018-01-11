@@ -12,7 +12,7 @@ from infrasim.config_manager import NodeMap
 from infrasim.workspace import Workspace
 from texttable import Texttable
 from global_status import InfrasimMonitor
-from infrasim import WorkspaceExisting, CommandRunFailed, CommandNotFound, InfraSimError
+from infrasim import InfraSimError
 from .log import LoggerType, infrasim_log
 
 nm = NodeMap()
@@ -302,6 +302,7 @@ class InfrasimCommands(object):
         monitor.print_global_status()
         logger_cmd.info("cmd res: get global status OK")
 
+
 def methods_of(obj):
     result = []
     for i in dir(obj):
@@ -380,7 +381,7 @@ def command_handler():
     init_parser.add_argument("-s", "--skip-installation", action="store_true",
                              help="Ignore qemu/openipmi package installation")
     init_parser.add_argument("-f", "--force", action="store_true",
-                            help="Destroy existing Nodes")
+                             help="Destroy existing Nodes")
     init_parser.add_argument("-i", "--infrasim-home", action="store",
                              help="Target infrasim home folder,"
                                   " default $HOME/.infrasim")
@@ -410,7 +411,6 @@ def command_handler():
                                               eval(str(e)))
             logger_cmd.error("cmd res: {} \n".format(msg))
             sys.exit(msg)
-
 
     elif hasattr(args, "version"):
         # Print version

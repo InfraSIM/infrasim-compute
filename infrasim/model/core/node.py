@@ -52,7 +52,7 @@ class CNode(object):
         if self.__is_running():
             return
 
-        for task in self.__tasks_list:\
+        for task in self.__tasks_list:
             task.precheck()
 
     def terminate_workspace(self):

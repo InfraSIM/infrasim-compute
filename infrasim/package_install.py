@@ -73,7 +73,8 @@ def install_bintray_packages(repo, package):
         print("installing {} {}...".format(package, infrasim_version))
         run_command("dpkg -i " + file_name)
 
-def check_package(package = "Qemu", cmd = "which qemu-system-x86_64"):
+
+def check_package(package="Qemu", cmd="which qemu-system-x86_64"):
     has_package = True
     # Check if package installed
     try:
@@ -95,6 +96,7 @@ def check_package(package = "Qemu", cmd = "which qemu-system-x86_64"):
             install_package = False
 
     return has_package, install_package
+
 
 def package_install():
     install_official_packages()

@@ -39,5 +39,4 @@ class CPCIEFwcfg(CElement):
 
     def handle_parms(self):
         if self.__fw_cfg_file:
-            self.add_option("-fw_cfg name=opt/bios.pci_topo,file={}".
-                                        format(self.__fw_cfg_file))
+            self.add_option("-fw_cfg name=opt/bios.pci_topo,file={}".format(self.__fw_cfg_file))

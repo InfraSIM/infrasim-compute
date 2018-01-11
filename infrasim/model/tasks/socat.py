@@ -9,7 +9,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import os
 from infrasim import CommandNotFound, ArgsNotCorrect, CommandRunFailed
 from infrasim import config
-from infrasim import has_option, run_command
+from infrasim import run_command
 from infrasim.model.core.task import Task
 
 

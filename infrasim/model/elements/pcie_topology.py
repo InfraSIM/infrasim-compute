@@ -28,10 +28,10 @@ class CPCIETopology(CElement):
 
         if position is True:
             self.__pcie_option = " ".join(["{}".format(self.__pcie_option),
-                                         "{}".format(option)])
+                                           "{}".format(option)])
         else:
             self.__pcie_option = " ".join(["{}".format(option),
-                                         "{}".format(self.__pcie_option)])
+                                           "{}".format(self.__pcie_option)])
 
     def build_topo(self, component):
         list_tmp = []
