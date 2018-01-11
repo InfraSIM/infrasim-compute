@@ -93,14 +93,13 @@ class CNetwork(CElement):
                                "mac={}".format(self.__mac_address)])
         if self.__bus:
             nic_option = ",".join(["{}".format(nic_option),
-                                 "bus={}".format(self.__bus)])
+                                   "bus={}".format(self.__bus)])
         if self.__addr:
             nic_option = ",".join(["{}".format(nic_option),
-                                 "addr={}".format(self.__addr)])
+                                   "addr={}".format(self.__addr)])
         if self.__multifunction:
             nic_option = ",".join(["{}".format(nic_option),
-                                 "multifunction={}".format(self.__multifunction)])
-
+                                   "multifunction={}".format(self.__multifunction)])
 
         network_option = " ".join(["-netdev {}".format(netdev_option),
                                    "-device {}".format(nic_option)])

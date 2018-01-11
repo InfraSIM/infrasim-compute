@@ -67,8 +67,8 @@ class CPCIEPort(CElement):
                                                            self.__slot)
         if self.__addr:
             self.__port_option = ','.join([self.__port_option,
-                                             'addr={}'.format(self.__addr)])
+                                           'addr={}'.format(self.__addr)])
         if self.__multifunction:
             self.__port_option = ','.join([self.__port_option,
-                                             'multifunction={} '.format(self.__multifunction)])
+                                           'multifunction={} '.format(self.__multifunction)])
         self.add_option(self.__port_option)

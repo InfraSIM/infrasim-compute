@@ -60,7 +60,7 @@ class CCharDev(CElement):
         if self.__port:
             try:
                 int(self.__port)
-            except ValueError, e:
+            except ValueError:
                 raise ArgsNotCorrect("[Chardev] Port is not a valid integer: {}".format(self.__port))
 
             if helper.check_if_port_in_use("0.0.0.0", self.__port):
