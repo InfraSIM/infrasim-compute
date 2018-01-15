@@ -122,6 +122,13 @@ class Workspace(object):
             shutil.copy(path_bios_src, os.path.join(path_data_dst,
                                                     "{}_smbios.bin".
                                                     format(node_type)))
+
+        # VII. Move vpd_data.bin
+        if "nvme" in [ x['type'] for x in self.__node_info["compute"]["storage_backend"]]:
+            path_oem_file_src = os.path.join(config.infrasim_data, "oem_data.json")
+            if os.path.exists(path_oem_file_src):
+                shutil.copy(path_oem_file_src, os.path.join(path_data_dst, "oem_data.json"))
+
             # Place holder to sync serial number
 
     def terminate(self):
