@@ -18,6 +18,7 @@ class CBaseStorageController(CElement):
         self._ptm = None
         self._controller_info = None
         self._model = None
+        self._bus = None
         self._attributes = {}
         # record the controller index inside this instance
         self.__controller_index = 0
@@ -48,6 +49,7 @@ class CBaseStorageController(CElement):
     def init(self):
         self._model = self._controller_info.get('type')
         self._max_drive_per_controller = self._controller_info.get("max_drive_per_controller", 6)
+        self._bus = self._controller_info.get('bus')
 
     def _build_one_controller(self, *args, **kwargs):
         name = args[0]
@@ -73,6 +75,8 @@ class CBaseStorageController(CElement):
         for ses_obj in self._ses_list:
             self.add_option(ses_obj.get_option())
 
+        if self._bus:
+            self._attributes["bus"] = self._bus
         # controller attributes if there are some
         # common attributes for all controllers
         # add them into self._attributes here.
