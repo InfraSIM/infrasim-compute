@@ -5,15 +5,9 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 """
 import unittest
 import os
-import yaml
 import time
-import paramiko
-import subprocess
-import re
-import json
 from infrasim import model
 from infrasim import helper
-from infrasim.helper import UnixSocket
 from test import fixtures
 
 old_path = os.environ.get('PATH')
