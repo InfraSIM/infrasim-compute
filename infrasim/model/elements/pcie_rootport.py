@@ -11,4 +11,3 @@ from infrasim.model.elements.pcie_port import CPCIEPort
 
 class CPCIERootport(CPCIEPort):
     pass
-

@@ -14,6 +14,7 @@ from .log import LoggerType, infrasim_log
 
 logger = infrasim_log.get_logger(LoggerType.config.value)
 
+
 class NodeMap(object):
     """
     This is a class manages infrasim mapping.

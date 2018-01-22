@@ -6,6 +6,8 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 # -*- coding: utf-8 -*-
 
 
+from infrasim.log import infrasim_log, LoggerType
+
 """
 This module majorly defines infrasim element models.
 For each element class, they need to implement methods:
@@ -23,9 +25,6 @@ For each element class, they need to implement methods:
     - get_option()
         Compose all options in list to a command line string;
 """
-
-
-from infrasim.log import infrasim_log, LoggerType
 
 
 class CElement(object):
