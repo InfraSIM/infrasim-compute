@@ -212,7 +212,7 @@ class test_compute_configuration_change(unittest.TestCase):
         self.conf["compute"]["storage_backend"] = [{
             "type": "nvme",
             "cmb_size": 256,
-            "drives": [{"size": 8}]
+            "size": 8
         }]
 
         node = model.CNode(self.conf)
@@ -223,7 +223,7 @@ class test_compute_configuration_change(unittest.TestCase):
         # Check process option has nvme serial
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
-        p = re.compile(r"-device nvme,serial=(\w+),cmb_size_mb=256,drive=nvme-0,id=dev-nvme-0")
+        p = re.compile(r"-device nvme.*serial=(\w+)")
         m = p.search(str_result)
         assert m is not None
 

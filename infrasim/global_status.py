@@ -4,6 +4,8 @@ from texttable import Texttable
 from infrasim.config import infrasim_home
 from infrasim import run_command
 from infrasim import helper
+from infrasim.workspace import Workspace
+from infrasim.helper import run_in_namespace
 
 
 def get_dir_list(p):
@@ -39,6 +41,8 @@ class NodeStatus(object):
         return self.__node_name
 
     def get_node_status(self):
+        self.__node_info = Workspace.get_node_info_in_workspace(self.__node_name)
+        self.netns = self.__node_info.get("namespace", None)
         base_path = os.path.join(infrasim_home, self.__node_name)
         task_name = ['socat', 'bmc', 'node', 'racadm', 'ipmi_console']
         task_list = {}
@@ -55,6 +59,7 @@ class NodeStatus(object):
                     task_list[task] = "{:<6}".format(task_pid)
         return task_list
 
+    @run_in_namespace
     def get_port_status(self):
         # SSH ~ ipmi-console        default: 9300   tcp
         # ipmi-console ~ ipmi-sim   default: 9000   tcp
@@ -119,9 +124,9 @@ class InfrasimMonitor(object):
                 ipmi_console_flag = True
             if racadm_flag and ipmi_console_flag and socat_flag:
                 break
-        header_line = ['name', 'bmc pid', 'node pid']
-        width = [12, 6, 6]
-        align = ['c', 'l', 'l']
+        header_line = ['name', 'netns', 'bmc pid', 'node pid']
+        width = [12, 6, 6, 6]
+        align = ['c', 'l', 'l', 'l']
         if socat_flag:
             header_line.append('socat pid')
             width.append(6)
@@ -144,6 +149,10 @@ class InfrasimMonitor(object):
         for node in self.__node_list:
             nd_status = node.get_node_status()
             line = [node.get_node_name()]
+            if getattr(node, 'netns'):
+                line.append(node.netns)
+            else:
+                line.append('-')
             if 'bmc' in nd_status:
                 line.append(nd_status['bmc'])
             else:
