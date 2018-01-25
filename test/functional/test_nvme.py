@@ -6,13 +6,14 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import unittest
 import os
 import time
+import re
 from infrasim import model
 from infrasim import helper
 from test import fixtures
 
 old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
-
+conf = {}
 
 def setup_module():
     os.environ['PATH'] = new_path
@@ -23,18 +24,9 @@ def teardown_module():
 
 
 class test_nvme(unittest.TestCase):
-    global tmp_conf_file
-    global format_f
-    global test_img_file
-    global conf
-    conf = {}
-
     @staticmethod
     def start_node():
         global conf
-        global sas_drive_serial
-        global sata_drive_serial
-        global boot_drive_serial
         nvme_config = fixtures.NvmeConfig()
         conf = nvme_config.get_node_info()
         node = model.CNode(conf)
@@ -128,3 +120,45 @@ class test_nvme(unittest.TestCase):
             binfile_data = stdout.channel.recv(2048)
             assert read_data == binfile_data
         ssh.close()
+
+    def test_id_ctrl(self):
+        global conf
+        nvme_list = self.get_nvme_disks()
+        ssh = helper.prepare_ssh()
+        nvme_config_list = []
+        nvme_id_ctrl_list = []
+
+        # initialize nvme id-ctrl list
+        for dev in nvme_list:
+            stdin, stdout, stderr = ssh.exec_command("nvme id-ctrl {}".format(dev))
+            while not stdout.channel.exit_status_ready():
+                pass
+            ctrl_data = stdout.channel.recv(2048)
+
+            li = ctrl_data.split("\n")
+            id_ctrl = {}
+            for i in li:
+                pattern = r"\w+\s*:\s*\w+\s*"
+                result = re.match(pattern, i)
+                if result:
+                    elem = result.group(0)
+                    id_ctrl[elem.split(":")[0].strip()] = elem.split(":")[1].strip()
+            if id_ctrl:
+                nvme_id_ctrl_list.append(id_ctrl)
+
+        # initialize nvme drive list from yml configure file
+        for disk in conf["compute"]["storage_backend"]:
+            if disk["type"] == "nvme":
+                nvme_config_list.append(disk)
+
+        # compare nvme info from id-ctrl list against yml configure file
+        # currently we compares:
+        # 1. disk size
+        # 2. serial number
+        match_list = []
+        for id_ctrl in nvme_id_ctrl_list:
+            for id_config in nvme_config_list:
+                if id_ctrl["sn"] == id_config["serial"]:
+                    match_list.append(id_config["serial"])
+                    assert "MTC_{}GB".format(id_config["drives"][0]["size"]) == id_ctrl["mn"]
+        assert len(match_list) == len(nvme_list)
