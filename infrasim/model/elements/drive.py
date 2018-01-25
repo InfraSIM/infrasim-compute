@@ -64,8 +64,8 @@ class CBaseDrive(CElement):
         if self.__page_file and not os.path.exists(self.__page_file):
             raise ArgsNotCorrect("[CBaseDrive] page file {0} doesnot exist".format(self.__page_file))
 
-        if self.__share_rw is not "true" and self.__share_rw is not "false":
-            raise ArgsNotCorrect("[CBaseDrive] share-rw is not a valid option [true/false]".format(self.__share_rw))
+        if self.__share_rw != "true" and self.__share_rw != "false":
+            raise ArgsNotCorrect("[CBaseDrive] share-rw: {} is not a valid option [true/false]".format(self.__share_rw))
 
     @property
     def serial(self):
