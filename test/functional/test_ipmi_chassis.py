@@ -26,6 +26,7 @@ cmd_prefix = 'ipmitool -I lanplus -H 127.0.0.1 -U admin -P admin chassis '
 
 # command to check if qemu is running
 test_cmd = 'ps ax | grep qemu'
+node_status_cmd = "sudo infrasim node status test | grep test-node | awk '{print $2}'"
 
 # get process id of qemu
 pid_cmd = 'pidof qemu-system-x86_64'
@@ -41,6 +42,12 @@ power_reset_cmd = cmd_prefix + 'power reset'
 p = r"mac=(?P<mac>\w{2}:\w{2}:\w{2}:\w{2}:\w{2}:\w{2})"
 r = re.compile(p)
 
+def check_qemu():
+    pid = run_command(node_status_cmd)[1].strip()
+    if pid == "is" or not pid:
+       return "qemu not running"
+    qemu_output = run_command("ps p {} | grep qemu-system-x86".format(pid))[1]
+    return qemu_output
 
 class test_ipmi_command_chassis_control(unittest.TestCase):
     def setUp(self):
@@ -65,7 +72,7 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
             status_output = run_command(power_status_cmd)[1]
             qemu_output = run_command(test_cmd)[1]
             assert 'Chassis Power is on' in status_output
-            assert 'qemu-system-x86_64' in qemu_output
+            assert 'qemu-system-x86_64' in check_qemu()
 
             # Get qemu mac addresses
             macs_former = r.findall(qemu_output)
@@ -74,13 +81,13 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
             qemu_output = run_command(test_cmd)[1]
             status_output = run_command(power_status_cmd)[1]
             assert 'Chassis Power is off' in status_output
-            assert 'qemu-system-x86_64' not in qemu_output
+            assert 'qemu-system-x86_64' not in check_qemu()
 
             run_command(power_on_cmd)
             qemu_output = run_command(test_cmd)[1]
             status_output = run_command(power_status_cmd)[1]
             assert 'Chassis Power is on' in status_output
-            assert 'qemu-system-x86_64' in qemu_output
+            assert "qemu-system-x86_64" in check_qemu()
 
             # Get qemu mac addresses again
             macs_latter = r.findall(qemu_output)
@@ -102,8 +109,8 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
 
             pid_before = run_command(pid_cmd)[1]
             run_command(power_cycle_cmd)
-            qemu_output = run_command(test_cmd)[1]
-            assert 'qemu-system-x86_64' in qemu_output
+            time.sleep(2.5)
+            assert "qemu-system-x86_64" in check_qemu()
             pid_after = run_command(pid_cmd)[1]
             assert pid_after != pid_before
 
@@ -126,8 +133,8 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
 
             pid_before = run_command(pid_cmd)[1]
             run_command(power_reset_cmd)
-            qemu_output = run_command(test_cmd)[1]
-            assert 'qemu-system-x86_64' in qemu_output
+            time.sleep(2.5)
+            assert "qemu-system-x86_64" in check_qemu()
             pid_after = run_command(pid_cmd)[1]
             assert pid_after != pid_before
 
