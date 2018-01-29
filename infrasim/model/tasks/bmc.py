@@ -31,7 +31,7 @@ class CBMC(Task):
         self.__lancontrol_script = ""
         self.__chassiscontrol_script = ""
         self.__startcmd_script = ""
-        self.__oem_file_path = ""
+        self.__workspace = ""
         self.__startnow = "true"
         self.__poweroff_wait = None
         self.__kill_wait = None
@@ -109,9 +109,9 @@ class CBMC(Task):
             raise ArgsNotCorrect("[BMC] startcmd script {} doesn\'t exist".
                                  format(self.__startcmd_script))
 
-        if not os.path.exists(self.__oem_file_path):
-            raise ArgsNotCorrect("[BMC] oem file path {} doesn\'t exist".
-                                 format(self.__oem_file_path))
+        if not os.path.exists(self.__workspace):
+            raise ArgsNotCorrect("[BMC] workspace  {} doesn\'t exist".
+                                 format(self.__workspace))
 
         # check if self.__port_qemu_ipmi in use
         if helper.check_if_port_in_use("0.0.0.0", self.__port_qemu_ipmi):
@@ -249,7 +249,7 @@ class CBMC(Task):
             bmc_conf = f.read()
         template = jinja2.Template(bmc_conf)
         bmc_conf = template.render(startcmd_script=self.__startcmd_script,
-                                   oem_file_path=self.__oem_file_path,
+                                   workspace=self.__workspace,
                                    lan_channel=self.__channel,
                                    chassis_control_script=self.__chassiscontrol_script,
                                    lan_control_script=self.__lancontrol_script,
@@ -312,11 +312,8 @@ class CBMC(Task):
                                                   "script",
                                                   "startcmd")
 
-        if 'oem_file_path' in self.__bmc:
-            self.__oem_file_path = self.__bmc['oem_file_path']
-        elif self.get_workspace():
-            self.__oem_file_path = os.path.join(self.get_workspace(),
-                                                  "data")
+        if self.get_workspace():
+            self.__workspace = self.get_workspace()
 
         if self.__bmc.get("startnow") is False:
             self.__startnow = "false"

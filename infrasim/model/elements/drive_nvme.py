@@ -17,8 +17,9 @@ class NVMeController(CBaseDrive):
         self._name = "nvme"
         self.prefix = "nvme"
         self._drive_info = dev_info
-        self._cmb_size_in_mb = 0
+        self._cmb_size_mb = 0
         self._controller_info = dev_info
+        self.chassis_slot = None
         self.__controller_index = 0
         self.__bus = None
         self.__config_file = None
@@ -34,9 +35,25 @@ class NVMeController(CBaseDrive):
     def controller_index(self, idx):
         self.__controller_index = idx
 
+    @property
+    def bus(self):
+        return self.__bus
+
+    @bus.setter
+    def bus(self, bus):
+        self.__bus = bus
+
+    @property
+    def cmb_size_mb(self):
+        return self._cmb_size_mb
+
+    @cmb_size_mb.setter
+    def cmb_size_mb(self, size):
+        self._cmb_size_mb = size
+
     def init(self):
         super(NVMeController, self).init()
-        self._cmb_size_in_mb = self._drive_info.get("cmb_size", 256)
+        self._cmb_size_mb = self._drive_info.get("cmb_size", 256)
         if not self.serial:
             self.serial = helper.random_serial()
 
@@ -45,12 +62,18 @@ class NVMeController(CBaseDrive):
 
         self.__config_file = self._drive_info.get("config_file")
 
+        self.chassis_slot = self._drive_info.get("chassis_slot")
+
     def precheck(self):
         # Since QEMU support CMB size in MB, we recognize 1k, 4k
         # CMB size as invalid here.
-        if self._cmb_size_in_mb not in [1, 16, 256, 4096, 65536]:
+        if self._cmb_size_mb not in [1, 16, 256, 4096, 65536]:
             raise ArgsNotCorrect("[NVMe{}] CMB size {} is invalid".
-                                  format(self.__controller_index, self._cmb_size_in_mb))
+                                  format(self.__controller_index, self._cmb_size_mb))
+        if self.chassis_slot:
+            if self.chassis_slot not in range(0, 25):
+                raise ArgsNotCorrect("[NVMe{}] chassis_slot {} is invalid".
+                                      format(self.__controller_index, self.chassis_slot))
 
     def handle_parms(self):
         super(NVMeController, self).handle_parms()
@@ -67,7 +90,7 @@ class NVMeController(CBaseDrive):
         # Device option
         self._dev_attrs["drive"] = drive_id
         self._dev_attrs["id"] = "dev-{}".format(self._dev_attrs["drive"])
-        self._dev_attrs["cmb_size_mb"] = self._cmb_size_in_mb
+        self._dev_attrs["cmb_size_mb"] = self._cmb_size_mb
         if self.__bus:
             self._dev_attrs["bus"] = self.__bus
 

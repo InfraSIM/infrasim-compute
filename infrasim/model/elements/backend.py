@@ -15,6 +15,7 @@ from infrasim.model.elements.storage_mega import MegaSASController
 from infrasim.model.elements.storage_lsi import LSISASController
 from infrasim.model.elements.drive_nvme import NVMeController
 from infrasim.model.elements.storage_ahci import AHCIController
+from infrasim.model.elements.chassisslot import CChassisSlot
 
 
 class CBackendNetwork(CElement):
@@ -119,7 +120,6 @@ class CBackendStorage(CElement):
                 controller_obj.controller_index = self.__nvme_controller_index
             else:
                 controller_obj.controller_index = self.__scsi_controller_index
-
             controller_obj.init()
             # generate and save drives and traversal information.
             if isinstance(controller_obj, CBaseStorageController):
@@ -133,8 +133,20 @@ class CBackendStorage(CElement):
                 self.__scsi_controller_index = controller_obj.controller_index + 1
 
     def handle_parms(self):
+        # store chassis slot map to controller
+        chassis_slot = CChassisSlot(self.__backend_storage_info,
+                                    self.__get_ws_name())
+
         for controller_obj in self.__controller_list:
             controller_obj.handle_parms()
+            if isinstance(controller_obj, NVMeController):
+                chassis_slot.add_slot_map(controller_obj.chassis_slot,
+                                          controller_obj.dev_attrs["id"],
+                                          controller_obj.host_opt["id"],
+                                          controller_obj.serial,
+                                          controller_obj.bus,
+                                          controller_obj.cmb_size_mb)
+        chassis_slot.handle_parms()
 
         for controller_obj in self.__controller_list:
             self.add_option(controller_obj.get_option())
