@@ -6,9 +6,11 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import unittest
 import time
 import re
+import os
 from infrasim import model
 from infrasim import run_command
 from test import fixtures
+from infrasim import config
 
 
 """
@@ -24,30 +26,39 @@ Test ipmitool chassis control commands:
 # command prefix for test cases
 cmd_prefix = 'ipmitool -I lanplus -H 127.0.0.1 -U admin -P admin chassis '
 
-# command to check if qemu is running
-test_cmd = 'ps ax | grep qemu'
-node_status_cmd = "sudo infrasim node status test | grep test-node | awk '{print $2}'"
-
 # get process id of qemu
-pid_cmd = 'pidof qemu-system-x86_64'
-
 power_status_cmd = cmd_prefix + 'power status'
 power_on_cmd = cmd_prefix + 'power on'
 power_off_cmd = cmd_prefix + 'power off'
 power_cycle_cmd = cmd_prefix + 'power cycle'
 power_reset_cmd = cmd_prefix + 'power reset'
 
-
 # Pattern for mac address search
 p = r"mac=(?P<mac>\w{2}:\w{2}:\w{2}:\w{2}:\w{2}:\w{2})"
 r = re.compile(p)
 
-def check_qemu():
-    pid = run_command(node_status_cmd)[1].strip()
-    if pid == "is" or not pid:
-       return "qemu not running"
-    qemu_output = run_command("ps p {} | grep qemu-system-x86".format(pid))[1]
-    return qemu_output
+def get_mac():
+    pid = get_qemu_pid()
+    if pid == "":
+        return ""
+
+    cmdline = ""
+    qemu_cmdline = "/proc/{}/cmdline".format(pid)
+    with open(qemu_cmdline) as fd:
+        cmdline = fd.readline()
+    return r.findall(cmdline)
+
+def get_qemu_pid():
+    pid = ""
+    pid_path = os.path.join(config.infrasim_home, "test/.test-node.pid")
+    if not os.path.exists(pid_path):
+        return ""
+
+    with open(os.path.join(config.infrasim_home, "test/.test-node.pid")) as fd:
+        pid = fd.readline().strip()
+
+    return pid
+
 
 class test_ipmi_command_chassis_control(unittest.TestCase):
     def setUp(self):
@@ -70,28 +81,30 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
     def test_chassis_power_off_on(self):
         try:
             status_output = run_command(power_status_cmd)[1]
-            qemu_output = run_command(test_cmd)[1]
             assert 'Chassis Power is on' in status_output
-            assert 'qemu-system-x86_64' in check_qemu()
+            pid = get_qemu_pid()
+            assert pid != ""
+            assert os.path.exists("/proc/{}".format(pid))
 
             # Get qemu mac addresses
-            macs_former = r.findall(qemu_output)
+            macs_former = get_mac()
 
             run_command(power_off_cmd)
-            qemu_output = run_command(test_cmd)[1]
             status_output = run_command(power_status_cmd)[1]
             assert 'Chassis Power is off' in status_output
-            assert 'qemu-system-x86_64' not in check_qemu()
+            pid = get_qemu_pid()
+            assert pid == ""
 
             run_command(power_on_cmd)
-            qemu_output = run_command(test_cmd)[1]
+            time.sleep(2.5)
             status_output = run_command(power_status_cmd)[1]
             assert 'Chassis Power is on' in status_output
-            assert "qemu-system-x86_64" in check_qemu()
+            pid = get_qemu_pid()
+            assert pid != ""
+            assert os.path.exists("/proc/{}".format(pid))
 
             # Get qemu mac addresses again
-            macs_latter = r.findall(qemu_output)
-
+            macs_latter = get_mac()
             # Verify mac address list remains the same
             assert sorted(macs_former) == sorted(macs_latter)
 
@@ -104,19 +117,19 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
     def test_chassis_power_cycle(self):
         try:
             # Get qemu mac addresses
-            qemu_output = run_command(test_cmd)[1]
-            macs_former = r.findall(qemu_output)
+            macs_former = get_mac()
 
-            pid_before = run_command(pid_cmd)[1]
+            pid_before = get_qemu_pid()
             run_command(power_cycle_cmd)
             time.sleep(2.5)
-            assert "qemu-system-x86_64" in check_qemu()
-            pid_after = run_command(pid_cmd)[1]
+            pid = get_qemu_pid()
+            assert pid != ""
+            assert os.path.exists("/proc/{}".format(pid))
+            pid_after = get_qemu_pid()
             assert pid_after != pid_before
 
             # Get qemu mac addresses again
-            qemu_output = run_command(test_cmd)[1]
-            macs_latter = r.findall(qemu_output)
+            macs_latter = get_mac()
 
             # Verify mac address list remains the same
             assert sorted(macs_former) == sorted(macs_latter)
@@ -128,19 +141,23 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
     def test_chassis_power_reset(self):
         try:
             # Get qemu mac addresses
-            qemu_output = run_command(test_cmd)[1]
-            macs_former = r.findall(qemu_output)
+            macs_former = get_mac()
 
-            pid_before = run_command(pid_cmd)[1]
+            pid_before = get_qemu_pid()
+            assert pid_before != ""
+            assert os.path.exists("/proc/{}".format(pid_before))
+
             run_command(power_reset_cmd)
+
             time.sleep(2.5)
-            assert "qemu-system-x86_64" in check_qemu()
-            pid_after = run_command(pid_cmd)[1]
+            pid_after = get_qemu_pid()
+            assert pid_after != ""
+            assert os.path.exists("/proc/{}".format(pid_after))
+
             assert pid_after != pid_before
 
             # Get qemu mac addresses again
-            qemu_output = run_command(test_cmd)[1]
-            macs_latter = r.findall(qemu_output)
+            macs_latter = get_mac()
 
             # Verify mac address list remains the same
             assert sorted(macs_former) == sorted(macs_latter)
