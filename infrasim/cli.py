@@ -255,14 +255,27 @@ class NodeCommands(object):
             row.append([" " * 17, "type", "max drive", "drive size"])
             for i in range(1, len(node_info_stor) + 1):
                 stor = node_info_stor[i - 1]
-                node_info_drives = stor['drives']
-                for j in range(1, len(node_info_drives) + 1):
-                    drive = node_info_drives[j - 1]
-                    if j % stor['max_drive_per_controller'] == 1:
-                        row.append([" " * 17, stor['type'],
+                if 'drives' in stor.keys():
+                    node_info_drives = stor['drives']
+                    for j in range(1, len(node_info_drives) + 1):
+                        drive = node_info_drives[j - 1]
+                        if j % stor['max_drive_per_controller'] == 1:
+                            row.append([" " * 17, stor['type'],
                                     stor['max_drive_per_controller'], drive['size']])
-                    else:
-                        row.append([" " * 17, "", "", drive['size']])
+                        else:
+                            row.append([" " * 17, "", "", drive['size']])
+                if 'connectors' in stor.keys():
+                    node_info_connectors = stor['connectors']
+                    for j in range(1, len(node_info_connectors) + 1):
+                        connectors = node_info_connectors[j - 1]
+                        if j % stor['max_drive_per_controller'] == 1:
+                            row.append([" " * 17, stor['type'],
+                                    stor['max_drive_per_controller'], ""])
+                if 'disk_array' in stor.keys():
+                    node_info_disk_array = stor['disk_array']
+                    for j in range(1, len(node_info_disk_array) + 1):
+                        disk_array = node_info_disk_array[j - 1]
+                        row.append([" " * 17, stor['type'], "", ""])
             table.add_rows(row)
             print table.draw()
             logger_cmd.info("cmd res: get node {} info OK".format(node_name))
@@ -301,7 +314,6 @@ class InfrasimCommands(object):
         monitor.init()
         monitor.print_global_status()
         logger_cmd.info("cmd res: get global status OK")
-
 
 def methods_of(obj):
     result = []
