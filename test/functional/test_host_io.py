@@ -61,8 +61,7 @@ class test_kcs_io(unittest.TestCase):
         ssh.close()
         time.sleep(2)
 
-    @staticmethod
-    def start_node():
+    def start_node(self):
         global conf
         global sas_drive_serial
         global sata_drive_serial
@@ -100,8 +99,7 @@ class test_kcs_io(unittest.TestCase):
         time.sleep(3)
         helper.port_forward(node)
 
-    @staticmethod
-    def stop_node():
+    def stop_node(self):
         global conf
         node = model.CNode(conf)
         node.init()
@@ -111,18 +109,16 @@ class test_kcs_io(unittest.TestCase):
 
         time.sleep(5)
 
-    @classmethod
-    def setUpClass(cls):
+    def setUp(self):
         DOWNLOAD_URL = 'https://github.com/InfraSIM/test/raw/master/image/kcs.img'
         MD5_KCS_IMG = '986e5e63e8231a307babfbe9c81ca210'
         helper.fetch_image(DOWNLOAD_URL, MD5_KCS_IMG, test_img_file)
 
-        cls.start_node()
+        self.start_node()
 
-    @classmethod
-    def tearDownClass(cls):
+    def tearDown(self):
         if conf:
-            cls.stop_node()
+            self.stop_node()
         for i in range(97, 109):
             disk_file = "/tmp/sd{}.img".format(chr(i));
             if os.path.exists(disk_file):
@@ -350,10 +346,16 @@ class test_kcs_io(unittest.TestCase):
         master_pw = "master_password"
         ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command('hdparm --user-master m --security-set-pass '+master_pw+' /dev/'+drive)
+        lines = stdout.channel.recv(2048)
+        # Check master password set command response correctly
+        assert re.search(r"Issuing SECURITY_SET_PASS command, password=", lines)
 
         # Set user password and check if "Security Mode feature set" enabled.
         usr_pw = "user_password"
         stdin, stdout, stderr = ssh.exec_command('hdparm --security-set-pass '+usr_pw+' /dev/'+drive)
+        lines = stdout.channel.recv(2048)
+        # Check user password set command response correctly
+        assert re.search(r"Issuing SECURITY_SET_PASS command, password=", lines)
 
         stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/'+drive)
         lines = stdout.channel.recv(2048)
@@ -402,14 +404,16 @@ class test_kcs_io(unittest.TestCase):
 
         usr_pw = "user_password"
         stdin, stdout, stderr = ssh.exec_command('hdparm --security-set-pass '+usr_pw+' /dev/'+drive)
+        lines = stdout.channel.recv(2048)
+        # Check user password set command response correctly
+        assert re.search(r"Issuing SECURITY_SET_PASS command, password=", lines)
 
         stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/'+drive)
         lines = stdout.channel.recv(2048)
         # Expect "Security Mode feature set" to be enabled after set user password
-        print "hdparm -I /dev/'"+drive+'\r\n', lines
+        print "hdparm -I /dev/"+drive+'\r\n', lines
         assert re.search(r"\*\s+Security Mode feature set", lines)
         assert re.search(r"\s+device size with M = 1024\*1024:\s+4096 MBytes", lines)
-
         ssh.close()
 
         ssh = helper.prepare_ssh()
