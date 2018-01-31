@@ -32,7 +32,7 @@ def install_bintray_packages(repo, package):
     if package is "Infrasim_Qemu":
         infrasim_version = "1.0"
     elif package is "OpenIpmi":
-        infrasim_version = "1.3"
+        infrasim_version = "1.4"
     elif package is "Seabios":
         infrasim_version = "1.3"
     else:
