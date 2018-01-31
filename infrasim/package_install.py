@@ -28,12 +28,17 @@ def install_official_packages():
 
 def install_bintray_packages(repo, package):
     # get latest version number
-    package_link = BASE_URL + repo + "/" + package
-    response  = requests.get(package_link)
-    data = response.json()
-    max_version = max(map(float, data["versions"]))
-    print("downloading {} {}...".format(package, max_version))
-    download_link = BASE_URL + repo + "/" + package + "/versions/" + str(max_version) + "/files"
+    print("downloading " + package + "...")
+    if package is "Infrasim_Qemu":
+        infrasim_version = "1.0"
+    elif package is "OpenIpmi":
+        infrasim_version = "1.4"
+    elif package is "Seabios":
+        infrasim_version = "1.3"
+    else:
+        raise Exception("No {} package in {}".format(package, BASE_URL))
+    download_link = BASE_URL + repo + "/" + package + "/versions/" \
+                    + infrasim_version + "/files"
     response = requests.get(download_link)
     data = response.json()
     latest_time = data[0]["created"]
@@ -65,10 +70,11 @@ def install_bintray_packages(repo, package):
         raise Exception(
             "The file {} downloaded is not complete, please try again!")
     if package is not "Seabios":
-        print("installing {} {}...".format(package, max_version))
+        print("installing {} {}...".format(package, infrasim_version))
         run_command("dpkg -i " + file_name)
 
-def check_package(package = "Qemu", cmd = "which qemu-system-x86_64"):
+
+def check_package(package="Qemu", cmd="which qemu-system-x86_64"):
     has_package = True
     # Check if package installed
     try:
@@ -90,6 +96,7 @@ def check_package(package = "Qemu", cmd = "which qemu-system-x86_64"):
             install_package = False
 
     return has_package, install_package
+
 
 def package_install():
     install_official_packages()

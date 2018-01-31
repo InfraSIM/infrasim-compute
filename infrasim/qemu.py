@@ -15,6 +15,7 @@ from .log import infrasim_log, LoggerType
 
 logger_qemu = infrasim_log.get_logger(LoggerType.qemu.value)
 
+
 def get_qemu():
     try:
         code, qemu_cmd = run_command("which qemu-system-x86_64")

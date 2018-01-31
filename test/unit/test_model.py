@@ -117,7 +117,7 @@ class qemu_functions(unittest.TestCase):
     def test_set_menu_unsupported_type_digit(self):
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
-        node_info["compute"]["boot"]["menu"] = 1
+        node_info["compute"]["boot"] = {"menu": 1}
         node = model.CNode(node_info)
         node.init()
         try:
@@ -128,7 +128,7 @@ class qemu_functions(unittest.TestCase):
     def test_set_menu_unsupported_string_value(self):
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
-        node_info["compute"]["boot"]["menu"] = "any_string"
+        node_info["compute"]["boot"] = {"menu": "any_string"}
         node = model.CNode(node_info)
         node.init()
         try:
@@ -140,7 +140,7 @@ class qemu_functions(unittest.TestCase):
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
         compute_info = node_info["compute"]
-        compute_info["boot"]["menu"] = "on"
+        compute_info["boot"] = {"menu": "on"}
         compute = model.CCompute(compute_info)
         compute.set_workspace("{}/{}".format(config.infrasim_home, node_info["name"]))
         compute.init()
@@ -168,8 +168,8 @@ class qemu_functions(unittest.TestCase):
                 "type": "nvme",
                 "cmb_size": 256,
                 "serial": "26E0A024T2VD",
-                "drives": [{"size": 8}]
-            }]
+                "size": 8
+                }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
             storage.precheck()
@@ -183,13 +183,13 @@ class qemu_functions(unittest.TestCase):
             backend_storage_info = [{
                 "type": "nvme",
                 "cmb_size": 256,
-                "drives": [{"size": 8}]
+                "size": 8
             }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
             storage.precheck()
             storage.handle_parms()
-            p = re.compile(r"-device nvme,serial=\w+,cmb_size_mb=256,drive=nvme-0,id=dev-nvme-0")
+            p = re.compile(r"-device nvme.*serial=\w+")
             m = p.search(storage.get_option())
             assert m is not None
         except:
@@ -200,7 +200,7 @@ class qemu_functions(unittest.TestCase):
             backend_storage_info = [{
                 "type": "nvme",
                 "serial": "26E0A024T2VD",
-                "drives": [{"size": 8}]
+                "size": 8
             }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
@@ -561,14 +561,14 @@ class qemu_functions(unittest.TestCase):
                 "drives": [{
                     "size": 8,
                     "file": "/tmp/sda.img",
-                    "share-rw": True
+                    "share-rw": "true"
                 }]
             }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
             storage.precheck()
             storage.handle_parms()
-            assert "share-rw=True" in storage.get_option()
+            assert "share-rw=true" in storage.get_option()
         except:
             assert False
 
@@ -580,14 +580,14 @@ class qemu_functions(unittest.TestCase):
                 "drives": [{
                     "size": 8,
                     "file": "/tmp/sda.img",
-                    "share-rw": False
+                    "share-rw": "false"
                 }]
             }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
             storage.precheck()
             storage.handle_parms()
-            assert "share-rw" not in storage.get_option()
+            assert "share-rw=false" in storage.get_option()
         except:
             assert False
 
@@ -606,7 +606,7 @@ class qemu_functions(unittest.TestCase):
             storage.init()
             storage.precheck()
         except ArgsNotCorrect as e:
-            assert "share-rw is not boolean" in e.value
+            assert "share-rw: fake is not a valid option" in e.value
 
     def test_set_smbios(self):
         with open(config.infrasim_default_config, "r") as f_yml:
@@ -1131,7 +1131,10 @@ class qemu_functions(unittest.TestCase):
                 }
             ]
         }
-        os.makedirs(FW_CFG_DIR)
+        try:
+            os.makedirs(FW_CFG_DIR)
+        except OSError:
+            pass
         fw_cfg_obj = model.CPCIEFwcfg()
         fw_cfg_obj.set_workspace('/tmp')
         pcie_topology_obj = model.CPCIETopology(pcie_topology)

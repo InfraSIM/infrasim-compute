@@ -3,7 +3,7 @@ import jinja2
 import random
 import string
 import shutil
-from infrasim import run_command, CommandNotFound, CommandRunFailed
+from infrasim import run_command
 from infrasim.socat import get_socat
 from infrasim.ipmi import get_ipmi
 from infrasim.qemu import get_qemu
@@ -11,7 +11,6 @@ from infrasim.package_install import package_install
 from infrasim import helper
 from infrasim import WorkspaceExisting
 import config
-import subprocess
 from .log import infrasim_log, LoggerType, infrasim_logdir
 from .version import version
 from infrasim.yaml_loader import YAMLLoader
@@ -19,6 +18,7 @@ from .config import infrasim_default_config
 
 mac_base = "00:60:16:"
 logger_env = infrasim_log.get_logger(LoggerType.environment.value)
+
 
 def create_mac_address():
     macs = []
@@ -89,12 +89,14 @@ def update_bridge_cfg():
     with open(bridge_conf, "w") as f:
         f.write("allow all")
 
+
 def destroy_existing_nodes():
     nodes = os.listdir(config.infrasim_home)
     if os.path.exists(config.infrasim_node_config_map):
         nodes.remove('.node_map')
     for node in nodes:
         os.system("infrasim node destroy {}".format(node))
+
 
 def check_existing_workspace():
     if os.path.exists(config.infrasim_home):
@@ -103,6 +105,7 @@ def check_existing_workspace():
             return True
         else:
             return False
+
 
 def get_environment():
     cpu_info = run_command('lscpu')

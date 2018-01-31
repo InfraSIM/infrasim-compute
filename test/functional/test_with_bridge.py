@@ -36,7 +36,7 @@ except CommandRunFailed:
     raise unittest.SkipTest("No brctl is found in the environment")
 
 FAKE_BRIDGE = "fakebr"
-PS_QEMU = "ps ax | grep qemu"
+PS_QEMU = "ps ax | grep qemu-system-x86_64"
 
 # Pattern for mac address search
 p = r"mac=(?P<mac>\w{2}:\w{2}:\w{2}:\w{2}:\w{2}:\w{2})"
@@ -48,7 +48,7 @@ cmd_power_on = cmd_prefix + 'power on'
 cmd_power_off = cmd_prefix + 'power off'
 cmd_power_cycle = cmd_prefix + 'power cycle'
 cmd_power_reset = cmd_prefix + 'power reset'
-cmd_ps_qemu = 'ps ax | grep qemu'
+cmd_ps_qemu = 'ps ax | grep qemu-system-x86_64'
 
 
 def setup_module():
@@ -68,7 +68,6 @@ def setup_module():
 
 
 def teardown_module():
-
     # Destroy bridge
     cmd = "ip link set dev {} down".format(FAKE_BRIDGE)
     run_command(cmd)
@@ -165,6 +164,8 @@ class test_mac_persist_on_bridge(unittest.TestCase):
 
         run_command(cmd_power_off)
         run_command(cmd_power_on)
+        # wait 2.5s for qemu up.
+        time.sleep(2.5)
 
         # Get qemu mac addresses
         qemu_rsp = run_command(cmd_ps_qemu)[1]
@@ -182,11 +183,11 @@ class test_mac_persist_on_bridge(unittest.TestCase):
         macs_former = r.findall(qemu_rsp)
 
         run_command(cmd_power_cycle)
-
+        # sleep 2.5s to wait qemu up.
+        time.sleep(2.5)
         # Get qemu mac addresses
         qemu_rsp = run_command(cmd_ps_qemu)[1]
         macs_latter = r.findall(qemu_rsp)
-
         # Verify mac address list remains the same
         assert sorted(macs_former) == sorted(macs_latter)
 

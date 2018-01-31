@@ -15,10 +15,8 @@ import re
 import env
 import traceback
 from infrasim import config
-from infrasim import run_command
 from infrasim.workspace import Workspace
 from infrasim import helper
-from infrasim import ArgsNotCorrect
 from infrasim import log
 
 lock = threading.Lock()
@@ -174,6 +172,7 @@ def init_env(instance):
         if helper.check_if_port_in_use("0.0.0.0", env.PORT_SSH_FOR_CLIENT):
             logger.error("ssh port {} is already in use.".format(env.PORT_SSH_FOR_CLIENT))
             raise IpmiError("ssh port {} is already in use.".format(env.PORT_SSH_FOR_CLIENT))
+
 
 def get_logger():
     return logger

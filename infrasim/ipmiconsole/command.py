@@ -7,7 +7,6 @@ from .common import logger, msg_queue
 from .sdr import sensor_id_map
 from .sel import SEL
 
-import common
 import sel
 import re
 
@@ -214,8 +213,6 @@ class Command_Handler:
         else:
             msg_queue.put(self.handle_sensor_value.__doc__+'\n')
             return
-
-
 
     # ######### GET SENSOR VALUE FUNCTION ##########
     def get_sensor_value(self, args):

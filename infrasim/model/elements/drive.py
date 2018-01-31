@@ -36,7 +36,7 @@ class CBaseDrive(CElement):
         self.__wwn = None
         self.__bootindex = None
         self.__version = None
-        self.__share_rw = False
+        self.__share_rw = "false"
         self.__page_file = None
 
         # host option
@@ -64,8 +64,8 @@ class CBaseDrive(CElement):
         if self.__page_file and not os.path.exists(self.__page_file):
             raise ArgsNotCorrect("[CBaseDrive] page file {0} doesnot exist".format(self.__page_file))
 
-        if not isinstance(self.__share_rw, bool):
-            raise ArgsNotCorrect("[CBaseDrive] share-rw is not boolean: {}".format(self.__share_rw))
+        if self.__share_rw != "true" and self.__share_rw != "false":
+            raise ArgsNotCorrect("[CBaseDrive] share-rw: {} is not a valid option [true/false]".format(self.__share_rw))
 
     @property
     def serial(self):
@@ -99,7 +99,7 @@ class CBaseDrive(CElement):
         self.__serial = self._drive_info.get("serial")
         self.__version = self._drive_info.get("version")
         self.__wwn = self._drive_info.get("wwn")
-        self.__share_rw = self._drive_info.get("share-rw", False)
+        self.__share_rw = self._drive_info.get("share-rw", "false")
         self.__page_file = self._drive_info.get("page-file")
 
         self.__format = self._drive_info.get("format", "qcow2")

@@ -125,7 +125,7 @@ sensor_specific_event_map = {
         0x03: [0x3, 0x0, 0x0, 'Processor area intrusion'],
         0x04: [0x4, 0x0, 0x0, 'LAN Leash Lost (system is unplugged from LAN)'],
         0x05: [0x5, 0x0, 0x0, 'Unauthorized dock'],
-        0x06: [0x6, 0x0, 0x0, 'FAN area intrusion (supports detection of hot plug fan tampering)'] },
+        0x06: [0x6, 0x0, 0x0, 'FAN area intrusion (supports detection of hot plug fan tampering)']},
 
     # Platform Security Violation Attempt
     0x06: {
@@ -134,7 +134,7 @@ sensor_specific_event_map = {
         0x02: [0x2, 0x0, 0x0, 'Pre-boot Password Violation attempt - setup password'],
         0x03: [0x3, 0x0, 0x0, 'Pre-boot Password Violation - network boot password'],
         0x04: [0x4, 0x0, 0x0, 'Other pre-boot Password Violation'],
-        0x05: [0x5, 0x0, 0x0, 'Out-of-band Access Password Violation '] },
+        0x05: [0x5, 0x0, 0x0, 'Out-of-band Access Password Violation ']},
 
     # Processor
     0x07: {
@@ -164,7 +164,7 @@ sensor_specific_event_map = {
         0x07: [0x36,  0x0, 0x1, 'Revision mismatch, for power supplies that include this status.'],
         0x08: [0x36,  0x0, 0x2, 'Processor missing'],
         0x09: [0x36,  0x0, 0x3, 'Power Supply rating mismatch'],
-        0x0A: [0x36,  0x0, 0x4, 'Voltage rating mismatch'] },
+        0x0A: [0x36,  0x0, 0x4, 'Voltage rating mismatch']},
 
     # Power Unit
     0x09: {
@@ -175,7 +175,7 @@ sensor_specific_event_map = {
         0x04: [0x4, 0x0, 0x0, 'AC lost / Power input lost '],
         0x05: [0x5, 0x0, 0x0, 'Soft Power Control Failure'],
         0x06: [0x6, 0x0, 0x0, 'Power Unit Failure detected'],
-        0x07: [0x7, 0x0, 0x0, 'Predictive Failure'] },
+        0x07: [0x7, 0x0, 0x0, 'Predictive Failure']},
 
     # Memory
     0x0C: {
@@ -189,7 +189,7 @@ sensor_specific_event_map = {
         0x07: [0x7, 0x0, 0x0, 'Configuration error. Indicates a memory configuration error for the entity associated with the sensor'],
         0x08: [0x8, 0x0, 0x0, 'Spare. Indicates entity associated with the sensor represents a spare unit of memory'],
         0x09: [0x9, 0x0, 0x0, 'Memory Automatically Throttled'],
-        0x0A: [0xA, 0x0, 0x0, 'Critical Overtemperature'] },
+        0x0A: [0xA, 0x0, 0x0, 'Critical Overtemperature']},
 
     # Drive slot(bay)
     0x0D: {
@@ -201,13 +201,13 @@ sensor_specific_event_map = {
         0x05: [0x5, 0x0, 0x0, 'In Critical Array'],
         0x06: [0x6, 0x0, 0x0, 'In Failed Array '],
         0x07: [0x7, 0x0, 0x0, 'Rebuild/Remap in progress'],
-        0x08: [0x8, 0x0, 0x0, 'Rebuild/Remap Aborted (was not completed normally)'] },
+        0x08: [0x8, 0x0, 0x0, 'Rebuild/Remap Aborted (was not completed normally)']},
 
     # System Firmware Progress (formerly POST Error)
     0x0F: {
         0x00: [0x0, 0x0, 0x0, 'System Firmware Error (POST Error) '],
         0x01: [0x1, 0x0, 0x0, 'System Firmware Hang'],
-        0x02: [0x2, 0x0, 0x0, 'System Firmware Progress'] },
+        0x02: [0x2, 0x0, 0x0, 'System Firmware Progress']},
 
     # Event logging disable
     0x10: {
@@ -217,7 +217,7 @@ sensor_specific_event_map = {
         0x03: [0x3, 0x0, 0x0, 'All Event Logging Disabled'],
         0x04: [0x4, 0x0, 0x0, 'SEL Full'],
         0x05: [0x5, 0x0, 0x0, 'SEL Almost Full'],
-        0x06: [0x6, 0x0, 0x0, 'Correctable Machine Check Error Logging Disabled'] },
+        0x06: [0x6, 0x0, 0x0, 'Correctable Machine Check Error Logging Disabled']},
     # watch dog 1
     0x11: {
         0x00: [0x0, 0x0, 0x0, 'BIOS Watchdog Reset '],
@@ -227,7 +227,7 @@ sensor_specific_event_map = {
         0x04: [0x4, 0x0, 0x0, 'OS Watchdog Power Cycle'],
         0x05: [0x5, 0x0, 0x0, 'OS Watchdog NMI / Diagnostic Interrupt'],
         0x06: [0x6, 0x0, 0x0, 'OS Watchdog Expired, status only'],
-        0x07: [0x7, 0x0, 0x0, 'OS Watchdog pre-timeout Interrupt, non-NMI'] },
+        0x07: [0x7, 0x0, 0x0, 'OS Watchdog pre-timeout Interrupt, non-NMI']},
 
     # System Event
     0x12: {
@@ -236,7 +236,7 @@ sensor_specific_event_map = {
         0x02: [0x2, 0x0, 0x0, 'Undetermined system hardware failure'],
         0x03: [0x3, 0x0, 0x0, 'Entry added to Auxiliary Log'],
         0x04: [0x4, 0x0, 0x0, 'PEF Action'],
-        0x05: [0x5, 0x0, 0x0, 'Timestamp Clock Synch.'] },
+        0x05: [0x5, 0x0, 0x0, 'Timestamp Clock Synch.']},
 
     # Critical Interrupt
     0x13: {
@@ -251,7 +251,7 @@ sensor_specific_event_map = {
         0x08: [0x8, 0x0, 0x0, 'Bus Uncorrectable Error '],
         0x09: [0x9, 0x0, 0x0, 'Fatal NMI (port 61h, bit 7)'],
         0x0A: [0xA, 0x0, 0x0, 'Bus Fatal Error'],
-        0x0B: [0xB, 0x0, 0x0, 'Bus Degraded (bus operating in a degraded performance state)'] },
+        0x0B: [0xB, 0x0, 0x0, 'Bus Degraded (bus operating in a degraded performance state)']},
 
     # button and switch
     0x14: {
@@ -264,14 +264,14 @@ sensor_specific_event_map = {
     # Chip set
     0x19: {
         0x00: [0x0, 0x0, 0x0, 'Soft Power Control Failure '],
-        0x01: [0x1, 0x0, 0x0, 'Thermal Trip'] },
+        0x01: [0x1, 0x0, 0x0, 'Thermal Trip']},
 
     # Cable / Interconnect
     0x1B: {
         0x00: [0x0, 0x0, 0x0, 'Cable/Interconnect is connected'],
-        0x01: [0x1, 0x0, 0x0, 'Configuration Error - Incorrect cable connected / Incorrect interconnection' ]},
+        0x01: [0x1, 0x0, 0x0, 'Configuration Error - Incorrect cable connected / Incorrect interconnection']},
 
-    #System Boot / Restart Initiated
+    # System Boot / Restart Initiated
     0x1D: {
         0x00: [0x0, 0x0, 0x0, 'Initiated by power up'],
         0x01: [0x1, 0x0, 0x0, 'Initiated by hard reset'],
@@ -280,7 +280,7 @@ sensor_specific_event_map = {
         0x04: [0x4, 0x0, 0x0, 'Automatic boot to diagnostic'],
         0x05: [0x5, 0x0, 0x0, 'OS / run-time software initiated hard reset'],
         0x06: [0x6, 0x0, 0x0, 'OS / run-time software initiated warm reset '],
-        0x07: [0x7, 0x0, 0x0, 'System Restart'] },
+        0x07: [0x7, 0x0, 0x0, 'System Restart']},
 
     # boot error
     0x1E: {
@@ -298,7 +298,7 @@ sensor_specific_event_map = {
         0x03: [0x3, 0x0, 0x0, 'Diagnostic boot completed'],
         0x04: [0x4, 0x0, 0x0, 'CD-ROM boot completed '],
         0x05: [0x5, 0x0, 0x0, 'ROM boot completed'],
-        0x06: [0x6, 0x0, 0x0, 'boot completed - boot device not specified '] },
+        0x06: [0x6, 0x0, 0x0, 'boot completed - boot device not specified ']},
 
     # OS stop / shutdown
     0x20: {
@@ -306,7 +306,7 @@ sensor_specific_event_map = {
         0x01: [0x1, 0x0, 0x0, 'Run-time Critical Stop'],
         0x02: [0x2, 0x0, 0x0, 'OS Graceful Stop '],
         0x03: [0x3, 0x0, 0x0, 'OS Graceful Shutdown'],
-        0x04: [0x4, 0x0, 0x0, 'Soft Shutdown initiated by PEF'] },
+        0x04: [0x4, 0x0, 0x0, 'Soft Shutdown initiated by PEF']},
 
     # Slot / Connector
     0x21: {
@@ -319,7 +319,7 @@ sensor_specific_event_map = {
         0x06: [0x6, 0x0, 0x0, 'Slot / Connector Device Removal Request'],
         0x07: [0x7, 0x0, 0x0, 'Interlock asserted'],
         0x08: [0x8, 0x0, 0x0, 'Slot is Disabled'],
-        0x09: [0x9, 0x0, 0x0, 'Slot holds spare device'] },
+        0x09: [0x9, 0x0, 0x0, 'Slot holds spare device']},
 
     # System ACPI Power State
     0x22: {
@@ -336,7 +336,7 @@ sensor_specific_event_map = {
         0x0A: [0xA, 0x0, 0x0, 'S5 entered by override'],
         0x0B: [0xB, 0x0, 0x0, 'Legacy ON state'],
         0x0C: [0xC, 0x0, 0x0, 'Legacy OFF state'],
-        0x0D: [0xD, 0x0, 0x0, 'Unknown'] },
+        0x0D: [0xD, 0x0, 0x0, 'Unknown']},
 
     # Watch dog 2
     0x23: {
@@ -351,18 +351,18 @@ sensor_specific_event_map = {
         0x00: [0x0, 0x0, 0x0, 'platform generated page'],
         0x01: [0x1, 0x0, 0x0, 'platform generated LAN alert '],
         0x02: [0x2, 0x0, 0x0, 'Platform Event Trap generated, formatted per IPMI PET'],
-        0x03: [0x3, 0x0, 0x0, 'platform generated SNMP trap, OEM format'] },
+        0x03: [0x3, 0x0, 0x0, 'platform generated SNMP trap, OEM format']},
 
     # Entity Presence
     0x25: {
         0x00: [0x0, 0x0, 0x0, 'Entity Present'],
         0x01: [0x1, 0x0, 0x0, 'Entity Absent'],
-        0x02: [0x2, 0x0, 0x0, 'Entity Disabled'] },
+        0x02: [0x2, 0x0, 0x0, 'Entity Disabled']},
 
     # LAN
     0x27: {
         0x00: [0x0, 0x0, 0x0, 'LAN Heartbeat Lost '],
-        0x01: [0x1, 0x0, 0x0, 'LAN Heartbeat'] },
+        0x01: [0x1, 0x0, 0x0, 'LAN Heartbeat']},
 
     # Management Subsystem Health
     0x28: {
@@ -370,20 +370,20 @@ sensor_specific_event_map = {
         0x01: [0x1, 0x0, 0x0, 'controller access degraded or unavailable'],
         0x02: [0x2, 0x0, 0x0, 'management controller off-line'],
         0x03: [0x3, 0x0, 0x0, 'management controller unavailable'],
-        0x04: [0x5, 0x0, 0x0, 'FRU failure'] },
+        0x04: [0x5, 0x0, 0x0, 'FRU failure']},
 
     # Battery
     0x29: {
         0x00: [0x0, 0x0, 0x0, 'battery low (predictive failure)'],
         0x01: [0x1, 0x0, 0x0, 'battery failed'],
-        0x02: [0x2, 0x0, 0x0, 'battery presence detected'] },
+        0x02: [0x2, 0x0, 0x0, 'battery presence detected']},
 
     # Session Audit
     0x2A: {
         0x00: [0x0, 0x0, 0x0, 'Session Activated'],
         0x01: [0x1, 0x0, 0x0, 'Session Deactivated'],
         0x02: [0x2, 0x0, 0x0, 'Invalid Username or Password '],
-        0x03: [0x3, 0x0, 0x0, 'Invalid password disable A users access has been disabled due to a series of bad password attempts'] },
+        0x03: [0x3, 0x0, 0x0, 'Invalid password disable A users access has been disabled due to a series of bad password attempts']},
 
     # Version Change
     0x2B: {
@@ -394,7 +394,7 @@ sensor_specific_event_map = {
         0x04: [0x4, 0x0, 0x0, 'Entity is of an invalid or unsupported hardware version'],
         0x05: [0x5, 0x0, 0x0, 'Entity contains an invalid or unsupported firmware or software version.'],
         0x06: [0x6, 0x0, 0x0, 'Hardware Change detected with associated Entity was successful'],
-        0x07: [0x7, 0x0, 0x0, 'Software or F/W Change detected with associated Entity was successful'] },
+        0x07: [0x7, 0x0, 0x0, 'Software or F/W Change detected with associated Entity was successful']},
 
     # FRU State
     0x2C: {
@@ -405,7 +405,7 @@ sensor_specific_event_map = {
         0x04: [0x4, 0x0, 0x0, 'FRU Active'],
         0x05: [0x5, 0x0, 0x0, 'FRU Deactivation Requested'],
         0x06: [0x6, 0x0, 0x0, 'FRU Deactivation In Progress'],
-        0x07: [0x7, 0x0, 0x0, 'FRU Communication Lost'] }
+        0x07: [0x7, 0x0, 0x0, 'FRU Communication Lost']}
 }
 
 
@@ -515,8 +515,8 @@ class SEL:
             events = events_map[self.event_type]
             if event_id not in events:
                 error_info = 'event id {0} not in the sensor event\n'.format(event_id)
-                error_info += 'sensor num: {0} sensor type: {1} event type: {2}\n'.format( \
-                            hex(self.sensor_num), hex(self.sensor_type), hex(self.event_type))
+                error_info += 'sensor num: {0} sensor type: {1} event type: {2}\n'.format(
+                    hex(self.sensor_num), hex(self.sensor_type), hex(self.event_type))
                 logger.info(error_info)
                 msg_queue.put(error_info)
                 return False
@@ -527,8 +527,8 @@ class SEL:
             events = sensor_specific_event_map[self.sensor_type]
             if event_id not in events:
                 error_info = 'event id {0} not in the sensor specific event\n'.format(event_id)
-                error_info += 'sensor num: {0} sensor type: {1} event type: {2}\n'.format( \
-                            hex(self.sensor_num), hex(self.sensor_type), hex(self.event_type))
+                error_info += 'sensor num: {0} sensor type: {1} event type: {2}\n'.format(
+                    hex(self.sensor_num), hex(self.sensor_type), hex(self.event_type))
                 logger.info(error_info)
                 msg_queue.put(error_info)
                 return False
@@ -548,7 +548,7 @@ class SEL:
         command = 'sel_add ' + hex(self.mc) + ' ' + hex(self.record_type) + ' ' \
               + hex(self.ts_1) + ' ' + hex(self.ts_2) + ' ' + hex(self.ts_3) + ' ' + hex(self.ts_4) + ' ' \
               + hex(self.gid_1) + ' ' + hex(self.gid_2) + ' ' + hex(self.evm_rev) + ' ' \
-              + hex(self.sensor_type) + ' ' + hex(self.sensor_num) + ' ' + hex((self.event_dir << 7)| self.event_type) + ' ' \
+              + hex(self.sensor_type) + ' ' + hex(self.sensor_num) + ' ' + hex((self.event_dir << 7) | self.event_type) + ' ' \
               + hex(self.event_data_1) + ' ' + hex(self.event_data_2) + ' ' + hex(self.event_data_3) + '\n'
         logger.info(command)
         send_ipmi_sim_command(command)
