@@ -73,17 +73,17 @@ class test_node_cli(unittest.TestCase):
         output_status["destroy"] = run_command("infrasim node status")
         self.assertEqual(output_status["destroy"][0], 0)
 
-        assert "{}-socat starts to run".format(self.node_name) in output_start[1]
-        assert "{}-bmc starts to run".format(self.node_name) in output_start[1]
+        assert "{}-socat is running".format(self.node_name) in output_start[1]
+        assert "{}-bmc is running".format(self.node_name) in output_start[1]
         assert "{}-node is running".format(self.node_name) in output_start[1]
 
         assert "{}-socat is running".format(self.node_name) in output_status["start"][1]
         assert "{}-bmc is running".format(self.node_name) in output_status["start"][1]
         assert "{}-node is running".format(self.node_name) in output_status["start"][1]
 
-        assert "{}-socat stop".format(self.node_name) in output_stop[1]
-        assert "{}-bmc stop".format(self.node_name) in output_stop[1]
-        assert "{}-node stop".format(self.node_name) in output_stop[1]
+        assert "{}-socat is stopped".format(self.node_name) in output_stop[1]
+        assert "{}-bmc is stopped".format(self.node_name) in output_stop[1]
+        assert "{}-node is stopped".format(self.node_name) in output_stop[1]
 
         assert "{}-socat is stopped".format(self.node_name) in output_status["stop"][1]
         assert "{}-bmc is stopped".format(self.node_name) in output_status["stop"][1]
@@ -120,20 +120,20 @@ class test_node_cli(unittest.TestCase):
         output_status["destroy"] = run_command("infrasim node status")
         self.assertEqual(output_status["destroy"][0], 0)
 
-        assert "{}-socat starts to run".format(self.node_name) in output_start[1]
-        assert "{}-bmc starts to run".format(self.node_name) in output_start[1]
+        assert "{}-socat is running".format(self.node_name) in output_start[1]
+        assert "{}-bmc is running".format(self.node_name) in output_start[1]
         assert "{}-node is running".format(self.node_name) in output_start[1]
 
         assert "{}-socat is running".format(self.node_name) in output_status["start"][1]
         assert "{}-bmc is running".format(self.node_name) in output_status["start"][1]
         assert "{}-node is running".format(self.node_name) in output_status["start"][1]
 
-        assert "{}-socat stop".format(self.node_name) in output_restart[1]
-        assert "{}-bmc stop".format(self.node_name) in output_restart[1]
-        assert "{}-node stop".format(self.node_name) in output_restart[1]
+        assert "{}-socat is stopped".format(self.node_name) in output_restart[1]
+        assert "{}-bmc is stopped".format(self.node_name) in output_restart[1]
+        assert "{}-node is stopped".format(self.node_name) in output_restart[1]
 
-        assert "{}-socat starts to run".format(self.node_name) in output_restart[1]
-        assert "{}-bmc starts to run".format(self.node_name) in output_restart[1]
+        assert "{}-socat is running".format(self.node_name) in output_restart[1]
+        assert "{}-bmc is running".format(self.node_name) in output_restart[1]
         assert "{}-node is running".format(self.node_name) in output_restart[1]
 
         assert "{}-socat is running".format(self.node_name) in output_status["restart"][1]
@@ -156,8 +156,8 @@ class test_node_cli(unittest.TestCase):
         self.assertEqual(output_destroy[0], 0)
         self.assertFalse(Workspace.check_workspace_exists(self.node_name))
 
-        assert "{}-socat starts to run".format(self.node_name) in output_start[1]
-        assert "{}-bmc starts to run".format(self.node_name) in output_start[1]
+        assert "{}-socat is running".format(self.node_name) in output_start[1]
+        assert "{}-bmc is running".format(self.node_name) in output_start[1]
         assert "{}-node is running".format(self.node_name) in output_start[1]
 
         assert "Node {} runtime workspace is destroyed".format(self.node_name) in output_destroy[1]
@@ -193,12 +193,12 @@ class test_node_cli(unittest.TestCase):
         self.assertEqual(output_start_2[0], 0)
         self.assertTrue(Workspace.check_workspace_exists(self.node_name))
 
-        assert "{}-socat starts to run".format(self.node_name) in output_start_1[1]
-        assert "{}-bmc starts to run".format(self.node_name) in output_start_1[1]
+        assert "{}-socat is running".format(self.node_name) in output_start_1[1]
+        assert "{}-bmc is running".format(self.node_name) in output_start_1[1]
         assert "{}-node is running".format(self.node_name) in output_start_1[1]
 
-        assert "{}-socat is already running".format(self.node_name) in output_start_2[1]
-        assert "{}-bmc is already running".format(self.node_name) in output_start_2[1]
+        assert "{}-socat is running".format(self.node_name) in output_start_2[1]
+        assert "{}-bmc is running".format(self.node_name) in output_start_2[1]
         assert "{}-node is running".format(self.node_name) in output_start_2[1]
 
     def test_stop_stop(self):
@@ -217,17 +217,17 @@ class test_node_cli(unittest.TestCase):
         self.assertEqual(output_stop_2[0], 0)
         self.assertTrue(Workspace.check_workspace_exists(self.node_name))
 
-        assert "{}-socat starts to run".format(self.node_name) in output_start[1]
-        assert "{}-bmc starts to run".format(self.node_name) in output_start[1]
+        assert "{}-socat is running".format(self.node_name) in output_start[1]
+        assert "{}-bmc is running".format(self.node_name) in output_start[1]
         assert "{}-node is running".format(self.node_name) in output_start[1]
 
-        assert "{}-socat stop".format(self.node_name) in output_stop_1[1]
-        assert "{}-bmc stop".format(self.node_name) in output_stop_1[1]
-        assert "{}-node stop".format(self.node_name) in output_stop_1[1]
+        assert "{}-socat is stopped".format(self.node_name) in output_stop_1[1]
+        assert "{}-bmc is stopped".format(self.node_name) in output_stop_1[1]
+        assert "{}-node is stopped".format(self.node_name) in output_stop_1[1]
 
-        assert "[        ] {}-node is stopped".format(self.node_name) in output_stop_2[1]
-        assert "[        ] {}-bmc is stopped".format(self.node_name) in output_stop_2[1]
-        assert "[        ] {}-socat is stopped".format(self.node_name) in output_stop_2[1]
+        assert "{}-node is stopped".format(self.node_name) in output_stop_2[1]
+        assert "{}-bmc is stopped".format(self.node_name) in output_stop_2[1]
+        assert "{}-socat is stopped".format(self.node_name) in output_stop_2[1]
 
     def test_start_info_destroy_info(self):
         """
@@ -247,8 +247,8 @@ class test_node_cli(unittest.TestCase):
         output_info['destroy'] = run_command("infrasim node info")
         self.assertEqual(output_info['destroy'][0], 0)
 
-        assert "{}-socat starts to run".format(self.node_name) in output_start[1]
-        assert "{}-bmc starts to run".format(self.node_name) in output_start[1]
+        assert "{}-socat is running".format(self.node_name) in output_start[1]
+        assert "{}-bmc is running".format(self.node_name) in output_start[1]
         assert "{}-node is running".format(self.node_name) in output_start[1]
 
         assert "node name:          {}".format(self.node_name) in output_info['start'][1]
@@ -355,8 +355,8 @@ class test_config_cli_with_runtime_node(unittest.TestCase):
         self.assertEqual(output_start[0], 0)
 
         assert "Node {}'s configuration mapping removed".format(self.test_name) in output_delete[1]
-        assert "{}-socat starts to run".format(self.test_name) in output_start[1]
-        assert "{}-bmc starts to run".format(self.test_name) in output_start[1]
+        assert "{}-socat is running".format(self.test_name) in output_start[1]
+        assert "{}-bmc is running".format(self.test_name) in output_start[1]
         assert "{}-node is running".format(self.test_name) in output_start[1]
 
 
