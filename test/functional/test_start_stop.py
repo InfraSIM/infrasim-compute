@@ -353,3 +353,24 @@ class test_control_by_cli(unittest.TestCase):
         self.assertFalse(os.path.exists("/proc/{}".format(pid_socat)))
         self.assertFalse(os.path.exists("/proc/{}".format(pid_ipmi)))
         self.assertFalse(os.path.exists("/proc/{}".format(pid_qemu)))
+
+
+class test_start_stop_stress(unittest.TestCase):
+    def test_start_stop_stress(self):
+
+        self.node_info = {}
+        fake_config = fixtures.FakeConfig()
+        self.node_info = fake_config.get_node_info()
+        count = 5
+
+        for i in range(count):
+            node = model.CNode(self.node_info)
+            node.init()
+            node.precheck()
+            node.start()
+            node = model.CNode(self.node_info)
+            node.init()
+            node.stop()
+            node.status()
+
+            node.terminate_workspace()
