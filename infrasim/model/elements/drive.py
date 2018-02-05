@@ -78,6 +78,22 @@ class CBaseDrive(CElement):
     def get_uniq_name(self):
         return ""
 
+    @property
+    def dev_attrs(self):
+        return self._dev_attrs
+
+    @dev_attrs.setter
+    def dev_attrs(self, s):
+        self._dev_attrs = s
+
+    @property
+    def host_opt(self):
+        return self._host_opt
+
+    @host_opt.setter
+    def host_opt(self, s):
+        self._host_opt = s
+
     def init(self):
         self.__bootindex = self._drive_info.get("bootindex")
         self.__serial = self._drive_info.get("serial")

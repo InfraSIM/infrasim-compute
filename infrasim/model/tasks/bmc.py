@@ -31,6 +31,7 @@ class CBMC(Task):
         self.__lancontrol_script = ""
         self.__chassiscontrol_script = ""
         self.__startcmd_script = ""
+        self.__workspace = ""
         self.__startnow = "true"
         self.__poweroff_wait = None
         self.__kill_wait = None
@@ -107,6 +108,10 @@ class CBMC(Task):
         if not os.path.exists(self.__startcmd_script):
             raise ArgsNotCorrect("[BMC] startcmd script {} doesn\'t exist".
                                  format(self.__startcmd_script))
+
+        if not os.path.exists(self.__workspace):
+            raise ArgsNotCorrect("[BMC] workspace  {} doesn\'t exist".
+                                 format(self.__workspace))
 
         # check if self.__port_qemu_ipmi in use
         if helper.check_if_port_in_use("0.0.0.0", self.__port_qemu_ipmi):
@@ -244,6 +249,7 @@ class CBMC(Task):
             bmc_conf = f.read()
         template = jinja2.Template(bmc_conf)
         bmc_conf = template.render(startcmd_script=self.__startcmd_script,
+                                   workspace=self.__workspace,
                                    lan_channel=self.__channel,
                                    chassis_control_script=self.__chassiscontrol_script,
                                    lan_control_script=self.__lancontrol_script,
@@ -305,6 +311,9 @@ class CBMC(Task):
             self.__startcmd_script = os.path.join(self.get_workspace(),
                                                   "script",
                                                   "startcmd")
+
+        if self.get_workspace():
+            self.__workspace = self.get_workspace()
 
         if self.__bmc.get("startnow") is False:
             self.__startnow = "false"
