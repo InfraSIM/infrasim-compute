@@ -5,7 +5,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 # -*- coding: utf-8 -*-
 
-
+from __future__ import print_function
 import os
 import time
 import signal
@@ -15,6 +15,8 @@ import fcntl
 from infrasim import CommandRunFailed
 from infrasim.log import infrasim_log, LoggerType
 from infrasim.helper import run_in_namespace, double_fork
+from infrasim.filelock import FileLock
+from infrasim.colors import icolors
 
 
 class Task(object):
@@ -85,44 +87,55 @@ class Task(object):
         return "{}/.{}.pid".format(self.__workspace, self.__task_name)
 
     def get_task_pid(self):
+        pid = "-1"
         try:
             with open(self.get_pid_file(), "r") as f:
                 pid = f.readline().strip()
         except Exception:
-            return -1
+            pid = "-1"
+        finally:
+            return int(pid)
 
-        if pid == "":
-            return -1
+    def __task_is_running(self, pid):
+        return pid > 0 and os.path.exists("/proc/{}".format(pid))
 
-        return pid
+    def _task_is_running(self, pid=-1):
+        pid = self.get_task_pid() if pid < 0 else pid
+        return self.__task_is_running(pid)
 
-    def _task_is_running(self):
-        pid = self.get_task_pid()
-        if pid > 0 and os.path.exists("/proc/{}".format(pid)):
-            return True
-        return False
+    def __wait_task_completed(self, pid=-1, timeout=15):
+        start = time.time()
+        while True:
+            if time.time() - start > timeout:
+                break
+
+            if self._task_is_running(pid):
+                break
+
+            time.sleep(0.5)
+
+        # in case the process created, but exit accidently, so
+        # check again
+        return self._task_is_running(pid)
+
+    def __print_task(self, pid, name, state, color=icolors.GREEN):
+        print("{}{}{}".format(icolors.WHITE, "[", icolors.NORMAL), end='')
+        print(" {}{:<6}{} ".format(color, pid, icolors.NORMAL), end='')
+        print("{}{}{}".format(icolors.WHITE, "]", icolors.NORMAL), end='')
+        print(" {} is {}.".format(name, state))
 
     @run_in_namespace
     def run(self):
-
+        pid_file = self.get_pid_file()
+        lock = FileLock("{}.lck".format(pid_file))
         if self.__asyncronous:
-            start = time.time()
-            while True:
-                if self._task_is_running():
-                    break
-
-                if time.time()-start > 10:
-                    break
-
-            if not self._task_is_running():
-                print "[ {} ] {} fail to start".\
-                    format("ERROR", self.__task_name)
-                self.__logger.error("[ {} ] {} fail to start".
-                                    format("ERROR", self.__task_name))
-            else:
-                print "[ {:<6} ] {} is running".format(self.get_task_pid(), self.__task_name)
-                self.__logger.info("[ {:<6} ] {} is running".
-                                   format(self.get_task_pid(), self.__task_name))
+            with lock.acquire():
+                if self.__wait_task_completed():
+                    self.__print_task(self.get_task_pid(), self.__task_name, "running")
+                    self.__logger.info("[ {:<6} ] {} is running".format(self.get_task_pid(),
+                                                                        self.__task_name))
+                else:
+                    self.__print_task('  -  ', self.__task_name, "not running")
             return
 
         cmdline = self.get_commandline()
@@ -130,73 +143,68 @@ class Task(object):
         self.__logger.info("{}'s command line: {}".
                            format(self.__task_name, cmdline))
 
-        pid_file = self.get_pid_file()
+        with lock.acquire():
+            if self._task_is_running():
+                self.__print_task(self.get_task_pid(), self.__task_name, "running")
+                self.__logger.info("[ {:<6} ] {} is already running".format(self.get_task_pid(),
+                                                                            self.__task_name))
+                return
+            elif os.path.exists(pid_file):
+                # If the qemu quits exceptionally when starts, pid file is also
+                # created, but actually the qemu died.
+                os.remove(pid_file)
 
-        if self._task_is_running():
-            print "[ {:<6} ] {} is already running".format(
-                self.get_task_pid(), self.__task_name)
-            self.__logger.info("[ {:<6} ] {} is already running".
-                               format(self.get_task_pid(), self.__task_name))
-            return
-        elif os.path.exists(pid_file):
-            # If the qemu quits exceptionally when starts, pid file is also
-            # created, but actually the qemu died.
-            os.remove(pid_file)
+            pid = self.execute_command(cmdline, self.__logger, log_path=self.__log_path)
 
-        pid = self.execute_command(cmdline, self.__logger, log_path=self.__log_path)
+            if self.__wait_task_completed(pid):
+                self.__print_task(pid, self.__task_name, "running")
+                self.__logger.info("[ {:<6} ] {} starts to run".format(pid, self.__task_name))
 
-        print "[ {:<6} ] {} starts to run".format(pid, self.__task_name)
-        self.__logger.info("[ {:<6} ] {} starts to run".format(pid, self.__task_name))
-
-        with open(pid_file, "w") as f:
-            if os.path.exists("/proc/{}".format(pid)):
-                f.write("{}".format(pid))
+                with open(pid_file, "w") as f:
+                    if os.path.exists("/proc/{}".format(pid)):
+                        f.write("{}".format(pid))
 
     def terminate(self):
-        task_pid = self.get_task_pid()
         pid_file = self.get_pid_file()
-        try:
-            if task_pid > 0:
-                os.kill(int(task_pid), signal.SIGTERM)
-                print "[ {:<6} ] {} stop".format(task_pid, self.__task_name)
-                self.__logger.info("[ {:<6} ] {} stop".
-                                   format(task_pid, self.__task_name))
-                time.sleep(1)
-                if os.path.exists("/proc/{}".format(task_pid)):
-                    os.kill(int(task_pid), signal.SIGKILL)
-            else:
-                print "[ {:<6} ] {} is stopped".format("", self.__task_name)
-                self.__logger.info("[ {:<6} ] {} is stopped".
-                                   format("", self.__task_name))
+        lock = FileLock("{}.lck".format(pid_file))
+        with lock.acquire():
+            task_pid = self.get_task_pid()
+            try:
+                if self.__task_is_running(task_pid):
+                    os.kill(task_pid, signal.SIGTERM)
+                    time.sleep(1)
+                    if self.__task_is_running(task_pid):
+                        os.kill(task_pid, signal.SIGKILL)
+                    self.__print_task(task_pid, self.__task_name, "stopped", icolors.RED)
+                    self.__logger.info("[ {:<6} ] {} stop".format(task_pid, self.__task_name))
+                else:
+                    self.__print_task('  -  ', self.__task_name, "stopped", icolors.RED)
+                    self.__logger.info("[ {:<6} ] {} is stopped".format("", self.__task_name))
 
-            if os.path.exists(pid_file):
-                os.remove(pid_file)
-        except OSError:
-            if os.path.exists(pid_file):
-                os.remove(pid_file)
-            if not os.path.exists("/proc/{}".format(task_pid)):
-                print "[ {:<6} ] {} is stopped".format(task_pid, self.__task_name)
-                self.__logger.info("[ {:<6} ] {} is stopped".
-                                   format(task_pid, self.__task_name))
-            else:
-                print("[ {:<6} ] {} stop failed.".
-                      format(task_pid, self.__task_name))
-                self.__logger.info("[ {:<6} ] {} stop failed.".
-                                   format(task_pid, self.__task_name))
+                if os.path.exists(pid_file):
+                    os.remove(pid_file)
+            except OSError:
+                if not self.__task_is_running(task_pid):
+                    if os.path.exists(pid_file):
+                        os.remove(pid_file)
+
+                    self.__print_task(task_pid, self.__task_name, "stopped", icolors.RED)
+                    self.__logger.info("[ {:<6} ] {} is stopped".format(task_pid, self.__task_name))
+                else:
+                    self.__print_task(task_pid, self.__task_name, "running")
+                    self.__logger.info("[ {:<6} ] {} stop failed.".format(task_pid, self.__task_name))
 
     def status(self):
-        task_pid = self.get_task_pid()
-        pid_file = "{}/.{}.pid".format(self.__workspace, self.__task_name)
-        if not os.path.exists(pid_file):
-            print("{} is stopped".format(self.__task_name))
-        elif not os.path.exists("/proc/{}".format(task_pid)):
-            print("{} is stopped".format(self.__task_name))
-            os.remove(pid_file)
-        else:
+        pid_file = self.get_pid_file()
+        lock = FileLock("{}.lck".format(pid_file))
+        with lock.acquire():
             task_pid = self.get_task_pid()
-            if task_pid > 0:
-                print "[ {:<6} ] {} is running".\
-                    format(task_pid, self.__task_name)
+            if not self.__task_is_running(task_pid):
+                if os.path.exists(pid_file):
+                    os.remove(pid_file)
+                self.__print_task('  -  ' if task_pid < 0 else task_pid, self.__task_name, "stopped", icolors.RED)
+            else:
+                self.__print_task(task_pid, self.__task_name, "running")
 
     @staticmethod
     @double_fork

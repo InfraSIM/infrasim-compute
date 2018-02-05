@@ -3,7 +3,6 @@ import re
 from texttable import Texttable
 from infrasim.config import infrasim_home
 from infrasim import run_command
-from infrasim import helper
 from infrasim.workspace import Workspace
 from infrasim.helper import run_in_namespace
 
@@ -59,6 +58,18 @@ class NodeStatus(object):
                     task_list[task] = "{:<6}".format(task_pid)
         return task_list
 
+    def __get_ports(self, pid, protocol):
+        cmd = "lsof -Pan -p {} -i{}".format(pid, protocol)
+        if protocol == "TCP":
+            cmd = " ".join([cmd, "-sTCP:LISTEN"])
+        try:
+            res = run_command(cmd)
+        except:
+            return None
+
+        ports = re.findall(r":(\d.+?) ", res[1])
+        return set(ports)
+
     @run_in_namespace
     def get_port_status(self):
         # SSH ~ ipmi-console        default: 9300   tcp
@@ -83,14 +94,12 @@ class NodeStatus(object):
                 if pid > 0 and os.path.exists("/proc/{}".format(pid)):
                     task_pid.append(pid)
         for pid in task_pid:
-            cmd = "netstat -anp | grep {}".format(pid)
-
-            res = helper.try_func(600, run_command, cmd)
-            port = re.findall(r":(\d.+?) ", res[1])
-            for p in port:
-                if p not in port_list:
-                    port_list.append(p)
-
+            ports = self.__get_ports(pid, "UDP")
+            if ports:
+                port_list.extend(ports)
+            ports = self.__get_ports(pid, "TCP")
+            if ports:
+                port_list.extend(ports)
         return port_list
 
 
