@@ -27,6 +27,7 @@ class CBMC(Task):
         self.__bmc = bmc_info
         self.__address = None
         self.__channel = None
+        self.__gem_enable = False
         self.__lan_interface = None
         self.__lancontrol_script = ""
         self.__chassiscontrol_script = ""
@@ -249,7 +250,6 @@ class CBMC(Task):
             bmc_conf = f.read()
         template = jinja2.Template(bmc_conf)
         bmc_conf = template.render(startcmd_script=self.__startcmd_script,
-                                   workspace=self.__workspace,
                                    lan_channel=self.__channel,
                                    chassis_control_script=self.__chassiscontrol_script,
                                    lan_control_script=self.__lancontrol_script,
@@ -267,7 +267,9 @@ class CBMC(Task):
                                    kill_wait=self.__kill_wait,
                                    startnow=self.__startnow,
                                    historyfru=self.__historyfru,
-                                   sol_enabled=self.__sol_enabled)
+                                   sol_enabled=self.__sol_enabled,
+                                   gem_enable=self.__gem_enable,
+                                   workspace=self.__workspace)
 
         with open(dst, "w") as f:
             f.write(bmc_conf)
@@ -276,6 +278,7 @@ class CBMC(Task):
     def init(self):
         self.__address = self.__bmc.get('address', 0x20)
         self.__channel = self.__bmc.get('channel', 1)
+        self.__gem_enable = self.__bmc.get("gem_enable", False)
 
         if 'interface' in self.__bmc:
             self.__lan_interface = self.__bmc['interface']
