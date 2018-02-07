@@ -63,7 +63,7 @@ class test_nvme(unittest.TestCase):
     def get_nvme_disks(self):
         ssh = helper.prepare_ssh()
         nvme_list = []
-        stdin, stdout, stderr = ssh.exec_command("sudo nvme list |grep \"/dev\" |awk '{print $1}'")
+        stdin, stdout, stderr = ssh.exec_command("nvme list |grep \"/dev\" |awk '{print $1}'")
         while not stdout.channel.exit_status_ready():
             pass
         nvme_list = stdout.channel.recv(2048).split()
@@ -73,7 +73,7 @@ class test_nvme(unittest.TestCase):
     def get_nvme_dev(self):
         ssh = helper.prepare_ssh()
         nvme_dev_list = []
-        stdin, stdout, stderr = ssh.exec_command("sudo ls /sys/class/nvme")
+        stdin, stdout, stderr = ssh.exec_command("ls /sys/class/nvme")
         while not stdout.channel.exit_status_ready():
             pass
         nvme_dev_list = stdout.channel.recv(2048).split()
@@ -90,7 +90,6 @@ class test_nvme(unittest.TestCase):
             id = re.search(r"nvme(\d+)n(\d+)", ns)
             nsid = id.group(2)
             nsid_list.append(nsid)
-
         return nsid_list
 
     def test_nvme_disk_count(self):
@@ -235,7 +234,7 @@ class test_nvme(unittest.TestCase):
         # To get MT devices list.
         nvme_model_list = []
         ssh = helper.prepare_ssh()
-        stdin, stdout, stderr = ssh.exec_command("sudo nvme list |grep \"/dev\" |awk '{print $1,$3}'")
+        stdin, stdout, stderr = ssh.exec_command("nvme list |grep \"/dev\" |awk '{print $1,$3}'")
         while not stdout.channel.exit_status_ready():
             pass
         nvme_model_list = stdout.channel.recv(2048).split("\n")[:-1]
