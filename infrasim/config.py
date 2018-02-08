@@ -18,6 +18,9 @@ infrasim_template = os.path.join(get_infrasim_root(), "template")
 # installed data
 infrasim_data = os.path.join(get_infrasim_root(), "data")
 
+# installed scripts
+infrasim_scripts = os.path.join(get_infrasim_root(), "scripts")
+
 # installed etc, just few examples there, after infrasim-init
 # the initial configuration file will be put there
 infrasim_etc = os.path.join(get_infrasim_root(), "etc")

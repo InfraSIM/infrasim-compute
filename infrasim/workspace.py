@@ -89,7 +89,7 @@ class Workspace(object):
         if not os.path.exists(data_path):
             os.mkdir(data_path)
 
-        script_path = os.path.join(self.__workspace, "script")
+        script_path = os.path.join(self.__workspace, "scripts")
         if not os.path.exists(script_path):
             os.mkdir(script_path)
 
@@ -123,13 +123,15 @@ class Workspace(object):
                                                     "{}_smbios.bin".
                                                     format(node_type)))
 
-        # VII. Move vpd_data.bin
-        if "nvme" in [ x['type'] for x in self.__node_info["compute"]["storage_backend"]]:
-            path_oem_file_src = os.path.join(config.infrasim_data, "oem_data.json")
-            if os.path.exists(path_oem_file_src):
-                shutil.copy(path_oem_file_src, os.path.join(path_data_dst, "oem_data.json"))
+        # VII. Move OEM data and script
+        path_oem_file_src = os.path.join(config.infrasim_data, "oem_data.json")
+        path_oem_script_src = os.path.join(config.infrasim_scripts, "ipmi_exec.py")
+        if os.path.exists(path_oem_file_src):
+            shutil.copy(path_oem_file_src, os.path.join(path_data_dst, "oem_data.json"))
+        if os.path.exists(path_oem_script_src):
+            shutil.copy(path_oem_script_src, os.path.join(script_path, "ipmi_exec.py"))
 
-            # Place holder to sync serial number
+        # Place holder to sync serial number
 
     def terminate(self):
         """
