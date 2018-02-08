@@ -92,11 +92,13 @@ class CCompute(Task, CElement):
     @run_in_namespace
     def precheck(self):
         # check if qemu-system-x86_64 exists
-        try:
-            run_command("which {}".format(self.__qemu_bin))
-        except CommandRunFailed:
-            self.logger.exception("[Compute] Can not find file {}".format(self.__qemu_bin))
-            raise CommandNotFound(self.__qemu_bin)
+        # if self.__qemu_bin is an absolute path, check if it exists
+        if not self.__qemu_bin.startswith("qemu"):
+            try:
+                run_command("which {}".format(self.__qemu_bin))
+            except CommandRunFailed:
+                self.logger.exception("[Compute] Can not find file {}".format(self.__qemu_bin))
+                raise CommandNotFound(self.__qemu_bin)
 
         # check if smbios exists
         if not os.path.isfile(self.__smbios):
