@@ -40,7 +40,7 @@ def check_node_start_workspace(node_name):
     assert os.path.exists(node_bios) is True
 
     # Check node script folder and files exist
-    script_folder = os.path.join(node_root, "script")
+    script_folder = os.path.join(node_root, "scripts")
     script_chassiscontrol = os.path.join(script_folder, "chassiscontrol")
     script_lancontrol = os.path.join(script_folder, "lancontrol")
     script_startcmd = os.path.join(script_folder, "startcmd")
@@ -102,7 +102,7 @@ def check_node_stop_workspace(node_name):
     assert os.path.exists(node_bios) is True
 
     # Check node script folder and files exist
-    script_folder = os.path.join(node_root, "script")
+    script_folder = os.path.join(node_root, "scripts")
     script_chassiscontrol = os.path.join(script_folder, "chassiscontrol")
     script_lancontrol = os.path.join(script_folder, "lancontrol")
     script_startcmd = os.path.join(script_folder, "startcmd")

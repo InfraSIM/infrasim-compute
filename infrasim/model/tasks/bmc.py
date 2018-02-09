@@ -187,7 +187,7 @@ class CBMC(Task):
         for target in ["startcmd", "stopcmd", "resetcmd"]:
             if not has_option(self.__bmc, target):
                 src = os.path.join(config.infrasim_template, target)
-                dst = os.path.join(self.get_workspace(), "script", target)
+                dst = os.path.join(self.get_workspace(), "scripts", target)
                 with open(src, "r")as f:
                     src_text = f.read()
                 template = jinja2.Template(src_text)
@@ -201,21 +201,21 @@ class CBMC(Task):
 
         if not has_option(self.__bmc, "startcmd"):
             self.__startcmd_script = os.path.join(self.get_workspace(),
-                                                  "script", "startcmd")
+                                                  "scripts", "startcmd")
 
         if not has_option(self.__bmc, "chassiscontrol"):
             path_startcmd = os.path.join(self.get_workspace(),
-                                         "script/startcmd")
+                                         "scripts/startcmd")
             path_stopcmd = os.path.join(self.get_workspace(),
-                                        "script/stopcmd")
+                                        "scripts/stopcmd")
             path_resetcmd = os.path.join(self.get_workspace(),
-                                         "script/resetcmd")
+                                         "scripts/resetcmd")
             path_bootdev = os.path.join(self.get_workspace(), "bootdev")
             path_qemu_pid = os.path.join(self.get_workspace(),
                                          ".{}-node.pid".format(self.__node_name))
             src = os.path.join(config.infrasim_template, "chassiscontrol")
             dst = os.path.join(self.get_workspace(),
-                               "script/chassiscontrol")
+                               "scripts/chassiscontrol")
             with open(src, "r") as f:
                 src_text = f.read()
             template = jinja2.Template(src_text)
@@ -233,10 +233,10 @@ class CBMC(Task):
         if not has_option(self.__bmc, "lancontrol"):
             shutil.copy(os.path.join(config.infrasim_template, "lancontrol"),
                         os.path.join(self.get_workspace(),
-                                     "script", "lancontrol"))
+                                     "scripts", "lancontrol"))
 
             self.__lancontrol_script = os.path.join(self.get_workspace(),
-                                                    "script", "lancontrol")
+                                                    "scripts", "lancontrol")
 
     def write_bmc_config(self, dst=None):
         if dst is None:
@@ -295,7 +295,7 @@ class CBMC(Task):
             self.__lancontrol_script = self.__bmc['lancontrol']
         elif self.get_workspace():
             self.__lancontrol_script = os.path.join(self.get_workspace(),
-                                                    "script",
+                                                    "scripts",
                                                     "lancontrol")
         else:
             self.__lancontrol_script = os.path.join(config.infrasim_template,
@@ -305,14 +305,14 @@ class CBMC(Task):
             self.__chassiscontrol_script = self.__bmc['chassiscontrol']
         elif self.get_workspace():
             self.__chassiscontrol_script = os.path.join(self.get_workspace(),
-                                                        "script",
+                                                        "scripts",
                                                         "chassiscontrol")
 
         if 'startcmd' in self.__bmc:
             self.__startcmd_script = self.__bmc['startcmd']
         elif self.get_workspace():
             self.__startcmd_script = os.path.join(self.get_workspace(),
-                                                  "script",
+                                                  "scripts",
                                                   "startcmd")
 
         if self.get_workspace():
