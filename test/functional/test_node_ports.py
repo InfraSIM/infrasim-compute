@@ -2,7 +2,7 @@ import unittest
 import subprocess
 import time
 import os
-from nose.tools import raises, assert_raises
+from nose.tools import raises, assert_raises, assert_raises_regexp
 from test import fixtures
 from infrasim import model
 from infrasim import ArgsNotCorrect, run_command
@@ -380,9 +380,8 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         time.sleep(5)
 
         ipmi_console_cmd = "sudo ipmi-console start test2"
-        self.assertRaises(
-            Exception, run_command, cmd=ipmi_console_cmd, shell=True,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        with assert_raises_regexp(SSHException, "Error reading SSH protocol banner"):
+            run_command(cmd=ipmi_console_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         ipmiconsole.stop(self.node_info["name"])
         node2.stop()
