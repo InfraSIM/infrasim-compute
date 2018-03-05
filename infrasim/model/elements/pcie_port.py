@@ -40,6 +40,13 @@ class CPCIEPort(CElement):
         if not set(['id', 'bus', 'chassis', 'slot']).issubset(self.__port_info):
             raise ArgsNotCorrect("port \
                  <id>/<bus>/<chassis>/<slot> are all required.")
+        if 'addr' in self.__port_info:
+            if ('sec_bus' in self.__port_info) ^ ('pri_bus' in self.__port_info):
+                raise ArgsNotCorrect("<sec_bus> and <pri_bus> should appear together")
+        else:
+            if 'sec_bus' in self.__port_info or 'pri_bus' in self.__port_info:
+                raise ArgsNotCorrect("<sec_bus> and <pri_bus> should appear with <addr>")
+
 
     def init(self):
         self.logger.info("port start ")

@@ -997,6 +997,46 @@ class qemu_functions(unittest.TestCase):
         except ArgsNotCorrect, e:
             assert "KVM enabled is not a boolean" in e.value
 
+    def test_pcie_topo_without_sec_bus(self):
+        with open(config.infrasim_default_config, "r") as f_yml:
+            node_info = yaml.load(f_yml)
+            node_info["compute"]["pce_topology"] = {
+                "root_port": [{
+                    "bus": "pcie.0",
+                    "chassis": 1,
+                    "slot": 8,
+                    "device": "ioh3420",
+                    "id": "rootport1"
+                    }],
+                "switch": [
+                    {
+                        "downstream": [{
+                            "addr": "2.0",
+                            "bus": "upstream1",
+                            "slot": 10,
+                            "chassis": 1,
+                            "device": "xio3130-downstream",
+                            "id": "downstream1"
+                        }, {
+                            "addr": "3.0",
+                            "bus": "upstream1",
+                            "slot": 11,
+                            "chassis": 1,
+                            "device": "xio3130-downstream",
+                            "id": "downstream1",
+                        }],
+                        "upstream": [{
+                            "bus": "2.0",
+                            "device": "x3130-upstream",
+                            "id": "upstream1"
+                        }]
+                    }
+                ]
+            }
+        node = model.CNode(node_info)
+        node.init()
+        node.precheck()
+
     @raises(ArgsNotCorrect)
     def test_pcie_rootport_no_chassis_config(self):
         rootport_info = {
@@ -1075,6 +1115,83 @@ class qemu_functions(unittest.TestCase):
                         "chassis": 1,
                         "device": "xio3130-downstream",
                         "id": "downstream1",
+                    }],
+                    "upstream": [{
+                        "bus": "2.0",
+                        "device": "x3130-upstream",
+                        "id": "upstream1"
+                    }]
+                }
+            ]
+        }
+        topo = model.CPCIETopology(pcie_topology)
+        topo.init()
+        topo.precheck()
+        topo.handle_parms()
+
+    @raises(ArgsNotCorrect)
+    def test_pcie_fw_cfg_error(self):
+        pcie_topology = {
+            "root_port": [{
+                "bus": "pcie.0",
+                "chassis": 1,
+                "slot": 8,
+                "pri_bus": 0,
+                "sec_bus": 4,
+                "device": "ioh3420",
+                "id": "rootport1"
+                }],
+            "switch": [
+                {
+                    "downstream": [{
+                        "bus": "upstream1",
+                        "slot": 10,
+                        "chassis": 1,
+                        "device": "xio3130-downstream",
+                        "id": "downstream1"
+                    }, {
+                        "bus": "upstream1",
+                        "slot": 11,
+                        "chassis": 1,
+                        "device": "xio3130-downstream",
+                        "id": "downstream2",
+                    }],
+                    "upstream": [{
+                        "bus": "2.0",
+                        "device": "x3130-upstream",
+                        "id": "upstream1"
+                    }]
+                }
+            ]
+        }
+        topo = model.CPCIETopology(pcie_topology)
+        topo.init()
+        topo.precheck()
+        topo.handle_parms()
+
+    def test_pcie_witout_fw_cfg(self):
+        pcie_topology = {
+            "root_port": [{
+                "bus": "pcie.0",
+                "chassis": 1,
+                "slot": 8,
+                "device": "ioh3420",
+                "id": "rootport1"
+                }],
+            "switch": [
+                {
+                    "downstream": [{
+                        "bus": "upstream1",
+                        "slot": 10,
+                        "chassis": 1,
+                        "device": "xio3130-downstream",
+                        "id": "downstream1"
+                    }, {
+                        "bus": "upstream1",
+                        "slot": 11,
+                        "chassis": 1,
+                        "device": "xio3130-downstream",
+                        "id": "downstream2",
                     }],
                     "upstream": [{
                         "bus": "2.0",

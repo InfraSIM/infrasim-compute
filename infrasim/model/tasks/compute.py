@@ -216,14 +216,15 @@ class CCompute(Task, CElement):
             self.__element_list.append(pci_topology_manager_obj)
 
         if 'pcie_topology' in self.__compute:
-            fw_cfg_obj = CPCIEFwcfg()
-            fw_cfg_obj.logger = self.logger
-            fw_cfg_obj.set_workspace(self.get_workspace())
             pcie_topology_obj = CPCIETopology(self.__compute['pcie_topology'])
-            pcie_topology_obj.set_fw_cfg_obj(fw_cfg_obj)
             pcie_topology_obj.logger = self.logger
             self.__element_list.append(pcie_topology_obj)
-            self.__element_list.append(fw_cfg_obj)
+            if 'sec_bus' in str(self.__compute.get('pcie_topology')):
+                fw_cfg_obj = CPCIEFwcfg()
+                fw_cfg_obj.logger = self.logger
+                fw_cfg_obj.set_workspace(self.get_workspace())
+                pcie_topology_obj.set_fw_cfg_obj(fw_cfg_obj)
+                self.__element_list.append(fw_cfg_obj)
 
         backend_storage_obj = CBackendStorage(self.__compute['storage_backend'])
         backend_storage_obj.logger = self.logger
