@@ -8,8 +8,8 @@ import infrasim.model as model
 from infrasim.init import infrasim_init
 from infrasim.version import version
 import infrasim.helper as helper
-from infrasim.config_manager import NodeMap
-from infrasim.workspace import Workspace
+from infrasim.config_manager import NodeMap, ChassisMap
+from infrasim.workspace import Workspace, ChassisWorkspace
 from texttable import Texttable
 from global_status import InfrasimMonitor
 from infrasim import InfraSimError
@@ -17,7 +17,7 @@ from .log import LoggerType, infrasim_log
 
 nm = NodeMap()
 logger_cmd = infrasim_log.get_logger(LoggerType.cmd.value)
-
+cm = ChassisMap(nm)
 
 def args(*args, **kwargs):
     def _decorator(func):
@@ -112,6 +112,78 @@ class ConfigCommands(object):
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
+class ChassisConfigCommands(object):
+    @args("chassis_name", help="Specify chassis name to add configuration mapping")
+    @args("config_file", help="Node Config File Path")
+    def add(self, chassis_name, config_file):
+        try:
+            cm.add(chassis_name, config_file)
+            logger_cmd.info("cmd res: add chassis {} OK".format(chassis_name))
+        except InfraSimError, e:
+            print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
+
+    @args("chassis_name", help="Specify chassis name to delete configuration mapping")
+    def delete(self, chassis_name):
+        try:
+            cm.delete(chassis_name)
+            logger_cmd.info("cmd res: delete chassis {} OK".format(chassis_name))
+        except InfraSimError, e:
+            print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
+
+    @args("chassis_name", help="Specify chassis name to update configuration mapping")
+    @args("config_file", help="chassis Config File Path")
+    def update(self, chassis_name, config_file):
+        try:
+            cm.update(chassis_name, config_file)
+            logger_cmd.info("cmd res: update chassis {} OK".format(chassis_name))
+        except InfraSimError, e:
+            print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
+
+        if Workspace.check_workspace_exists(chassis_name):
+            print "chassis {0} runtime workspace exists.\n" \
+                  "If you want to apply updated configuration, please destroy chassis runtime workspace first.\n" \
+                  "You can run commands: \n" \
+                  "    infrasim chassis destroy {0}\n" \
+                  "    infrasim chassis start {0}".format(chassis_name)
+            logger_cmd.warning("chassis {0} runtime workspace exists. "
+                               "Need to destroy chassis runtime workspace first".format(chassis_name))
+
+    @args("chassis_name", nargs='?', default="default",
+          help="Specify chassis name to open its configuration in editor")
+    def edit(self, chassis_name):
+        if chassis_name not in cm.get_name_list():
+            print "Fail to find chassis {0} configuration. It is not registered. Check by:\n" \
+                  "    infrasim config list".format(chassis_name)
+            logger_cmd.warning("cmd res: Fail to find chassis {0} configuration. It is not registered. Check by:\n"
+                               "    infrasim config list".format(chassis_name))
+            return
+
+        editor = os.environ.get('EDITOR', 'vi')
+        config_path = os.path.join(cm.get_mapping_folder(),
+                                   "{}.yml".format(chassis_name))
+        try:
+            os.system("{} {}".format(editor, config_path))
+            if Workspace.check_workspace_exists(chassis_name):
+                print "Warning: " \
+                      "\033[93mPlease destroy chassis {}\033[0m " \
+                      "before start or restart, " \
+                      "or this edit won't work." .format(chassis_name)
+            logger_cmd.info("cmd res: edit chassis {} OK".format(chassis_name))
+        except OSError, e:
+            print e
+            logger_cmd.error("cmd res: {}".format(e))
+
+    def list(self):
+        try:
+            cm.list()
+            logger_cmd.info("cmd res: list OK")
+        except InfraSimError, e:
+            print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
+
 
 class NodeCommands(object):
 
@@ -129,7 +201,7 @@ class NodeCommands(object):
             if Workspace.check_workspace_exists(node_name):
                 node_info = Workspace.get_node_info_in_workspace(node_name)
             else:
-                node_info = nm.get_node_info(node_name)
+                node_info = nm.get_item_info(node_name)
             node = model.CNode(node_info)
             self._node_preinit(node)
 
@@ -284,25 +356,45 @@ class NodeCommands(object):
 
 
 class ChassisCommands(object):
-    @args("node_name", nargs='?', help="Node name")
-    def start(self, node_name=None):
-        print node_name
-        logger_cmd.info("cmd res: start node {} chassis OK".format(node_name))
+    @args("chassis_name", nargs='?', help="Chassis name")
+    def start(self, chassis_name=None):
+        print chassis_name
+        try:
+            if ChassisWorkspace.check_workspace_exists(chassis_name):
+                chassis_info = ChassisWorkspace.get_chassis_info_in_workspace(chassis_name)
+            else:
+                chassis_info = cm.get_item_info(chassis_name)
+            chassis = model.CChassis(chassis_name, chassis_info)
+            chassis.init()
 
-    @args("node_name", nargs='?', help="Node name")
-    def stop(self, node_name=None):
-        print node_name
-        logger_cmd.info("cmd res: stop node {} chassis OK".format(node_name))
+        except InfraSimError, e:
+            print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
+            return
 
-    @args("node_name", nargs='?', help="Node name")
-    def restart(self, node_name=None):
-        print node_name
-        logger_cmd.info("cmd res: restart node {} chassis OK".format(node_name))
+        chassis.start()
 
-    @args("node_name", nargs='?', help="Node name")
-    def destroy(self, node_name=None):
-        print node_name
-        logger_cmd.info("cmd res: destroy node {} chassis OK".format(node_name))
+        # get IP address
+        print "Chassis service for {} started".format(chassis_name)
+        logger_cmd.info("cmd res: start node {} chassis OK".format(chassis_name))
+
+    @args("chassis_name", nargs='?', help="Chassis name")
+    def stop(self, chassis_name=None):
+        chassis = model.CChassis(chassis_name)
+        chassis.init()
+        chassis.terminate()
+        logger_cmd.info("cmd res: stop node {} chassis OK".format(chassis_name))
+
+    @args("chassis_name", nargs='?', help="Chassis name")
+    def restart(self, chassis_name=None):
+        self.stop(chassis_name)
+        self.start(chassis_name)
+        logger_cmd.info("cmd res: restart node {} chassis OK".format(chassis_name))
+
+    @args("chassis_name", nargs='?', help="Chassis name")
+    def destroy(self, chassis_name=None):
+        print chassis_name
+        logger_cmd.info("cmd res: destroy node {} chassis OK".format(chassis_name))
 
 
 class InfrasimCommands(object):
@@ -355,7 +447,8 @@ CATEGORIES = {
     'node': NodeCommands,
     'chassis': ChassisCommands,
     'config': ConfigCommands,
-    'global': InfrasimCommands
+    'global': InfrasimCommands,
+    'chassis_config': ChassisConfigCommands
 }
 
 

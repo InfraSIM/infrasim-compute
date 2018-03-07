@@ -6,6 +6,86 @@ from yaml_loader import YAMLLoader
 from . import has_option, InfraSimError
 
 
+class ChassisWorkspace(object):
+    """
+    This class uses CNode's information to initiate its instance.
+    It creates or update the node's workspace.
+    """
+
+    @staticmethod
+    def check_workspace_exists(chassis_name):
+        return os.path.exists(os.path.join(config.infrasim_home, chassis_name))
+
+    @staticmethod
+    def get_chassis_info_in_workspace(chassis_name):
+        chassis_yml_path = os.path.join(config.infrasim_home, chassis_name,
+                                     "chassis.yml")
+        chassis_info = None
+        try:
+            with open(chassis_yml_path, 'r') as fp:
+                chassis_info = YAMLLoader(fp).get_data()
+        except:
+            raise InfraSimError("Fail to read node {} information from runtime workspace".
+                                format(chassis_name))
+
+        if not isinstance(chassis_info, dict):
+            raise InfraSimError("Node {} information in runtime workspace is invalid".
+                                format(chassis_name))
+        return chassis_info
+    
+    def __init__(self, chassis_info):
+        self.__chassis_info = chassis_info
+        self.__workspace_name = chassis_info["name"]
+        self.__workspace = os.path.join(config.infrasim_home, chassis_info["name"])
+
+    def get_workspace(self):
+        return self.__workspace
+
+    def init(self):
+        """
+        Create chassis workspace: <HOME>/.infrasim/<chassis_name>
+        .infrasim/<chassis_name>     # root folder
+            chassis.yml
+            data/
+                drive.bin
+                sdr.bin
+                smbios.bin
+            .<chassis_name>.pid
+
+
+        What's done here:
+            I. Create workspace
+            II. Create log folder
+
+        """
+        if not os.path.exists(self.__workspace):
+            os.mkdir(self.__workspace)
+
+        # II. Create log folder
+        path_log = "/var/log/infrasim/{}".format(self.__workspace_name)
+        if not os.path.exists(path_log):
+            os.mkdir(path_log)
+        
+        # III. Create sub folder
+        data_path = os.path.join(self.__workspace, "data")
+        if not os.path.exists(data_path):
+            os.mkdir(data_path)
+        
+        # IV. Save infrasim.yml
+        yml_file = os.path.join(self.__workspace, "chassis.yml")
+        with open(yml_file, 'w') as fp:
+            yaml.dump(self.__chassis_info, fp, default_flow_style=False)
+
+        # V. Move emulation data
+
+    
+    def terminate(self):
+        """
+        Destroy node's workspace if it exists
+        """
+        os.system("rm -rf {}".format(self.__workspace))
+
+
 class Workspace(object):
     """
     This class uses CNode's information to initiate its instance.
