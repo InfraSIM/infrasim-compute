@@ -103,7 +103,7 @@ class Task(object):
         pid = self.get_task_pid() if pid < 0 else pid
         return self.__task_is_running(pid)
 
-    def __wait_task_completed(self, pid=-1, timeout=15):
+    def __wait_task_completed(self, lock, pid=-1, timeout=15):
         start = time.time()
         while True:
             if time.time() - start > timeout:
@@ -112,7 +112,9 @@ class Task(object):
             if self._task_is_running(pid):
                 break
 
+            lock.release()
             time.sleep(0.5)
+            lock.acquire()
 
         # in case the process created, but exit accidently, so
         # check again
@@ -130,7 +132,7 @@ class Task(object):
         lock = FileLock("{}.lck".format(pid_file))
         if self.__asyncronous:
             with lock.acquire():
-                if self.__wait_task_completed():
+                if self.__wait_task_completed(lock):
                     self.__print_task(self.get_task_pid(), self.__task_name, "running")
                     self.__logger.info("[ {:<6} ] {} is running".format(self.get_task_pid(),
                                                                         self.__task_name))
@@ -156,7 +158,7 @@ class Task(object):
 
             pid = self.execute_command(cmdline, self.__logger, log_path=self.__log_path)
 
-            if self.__wait_task_completed(pid):
+            if self.__wait_task_completed(lock, pid):
                 self.__print_task(pid, self.__task_name, "running")
                 self.__logger.info("[ {:<6} ] {} starts to run".format(pid, self.__task_name))
 

@@ -10,6 +10,7 @@ import os
 import jinja2
 import stat
 import shutil
+import socket
 from infrasim import CommandNotFound, ArgsNotCorrect, CommandRunFailed
 from infrasim import config, helper
 from infrasim import has_option, run_command
@@ -57,6 +58,7 @@ class CBMC(Task):
         self.__sol_device = ""
         self.__sol_enabled = True
         self.__node_name = None
+        self.__peer_bmc_info_list = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -182,6 +184,30 @@ class CBMC(Task):
         if not os.path.isfile(self.__config_file):
             raise ArgsNotCorrect("[BMC] Target config file doesn't exist: {}".
                                  format(self.__config_file))
+        self.__check_peer_bmc_info()
+
+    def __check_peer_bmc_info(self):
+        if self.__peer_bmc_info_list:
+            for pbi in self.__peer_bmc_info_list:
+                addr = pbi.get("addr")
+                if addr is None or (addr & 0x1) or addr >= 0xff:
+                    raise ArgsNotCorrect("[BMC] {} is not a valid I2C address.".format(addr))
+
+                interface = pbi.get("interface")
+                if interface is None or (interface != "lan" and interface != "lanplus"):
+                    raise ArgsNotCorrect("[BMC] {} should be 'lan' or 'lanplus'.".format(interface))
+
+                if pbi.get("user") is None:
+                    raise ArgsNotCorrect("[BMC] user name is required.")
+
+                if pbi.get("password") is None:
+                    raise ArgsNotCorrect("[BMC] password is required.")
+
+                host_ip = pbi.get("host")
+                try:
+                    socket.inet_aton(host_ip)
+                except socket.error as e:
+                    raise ArgsNotCorrect("[BMC] {} is not valid.({})".format(host_ip, e))
 
     def __render_template(self):
         for target in ["startcmd", "stopcmd", "resetcmd"]:
@@ -269,7 +295,8 @@ class CBMC(Task):
                                    historyfru=self.__historyfru,
                                    sol_enabled=self.__sol_enabled,
                                    gem_enable=self.__gem_enable,
-                                   workspace=self.__workspace)
+                                   workspace=self.__workspace,
+                                   peers=self.__peer_bmc_info_list)
 
         with open(dst, "w") as f:
             f.write(bmc_conf)
@@ -327,6 +354,7 @@ class CBMC(Task):
         self.__password = self.__bmc.get('password', "admin")
         self.__port_iol = self.__bmc.get('ipmi_over_lan_port', 623)
         self.__historyfru = self.__bmc.get('historyfru', 99)
+        self.__peer_bmc_info_list = self.__bmc.get("peer-bmcs")
 
         if 'emu_file' in self.__bmc:
             self.__emu_file = self.__bmc['emu_file']
