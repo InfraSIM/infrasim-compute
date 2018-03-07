@@ -53,6 +53,8 @@ def init_infrasim_conf(node_type):
         os.mkdir(config.infrasim_home)
     if not os.path.exists(config.infrasim_node_config_map):
         os.mkdir(config.infrasim_node_config_map)
+    if not os.path.exists(config.infrasim_chassis_config_map):
+        os.mkdir(config.infrasim_chassis_config_map)
 
     # create_infrasim_log_directories
     if not os.path.exists(infrasim_logdir):
