@@ -16,6 +16,7 @@ from infrasim import config, helper
 from infrasim import has_option, run_command
 from infrasim.helper import run_in_namespace
 from infrasim.model.core.task import Task
+from infrasim.log import infrasim_logdir
 
 
 class CBMC(Task):
@@ -46,6 +47,8 @@ class CBMC(Task):
         self.__ipmi_listen_range = "::"
         self.__intf_not_exists = False
         self.__intf_no_ip = False
+        self.__log_file = None
+        self.__full_log = False
 
         # Be careful with updating this number, it could cause FRU index confliction
         # on particular platform, e.g. onr FRU of s2600wtt already occupied index 10
@@ -365,6 +368,12 @@ class CBMC(Task):
             self.__emu_file = os.path.join(config.infrasim_data,
                                            "{0}/{0}.emu".format(self.__vendor_type))
 
+        if self.__node_name:
+            self.__log_file = os.path.join(infrasim_logdir, self.__node_name, 'ipmi_sim.log')
+        else:
+            self.__log_file = os.path.join(infrasim_logdir, 'ipmi_sim.log')
+        self.__full_log = self.__bmc.get('full_log')
+
         if self.__sol_device:
             pass
         elif self.get_workspace():
@@ -388,7 +397,13 @@ class CBMC(Task):
 
     def get_commandline(self):
         path = os.path.join(self.get_workspace(), "data")
-        ipmi_cmd_str = "{0} -c {1} -f {2} -n -s {3}" .\
-            format(self.__bin, self.__config_file, self.__emu_file, path)
+        ipmi_cmd_str = "{0} -c {1} -f {2} -n -s {3} -l {4}" .\
+            format(self.__bin,
+                   self.__config_file,
+                   self.__emu_file,
+                   path,
+                   self.__log_file)
+        if self.__full_log:
+            ipmi_cmd_str += " -a"
 
         return ipmi_cmd_str
