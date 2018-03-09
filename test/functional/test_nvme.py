@@ -61,6 +61,7 @@ class test_nvme(unittest.TestCase):
             cls.stop_node()
 
     def get_nvme_disks(self):
+        # Return nvme , eg. ['/dev/nvme0n1', '/dev/nvme0n2']
         ssh = helper.prepare_ssh()
         nvme_list = []
         stdin, stdout, stderr = ssh.exec_command("nvme list |grep \"/dev\" |awk '{print $1}'")
@@ -71,6 +72,7 @@ class test_nvme(unittest.TestCase):
         return nvme_list
 
     def get_nvme_dev(self):
+        # Return nvme drive device, eg. ['nvme0', 'nvme1']
         ssh = helper.prepare_ssh()
         nvme_dev_list = []
         stdin, stdout, stderr = ssh.exec_command("ls /sys/class/nvme")
@@ -81,6 +83,7 @@ class test_nvme(unittest.TestCase):
         return nvme_dev_list
 
     def get_nvme_ns_list(self, nvme):
+        # Return name space id list, eg. ['1', '2']
         ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command("ls /sys/class/nvme/{} |grep {}".format(nvme, nvme))
         response = stdout.channel.recv(2048)
@@ -325,15 +328,29 @@ class test_nvme(unittest.TestCase):
             assert read_data == binfile_data
         ssh.close()
 
+    def test_identify_namespace(self):
+        nvme_list = self.get_nvme_disks()
+        ssh = helper.prepare_ssh()
+        for dev in nvme_list:
+            stdin, stdout, stderr = ssh.exec_command("nvme id-ns {}".format(dev))
+            while not stdout.channel.exit_status_ready():
+                pass
+            # Check identity keywords existance in command output
+            rsp_id_ns = stdout.channel.recv(2048)
+            key_words = ["nsze", "ncap", "nuse", "nsfeat", "nlbaf", "flbas", "mc", \
+                         "dpc", "dps", "nmic", "rescap", "fpi", "nawun", "nawupf", \
+                         "nacwu", "nabsn", "nabo", "nabspf", "noiob", "nvmcap", \
+                         "nguid", "eui64", "lbaf"]
+            assert set(key_words)<set(rsp_id_ns.split())
 
+            # Check namespace logical block size in command output
+            stdin, stdout, stderr = ssh.exec_command("sg_readcap {}".format(dev))
+            while not stdout.channel.exit_status_ready():
+                pass
+            rsp_sg = stdout.channel.recv(2048)
+            rsp_sg = re.search(r"blocks=(\d+)", rsp_sg)
+            sg_block_size = hex(int(rsp_sg.group(1)))
 
-
-
-
-
-
-
-
-
-
-
+            nsze = re.search(r"nsze\s*:\s*(0x\d+)", rsp_id_ns).group(1)
+            assert sg_block_size == nsze
+        ssh.close()
