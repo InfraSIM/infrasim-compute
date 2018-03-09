@@ -19,8 +19,8 @@ class CChassisSlot(CElement):
         self.__workspace = workspace
         self.__nvme_map_dict = {}
 
-    def add_slot_map(self, chassis_slot, device_id, drive_id, serial, bus, cmb_size_mb):
-        if not chassis_slot:
+    def add_slot_map(self, chassis_slot, dev_attrs):
+        if not isinstance(chassis_slot, int) or chassis_slot < 0:
             return
 
         if chassis_slot not in range(0, 25):
@@ -30,19 +30,13 @@ class CChassisSlot(CElement):
         if self.__nvme_map_dict.has_key(key):
             raise ArgsNotCorrect("[BackendStorage] Chassis slot: {} has been used".
                                  format(chassis_slot))
-        nvme_map_dict = {}
-        nvme_map_dict["device_id"] = device_id
-        nvme_map_dict["drive_id"] = drive_id
-        nvme_map_dict["serial"] = serial
+        nvme_map_dict = dev_attrs
+        nvme_map_dict["model_number"] = dev_attrs.get("model_number", "").replace("\"", "")
+        nvme_map_dict["drive"] = dev_attrs.get("id", "").replace("dev-", "")
         nvme_map_dict["power_status"] = "on"
-        nvme_map_dict["bus"] = bus
-        nvme_map_dict["cmb_size_mb"] = cmb_size_mb
         self.__nvme_map_dict[key] = nvme_map_dict
-        self.logger.info("Add slot: {} device id: {} \
-                         drive id: {} serial: {} \
-                         bus: {} cmd_size_mb: {}".
-                         format(chassis_slot, device_id, drive_id,
-                                serial, bus, cmb_size_mb))
+        self.logger.info("Add slot: {} nvme_map_dict: {}".
+                         format(chassis_slot, nvme_map_dict))
 
     def precheck(self):
         pass
@@ -55,7 +49,7 @@ class CChassisSlot(CElement):
         self.logger.info("Fill OEM json file")
         filename = os.path.join(self.__workspace, "data/oem_data.json")
         if not self.__nvme_map_dict or not os.path.exists(filename):
-            self.logger.info("Fill OEM json file: Do nothing!")
+            self.logger.info("oem_data.json not exist or nvme_map_dict is empty")
             return
 
         with codecs.open(filename, 'r', 'utf-8') as f:
