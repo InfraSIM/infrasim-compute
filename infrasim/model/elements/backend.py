@@ -140,12 +140,7 @@ class CBackendStorage(CElement):
         for controller_obj in self.__controller_list:
             controller_obj.handle_parms()
             if isinstance(controller_obj, NVMeController):
-                chassis_slot.add_slot_map(controller_obj.chassis_slot,
-                                          controller_obj.dev_attrs["id"],
-                                          controller_obj.host_opt["id"],
-                                          controller_obj.serial,
-                                          controller_obj.bus,
-                                          controller_obj.cmb_size_mb)
+                chassis_slot.add_slot_map(controller_obj.chassis_slot, controller_obj.dev_attrs)
         chassis_slot.handle_parms()
 
         for controller_obj in self.__controller_list:
