@@ -49,6 +49,8 @@ class CBaseDrive(CElement):
         self.__cluster_size = None  # unit: KB
         self.__preallocation_mode = None
 
+        self.__discard = None
+
         # other option
         self.__size = None
 
@@ -110,6 +112,7 @@ class CBaseDrive(CElement):
         self.__refcount_cache_size = self._drive_info.get("refcount-cache-size")
         self.__cluster_size = self._drive_info.get("cluster-size")
         self.__preallocation_mode = self._drive_info.get("preallocation")
+        self.__discard = self._drive_info.get("discard")
 
         self.__size = self._drive_info.get("size", 8)
 
@@ -186,6 +189,9 @@ class CBaseDrive(CElement):
 
         if self.__aio and self.__cache == "none":
             self._host_opt["aio"] = self.__aio
+
+        if self.__discard:
+            self._host_opt["discard"] = self.__discard
 
         # The following options are common for all kind of drives.
 
