@@ -19,3 +19,4 @@ requests==2.11.1
 texttable==0.8.7
 flask >=0.12.2
 flask-restplus >=0.10.1
+nose-exclude==0.5
