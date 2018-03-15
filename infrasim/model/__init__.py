@@ -43,7 +43,7 @@ from infrasim.model.tasks.bmc import CBMC
 from infrasim.model.tasks.socat import CSocat
 from infrasim.model.tasks.racadm import CRacadm
 from infrasim.model.tasks.monitor import CMonitor
-from infrasim.model.tasks.chassis import CChassis
+from infrasim.model.tasks.chassis_daemon import CChassisDaemon
 
 __all__ = ["CNode",
            "CCharDev",
@@ -75,4 +75,4 @@ __all__ = ["CNode",
            "CMonitor",
            "CRacadm",
            "CMachine",
-           "CChassis"]
+           "CChassisDaemon"]

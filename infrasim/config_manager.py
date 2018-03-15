@@ -73,7 +73,7 @@ class BaseMap(object):
 
         dst = os.path.join(self.__mapping_folder, "{}.yml".format(item_name))
         with open(dst, 'w') as fp:
-            yaml.dump(node_info, fp, default_flow_style=False)
+            yaml.dump(node_info, fp, default_flow_style=False, indent=2)
         os.chmod(dst, 0664)
 
         self.__name_list.append(item_name)
@@ -234,6 +234,9 @@ class ChassisMap(BaseMap):
         return chassis_info
 
     def __split_sub_nodes(self, config_path):
+        '''
+        extract node section from chassis.yml
+        '''
         item_name = self.__chassis_name
         logger_config = self.get_logger(item_name)
         sub_nodes = []
@@ -275,6 +278,7 @@ class ChassisMap(BaseMap):
             for node in installed_node:
                 self.__nm.delete(node)
             raise InfraSimError("Node {0} in {1} is already existed.".format(node_name, item_name))
+
         super(ChassisMap, self).add(item_name, config_path)
         print "Chassis {} is added with nodes:{}.".format(item_name, installed_node)
         logger_config.info("Chassis {} is added with nodes:{}.".format(item_name, installed_node))

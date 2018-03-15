@@ -66,6 +66,7 @@ class CNetwork(CElement):
         self.__bus = self.__network.get('bus')
         self.__addr = self.__network.get('addr')
         self.__multifunction = self.__network.get('multifunction')
+        self.__port_forwards = self.__network.get('port_forward',[])
 
     def handle_parms(self):
         if self.__network_mode == "bridge":
@@ -87,6 +88,11 @@ class CNetwork(CElement):
         else:
             raise ArgsNotCorrect("[CNetwork] ERROR: Network mode '{}'' is not supported now.".
                                  format(self.__network_mode))
+        for item in self.__port_forwards:
+            netdev_option = ",".join(["{}".format(netdev_option),
+                                      "hostfwd={}::{}-:{}".format(item["protocal"],
+                                                                  item["outside"],
+                                                                  item["inside"])])
 
         nic_option = ",".join(["{}".format(self.__nic_name),
                                "netdev=netdev{}".format(self.__index),
