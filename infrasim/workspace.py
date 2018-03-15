@@ -65,12 +65,12 @@ class ChassisWorkspace(object):
         path_log = "/var/log/infrasim/{}".format(self.__workspace_name)
         if not os.path.exists(path_log):
             os.mkdir(path_log)
-        
+
         # III. Create sub folder
         data_path = os.path.join(self.__workspace, "data")
         if not os.path.exists(data_path):
             os.mkdir(data_path)
-        
+
         # IV. Save infrasim.yml
         yml_file = os.path.join(self.__workspace, "chassis.yml")
         with open(yml_file, 'w') as fp:
@@ -78,7 +78,6 @@ class ChassisWorkspace(object):
 
         # V. Move emulation data
 
-    
     def terminate(self):
         """
         Destroy node's workspace if it exists
