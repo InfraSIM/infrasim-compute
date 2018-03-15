@@ -258,10 +258,10 @@ class test_nvme(unittest.TestCase):
                 rsp = stdout.channel.recv(2048)
                 print rsp
                 # FIXME: Once IN-1393 fixed, change critical_warnings to "0" to reflect NVMe drive is healthy.
-                assert re.search(r"critical_warning(\s+):(\s+)0x(\d+)", rsp)
-                assert re.search(r"temperature(\s+):(\s+)(\d+)(\s+)C", rsp)
-                assert re.search(r"available_spare(\s+):(\s+)(\d+)%", rsp)
-                assert re.search(r"available_spare_threshold(\s+):(\s+)(\d+)%", rsp)
+                assert re.search(r"critical_warning\s+:\s+(0x\d|\d+)", rsp)
+                assert re.search(r"temperature\s+:\s+(\d+)(\s+)C", rsp)
+                assert re.search(r"available_spare\s+:\s+(\d+)%", rsp)
+                assert re.search(r"available_spare_threshold\s+:\s+(\d+)%", rsp)
 
                 # FIXME: For MT, there are two Temperature Sensors need to check, now this step is expected to FAIL.
                 '''
