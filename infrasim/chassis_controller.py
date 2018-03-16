@@ -1,20 +1,22 @@
-from infrasim.model import CNode, CChassisDaemon
-from infrasim.helper import NumaCtl
-from infrasim.chassis.dataset import DataSet
-from infrasim.workspace import ChassisWorkspace
-import subprocess
-
-import shutil
-import traceback
-import pprint
-import yaml
-import sys
 import copy
-from infrasim.log import infrasim_log
+import pprint
 import re
+import shutil
+import subprocess
+import sys
+import traceback
+
+from infrasim import InfraSimError
+from infrasim.chassis.dataset import DataSet
+from infrasim.helper import NumaCtl
+from infrasim.log import infrasim_log
+from infrasim.model import CNode, CChassisDaemon
+from infrasim.workspace import ChassisWorkspace
+import yaml
 
 
 class CChassis(object):
+
     def __init__(self, chassis_name, chassis_info):
         self.__chassis = chassis_info
         self.__chassis_model = None
@@ -42,17 +44,15 @@ class CChassis(object):
         for name in selected_node_names:
             self.options[action](self.__node_list[name])
 
-
     def __check_namespace(self):
-        ns_string = subprocess.check_output(["ip","netns","list"])
-        ns_list = re.findall(r'(\w+) \(id',ns_string)
+        ns_string = subprocess.check_output(["ip", "netns", "list"])
+        ns_list = re.findall(r'(\w+) \(id', ns_string)
         nodes = self.__chassis.get("nodes", [])
         for node in nodes:
             ns_name = node["namespace"]
             if ns_name not in ns_list:
                 raise Exception("Namespace {0} doesn't exist".format(ns_name))
-    
-    
+
     def precheck(self, *args):
         # check total resources
         self.__check_namespace()
@@ -60,28 +60,28 @@ class CChassis(object):
 
     def init(self, *args):
         self.workspace = ChassisWorkspace(self.__chassis)
-        nodes = self.__chassis.get("nodes", [])
+        nodes = self.__chassis.get("nodes")
+        if nodes is None:
+            raise InfraSimError("There is no nodes under chassis")
+        for node in nodes:
+            node_name = node.get("name", "{}_node_{}".format(self.__chassis_name, nodes.index(node)))
+            node["name"] = node_name
+            node["type"] = self.__chassis["type"]
         bk_nodes = copy.deepcopy(nodes)
         self.__process_chassis_device()
         for node in nodes:
             node_obj = CNode(node)
-            node_name = node.get("name")
-            if node_name is None:
-                node_name = "{}_node_{}".format(self.__chassis_name, nodes.index(node))
-                node["name"] = node_name
             node_obj.set_node_name(node["name"])
             self.__node_list[node["name"]] = node_obj
         self.__chassis["nodes"] = bk_nodes
         self.workspace.init()
         self.process_by_node_names("init", *args)
 
-
     def start(self, *args):
         self.__dataset.load()
         self.__dataset.fill(self.__file_name)
         self.__daemon.init(self.workspace.get_workspace())
         self.__daemon.start()
-        self.__create_namespace()
         self.process_by_node_names("start", *args)
 
     def stop(self, *args):
@@ -103,13 +103,6 @@ class CChassis(object):
     def status(self):
         for node_obj in self.__node_list:
             node_obj.status()
-
-    def __create_namespace(self):
-        """
-        Create name space for sub nodes.
-        """
-        self.logger.info("Prepare namespace for each nodes.")
-        pass
 
     def __process_chassis_data(self, data):
         if data is None:
@@ -164,15 +157,14 @@ class CChassis(object):
                 if controller.get("slot_range") is not None:
                     node["compute"]["storage_backend"].append(copy.deepcopy(diskarray))
                     # insert it to controller with one connection.
-                    controller["connectors"]=[{"atta_enclosure":"chassis",
+                    controller["connectors"] = [{"atta_enclosure":"chassis",
                                                "atta_exp":"lcc-{}".format(self.__chassis.get("nodes").index(node)),
                                                "atta_port":"pp",
                                                "phy":0,
                                                "wwn":controller["sas_address"]}]
-      
+
                     break
             node["compute"]["storage_backend"].extend(nvme_dev)
-                    
 
     def __process_chassis_device(self):
         '''
@@ -180,11 +172,9 @@ class CChassis(object):
         merge shared device to node.
         '''
         self.logger.info("Assign ShareMemoryId for shared device.")
-        chassis = self.__chassis.get('chassis', {})
-        if chassis is None:
-            return
-        self.__process_chassis_data(chassis.get("data"))
-        self.__process_chassis_slots(chassis.get("slots", []))
+
+        self.__process_chassis_data(self.__chassis.get("data"))
+        self.__process_chassis_slots(self.__chassis.get("slots", []))
 
         with open("/home/infrasim/workspace/out.yml", 'w') as fp:
             yaml.dump(self.__chassis, fp, default_flow_style=False, indent=4)

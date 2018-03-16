@@ -1,32 +1,40 @@
-import sys
-import time
 import argparse
-import os
+from difflib import IS_CHARACTER_JUNK
 from functools import wraps
 import inspect
-import infrasim.model as model
-from infrasim.init import infrasim_init
-from infrasim.version import version
-import infrasim.helper as helper
-from infrasim.config_manager import NodeMap, ChassisMap
-from infrasim.workspace import Workspace, ChassisWorkspace
+import os
+import sys
+import time
+
 from global_status import InfrasimMonitor
 from infrasim import InfraSimError
-from .log import LoggerType, infrasim_log
+from infrasim.config_manager import NodeMap, ChassisMap
+import infrasim.helper as helper
+from infrasim.init import infrasim_init
+import infrasim.model as model
+from infrasim.version import version
+from infrasim.workspace import Workspace, ChassisWorkspace
+from infrasim.yaml_loader import YAMLLoader
+
 from .chassis_controller import CChassis
+from .log import LoggerType, infrasim_log
 
 nm = NodeMap()
 logger_cmd = infrasim_log.get_logger(LoggerType.cmd.value)
 cm = ChassisMap(nm)
 
+
 def args(*args, **kwargs):
+
     def _decorator(func):
         func.__dict__.setdefault('args', []).insert(0, (args, kwargs))
         return func
+
     return _decorator
 
 
 def node_workspace_exists(func):
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         frame = inspect.currentframe()
@@ -37,12 +45,111 @@ def node_workspace_exists(func):
             logger_cmd.warning("cmd res: Node {} runtime workspace doesn't exist".format(node_name))
             return
         return func(*args, **kwargs)
+
     return wrapper
 
 
 class ConfigCommands(object):
-    @args("node_name", help="Specify node name to add configuration mapping")
+
+    def get_map_manager(self, name, config_file=None):
+        is_chassis = False
+        has_node = nm.in_map_folder(name)
+        has_chassis = cm.in_map_folder(name)
+
+        if config_file:
+            with open(config_file, 'r') as fp:
+                info = YAMLLoader(fp).get_data()
+            if info.get("nodes"):
+                is_chassis = True
+
+            if (is_chassis and has_node) or (is_chassis is False and has_chassis):
+                    raise InfraSimError("Type from config file is not match with name")
+        else:
+            is_chassis = has_chassis
+
+        return cm if is_chassis else nm
+
+    @args("name", help="Specify name to add configuration mapping")
     @args("config_file", help="Node Config File Path")
+    def add(self, name, config_file):
+        try:
+            mm = self.get_map_manager(name, config_file)
+            mm.add(name, config_file)
+            logger_cmd.info("cmd res: add {} OK".format(name))
+        except InfraSimError, e:
+            print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
+
+    @args("name", help="Specify name to delete configuration mapping")
+    def delete(self, name):
+        try:
+            mm = self.get_map_manager(name)
+            mm.delete(name)
+            logger_cmd.info("cmd res: delete {} OK".format(name))
+        except InfraSimError, e:
+            print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
+
+    @args("name", help="Specify name to update configuration mapping")
+    @args("config_file", help="Node Config File Path")
+    def update(self, name, config_file):
+        try:
+            mm = self.get_map_manager(name, config_file)
+            mm.update(name, config_file)
+            logger_cmd.info("cmd res: update {} OK".format(name))
+        except InfraSimError, e:
+            print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
+
+        if Workspace.check_workspace_exists(name):
+            print "Node {0} runtime workspace exists.\n" \
+                  "If you want to apply updated configuration, please destroy runtime workspace first.\n" \
+                  "You can run commands: \n" \
+                  "    infrasim node destroy {0}\n" \
+                  "    infrasim node start {0}".format(name)
+            logger_cmd.warning("Node {0} runtime workspace exists. "
+                               "Need to destroy node runtime workspace first".format(name))
+
+    @args("name", nargs='?', default="default",
+          help="Specify name to open its configuration in editor")
+    def edit(self, name):
+        mm = self.get_map_manager(name)
+        if name not in mm.get_name_list():
+            print "Fail to find {0} configuration. It is not registered. Check by:\n" \
+                  "    infrasim config list".format(name)
+            logger_cmd.warning("cmd res: Fail to find {0} configuration. It is not registered. Check by:\n"
+                               "    infrasim config list".format(name))
+            return
+
+        editor = os.environ.get('EDITOR', 'vi')
+        config_path = os.path.join(mm.get_mapping_folder(),
+                                   "{}.yml".format(name))
+        try:
+            os.system("{} {}".format(editor, config_path))
+            if Workspace.check_workspace_exists(name):
+                print "Warning: " \
+                      "\033[93mPlease destroy {}\033[0m " \
+                      "before start or restart, " \
+                      "or this edit won't work." .format(name)
+            logger_cmd.info("cmd res: edit {} OK".format(name))
+        except OSError, e:
+            print e
+            logger_cmd.error("cmd res: {}".format(e))
+
+    def list(self):
+        try:
+            print "\033[1;93;44mChassis list\033[0m"
+            cm.list()
+            print "\n\033[1;93;44mNode list\033[0m"
+            nm.list()
+            logger_cmd.info("cmd res: list OK")
+        except InfraSimError, e:
+            print e.value
+            logger_cmd.error("cmd res: {}".format(e.value))
+
+
+class NodeConfigCommands(object):
+
     def add(self, node_name, config_file):
         try:
             nm.add(node_name, config_file)
@@ -51,7 +158,6 @@ class ConfigCommands(object):
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
-    @args("node_name", help="Specify node name to delete configuration mapping")
     def delete(self, node_name):
         try:
             nm.delete(node_name)
@@ -60,8 +166,6 @@ class ConfigCommands(object):
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
-    @args("node_name", help="Specify node name to update configuration mapping")
-    @args("config_file", help="Node Config File Path")
     def update(self, node_name, config_file):
         try:
             nm.update(node_name, config_file)
@@ -79,8 +183,6 @@ class ConfigCommands(object):
             logger_cmd.warning("Node {0} runtime workspace exists. "
                                "Need to destroy node runtime workspace first".format(node_name))
 
-    @args("node_name", nargs='?', default="default",
-          help="Specify node name to open its configuration in editor")
     def edit(self, node_name):
         if node_name not in nm.get_name_list():
             print "Fail to find node {0} configuration. It is not registered. Check by:\n" \
@@ -112,9 +214,9 @@ class ConfigCommands(object):
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
+
 class ChassisConfigCommands(object):
-    @args("chassis_name", help="Specify chassis name to add configuration mapping")
-    @args("config_file", help="Node Config File Path")
+
     def add(self, chassis_name, config_file):
         try:
             cm.add(chassis_name, config_file)
@@ -123,7 +225,6 @@ class ChassisConfigCommands(object):
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
-    @args("chassis_name", help="Specify chassis name to delete configuration mapping")
     def delete(self, chassis_name):
         try:
             cm.delete(chassis_name)
@@ -132,8 +233,6 @@ class ChassisConfigCommands(object):
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
-    @args("chassis_name", help="Specify chassis name to update configuration mapping")
-    @args("config_file", help="chassis Config File Path")
     def update(self, chassis_name, config_file):
         try:
             cm.update(chassis_name, config_file)
@@ -151,8 +250,6 @@ class ChassisConfigCommands(object):
             logger_cmd.warning("chassis {0} runtime workspace exists. "
                                "Need to destroy chassis runtime workspace first".format(chassis_name))
 
-    @args("chassis_name", nargs='?', default="default",
-          help="Specify chassis name to open its configuration in editor")
     def edit(self, chassis_name):
         if chassis_name not in cm.get_name_list():
             print "Fail to find chassis {0} configuration. It is not registered. Check by:\n" \
@@ -356,6 +453,7 @@ class NodeCommands(object):
 
 
 class ChassisCommands(object):
+
     @args("chassis_name", nargs='?', help="Chassis name")
     def start(self, chassis_name=None):
         try:
@@ -477,7 +575,6 @@ CATEGORIES = {
     'chassis': ChassisCommands,
     'config': ConfigCommands,
     'global': InfrasimCommands,
-    'chassis_config': ChassisConfigCommands
 }
 
 
