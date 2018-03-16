@@ -27,7 +27,11 @@ class BaseMap(object):
 
     def get_logger(self, name):
         pass
-
+    
+    def in_map_folder(self, name):
+        self.load()
+        return name in self.__name_list
+                
     def load(self):
         self.__name_list = []
         if not os.path.exists(self.__mapping_folder):
@@ -244,6 +248,7 @@ class ChassisMap(BaseMap):
 
         for node in chassis_info["nodes"]:
             node_name = node['name']
+            node['type'] = chassis_info['type']
             filename = os.path.join("/tmp/", node_name + ".yml")
             with open(filename, 'w') as fo:
                 yaml.dump(node, fo, default_flow_style=False)

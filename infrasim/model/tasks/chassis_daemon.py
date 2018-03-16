@@ -30,7 +30,7 @@ class CChassisDaemon(Task):
 
     def init(self, workspace):
         self.set_workspace(workspace)
-        self.set_task_name(self.__chassis_name)
+        self.set_task_name("{}-chassis".format(self.__chassis_name))
         
     def start(self):
         self.run()

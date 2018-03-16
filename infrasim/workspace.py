@@ -2,6 +2,7 @@ import os
 import yaml
 import shutil
 import config
+import subprocess
 from yaml_loader import YAMLLoader
 from . import has_option, InfraSimError
 
@@ -11,7 +12,6 @@ class ChassisWorkspace(object):
     This class uses CNode's information to initiate its instance.
     It creates or update the node's workspace.
     """
-
     @staticmethod
     def check_workspace_exists(chassis_name):
         return os.path.exists(os.path.join(config.infrasim_home, chassis_name))
@@ -19,7 +19,7 @@ class ChassisWorkspace(object):
     @staticmethod
     def get_chassis_info_in_workspace(chassis_name):
         chassis_yml_path = os.path.join(config.infrasim_home, chassis_name,
-                                     "chassis.yml")
+                                     "etc/chassis.yml")
         chassis_info = None
         try:
             with open(chassis_yml_path, 'r') as fp:
@@ -70,13 +70,22 @@ class ChassisWorkspace(object):
         data_path = os.path.join(self.__workspace, "data")
         if not os.path.exists(data_path):
             os.mkdir(data_path)
+        
+        etc_path = os.path.join(self.__workspace, "etc")
+        if not os.path.exists(etc_path):
+            os.mkdir(etc_path)
 
         # IV. Save infrasim.yml
-        yml_file = os.path.join(self.__workspace, "chassis.yml")
+        yml_file = os.path.join(self.__workspace, "etc/chassis.yml")
         with open(yml_file, 'w') as fp:
             yaml.dump(self.__chassis_info, fp, default_flow_style=False)
 
         # V. Move emulation data
+        
+        # VI. Create soft link to sub nodes.
+        for node in self.__chassis_info.get("nodes", []):
+            if not os.path.exists(os.path.join(self.__workspace, node["name"])):
+                subprocess.call(["ln","-s", "{}/{}".format(config.infrasim_home, node["name"]), self.__workspace])
 
     def terminate(self):
         """
