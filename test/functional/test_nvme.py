@@ -64,7 +64,7 @@ class test_nvme(unittest.TestCase):
     def get_nvme_disks(self):
         # Return nvme , eg. ['/dev/nvme0n1', '/dev/nvme0n2']
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         nvme_list = []
         status, output = ssh.exec_command("nvme list |grep \"/dev\" |awk '{print $1}'")
         nvme_list = output.split()
@@ -73,7 +73,7 @@ class test_nvme(unittest.TestCase):
     def get_nvme_dev(self):
         # Return nvme drive device, eg. ['nvme0', 'nvme1']
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         nvme_dev_list = []
         status, output = ssh.exec_command("ls /sys/class/nvme")
         nvme_dev_list = output.split()
@@ -82,7 +82,7 @@ class test_nvme(unittest.TestCase):
     def get_nvme_ns_list(self, nvme):
         # Return name space id list, eg. ['1', '2']
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         status, output = ssh.exec_command("ls /sys/class/nvme/{} |grep {}".format(nvme, nvme))
         nsid_list = []
 
@@ -108,21 +108,27 @@ class test_nvme(unittest.TestCase):
     def test_read_write_verify(self):
         nvme_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         for dev in nvme_list:
             # Write 0xff to 2048 byte of nvme disks
             status, output = ssh.exec_command("nvme write {} -d ff_binfile -c 4 -z 2048".format(dev))
+            assert status == 0
 
             # Verify data consistent as written
             status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 >read_data".format(dev))
+            assert status == 0
             status, read_data = ssh.exec_command("hexdump read_data -n 2048".format(dev))
+            assert status == 0
             status, binfile_data = ssh.exec_command("hexdump ff_binfile -n 2048".format(dev))
             assert read_data == binfile_data
 
             # restore drive data to all zero
             status, output = ssh.exec_command("nvme write {} -d 0_binfile -c 4 -z 2048".format(dev))
+            assert status == 0
             status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 >read_data".format(dev))
+            assert status == 0
             status, read_data = ssh.exec_command("hexdump read_data -n 2048".format(dev))
+            assert status == 0
             status, binfile_data = ssh.exec_command("hexdump 0_binfile".format(dev))
             assert read_data == binfile_data
 
@@ -130,7 +136,7 @@ class test_nvme(unittest.TestCase):
         global conf
         nvme_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         nvme_config_list = []
         nvme_id_ctrl_list = []
 
@@ -171,7 +177,7 @@ class test_nvme(unittest.TestCase):
         nvme_list = self.get_nvme_disks()
 
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         for dev in nvme_list:
             status, rsp = ssh.exec_command("nvme get-ns-id {}".format(dev))
             ns_id_get = rsp.split(":")[2]
@@ -184,7 +190,7 @@ class test_nvme(unittest.TestCase):
         global conf
         nvme_dev_list = self.get_nvme_dev()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         # Now infrasim design only support log_id(1, 2, 3)
         log_id_max = 3
         for nvme in nvme_dev_list:
@@ -200,7 +206,7 @@ class test_nvme(unittest.TestCase):
         # To get MT devices list.
         nvme_model_list = []
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         status, output = ssh.exec_command("nvme list |grep \"/dev\" |awk '{print $1,$3}'")
         nvme_model_list = output.split("\n")[:-1]
         mt_list = []
@@ -230,7 +236,7 @@ class test_nvme(unittest.TestCase):
     def test_error_log(self):
         nvme_disk_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         for nvme in nvme_disk_list:
             status, output = ssh.exec_command("nvme error-log {}".format(nvme))
             assert re.search("Error Log Entries for device:{} entries:(\d+)".format(nvme.split("/")[2]), output)
@@ -239,7 +245,7 @@ class test_nvme(unittest.TestCase):
 
         nvme_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         for dev in nvme_list:
             # Write 0xff to 2048 byte of nvme disks
             status, output = ssh.exec_command("nvme write {} -d ff_binfile -c 4 -z 2048".format(dev))
@@ -264,7 +270,7 @@ class test_nvme(unittest.TestCase):
     def test_identify_namespace(self):
         nvme_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         for dev in nvme_list:
             status, rsp_id_ns = ssh.exec_command("nvme id-ns {}".format(dev))
             # Check identity keywords existance in command output
@@ -286,7 +292,7 @@ class test_nvme(unittest.TestCase):
         # Test get and set arbitration feature.
         nvme_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         # select [0-3]: current/default/saved/supported
         sel = 0
         # feature id 1: arbitration
@@ -314,7 +320,7 @@ class test_nvme(unittest.TestCase):
         # Test get and set temparature feature.
         nvme_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         # select [0-3]: current/default/saved/supported
         sel = 0
         # feature id 4: temparature
@@ -342,7 +348,7 @@ class test_nvme(unittest.TestCase):
         # Test flush command, it commit data/metadata associated with the specified namespace to volatile media.
         nvme_ctrls = self.get_nvme_dev()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         for nvme in nvme_ctrls:
             ns_list = self.get_nvme_ns_list(nvme)
             for ns in ns_list:
@@ -360,7 +366,7 @@ class test_nvme(unittest.TestCase):
         data_size = 4096
         block_count = 8
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.connect() is True
         for dev in nvme_list:
 
             status, output = ssh.exec_command("nvme compare {} -z {} -s {} -c {} -d ff_binfile\n".\
