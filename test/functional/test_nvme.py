@@ -386,3 +386,55 @@ class test_nvme(unittest.TestCase):
             assert 0 == status
             print "compare OUTPUT: {}".format(output)
             assert "compare: Success" in output
+
+    def _create_mtc_script(self,*args):
+        # Return script path
+        commands = list(args)
+        commands='\n'.join(commands)
+        prefix = "#!/usr/bin/env bash\npmcnvm << _EOF\n"
+        suffix = "\nexit\n_EOF"
+        content = "{}{}{}".format(prefix, commands, suffix)
+
+        script = "/tmp/script_{}.sh".format(commands[-1])
+        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
+        assert ssh.connect() is True
+        status, output = ssh.exec_command("echo '{}' > {}".format(content, script))
+        return script
+
+    def _run_mtc_script(self, script):
+        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
+        assert ssh.connect() is True
+        status, output = ssh.exec_command("bash +x {}".format(script))
+        return status, output
+
+    def test_mtc_card_list(self):
+        # Test MTC card list command
+        script = self._create_mtc_script("?", "nvram", "card_list")
+        status, output = self._run_mtc_script(script)
+
+        # 1. Check card list:
+        # eg. Pmc_card_list_get: nvme0n1: dev=0  ns=1."
+        # eg. Pmc_card_list_get: nvme0: dev=0.
+        dev_list = self.get_nvme_dev()
+        card_list_info = []
+        for dev in dev_list:
+            dev_id = re.findall(r"nvme(\d*)", dev)[0]
+            card_list_info.append("Pmc_card_list_get: {}: dev={}.".format(dev, dev_id))
+            ns_list = self.get_nvme_ns_list(dev)
+            for ns in ns_list:
+                card_list_info.append(r"Pmc_card_list_get:\s*{0}n{2}:\s*dev={1}\s*ns={2}".format(dev, dev_id, ns))
+
+        # 2. Check internal data:
+        # eg. Pmc_internal_data_get: card_serial_number 0400001C1FF9
+        for card in card_list_info:
+            assert len(re.findall(card, output))
+
+        internal_data_info = []
+        nvme_config_list = []
+        for disk in conf["compute"]["storage_backend"]:
+            if disk["type"] == "nvme":
+                nvme_config_list.append(disk)
+            for id_config in nvme_config_list:
+                internal_data_info.append("Pmc_internal_data_get: card_serial_number {}".format(id_config["serial"]))
+        for data in internal_data_info:
+            assert data in output
