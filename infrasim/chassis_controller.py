@@ -2,6 +2,7 @@ import copy
 import pprint
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import traceback
@@ -12,7 +13,6 @@ from infrasim.helper import NumaCtl
 from infrasim.log import infrasim_log
 from infrasim.model import CNode, CChassisDaemon
 from infrasim.workspace import ChassisWorkspace
-import yaml
 
 
 class CChassis(object):
@@ -23,8 +23,8 @@ class CChassis(object):
         self.__node_list = {}
         self.__chassis_name = chassis_name
         self.__numactl_obj = NumaCtl()
-        self.__dataset = DataSet(chassis_name)
-        self.__file_name = "/tmp/{}_chassis_data.bin".format(chassis_name)
+        self.__dataset = DataSet()
+        self.__file_name = "/home/infrasim/workspace/{}_chassis_data.bin".format(chassis_name)
         self.__daemon = CChassisDaemon(chassis_name, self.__file_name)
         self.logger = infrasim_log.get_chassis_logger(chassis_name)
         self.workspace = None
@@ -78,8 +78,6 @@ class CChassis(object):
         self.process_by_node_names("init", *args)
 
     def start(self, *args):
-        self.__dataset.load()
-        self.__dataset.fill(self.__file_name)
         self.__daemon.init(self.workspace.get_workspace())
         self.__daemon.start()
         self.process_by_node_names("start", *args)
@@ -107,6 +105,30 @@ class CChassis(object):
     def __process_chassis_data(self, data):
         if data is None:
             return
+        """
+        pn: BEAF
+        sn: FCNWS180500103
+        psnt_pn: BEAF  
+        psnt_sn: BEAF
+        psu1_pn: 700-014004-0000
+        psu1_sn: ASTAE174700412
+        psu2_pn: 700-014004-0000
+        psu2_sn: ASTAE174700429
+        """
+        buf = []
+        for key in data.keys():
+            if "pn" in key or "sn" in key:
+                buf.append({"id":key, "data":"{}".format(data[key]).encode()})
+
+        self.__dataset.append("chassis", buf)
+
+    def __process_sas_drv_data(self, drv):
+        self.__dataset.append("{}".format(drv["slot_number"]), drv["serial"].encode())
+        pass
+
+    def __process_nvme_data(self, drv):
+        self.__dataset.append("{}".format(drv["chassis_slot"]), drv["serial"].encode())
+        pass
 
     def __process_chassis_slots(self, slots):
         for node in self.__chassis.get("nodes"):
@@ -117,11 +139,14 @@ class CChassis(object):
             if item.get("type") == "nvme":
                 # process nvme device.
                 nvme_dev.append(copy.deepcopy(item))
+                self.__process_nvme_data(item)
             else:
                 # process SAS drive
                 drv = copy.deepcopy(item)
                 sas_dev.append(drv)
                 drv["slot_number"] = drv.pop("chassis_slot")
+                self.__process_sas_drv_data(drv)
+
         # create a disk array object.
         diskarray = {"disk_array":
                          [{"enclosure":
@@ -175,7 +200,12 @@ class CChassis(object):
 
         self.__process_chassis_data(self.__chassis.get("data"))
         self.__process_chassis_slots(self.__chassis.get("slots", []))
+        # save data to exchange file.
+        self.__dataset.save(self.__file_name)
 
-        with open("/home/infrasim/workspace/out.yml", 'w') as fp:
-            yaml.dump(self.__chassis, fp, default_flow_style=False, indent=4)
+        for node in self.__chassis.get("nodes"):
+            node["communicate"] = {"shm_key" : "share_mem_{}".format(self.__chassis_name)}
+        # with open("/home/infrasim/workspace/out.yml", 'w') as fp:
+        #    yaml.dump(self.__chassis, fp, default_flow_style=False, indent=4)
+        # print("check binary file {}".format(self.__file_name))
         # sys.exit("test __process_chassis_device done.")
