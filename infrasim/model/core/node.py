@@ -5,23 +5,24 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 # -*- coding: utf-8 -*-
 
-
 import os
-import uuid
 import shutil
+import uuid
+
 from infrasim import ArgsNotCorrect
 from infrasim import config, helper
-from infrasim.workspace import Workspace
-from infrasim.log import infrasim_log, LoggerType
 from infrasim.helper import run_in_namespace
-from infrasim.model.tasks.compute import CCompute
+from infrasim.log import infrasim_log, LoggerType
 from infrasim.model.tasks.bmc import CBMC
-from infrasim.model.tasks.socat import CSocat
-from infrasim.model.tasks.racadm import CRacadm
+from infrasim.model.tasks.compute import CCompute
 from infrasim.model.tasks.monitor import CMonitor
+from infrasim.model.tasks.racadm import CRacadm
+from infrasim.model.tasks.socat import CSocat
+from infrasim.workspace import Workspace
 
 
 class CNode(object):
+
     def __init__(self, node_info=None):
         self.__tasks_list = []
         self.__node = node_info
@@ -30,6 +31,7 @@ class CNode(object):
         self.__sol_enabled = None
         self.__netns = None
         self.__logger = infrasim_log.get_logger(LoggerType.model.value)
+        self.__shm_key = None
 
     @property
     def netns(self):
@@ -199,6 +201,10 @@ class CNode(object):
             monitor_obj.set_log_path("/var/log/infrasim/{}/monitor.log".
                                      format(self.__node_name))
             self.__tasks_list.append(monitor_obj)
+
+        commu_info = self.__node.get('communicate')
+        if commu_info:
+            compute_obj.set_communicate(commu_info)
 
         self.workspace = Workspace(self.__node)
 
