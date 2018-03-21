@@ -14,36 +14,8 @@ class DataSet(object):
     '''
 
     def __init__(self):
-        self.__sections = []
-        self._fmt = "32sII"
-
-    def fill(self, file_name):
-        sections = self.__sections
-        # get header size
-        size = struct.calcsize(self._fmt) * len(sections)
-        for section in sections:
-            # pad data.
-            section["length"] = int(math.ceil(len(section["data"]) / 4.0) * 4)
-            size += section["length"]
-
-        # plus space for count
-        size += 4
-
-        with open(file_name, 'wb') as fo:
-            # write count of sections
-            fo.write(struct.pack("I", len(sections)))
-            header_offset = 4
-            data_offset = struct.calcsize(self._fmt) * len(sections) + header_offset
-            for section in sections:
-                # write header item
-                header = struct.pack(self._fmt, section["id"], data_offset, section["length"])
-                fo.seek(header_offset)
-                fo.write(header)
-                header_offset += struct.calcsize(self._fmt)
-                # write section
-                fo.seek(data_offset)
-                fo.write(section["data"])
-                data_offset += section["length"]
+        self.__sections = {}
+        self._fmt = "16sII"
 
     def export(self):
         '''
@@ -51,45 +23,43 @@ class DataSet(object):
         '''
         pass
 
-    def append(self, id, data):
-        self.__sections.append({'id':id, 'data':data})
+    def append(self, key, data):
+        self.__sections[key] = data
 
-    def get_length(self, sections):
-        length = 0
-        for item in sections:
-            data = item["data"]
-            if isinstance(data, list):
-                item["length"] = self.get_length(data)
-            else:
-                item["length"] = int(math.ceil(len(data) / 4.0) * 4) + 4
-            length += item["length"]
-        # totoal_sub_length + header_size + count_space
-        return (length + len(sections) * struct.calcsize(self._fmt) + 4)
+    def __get_length(self, data):
+        length_dict = {}
+        _total_len = 4
 
-    def fill_sections(self, fo, sections):
-        # write count of sections
-        fo.write(struct.pack("I", len(sections)))
-        data_offset = struct.calcsize(self._fmt) * len(sections) + 4
-        for section in sections:
-            # write header item
-            header = struct.pack(self._fmt, section["id"], data_offset, section["length"])
-            fo.write(header)
-            data_offset += section["length"]
-        for section in sections:
-            # write section
-            data = section["data"]
-            if isinstance(data, list):
-                self.fill_sections(fo, data)
-            else:
-                fo.write(struct.pack("I", 0))
-                fo.write(data)
-                padding = section["length"] - 4 - len(data)
-                if padding > 0:
-                    # skip padding space.
-                    fo.seek(padding, 1)
+        if isinstance(data, str):
+            _len = int(math.ceil(len(data) / 4.0) * 4)
+            return [ _len, _len + _total_len ]
+
+        for key in data.keys():
+            length_dict[key] = self.__get_length(data[key])
+            _total_len += length_dict[key][1]
+
+        _total_len += struct.calcsize(self._fmt) * len(data)
+
+        return [ length_dict, _total_len ]
+
+    def write_bin_file(self, fo, data, length):
+        if isinstance(data, str):
+            fo.write(struct.pack("I", 0))
+            fo.write(struct.pack("{}s".format(length[0]), data))
+
+        else:
+            length = length[0]
+            fo.write(struct.pack("I", len(data)))
+            offset = 4 + struct.calcsize(self._fmt) * len(data)
+            for key in data.keys():
+                _len = length[key][1]
+                fo.write(struct.pack(self._fmt, key, offset, _len))
+                offset += _len
+
+            for key in data.keys():
+                self.write_bin_file(fo, data[key], length[key])
 
     def save(self, filename):
-        size = self.get_length(self.__sections)
         with open(filename, 'wb') as fo:
-            self.fill_sections(fo, self.__sections)
+            self.write_bin_file(fo, self.__sections, self.__get_length(self.__sections))
 

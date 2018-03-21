@@ -105,29 +105,22 @@ class CChassis(object):
     def __process_chassis_data(self, data):
         if data is None:
             return
-        """
-        pn: BEAF
-        sn: FCNWS180500103
-        psnt_pn: BEAF  
-        psnt_sn: BEAF
-        psu1_pn: 700-014004-0000
-        psu1_sn: ASTAE174700412
-        psu2_pn: 700-014004-0000
-        psu2_sn: ASTAE174700429
-        """
-        buf = []
+
+        buf = {}
         for key in data.keys():
             if "pn" in key or "sn" in key:
-                buf.append({"id":key, "data":"{}".format(data[key]).encode()})
+                buf[key] = "{}".format(data[key]).encode()
+
+        buf["led"] = {"power":'0', "slot":'0'}
 
         self.__dataset.append("chassis", buf)
 
     def __process_sas_drv_data(self, drv):
-        self.__dataset.append("{}".format(drv["slot_number"]), drv["serial"].encode())
+        self.__dataset.append("slot_{}".format(drv["slot_number"]), drv["serial"].encode())
         pass
 
     def __process_nvme_data(self, drv):
-        self.__dataset.append("{}".format(drv["chassis_slot"]), drv["serial"].encode())
+        self.__dataset.append("slot_{}".format(drv["chassis_slot"]), drv["serial"].encode())
         pass
 
     def __process_chassis_slots(self, slots):
