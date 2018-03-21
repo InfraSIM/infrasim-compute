@@ -58,6 +58,7 @@ class test_nvme(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        pass
         if conf:
             cls.stop_node()
 
@@ -390,12 +391,12 @@ class test_nvme(unittest.TestCase):
     def _create_mtc_script(self,*args):
         # Return script path
         commands = list(args)
+        script = "/tmp/script_{}.sh".format(commands[-1].split()[0])
         commands='\n'.join(commands)
         prefix = "#!/usr/bin/env bash\npmcnvm << _EOF\n"
         suffix = "\nexit\n_EOF"
         content = "{}{}{}".format(prefix, commands, suffix)
 
-        script = "/tmp/script_{}.sh".format(commands[-1])
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
         assert ssh.connect() is True
         status, output = ssh.exec_command("echo '{}' > {}".format(content, script))
@@ -419,7 +420,7 @@ class test_nvme(unittest.TestCase):
         card_list_info = []
         for dev in dev_list:
             dev_id = re.findall(r"nvme(\d*)", dev)[0]
-            card_list_info.append("Pmc_card_list_get: {}: dev={}.".format(dev, dev_id))
+            card_list_info.append("Pmc_card_list_get:\s*{}:\s*dev={}.".format(dev, dev_id))
             ns_list = self.get_nvme_ns_list(dev)
             for ns in ns_list:
                 card_list_info.append(r"Pmc_card_list_get:\s*{0}n{2}:\s*dev={1}\s*ns={2}".format(dev, dev_id, ns))
@@ -435,6 +436,138 @@ class test_nvme(unittest.TestCase):
             if disk["type"] == "nvme":
                 nvme_config_list.append(disk)
             for id_config in nvme_config_list:
-                internal_data_info.append("Pmc_internal_data_get: card_serial_number {}".format(id_config["serial"]))
+                internal_data_info.append("Pmc_internal_data_get:\s*card_serial_number\s*{}".format(id_config["serial"]))
+        print "OUTPUT:\n{}".format(output)
+        print "INTERNAL_DATA_INFO: \n{}".format(internal_data_info)
         for data in internal_data_info:
-            assert data in output
+            print "DATA:\n {}".format(data)
+            print "FIND ALL:{}".format(len(re.findall(data, output)))
+            assert len(re.findall(data, output))
+
+    def test_mtc_status_get_0(self):
+        # Test MTC status_get_0 command
+        dev_list = self.get_nvme_dev()
+        scripts = []
+        for dev in dev_list:
+            dev_id = re.findall(r"nvme(\d*)", dev)[0]
+            scripts.append(self._create_mtc_script("?", "nvram", "card_list", "show_cards", "init {}".format(dev_id), "card {}".format(dev_id), "status_get 0"))
+            for script in scripts:
+                status, output = self._run_mtc_script(script)
+
+        # 1. Check general status:
+        # eg. Super Capacitor Unconnected:  1
+        # eg. general.device_health_bitmask: OK
+        # eg. Status get card 1 finished successfully
+        assert len(re.findall(r"Super Capacitor Unconnected:\s*\d*", output))
+        assert len(re.findall(r"general.device_health_bitmask:\s*OK", output))
+        assert len(re.findall(r"Status get card {} finished successfully".format(dev_id), output))
+
+    def test_mtc_status_get_1(self):
+        # Test MTC status_get_1 command
+        dev_list = self.get_nvme_dev()
+        scripts = []
+        for dev in dev_list:
+            dev_id = re.findall(r"nvme(\d*)", dev)[0]
+            scripts.append(self._create_mtc_script("?", "nvram", "card_list", "show_cards", "init {}".format(dev_id), "card {}".format(dev_id), "status_get 1"))
+            for script in scripts:
+                status, output = self._run_mtc_script(script)
+
+        # 1. Check cpu temperature:
+        # eg. cpu.temperature: 151
+        # eg. cpu.min_lifetime_temperature: 200
+        # eg. cpu.max_lifetime_temperature: 358
+        # eg. Status get card 1 finished successfully
+        assert "cpu.temperature:" in output
+        assert "cpu.min_lifetime_temperature:" in output
+        assert "cpu.max_lifetime_temperature:" in output
+        assert len(re.findall(r"Status get card {} finished successfully".format(dev_id), output))
+
+        temp = int(re.findall("cpu.temperature:\s*(\d*)", output)[0])
+        min_temp = int(re.findall("cpu.min_lifetime_temperature:\s*(\d*)", output)[0])
+        max_temp = int(re.findall("cpu.max_lifetime_temperature:\s*(\d*)", output)[0])
+        print "MIN TEMP: {} TEMP {} MAX_TEMP {}".format(min_temp, temp, max_temp)
+        assert min_temp<temp< max_temp
+
+
+    def test_mtc_status_get_2(self):
+        # Test MTC status_get_2 command
+        dev_list = self.get_nvme_dev()
+        scripts = []
+        for dev in dev_list:
+            dev_id = re.findall(r"nvme(\d*)", dev)[0]
+            scripts.append(self._create_mtc_script("?", "nvram", "card_list", "show_cards", "init {}".format(dev_id), "card {}".format(dev_id), "status_get 2"))
+            for script in scripts:
+                status, output = self._run_mtc_script(script)
+
+        # 1. Check system temperature:
+        # eg. system.temperature: 151
+        # eg. system.min_lifetime_temperature: 200
+        # eg. system.max_lifetime_temperature: 358
+        # eg. Status get card 1 finished successfully
+        assert "system.temperature:" in output
+        assert "system.min_lifetime_temperature:" in output
+        assert "system.max_lifetime_temperature:" in output
+        assert len(re.findall(r"Status get card {} finished successfully".format(dev_id), output))
+
+        temp = int(re.findall("system.temperature:\s*(\d*)", output)[0])
+        min_temp = int(re.findall("system.min_lifetime_temperature:\s*(\d*)", output)[0])
+        max_temp = int(re.findall("system.max_lifetime_temperature:\s*(\d*)", output)[0])
+        print "MIN TEMP: {} TEMP {} MAX_TEMP {}".format(min_temp, temp, max_temp)
+        assert min_temp<temp<max_temp
+
+    def test_mtc_statistics_get_0(self):
+        # Test MTC statistics get 0 command
+        dev_list = self.get_nvme_dev()
+        scripts = []
+        for dev in dev_list:
+            dev_id = re.findall(r"nvme(\d*)", dev)[0]
+            scripts.append(self._create_mtc_script("?", "nvram", "card_list", "show_cards", "init {}".format(dev_id), "card {}".format(dev_id), "statistics_get 0"))
+            for script in scripts:
+                status, output = self._run_mtc_script(script)
+                # 1. Check flash statistics:
+                # eg. flash.num_bad_blocks: 128
+                # eg. flash.num_blocks_erase_failures: 4
+                # eg. flash.num_blocks_write_failures: 4
+                # eg. Statistic get card 1 finished successfully
+                assert len(re.findall(r"flash.num_bad_blocks:\s*\d+", output))
+                assert len(re.findall(r"flash.num_blocks_erase_failures:\s*\d+", output))
+                assert len(re.findall(r"flash.num_blocks_write_failures:\s*\d+", output))
+                assert len(re.findall(r"Statistics get card {} finished successfully".format(dev_id), output))
+
+    def test_mtc_statistics_get_1(self):
+        # Test MTC statistics get 1 command
+        dev_list = self.get_nvme_dev()
+        scripts = []
+        for dev in dev_list:
+            dev_id = re.findall(r"nvme(\d*)", dev)[0]
+            scripts.append(self._create_mtc_script("?", "nvram", "card_list", "show_cards", "init {}".format(dev_id), "card {}".format(dev_id), "statistics_get 1"))
+            for script in scripts:
+                status, output = self._run_mtc_script(script)
+                # 1. Check ddr statistics:
+                # eg. ddr.correctable_ecc_errors: 67
+                # eg. ddr.uncorrectable_ecc_errors: 3
+                # eg. ddr.uncorrectable_ecc_recovered: 0
+                # eg. Statistic get card 1 finished successfully
+                assert len(re.findall(r"ddr.correctable_ecc_errors:\s*\d+", output))
+                assert len(re.findall(r"ddr.uncorrectable_ecc_errors:\s*\d+", output))
+                assert len(re.findall(r"ddr.uncorrectable_ecc_recovered:\s*\d+", output))
+                assert len(re.findall(r"Statistics get card {} finished successfully".format(dev_id), output))
+
+    def test_mtc_statistics_get_2(self):
+        # Test MTC statistics get 2 command
+        dev_list = self.get_nvme_dev()
+        scripts = []
+        for dev in dev_list:
+            dev_id = re.findall(r"nvme(\d*)", dev)[0]
+            scripts.append(self._create_mtc_script("?", "nvram", "card_list", "show_cards", "init {}".format(dev_id), "card {}".format(dev_id), "statistics_get 2"))
+            for script in scripts:
+                status, output = self._run_mtc_script(script)
+                # 1. Check general statistics:
+                # eg. general.bank0_num_vault_success: 100
+                # eg. general.bank0_num_vault_failed: 100
+                # eg. general.num_power_loss: 0
+                # eg. Statistic get card 1 finished successfully
+                assert len(re.findall(r"general.bank0_num_vault_success:\s*\d+", output))
+                assert len(re.findall(r"general.bank0_num_vault_failed:\s*\d+", output))
+                assert len(re.findall(r"general.num_power_loss:\s*\d+", output))
+                assert len(re.findall(r"Statistics get card {} finished successfully".format(dev_id), output))

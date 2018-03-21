@@ -30,7 +30,7 @@ class SSH(object):
             self.transport = None
             self.ssh.close()
 
-    def connect(self, timeout=30):
+    def connect(self, timeout=60):
         print("Connecting {username}@{host}:{port}"
                     .format(username=self.host_username,
                             host=self.host_ip,
