@@ -86,8 +86,9 @@ class NvmeConfig(object):
                         "namespaces": 2,
                         "serial": "0400001C1FF9",
                         "type": "nvme",
-                        "oncs": "0xf"
-
+                        "oncs": "0xf",
+                        "config_file": "/home/infrasim/jenkins/data/nvram_config.json",
+                        "pci-config": "/home/infrasim/jenkins/MTC_8GB.bin"
                     },
                     {
                         "cmb_size_mb": 2,
@@ -100,7 +101,9 @@ class NvmeConfig(object):
                         "namespaces": 3,
                         "serial": "0400001C6BB4",
                         "type": "nvme",
-                        "oncs": "0xf"
+                        "oncs": "0xf",
+                        "config_file": "/home/infrasim/jenkins/data/nvram_config.json",
+                        "pci-config": "/home/infrasim/jenkins/MTC_8GB.bin"
                     }
                 ],
                 "networks": [
