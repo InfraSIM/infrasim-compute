@@ -58,7 +58,6 @@ class test_nvme(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        pass
         if conf:
             cls.stop_node()
 
