@@ -306,7 +306,8 @@ class CCompute(Task, CElement):
     def handle_parms(self):
         self.add_option("-vnc :{}".format(self.__display))
         self.add_option("-name {}".format(self.get_task_name()))
-        self.add_option("-device sga")
+        if self.__sol_enabled:
+            self.add_option("-device sga")
 
         if self.__enable_kvm:
             self.add_option("--enable-kvm")
