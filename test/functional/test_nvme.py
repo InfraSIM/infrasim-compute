@@ -37,7 +37,7 @@ class test_nvme(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
-        time.sleep(3)
+        time.sleep(10)
         helper.port_forward(node)
 
     @staticmethod

@@ -30,7 +30,7 @@ class SSH(object):
             self.transport = None
             self.ssh.close()
 
-    def connect(self, timeout=30):
+    def connect(self, timeout=60):
         print("Connecting {username}@{host}:{port}"
                     .format(username=self.host_username,
                             host=self.host_ip,
@@ -40,7 +40,7 @@ class SSH(object):
 
         return self.reconnect(timeout)
 
-    def reconnect(self, timeout=30):
+    def reconnect(self, timeout=60):
         try:
             self.ssh.connect(self.host_ip, self.host_port, self.host_username,
                              self.host_pwd, timeout=timeout)
@@ -61,8 +61,8 @@ class SSH(object):
             print("Failed to connect {host}: {err}".
                          format(host=self.host_ip, err=err))
         except Exception as ex:
-            print("Failed to connect {host}: {err}".
-                         format(host=self.host_ip, ex=ex))
+            print("Failed to connect {}: {}".
+                         format(self.host_ip, ex))
         return self.transport is not None
 
     def exec_command(self, cmd, indata=None, timeout=30):
