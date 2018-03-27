@@ -517,6 +517,7 @@ class ChassisCommands(object):
             return
         chassis = CChassis(chassis_name, chassis_info)
         try:
+            chassis.init()
             chassis.destroy()
         except InfraSimError, e:
             print e.value

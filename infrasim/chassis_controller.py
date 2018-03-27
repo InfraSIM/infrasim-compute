@@ -1,4 +1,5 @@
 import copy
+import os
 import pprint
 import re
 import shutil
@@ -7,8 +8,11 @@ import subprocess
 import sys
 import traceback
 
+import config
 from infrasim import InfraSimError
 from infrasim.chassis.dataset import DataSet
+from infrasim.chassis.emu_data import FruFile
+from infrasim.chassis.smbios import SMBios
 from infrasim.helper import NumaCtl
 from infrasim.log import infrasim_log
 from infrasim.model import CNode, CChassisDaemon
@@ -58,7 +62,7 @@ class CChassis(object):
         self.__check_namespace()
         self.process_by_node_names("precheck", *args)
 
-    def init(self, *args):
+    def init(self):
         self.workspace = ChassisWorkspace(self.__chassis)
         nodes = self.__chassis.get("nodes")
         if nodes is None:
@@ -67,29 +71,33 @@ class CChassis(object):
             node_name = node.get("name", "{}_node_{}".format(self.__chassis_name, nodes.index(node)))
             node["name"] = node_name
             node["type"] = self.__chassis["type"]
-        bk_nodes = copy.deepcopy(nodes)
-        self.__process_chassis_device()
+        self.workspace.init()
+
+    def _init_sub_node(self, *args):
+        nodes = self.__chassis.get("nodes")
         for node in nodes:
             node_obj = CNode(node)
             node_obj.set_node_name(node["name"])
             self.__node_list[node["name"]] = node_obj
-        self.__chassis["nodes"] = bk_nodes
-        self.workspace.init()
         self.process_by_node_names("init", *args)
 
     def start(self, *args):
+        self.__process_chassis_device()
         self.__daemon.init(self.workspace.get_workspace())
         self.__daemon.start()
+        self._init_sub_node(*args)
+
+        self.__render_chassis_info()
         self.process_by_node_names("start", *args)
 
     def stop(self, *args):
-        self.__daemon.init(self.workspace.get_workspace())
+        self._init_sub_node(*args)
         self.process_by_node_names("stop", *args)
-        # TODO: save data if need.
+        # TODO: export data if need.
+        self.__daemon.init(self.workspace.get_workspace())
         self.__daemon.terminate()
 
     def destroy(self, *args):
-        self.init(*args)
         self.stop(*args)
         self.process_by_node_names("destroy", *args)
         if ChassisWorkspace.check_workspace_exists(self.__chassis_name):
@@ -102,6 +110,24 @@ class CChassis(object):
         for node_obj in self.__node_list:
             node_obj.status()
 
+    def __render_chassis_info(self):
+        """
+        update smbios and emulation data.
+        """
+        data = self.__chassis["data"]
+        for node in self.__chassis.get("nodes"):
+            bios_file = os.path.join(config.infrasim_home, node["name"],
+                                     "data", "{}_smbios.bin".format(node["type"]))
+            bios = SMBios(bios_file)
+            bios.ModifyType3ChassisInformation(data["sn"])
+            # bios.ModifyType2BaseboardInformation("")
+            bios.save(bios_file)
+            emu_file = os.path.join(config.infrasim_home, node["name"],
+                                     "data", "{}.emu".format(node["type"]))
+            emu = FruFile(emu_file)
+            emu.ChangeChassisInfo(data["pn"], data["sn"])
+            emu.Save(emu_file)
+
     def __process_chassis_data(self, data):
         if data is None:
             return
@@ -111,16 +137,24 @@ class CChassis(object):
             if "pn" in key or "sn" in key:
                 buf[key] = "{}".format(data[key]).encode()
 
-        buf["led"] = {"power":'0', "slot":'0'}
+        buf["led"] = ' ' * data.get("led", 20)
 
         self.__dataset.append("chassis", buf)
 
     def __process_sas_drv_data(self, drv):
-        self.__dataset.append("slot_{}".format(drv["slot_number"]), drv["serial"].encode())
+        data = {
+                "serial": drv["serial"],
+                "log_page": '\0' * 2048,
+                "mode_page": '\0' * 2048
+            }
+        self.__dataset.append("slot_{}".format(drv["slot_number"]), data)
         pass
 
     def __process_nvme_data(self, drv):
-        self.__dataset.append("slot_{}".format(drv["chassis_slot"]), drv["serial"].encode())
+        data = {
+            "serial" : drv["serial"].encode()
+            }
+        self.__dataset.append("slot_{}".format(drv["chassis_slot"]), data)
         pass
 
     def __process_chassis_slots(self, slots):
