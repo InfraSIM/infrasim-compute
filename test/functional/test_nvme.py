@@ -14,7 +14,7 @@ from test import fixtures
 
 old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
-image = "/home/infrasim/jenkins/ubuntu14.04.4.qcow2"
+image = "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
 
 conf = {}
 
@@ -52,7 +52,9 @@ class test_nvme(unittest.TestCase):
         time.sleep(5)
 
     @classmethod
-    @unittest.skipIf(not os.path.exists(image), "There is no ubuntu image, skip this test")
+    @unittest.skipIf(not os.path.exists(image), \
+                     "Skip this test! No ubuntu image found in folder '/home/infrasim/jenkins/data'.\
++Please download it from 'ftp://10.62.59.23/idic/img/nvme/ubuntu14.04.4.qcow2'!")
     def setUpClass(cls):
         cls.start_node()
 
