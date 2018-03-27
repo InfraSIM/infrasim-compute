@@ -81,6 +81,7 @@ def logger():
     """Returns the logger instance used in this module."""
     global _logger
     _logger = _logger or logging.getLogger(__name__)
+    _logger.setLevel(logging.WARNING)
     return _logger
 
 
