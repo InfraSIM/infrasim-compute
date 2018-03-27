@@ -71,7 +71,7 @@ class NvmeConfig(object):
                                 "size": 40,
                                 "model": "SATADOM",
                                 "serial": "20160518AA851134100",
-                                "file": "/home/infrasim/jenkins/ubuntu14.04.4.qcow2"
+                                "file": "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
                             }
                         ]
                     },
