@@ -1,9 +1,8 @@
 '''
 *********************************************************
-Copyright @ 2015 EMC Corporation All Rights Reserved
+Copyright @ 2018 Dell EMC Corporation All Rights Reserved
 *********************************************************
 '''
-# -*- coding: utf-8 -*-
 
 import mmap
 import os
@@ -14,7 +13,7 @@ import posix_ipc
 class CShareMemory:
     handle_memory = None
     handle_file = None
-    
+
     def create(self, key_name, size):
         if self.handle_memory is not None:
             raise Exception()
@@ -32,7 +31,7 @@ class CShareMemory:
             raise Exception()
         self.handle_file.close()
         self.handle_memory.close_fd()
-    
+
     def write(self, position, src):
         self.handle_file.seek(position, os.SEEK_SET)
         self.handle_file.write(src)

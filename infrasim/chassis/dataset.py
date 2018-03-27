@@ -10,7 +10,7 @@ import struct
 
 class DataSet(object):
     '''
-    load data from different source.
+    Save data into file 
     '''
 
     def __init__(self):
