@@ -54,7 +54,7 @@ class test_nvme(unittest.TestCase):
     @classmethod
     @unittest.skipIf(not os.path.exists(image), \
                      "Skip this test! No ubuntu image found in folder '/home/infrasim/jenkins/data'.\
-+Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tools/tree/master/packer'!")
+Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tools/tree/master/packer'!")
     def setUpClass(cls):
         cls.start_node()
 
@@ -99,7 +99,7 @@ class test_nvme(unittest.TestCase):
         image = "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
         if not os.path.exists(image):
             self.skipTest("Skip this test! No ubuntu image found in folder '/home/infrasim/jenkins/data'.\
-+Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tools/tree/master/packer'!")
+Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tools/tree/master/packer'!")
         nvme_list = self.get_nvme_disks()
         nvme_config_list = []
         for drive in conf["compute"]["storage_backend"]:

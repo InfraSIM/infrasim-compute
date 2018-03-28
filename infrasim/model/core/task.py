@@ -137,7 +137,7 @@ class Task(object):
                     self.__logger.info("[ {:<6} ] {} is running".format(self.get_task_pid(),
                                                                         self.__task_name))
                 else:
-                    self.__print_task('  -  ', self.__task_name, "not running")
+                    self.__print_task('  -  ', self.__task_name, "not running", icolors.RED)
             return
 
         cmdline = self.get_commandline()

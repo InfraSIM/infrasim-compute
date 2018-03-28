@@ -9,6 +9,8 @@ import paramiko
 import socket
 import time
 import datetime
+import logging
+logging.getLogger("paramiko").setLevel(logging.WARNING)
 
 
 class SSH(object):
