@@ -54,7 +54,7 @@ class test_nvme(unittest.TestCase):
     @classmethod
     @unittest.skipIf(not os.path.exists(image), \
                      "Skip this test! No ubuntu image found in folder '/home/infrasim/jenkins/data'.\
-+Please download it from 'ftp://10.62.59.23/idic/img/nvme/ubuntu14.04.4.qcow2'!")
+Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tools/tree/master/packer'!")
     def setUpClass(cls):
         cls.start_node()
 
@@ -96,10 +96,10 @@ class test_nvme(unittest.TestCase):
 
     def test_nvme_disk_count(self):
         global conf
-        image = "/home/infrasim/jenkins/ubuntu14.04.4.qcow2"
+        image = "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
         if not os.path.exists(image):
-            self.skipTest("There is no ubuntu image, skip this test")
-
+            self.skipTest("Skip this test! No ubuntu image found in folder '/home/infrasim/jenkins/data'.\
+Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tools/tree/master/packer'!")
         nvme_list = self.get_nvme_disks()
         nvme_config_list = []
         for drive in conf["compute"]["storage_backend"]:
@@ -107,32 +107,80 @@ class test_nvme(unittest.TestCase):
                 nvme_config_list.append(drive["namespaces"])
         assert len(nvme_list) == sum(nvme_config_list)
 
-    def test_read_write_verify(self):
-        nvme_list = self.get_nvme_disks()
+    def _create_gen_bin_script(self, bin_file_name, pattern):
+        # Parameters:
+        # script_name, eg. "/tmp/script_name.py"
+        # pattern, eg. "0xff"
+        # Return script path
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
         assert ssh.connect() is True
+        script_name = "/tmp/gen_{}.py".format(str(pattern))
+        script_content = '''#!/usr/bin/env python
+import struct
+with open('{}', 'wb') as f:
+    for i in range(512 * 4):
+        f.write(struct.pack('=B',{}))
+'''.format(bin_file_name, pattern)
+        status, output = ssh.exec_command("echo \"{}\" > {}".format(script_content, script_name))
+        return script_name
+
+    def _run_gen_bin_script(self, bin_file_name, script_name):
+        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
+        assert ssh.connect() is True
+        status, output = ssh.exec_command("python {}".format(script_name))
+        return status
+
+    def _clean_up(self):
+        # Clean up temperary files
+        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
+        assert ssh.connect() is True
+        status, output = ssh.exec_command("ls /tmp/")
+        print "OUTPUT: {}".format(output)
+        status, output = ssh.exec_command("rm /tmp/*")
+        print "STATUS: {}".format(status)
+        return status
+
+    def test_read_write_verify(self):
+        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
+        assert ssh.connect() is True
+
+        pattern = 0xff
+        bin_file_name = "/tmp/{}_bin_file".format(str(pattern))
+        script_name = self._create_gen_bin_script(bin_file_name, pattern)
+        assert self._run_gen_bin_script(bin_file_name, script_name) == 0
+
+        nvme_list = self.get_nvme_disks()
         for dev in nvme_list:
             # Write 0xff to 2048 byte of nvme disks
-            status, output = ssh.exec_command("nvme write {} -d ff_binfile -c 4 -z 2048".format(dev))
+            status, output = ssh.exec_command("nvme write {} -d {} -c 4 -z 2048".format(dev, bin_file_name))
             assert status == 0
 
             # Verify data consistent as written
-            status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 >read_data".format(dev))
+            read_data_file = "/tmp/read_data"
+            status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 >{}".format(dev, read_data_file))
             assert status == 0
-            status, read_data = ssh.exec_command("hexdump read_data -n 2048".format(dev))
+            status, read_data = ssh.exec_command("hexdump {} -n 2048".format(read_data_file))
             assert status == 0
-            status, binfile_data = ssh.exec_command("hexdump ff_binfile -n 2048".format(dev))
+            status, binfile_data = ssh.exec_command("hexdump {} -n 2048".format(bin_file_name))
             assert read_data == binfile_data
 
+        pattern = 0x00
+        bin_file_name = "/tmp/{}_bin_file".format(str(pattern))
+        script_name = self._create_gen_bin_script(bin_file_name, pattern)
+        assert self._run_gen_bin_script(bin_file_name, script_name) == 0
+
+        for dev in nvme_list:
             # restore drive data to all zero
-            status, output = ssh.exec_command("nvme write {} -d 0_binfile -c 4 -z 2048".format(dev))
+            status, output = ssh.exec_command("nvme write {} -d {} -c 4 -z 2048".format(dev, bin_file_name))
             assert status == 0
-            status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 >read_data".format(dev))
+            read_data_file = "/tmp/read_data"
+            status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 >{}".format(dev, read_data_file))
             assert status == 0
-            status, read_data = ssh.exec_command("hexdump read_data -n 2048".format(dev))
+            status, read_data = ssh.exec_command("hexdump {} -n 2048".format(read_data_file))
             assert status == 0
-            status, binfile_data = ssh.exec_command("hexdump 0_binfile".format(dev))
+            status, binfile_data = ssh.exec_command("hexdump {}".format(bin_file_name))
             assert read_data == binfile_data
+        self._clean_up()
 
     def test_id_ctrl(self):
         global conf
@@ -244,30 +292,43 @@ class test_nvme(unittest.TestCase):
             assert re.search("Error Log Entries for device:{} entries:(\d+)".format(nvme.split("/")[2]), output)
 
     def test_write_zeroes(self):
-
         nvme_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
         assert ssh.connect() is True
+
+        pattern = 0xff
+        bin_file_name = "/tmp/{}_bin_file".format(str(pattern))
+        script_name = self._create_gen_bin_script(bin_file_name, pattern)
+        assert self._run_gen_bin_script(bin_file_name, script_name) == 0
+
         for dev in nvme_list:
             # Write 0xff to 2048 byte of nvme disks
-            status, output = ssh.exec_command("nvme write {} -d ff_binfile -c 4 -z 2048".format(dev))
-
+            status, output = ssh.exec_command("nvme write {} -d {} -c 4 -z 2048".format(dev, bin_file_name))
+            read_data_file = "read_data"
             # Verify data consistent as written
-            status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 > read_data".format(dev))
+            status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 > {}".format(dev, read_data_file))
 
-            status, read_data = ssh.exec_command("hexdump read_data -n 2048".format(dev))
-            status, binfile_data = ssh.exec_command("hexdump ff_binfile".format(dev))
+            status, read_data = ssh.exec_command("hexdump {} -n 2048".format(read_data_file))
+            status, binfile_data = ssh.exec_command("hexdump {}".format(bin_file_name))
             assert read_data == binfile_data
 
-            # restore drive data to all zero
+        # Restore drive data to all zero
+        pattern = 0x00
+        bin_file_name = "/tmp/{}_bin_file".format(str(pattern))
+        script_name = self._create_gen_bin_script(bin_file_name, pattern)
+        assert self._run_gen_bin_script(bin_file_name, script_name) == 0
+        for dev in nvme_list:
+            # Write 0x00 to 2048 byte of nvme disks
             status, output = ssh.exec_command("nvme write-zeroes {} -c 4".format(dev))
 
-            status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 > read_zero".format(dev))
+            read_data_file = "read_zero"
+            status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 > {}".format(dev, read_data_file))
 
-            status, read_data = ssh.exec_command("hexdump read_zero -n 2048".format(dev))
+            status, read_data = ssh.exec_command("hexdump {} -n 2048".format(read_data_file))
 
-            status, binfile_data = ssh.exec_command("hexdump 0_binfile -n 2048".format(dev))
+            status, binfile_data = ssh.exec_command("hexdump {} -n 2048".format(bin_file_name))
             assert read_data == binfile_data
+        self._clean_up()
 
     def test_identify_namespace(self):
         nvme_list = self.get_nvme_disks()
@@ -369,22 +430,26 @@ class test_nvme(unittest.TestCase):
         block_count = 8
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
         assert ssh.connect() is True
-        for dev in nvme_list:
 
-            status, output = ssh.exec_command("nvme compare {} -z {} -s {} -c {} -d ff_binfile\n".\
-                                   format(dev, data_size, start_block, block_count))
+        pattern = 0xff
+        bin_file_name = "/tmp/{}_bin_file".format(str(pattern))
+        script_name = self._create_gen_bin_script(bin_file_name, pattern)
+        assert self._run_gen_bin_script(bin_file_name, script_name) == 0
+        for dev in nvme_list:
+            status, output = ssh.exec_command("nvme compare {} -z {} -s {} -c {} -d {}\n".\
+                                   format(dev, data_size, start_block, block_count, bin_file_name))
             assert 0 != status
             print "compare OUTPUT: {}".format(output)
             assert "COMPARE_FAILED" in output
 
-            status, output = ssh.exec_command("nvme write {} -z {} -s {} -c {} -d ff_binfile\n".\
-                                                    format(dev, data_size, start_block, block_count))
+            status, output = ssh.exec_command("nvme write {} -z {} -s {} -c {} -d {}\n".\
+                                                    format(dev, data_size, start_block, block_count, bin_file_name))
             assert 0 == status
             print "write OUTPUT: {}".format(output)
             assert "write: Success" in output
 
-            status, output = ssh.exec_command("nvme compare {} -z {} -s {} -c {} -d ff_binfile\n".\
-                                   format(dev, data_size, start_block, block_count))
+            status, output = ssh.exec_command("nvme compare {} -z {} -s {} -c {} -d {}\n".\
+                                   format(dev, data_size, start_block, block_count, bin_file_name))
             assert 0 == status
             print "compare OUTPUT: {}".format(output)
             assert "compare: Success" in output
