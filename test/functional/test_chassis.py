@@ -111,13 +111,13 @@ class test_chassis(unittest.TestCase):
             rst = fi.read()
         self.assertIn("in [commu_internal_check], chassis/psu1_pn=A380-B737-C909", rst,
                       "Can't get information from shared memory!")
-        self.assertIn("in [commu_internal_check], slot_0/serial=Z4C03DFX", rst,
+        self.assertIn("in [commu_internal_check], chassis/sn=WHAT_EVER_SN", rst,
                       "Can't get information from shared memory!")
 
         with open("/tmp/qemu_node1.log") as fi:
             rst = fi.read()
         self.assertIn("in [commu_internal_check], chassis/psu1_pn=A380-B737-C909", rst,
                       "Can't get information from shared memory!")
-        self.assertIn("in [commu_internal_check], slot_0/serial=Z4C03DFX", rst,
+        self.assertIn("in [commu_internal_check], chassis/sn=WHAT_EVER_SN", rst,
                       "Can't get information from shared memory!")
 

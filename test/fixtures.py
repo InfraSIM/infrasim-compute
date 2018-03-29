@@ -135,6 +135,7 @@ class ChassisConfig(object):
                 "psu1_pn": "A380-B737-C909",
                 "psu2_pn": "A380-B747-C909",
                 "pn": "WHAT_EVER_PN",
+                "sn": "WHAT_EVER_SN",
             },
             "nodes": [
                 {
