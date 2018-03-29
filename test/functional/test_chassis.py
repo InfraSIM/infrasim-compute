@@ -50,18 +50,24 @@ def start_chassis():
     global ssh
 
     conf = fixtures.ChassisConfig().get_chassis_info()
+    node0_log = "/tmp/qemu_node0.log"
+    node1_log = "/tmp/qemu_node1.log"
     compute_0 = conf["nodes"][0]["compute"]
     compute_0["storage_backend"][0]["drives"][0]["file"] = a_boot_image
-    compute_0["extra_option"] = "-D /tmp/qemu_node0.log -trace events=/tmp/trace_items"
+    compute_0["extra_option"] = "-D {} -trace events=/tmp/trace_items".format(node0_log)
 
     compute_1 = conf["nodes"][1]["compute"]
     compute_1["storage_backend"][0]["drives"][0]["file"] = b_boot_image
-    compute_1["extra_option"] = "-D /tmp/qemu_node1.log -trace events=/tmp/trace_items"
+    compute_1["extra_option"] = "-D {} -trace events=/tmp/trace_items".format(node1_log)
 
     conf["data"]["sn"] = "WHAT_EVER_SN"
     conf["data"]["psu1_pn"] = "A380-B737-C909"
-    # pprint.pprint(conf, indent=4)
-    # raise Exception("quit")
+
+    if os.path.exists(node0_log):
+        os.remove(node0_log)
+    if os.path.exists(node1_log):
+        os.remove(node1_log)
+
     global chassis
     chassis = model.CChassis(conf["name"], conf)
     chassis.precheck()
@@ -76,7 +82,7 @@ def stop_chassis():
     global tmp_conf_file
     global chassis
     if chassis:
-        chassis.stop()
+        chassis.destroy()
     conf = {}
 
 

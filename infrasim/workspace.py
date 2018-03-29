@@ -12,6 +12,7 @@ class ChassisWorkspace(object):
     This class uses CNode's information to initiate its instance.
     It creates or update the node's workspace.
     """
+
     @staticmethod
     def check_workspace_exists(chassis_name):
         return os.path.exists(os.path.join(config.infrasim_home, chassis_name))
@@ -32,7 +33,7 @@ class ChassisWorkspace(object):
             raise InfraSimError("Node {} information in runtime workspace is invalid".
                                 format(chassis_name))
         return chassis_info
-    
+
     def __init__(self, chassis_info):
         self.__chassis_info = chassis_info
         self.__workspace_name = chassis_info["name"]
@@ -40,6 +41,9 @@ class ChassisWorkspace(object):
 
     def get_workspace(self):
         return self.__workspace
+
+    def get_workspace_data(self):
+        return os.path.join(self.__workspace, "data")
 
     def init(self):
         """
@@ -67,10 +71,10 @@ class ChassisWorkspace(object):
             os.mkdir(path_log)
 
         # III. Create sub folder
-        data_path = os.path.join(self.__workspace, "data")
+        data_path = self.get_workspace_data()
         if not os.path.exists(data_path):
             os.mkdir(data_path)
-        
+
         etc_path = os.path.join(self.__workspace, "etc")
         if not os.path.exists(etc_path):
             os.mkdir(etc_path)
@@ -81,11 +85,11 @@ class ChassisWorkspace(object):
             yaml.dump(self.__chassis_info, fp, default_flow_style=False)
 
         # V. Move emulation data
-        
+
         # VI. Create soft link to sub nodes.
         for node in self.__chassis_info.get("nodes", []):
             if not os.path.exists(os.path.join(self.__workspace, node["name"])):
-                subprocess.call(["ln","-s", "{}/{}".format(config.infrasim_home, node["name"]), self.__workspace])
+                subprocess.call(["ln", "-s", "{}/{}".format(config.infrasim_home, node["name"]), self.__workspace])
 
     def terminate(self):
         """
