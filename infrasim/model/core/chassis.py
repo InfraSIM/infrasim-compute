@@ -29,8 +29,8 @@ class CChassis(object):
         self.__chassis_name = chassis_name
         self.__numactl_obj = NumaCtl()
         self.__dataset = DataSet()
-        self.__file_name = "/home/infrasim/workspace/{}_chassis_data.bin".format(chassis_name)
-        self.__daemon = CChassisDaemon(chassis_name, self.__file_name)
+        self.__file_name = None
+        self.__daemon = None
         self.logger = infrasim_log.get_chassis_logger(chassis_name)
         self.workspace = None
 
@@ -73,6 +73,8 @@ class CChassis(object):
             node["name"] = node_name
             node["type"] = self.__chassis["type"]
         self.workspace.init()
+        self.__file_name = os.path.join(self.workspace.get_workspace_data(), "shm_data.bin")
+        self.__daemon = CChassisDaemon(self.__chassis_name, self.__file_name)
 
     def _init_sub_node(self, *args):
         nodes = self.__chassis.get("nodes")
