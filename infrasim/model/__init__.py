@@ -7,10 +7,10 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 # Author:  Robert Xia <robert.xia@emc.com>,
 # Forrest Gu <Forrest.Gu@emc.com>
 
-
 from infrasim.model.core.element import CElement
 from infrasim.model.core.task import Task
 from infrasim.model.core.node import CNode
+from infrasim.model.core.chassis import CChassis
 
 from infrasim.model.elements.chardev import CCharDev
 from infrasim.model.elements.cpu import CCPU
@@ -75,4 +75,5 @@ __all__ = ["CNode",
            "CMonitor",
            "CRacadm",
            "CMachine",
-           "CChassisDaemon"]
+           "CChassisDaemon",
+           "CChassis"]

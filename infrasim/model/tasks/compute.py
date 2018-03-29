@@ -412,5 +412,3 @@ class CCompute(Task, CElement):
         else:
             super(CCompute, self).terminate()
 
-    def set_communicate(self, comm):
-        self.__compute["communicate"] = comm

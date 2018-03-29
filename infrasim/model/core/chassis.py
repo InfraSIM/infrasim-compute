@@ -8,14 +8,15 @@ import subprocess
 import sys
 import traceback
 
-import config
+from infrasim import config, helper
 from infrasim import InfraSimError
 from infrasim.chassis.dataset import DataSet
 from infrasim.chassis.emu_data import FruFile
 from infrasim.chassis.smbios import SMBios
 from infrasim.helper import NumaCtl
 from infrasim.log import infrasim_log
-from infrasim.model import CNode, CChassisDaemon
+from infrasim.model import CNode
+from infrasim.model.tasks.chassis_daemon import CChassisDaemon
 from infrasim.workspace import ChassisWorkspace
 
 
@@ -158,8 +159,6 @@ class CChassis(object):
         pass
 
     def __process_chassis_slots(self, slots):
-        for node in self.__chassis.get("nodes"):
-            node["compute"]["storage_backend"] = node["compute"].get("storage_backend", [])
         nvme_dev = []
         sas_dev = []
         for item in slots:
@@ -169,70 +168,37 @@ class CChassis(object):
                 self.__process_nvme_data(item)
             else:
                 # process SAS drive
-                drv = copy.deepcopy(item)
-                sas_dev.append(drv)
-                drv["slot_number"] = drv.pop("chassis_slot")
-                self.__process_sas_drv_data(drv)
+                for x in range(item.get("repeat", 1)):
+                    drv = copy.deepcopy(item)
+                    sas_dev.append(drv)
+                    drv["slot_number"] = drv.pop("chassis_slot") + x
+                    drv["wwn"] = drv["wwn"] + x * 4
+                    drv["serial"] = drv["serial"].format(x)
+                    self.__process_sas_drv_data(drv)
 
-        # create a disk array object.
-        diskarray = {"disk_array":
-                         [{"enclosure":
-                          {"drives":sas_dev,
-                           "expanders":[
-                               {"name":"lcc-0",
-                                "phy_count":36,
-                                "ports":[
-                                    {"id": "pp",
-                                     "number":4,
-                                     "phy":0}],
-                                "ses": {"buffer_data": "/home/infrasim/workspace/bins/buffer.bin"},
-                                "side":0,
-                                "wwn":5764611469514216639},
-                               {"name":"lcc-1",
-                                "phy_count":36,
-                                "ports":[
-                                    {"id": "pp",
-                                     "number":4,
-                                     "phy":0}],
-                                "ses": {"buffer_data": "/home/infrasim/workspace/bins/buffer.bin"},
-                                "side":1,
-                                "wwn":5764611469514216655}
-                               ],
-                           "type": 28
-                           },
-                          "name": "chassis"
-                          }],
-                         "type":"disk_array"
-                         }
         for node in self.__chassis.get("nodes"):
-            for controller in node["compute"]["storage_backend"]:
-                if controller.get("slot_range") is not None:
-                    node["compute"]["storage_backend"].append(copy.deepcopy(diskarray))
-                    # insert it to controller with one connection.
-                    controller["connectors"] = [{"atta_enclosure":"chassis",
-                                               "atta_exp":"lcc-{}".format(self.__chassis.get("nodes").index(node)),
-                                               "atta_port":"pp",
-                                               "phy":0,
-                                               "wwn":controller["sas_address"]}]
-
-                    break
+            # insert nvme drive
             node["compute"]["storage_backend"].extend(nvme_dev)
+            # insert sas drive.
+            for controller in node["compute"]["storage_backend"]:
+                if controller.get("slot_range"):
+                    controller["drives"] = controller.get("drives", [])
+                    slot_range = [ int(x) for x in controller["slot_range"].split('-')]
+                    for drv in sas_dev:
+                        if drv["slot_number"] >= slot_range[0] and drv["slot_number"] < slot_range[1]:
+                            controller["drives"].append(drv)
+                            drv["port_wwn"] = drv["wwn"] + 1 + self.__chassis["nodes"].index(node)
+                    break
 
     def __process_chassis_device(self):
         '''
         assign IDs of shared devices
         merge shared device to node.
         '''
-        self.logger.info("Assign ShareMemoryId for shared device.")
-
         self.__process_chassis_data(self.__chassis.get("data"))
         self.__process_chassis_slots(self.__chassis.get("slots", []))
         # save data to exchange file.
         self.__dataset.save(self.__file_name)
-
+        # set sharemeory id for sub node.
         for node in self.__chassis.get("nodes"):
-            node["communicate"] = {"shm_key" : "share_mem_{}".format(self.__chassis_name)}
-        # with open("/home/infrasim/workspace/out.yml", 'w') as fp:
-        #    yaml.dump(self.__chassis, fp, default_flow_style=False, indent=4)
-        # print("check binary file {}".format(self.__file_name))
-        # sys.exit("test __process_chassis_device done.")
+            node["compute"]["communicate"] = {"shm_key" : "share_mem_{}".format(self.__chassis_name)}
