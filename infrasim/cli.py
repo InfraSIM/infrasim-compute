@@ -16,7 +16,6 @@ from infrasim.version import version
 from infrasim.workspace import Workspace, ChassisWorkspace
 from infrasim.yaml_loader import YAMLLoader
 
-from .chassis_controller import CChassis
 from .log import LoggerType, infrasim_log
 
 nm = NodeMap()
@@ -462,7 +461,7 @@ class ChassisCommands(object):
             else:
                 chassis_info = cm.get_item_info(chassis_name)
 
-            chassis = CChassis(chassis_name, chassis_info)
+            chassis = model.CChassis(chassis_name, chassis_info)
             chassis.precheck()
             chassis.init()
 
@@ -484,7 +483,7 @@ class ChassisCommands(object):
                 chassis_info = ChassisWorkspace.get_chassis_info_in_workspace(chassis_name)
             else:
                 chassis_info = cm.get_item_info(chassis_name)
-            chassis = CChassis(chassis_name, chassis_info)
+            chassis = model.CChassis(chassis_name, chassis_info)
             chassis.init()
 
         except InfraSimError, e:
@@ -515,7 +514,7 @@ class ChassisCommands(object):
             logger_cmd.warning("cmd res: Chassis {} runtime workspace is not found, "
                                "destroy action is not applied.".format(chassis_name))
             return
-        chassis = CChassis(chassis_name, chassis_info)
+        chassis = model.CChassis(chassis_name, chassis_info)
         try:
             chassis.init()
             chassis.destroy()

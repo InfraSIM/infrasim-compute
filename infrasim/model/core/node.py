@@ -202,10 +202,6 @@ class CNode(object):
                                      format(self.__node_name))
             self.__tasks_list.append(monitor_obj)
 
-        commu_info = self.__node.get('communicate')
-        if commu_info:
-            compute_obj.set_communicate(commu_info)
-
         self.workspace = Workspace(self.__node)
 
         for task in self.__tasks_list:
