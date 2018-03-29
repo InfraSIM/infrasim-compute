@@ -174,6 +174,7 @@ class CChassis(object):
                     drv["slot_number"] = drv.pop("chassis_slot") + x
                     drv["wwn"] = drv["wwn"] + x * 4
                     drv["serial"] = drv["serial"].format(x)
+                    drv["file"] = drv["file"].format(x)
                     self.__process_sas_drv_data(drv)
 
         for node in self.__chassis.get("nodes"):
