@@ -381,9 +381,6 @@ class CCompute(Task, CElement):
 
         if self.__shm_key:
             self.add_option("-communicate shmkey={}".format(self.__shm_key))
-        else:
-            print "shm_key is none"
-            raise Exception("erro")
 
         for element_obj in self.__element_list:
             element_obj.handle_parms()
