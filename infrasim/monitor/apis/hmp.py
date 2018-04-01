@@ -5,14 +5,15 @@ from infrasim.monitor.qemu_api import QemuMonitor
 
 ns = api.namespace("hmp", "HMP operation")
 
-cmd_line = api.model("command-line",{
-    "command-line": fields.String(default = "info chardev")
+cmd_line = api.model("command-line", {
+    "command-line": fields.String(default="info chardev")
 })
 
-hmp_cmd = api.model("hmp command format",{
-    "execute": fields.String(default = "human-monitor-command"),
+hmp_cmd = api.model("hmp command format", {
+    "execute": fields.String(default="human-monitor-command"),
     "arguments": fields.Nested(cmd_line)
 })
+
 
 @ns.route('/<string:nodename>')
 class root(Resource):

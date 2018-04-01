@@ -12,6 +12,7 @@ from . import env
 from infrasim import config
 from infrasim.yaml_loader import YAMLLoader
 
+
 def get_node_info():
     """
     Get runtime node information
@@ -61,6 +62,6 @@ def get_drive_topology():
         #             raise Exception("Invalid SSD slot")
 
         # Map drives to certain controller index
-        topo_backplane[controller_idx+1] = scsi_drives
+        topo_backplane[controller_idx + 1] = scsi_drives
 
     return topo_embedded, topo_backplane

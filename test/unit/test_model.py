@@ -17,7 +17,8 @@ from infrasim import config
 from infrasim import helper
 from test import fixtures
 from nose.tools import raises
-from glob import *
+# from glob import *
+from glob import glob
 
 
 TMP_CONF_FILE = "/tmp/test.yml"
@@ -32,7 +33,7 @@ class qemu_functions(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        img_files = glob(config.infrasim_home+"/*.img")
+        img_files = glob(config.infrasim_home + "/*.img")
         for img_file in img_files:
             os.unlink(img_file)
 
@@ -55,7 +56,7 @@ class qemu_functions(unittest.TestCase):
             cpu.handle_parms()
             assert "-cpu Haswell" in cpu.get_option()
             assert "-smp 2" in cpu.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_cpu_no_info(self):
@@ -68,7 +69,7 @@ class qemu_functions(unittest.TestCase):
             cpu.handle_parms()
             assert "-cpu host" in cpu.get_option()
             assert "-smp 2" in cpu.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_cpu_only_quantity(self):
@@ -82,7 +83,7 @@ class qemu_functions(unittest.TestCase):
             cpu.precheck()
             cpu.handle_parms()
             assert "-smp 8,sockets=2,cores=4,threads=1" in cpu.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_cpu_negative_quantity(self):
@@ -111,7 +112,7 @@ class qemu_functions(unittest.TestCase):
             cpu.precheck()
             cpu.handle_parms()
             assert "-cpu host,+nx" in cpu.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_menu_unsupported_type_digit(self):
@@ -142,7 +143,8 @@ class qemu_functions(unittest.TestCase):
         compute_info = node_info["compute"]
         compute_info["boot"] = {"menu": "on"}
         compute = model.CCompute(compute_info)
-        compute.set_workspace("{}/{}".format(config.infrasim_home, node_info["name"]))
+        compute.set_workspace(
+            "{}/{}".format(config.infrasim_home, node_info["name"]))
         compute.init()
 
         assert "menu=on" in compute.get_commandline()
@@ -159,7 +161,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "-device ahci" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_nvme_controller(self):
@@ -169,13 +171,13 @@ class qemu_functions(unittest.TestCase):
                 "cmb_size": 256,
                 "serial": "26E0A024T2VD",
                 "size": 8
-                }]
+            }]
             storage = model.CBackendStorage(backend_storage_info)
             storage.init()
             storage.precheck()
             storage.handle_parms()
             assert "-device nvme" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_nvme_controller_default_serial(self):
@@ -192,7 +194,7 @@ class qemu_functions(unittest.TestCase):
             p = re.compile(r"-device nvme.*serial=\w+")
             m = p.search(storage.get_option())
             assert m is not None
-        except:
+        except Exception:
             assert False
 
     def test_set_nvme_controller_default_cmb_size(self):
@@ -208,7 +210,7 @@ class qemu_functions(unittest.TestCase):
             storage.handle_parms()
             assert "-device nvme" in storage.get_option()
             assert "cmb_size_mb=256" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_nvme_controller_invalid_cmb_size(self):
@@ -238,7 +240,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "-device lsi" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_megasas_storage_controller(self):
@@ -263,7 +265,7 @@ class qemu_functions(unittest.TestCase):
             assert "max_cmds=1024" in storage.get_option()
             assert "max_sge=128" in storage.get_option()
             assert "sas_address=000abc" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     @raises(ArgsNotCorrect)
@@ -293,7 +295,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "sata1.0" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_ahci_drive_model(self):
@@ -310,7 +312,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "SATADOM" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_ahci_drive_serial(self):
@@ -328,7 +330,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "HUSMM442" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_scsi_drive_vender(self):
@@ -345,7 +347,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "Hitachi" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_scsi_drive_rotation(self):
@@ -364,7 +366,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "rotation" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_scsi_drive_product(self):
@@ -382,7 +384,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "product" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_scsi_drive_port_index(self):
@@ -401,7 +403,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "port_index=1" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_scsi_drive_port_wwn(self):
@@ -420,7 +422,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "port_wwn=wwn-000abc" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_scsi_drive_channel(self):
@@ -439,7 +441,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "channel=1" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_scsi_scsiid(self):
@@ -458,7 +460,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "scsi-id=1" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_scsi_lun(self):
@@ -477,7 +479,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "lun=1" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_scsi_slot(self):
@@ -496,7 +498,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "slot_number=2" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_set_drive_page_file_exist(self):
@@ -522,7 +524,7 @@ class qemu_functions(unittest.TestCase):
             storage.handle_parms()
             m = p.search(storage.get_option())
             assert m is not None
-        except Exception, e:
+        except Exception:
             assert False
         finally:
             os.system("rm -f {0}".format(file_name))
@@ -550,7 +552,7 @@ class qemu_functions(unittest.TestCase):
 
         except ArgsNotCorrect, e:
             assert "page file {0} doesnot exist".format(file_name) in e.value
-        except:
+        except Exception:
             assert False
 
     def test_enable_drive_share_rw(self):
@@ -569,7 +571,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "share-rw=true" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_disable_drive_share_rw(self):
@@ -588,7 +590,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
             assert "share-rw=false" in storage.get_option()
-        except:
+        except Exception:
             assert False
 
     def test_fault_drive_share_rw(self):
@@ -706,7 +708,8 @@ class qemu_functions(unittest.TestCase):
         assert "-chardev socket" in monitor.get_option()
         assert "server" in monitor.get_option()
         assert "nowait" in monitor.get_option()
-        assert "path={}".format(os.path.join(config.infrasim_etc, ".monitor")) in monitor.get_option()
+        assert "path={}".format(os.path.join(
+            config.infrasim_etc, ".monitor")) in monitor.get_option()
 
     def test_monitor_auto_complete_control_mode_2(self):
         monitor_info = {
@@ -722,7 +725,8 @@ class qemu_functions(unittest.TestCase):
         assert "-chardev socket" in monitor.get_option()
         assert "server" in monitor.get_option()
         assert "nowait" in monitor.get_option()
-        assert "path={}".format(os.path.join(config.infrasim_etc, ".monitor")) in monitor.get_option()
+        assert "path={}".format(os.path.join(
+            config.infrasim_etc, ".monitor")) in monitor.get_option()
 
     def test_monitor_auto_complete_readline_mode_1(self):
         monitor_info = {
@@ -1007,7 +1011,7 @@ class qemu_functions(unittest.TestCase):
                     "slot": 8,
                     "device": "ioh3420",
                     "id": "rootport1"
-                    }],
+                }],
                 "switch": [
                     {
                         "downstream": [{
@@ -1098,7 +1102,7 @@ class qemu_functions(unittest.TestCase):
                 "slot": 8,
                 "device": "ioh3420",
                 "id": "rootport1"
-                }],
+            }],
             "switch": [
                 {
                     "downstream": [{
@@ -1140,7 +1144,7 @@ class qemu_functions(unittest.TestCase):
                 "sec_bus": 4,
                 "device": "ioh3420",
                 "id": "rootport1"
-                }],
+            }],
             "switch": [
                 {
                     "downstream": [{
@@ -1177,7 +1181,7 @@ class qemu_functions(unittest.TestCase):
                 "slot": 8,
                 "device": "ioh3420",
                 "id": "rootport1"
-                }],
+            }],
             "switch": [
                 {
                     "downstream": [{
@@ -1218,7 +1222,7 @@ class qemu_functions(unittest.TestCase):
                 "id": "rootport1",
                 "pri_bus": 0,
                 "sec_bus": 20
-                }],
+            }],
             "switch": [
                 {
                     "downstream": [{
@@ -1268,8 +1272,8 @@ class qemu_functions(unittest.TestCase):
         with open(cfg_file_path, 'rb') as f:
             cfg_lines = f.read()
             cfg_list = []
-            for i in range(len(cfg_lines)-1)[::4]:
-                tmp_list = cfg_lines[i:i+4]
+            for i in range(len(cfg_lines) - 1)[::4]:
+                tmp_list = cfg_lines[i:i + 4]
                 cfg_list.append(struct.unpack('HBx', tmp_list))
 
         yml_cfg_list = []
@@ -1759,7 +1763,8 @@ class socat_configuration(unittest.TestCase):
         socat_obj.precheck()
         cmd = socat_obj.get_commandline()
 
-        assert "pty,link=/tmp/sol_device,waitslave".format(config.infrasim_etc) in cmd
+        assert "pty,link=/tmp/sol_device,waitslave".format(
+            config.infrasim_etc) in cmd
 
     def test_change_serial_socket(self):
         socat_obj = model.CSocat()
@@ -1769,7 +1774,8 @@ class socat_configuration(unittest.TestCase):
         socat_obj.precheck()
         cmd = socat_obj.get_commandline()
 
-        assert "unix-listen:/tmp/serial_socket,fork".format(config.infrasim_etc) in cmd
+        assert "unix-listen:/tmp/serial_socket,fork".format(
+            config.infrasim_etc) in cmd
 
 
 class monitor_configuration(unittest.TestCase):
@@ -1786,9 +1792,9 @@ class monitor_configuration(unittest.TestCase):
 
         for element in node.get_task_list():
             if isinstance(element, model.CCompute):
-                assert "-chardev socket,path=/home/infrasim/.infrasim/default/.monitor,"\
+                assert "-chardev socket,path={}/default/.monitor,"\
                        "id=monitorchardev,server,nowait "\
-                       "-mon chardev=monitorchardev,mode=control" \
+                       "-mon chardev=monitorchardev,mode=control".format(config.infrasim_home) \
                     in element.get_commandline()
 
     def test_enable_monitor_in_qemu(self):
@@ -1803,10 +1809,10 @@ class monitor_configuration(unittest.TestCase):
 
         for element in node.get_task_list():
             if isinstance(element, model.CCompute):
-                assert "-chardev socket,path=/home/infrasim/.infrasim/default/.monitor,"\
+                assert "-chardev socket,path={}/default/.monitor,"\
                        "id=monitorchardev,server,nowait "\
-                        "-mon chardev=monitorchardev,mode=control" \
-                    in element.get_commandline()
+                       "-mon chardev=monitorchardev,mode=control".format(config.infrasim_home) \
+                       in element.get_commandline()
 
     def test_disable_monitor_in_qemu(self):
         with open(config.infrasim_default_config, "r") as f_yml:
@@ -1896,7 +1902,8 @@ class racadm_configuration(unittest.TestCase):
             racadm_obj.precheck()
         except ArgsNotCorrect, e:
             assert "Specified racadm interface {} doesn\'t exist".\
-                       format(fake_interface) in str(e)
+                format(fake_interface) in str(e)
+
 
 class numa_configuration_1(unittest.TestCase):
 
@@ -1947,7 +1954,7 @@ class numa_configuration_1(unittest.TestCase):
     def test_cpu_assign_hyper_thread(self):
         assert self.numactl.get_cpu_list(8) == [2, 22, 4, 24, 6, 26, 8, 28]
         assert self.numactl.get_cpu_list(8) == [10, 30, 12, 32, 14, 34, 16, 36]
-        assert self.numactl.get_cpu_list(8) == [3, 23, 5, 25, 7,27, 9, 29]
+        assert self.numactl.get_cpu_list(8) == [3, 23, 5, 25, 7, 27, 9, 29]
         assert self.numactl.get_cpu_list(8) == [11, 31, 13, 33, 15, 35, 17, 37]
 
     def test_no_enough_core_1(self):
@@ -1958,17 +1965,18 @@ class numa_configuration_1(unittest.TestCase):
 
     def test_no_enough_core_2(self):
         assert self.numactl.get_cpu_list(16) == [2, 22, 4, 24,
-                                                6, 26, 8, 28,
-                                                10, 30, 12, 32,
-                                                14, 34, 16, 36]
+                                                 6, 26, 8, 28,
+                                                 10, 30, 12, 32,
+                                                 14, 34, 16, 36]
         assert self.numactl.get_cpu_list(16) == [3, 23, 5, 25,
-                                                7, 27, 9, 29,
-                                                11, 31, 13, 33,
-                                                15, 35, 17, 37]
+                                                 7, 27, 9, 29,
+                                                 11, 31, 13, 33,
+                                                 15, 35, 17, 37]
         try:
             self.numactl.get_cpu_list(4)
         except Exception, e:
             assert str(e) == "All sockets don't have enough processor to bind."
+
 
 class numa_configuration_2(unittest.TestCase):
 

@@ -188,7 +188,7 @@ def str_hex_to_int(str_num):
 
     try:
         int_num = int(str_num, 16)
-    except:
+    except Exception:
         logger.exception("Not a valid entry - need a hex value")
 
     return int_num
@@ -255,7 +255,7 @@ def send_ipmitool_command(*cmds):
                                  stdin=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         (stdout, stderr) = child.communicate()
-    except:
+    except Exception:
         logger.error(traceback.format_exc())
         raise
     child.wait()

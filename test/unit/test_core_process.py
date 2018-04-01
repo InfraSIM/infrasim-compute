@@ -55,7 +55,7 @@ def test_qemu_exist():
     try:
         qemu.get_qemu()
         assert True
-    except:
+    except Exception:
         assert False
 
 
@@ -63,7 +63,7 @@ def test_ipmi_exist():
     try:
         ipmi.get_ipmi()
         assert True
-    except:
+    except Exception:
         assert False
 
 
@@ -71,7 +71,7 @@ def test_socat_exist():
     try:
         socat.get_socat()
         assert True
-    except:
+    except Exception:
         assert False
 
 
@@ -81,7 +81,7 @@ def test_socat_process_start():
         time.sleep(2)
         socat.status_socat()
         assert True
-    except:
+    except Exception:
         assert False
 
 
@@ -91,7 +91,7 @@ def test_ipmi_process_start():
         time.sleep(2)
         ipmi.status_ipmi()
         assert True
-    except:
+    except Exception:
         assert False
 
 
@@ -99,7 +99,7 @@ def test_qemu_process_start():
     try:
         qemu.status_qemu()
         assert True
-    except:
+    except Exception:
         assert False
 
 
@@ -107,7 +107,7 @@ def test_qemu_process_status_running():
     try:
         qemu.status_qemu()
         assert True
-    except:
+    except Exception:
         assert False
 
 
@@ -115,7 +115,7 @@ def test_ipmi_process_status_running():
     try:
         ipmi.status_ipmi()
         assert True
-    except:
+    except Exception:
         assert False
 
 
@@ -123,7 +123,7 @@ def test_socat_process_status_running():
     try:
         socat.status_socat()
         assert True
-    except:
+    except Exception:
         assert False
 
 
@@ -132,7 +132,7 @@ def test_qemu_prcess_stop():
         qemu.stop_qemu(conf_file=tmp_conf_file)
         qemu.status_qemu()
         assert False
-    except:
+    except Exception:
         assert True
 
 
@@ -141,7 +141,7 @@ def test_ipmi_process_stop():
         ipmi.stop_ipmi(conf_file=tmp_conf_file)
         ipmi.status_ipmi()
         assert False
-    except:
+    except Exception:
         assert True
 
 
@@ -150,5 +150,5 @@ def test_socat_process_stop():
         socat.stop_socat(conf_file=tmp_conf_file)
         socat.status_socat()
         assert False
-    except:
+    except Exception:
         assert True

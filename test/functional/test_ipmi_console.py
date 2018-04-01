@@ -575,7 +575,7 @@ class test_ipmi_console_config_change(unittest.TestCase):
             time.sleep(0.1)
             str_output = read_buffer(channel)
             self.assertTrue("IPMI_SIM>" in str_output)
-        except:
+        except Exception:
             channel.send("quit\n")
             channel.close()
             self.ssh.close()

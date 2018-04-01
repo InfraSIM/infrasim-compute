@@ -12,6 +12,7 @@ def get_infrasim_root():
 
     return infrasim_root
 
+
 # installed template
 infrasim_template = os.path.join(get_infrasim_root(), "template")
 

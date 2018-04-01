@@ -265,7 +265,7 @@ class BaseFileLock(object):
                         lock_id, lock_filename, poll_intervall
                     )
                     time.sleep(poll_intervall)
-        except:
+        except Exception:
             # Something did go wrong, so decrement the counter.
             with self._thread_lock:
                 self._lock_counter = max(0, self._lock_counter - 1)

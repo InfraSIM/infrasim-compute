@@ -42,6 +42,16 @@ class SSH(object):
 
         return self.reconnect(timeout)
 
+    def wait_for_host_up(self, timeout=120):
+        start = time.time()
+        while True:
+            if self.connect():
+                break
+            end = time.time()
+            if end - start > timeout:
+                return False
+        return True
+
     def reconnect(self, timeout=60):
         try:
             self.ssh.connect(self.host_ip, self.host_port, self.host_username,

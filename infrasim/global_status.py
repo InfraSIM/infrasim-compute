@@ -64,7 +64,7 @@ class NodeStatus(object):
             cmd = " ".join([cmd, "-sTCP:LISTEN"])
         try:
             res = run_command(cmd)
-        except:
+        except Exception:
             return None
 
         ports = re.findall(r":(\d.+?) ", res[1])
@@ -149,9 +149,9 @@ class InfrasimMonitor(object):
             width.append(12)
             align.append('l')
         header_line.append('ports')
-        port_width = 80 - 14 - 9 - 9 - socat_flag*9 - \
-            racadm_flag*9 - ipmi_console_flag*15
-        width.append(port_width-1)
+        port_width = 80 - 14 - 9 - 9 - socat_flag * 9 - \
+            racadm_flag * 9 - ipmi_console_flag * 15
+        width.append(port_width - 1)
         align.append('l')
         rows = []
         rows.append(header_line)

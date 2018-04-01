@@ -10,18 +10,15 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import unittest
 import subprocess
 import os
-import time
 import json
-import paramiko
 from infrasim import model
 from test import fixtures
-from infrasim.monitor import qemu_api
-from infrasim.workspace import Workspace
 from infrasim import helper
 import requests
 
 TMP_CONF_FILE = "/tmp/test.yml"
 form_drive_name = "scsi0-0-{}-0"
+
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
     child = subprocess.Popen(cmd, shell=shell,
@@ -75,7 +72,7 @@ class test_infrasim_monitor(unittest.TestCase):
         }
         url = "http://{}:{}/hmp/{}".format(ip, port, node_name)
         headers = {'content-type': 'application/json'}
-        res = requests.post(url, headers = headers, data = json.dumps(payload), timeout = 1)
+        res = requests.post(url, headers=headers, data=json.dumps(payload), timeout=1)
         # res = requests.post(url)
         if res.status_code == requests.codes.ok:
             return True
@@ -103,7 +100,7 @@ class test_infrasim_monitor(unittest.TestCase):
         }
         url = "http://{}:{}/qmp/{}".format(ip, port, node_name)
         headers = {'content-type': 'application/json'}
-        res = requests.post(url, headers = headers, data = json.dumps(payload), timeout = 1)
+        res = requests.post(url, headers=headers, data=json.dumps(payload), timeout=1)
         if res.status_code == requests.codes.ok:
             return True
         else:
@@ -132,7 +129,7 @@ class test_infrasim_monitor(unittest.TestCase):
         url = "http://{}:{}/hmp/{}".format(ip, port, node_name)
         headers = {'content-type': 'application/json'}
 
-        res = requests.post(url, headers = headers, data = json.dumps(payload), timeout = 1)
+        res = requests.post(url, headers=headers, data=json.dumps(payload), timeout=1)
         if res.status_code == requests.codes.ok:
             return True
         else:
@@ -161,7 +158,7 @@ class test_infrasim_monitor(unittest.TestCase):
         url = "http://{}:{}/qmp/{}".format(ip, port, node_name)
         headers = {'content-type': 'application/json'}
 
-        res = requests.post(url, headers = headers, data = json.dumps(payload), timeout = 1)
+        res = requests.post(url, headers=headers, data=json.dumps(payload), timeout=1)
         if res.status_code == requests.codes.ok:
             return True
         else:

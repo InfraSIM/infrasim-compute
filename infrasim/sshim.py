@@ -119,7 +119,8 @@ class Server(threading.Thread):
     """
 
     """
-    def __init__(self, delegate, logger=None, address='', port=22, backlog=5, key=None, timeout=None, encoding='ascii', handler=Handler):
+    def __init__(self, delegate, logger=None, address='', port=22, backlog=5, key=None, timeout=None,
+                 encoding='ascii', handler=Handler):
         threading.Thread.__init__(self, name='sshim.Server')
         self.logger = logger
         self.exceptions = queue.Queue()
@@ -199,7 +200,7 @@ class Server(threading.Thread):
                     (code, message) = exception.args
                     if code != errno.EBADF:
                         raise
-        except:
+        except Exception:
             self.exceptions.put_nowait(sys.exc_info())
             raise
 
@@ -225,22 +226,24 @@ class Actor(threading.Thread):
             try:
                 fileobj = self.channel.makefile('rw')
                 try:
-                    value = self.delegate(Script(self.delegate, fileobj, self.client.transport, encoding=self.server.encoding))
+                    value = self.delegate(Script(self.delegate, fileobj, self.client.transport,
+                                                 encoding=self.server.encoding))
 
                     if isinstance(value, threading.Thread):
                         value.join()
 
-                except:
+                except Exception:
                     exc_info = sys.exc_info()
                     exception_string = traceback.format_exc()
                     try:
                         fileobj.write(
-                            (u'\r\n' + six.text_type(exception_string).replace(u'\n', u'\r\n')).encode(self.server.encoding)
+                            (u'\r\n' + six.text_type(exception_string).replace(u'\n',
+                                                                               u'\r\n')).encode(self.server.encoding)
                         )
-                    except:
+                    except Exception:
                         pass
                     six.reraise(*exc_info)
-            except:
+            except Exception:
                 self.server.exceptions.put_nowait(sys.exc_info())
             finally:
                 try:
@@ -288,12 +291,12 @@ class Script(object):
 
     def expect(self, line, echo=True):
         """
-            Expect a line of input from the user. If this has the `match` method, it will call it on the input and return
-            the result, otherwise it will use the equality operator, ==. Notably, if a regular expression is passed in
-            its match method will be called and the matchdata returned. This allows you to use matching groups to pull
-            out interesting data and operate on it.
+           Expect a line of input from the user. If this has the `match` method, it will call it on the input and return
+           the result, otherwise it will use the equality operator, ==. Notably, if a regular expression is passed in
+           its match method will be called and the matchdata returned. This allows you to use matching groups to pull
+           out interesting data and operate on it.
 
-            If ``echo`` is set to False, the server will not echo the input back to the client.
+           If ``echo`` is set to False, the server will not echo the input back to the client.
         """
         buffer = six.BytesIO()
 
@@ -332,7 +335,7 @@ class Script(object):
             else:
                 if line == codecs.decode(buffer.getvalue(), self.encoding):
                     return line
-        except:
+        except Exception:
             logger.exception('Exception in actor')
             raise
 

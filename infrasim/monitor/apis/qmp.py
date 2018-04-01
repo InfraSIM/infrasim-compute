@@ -1,17 +1,18 @@
-from flask_restplus import Resource, abort, fields
+from flask_restplus import Resource, fields
 from infrasim.monitor.apis import api
 from infrasim.monitor.qemu_api import QemuMonitor
 
 ns = api.namespace("qmp", "QMP operation")
 
-cmd_line = api.model("command-line",{
-    "command-line": fields.String(default = "info chardev")
+cmd_line = api.model("command-line", {
+    "command-line": fields.String(default="info chardev")
 })
 
-qmp_cmd = api.model("qmp command format",{
-    "execute": fields.String(default = "human-monitor-command"),
+qmp_cmd = api.model("qmp command format", {
+    "execute": fields.String(default="human-monitor-command"),
     "arguments": fields.Nested(cmd_line)
 })
+
 
 @ns.route('/<string:nodename>')
 class root(Resource):

@@ -53,7 +53,7 @@ def start_socat(conf_file=config.infrasim_default_config):
         socat.precheck()
         cmd = socat.get_commandline()
 
-        run_command(cmd+" &", True, None, None)
+        run_command(cmd + " &", True, None, None)
         time.sleep(3)
         logger.info("socat start")
     except CommandRunFailed as e:

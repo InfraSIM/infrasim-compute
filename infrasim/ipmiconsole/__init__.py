@@ -22,7 +22,9 @@ from infrasim import run_command
 from .command import Command_Handler
 from .common import msg_queue
 from .common import IpmiError
-import env, sdr, common
+import env
+import sdr
+import common
 from infrasim.log import infrasim_log, LoggerType
 
 
@@ -72,7 +74,7 @@ class IPMI_CONSOLE(threading.Thread):
             groups = self.script.expect(re.compile('(?P<input>.*)')).groupdict()
             try:
                 cmdline = groups['input'].encode('ascii', 'ignore')
-            except:
+            except Exception:
                 continue
 
             if not cmdline or len(cmdline) == 0:
@@ -97,7 +99,7 @@ class IPMI_CONSOLE(threading.Thread):
                         logger_ic.info(line)
                 logger_ic.info("command res: "
                                "command response is finished.")
-            except:
+            except Exception:
                 continue
 
 
@@ -258,7 +260,7 @@ def stop(instance="default"):
 
         os.kill(int(pid), signal.SIGTERM)
         logger_ic.info("SIGTERM is sent to pid: {}".format(pid))
-    except:
+    except Exception:
         logger_ic.warning(traceback.format_exc())
         pass
 
@@ -271,9 +273,9 @@ def console_main(instance="default"):
     global logger_ic
     cmdline = 'ipmi-console '
     for word in sys.argv[1:]:
-        cmdline += word+" "
+        cmdline += word + " "
     try:
-        #register the atexit call back function
+        # register the atexit call back function
         atexit.register(atexit_cb)
         signal.signal(signal.SIGTERM, atexit_cb)
         arg_num = len(sys.argv)

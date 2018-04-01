@@ -32,14 +32,14 @@ class test_node_config_manager(unittest.TestCase):
         try:
             os.remove(cls.test_config)
             os.remove(cls.fake_config)
-        except:
+        except Exception:
             pass
 
     def tearDown(self):
         try:
             os.remove(self.test_config)
             os.remove(self.fake_config)
-        except:
+        except Exception:
             pass
 
     def test_add_config(self):

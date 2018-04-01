@@ -242,7 +242,7 @@ class NodeCommands(object):
             row = []
             row.append([" " * 17, "device", "mode", "name"])
             for i in range(1, len(node_info_net) + 1):
-                net = node_info_net[i-1]
+                net = node_info_net[i - 1]
                 row.append([" " * 17, net['device'], net['network_mode'], net['network_name']])
             table.add_rows(row)
             print table.draw()
@@ -267,14 +267,12 @@ class NodeCommands(object):
                 if 'connectors' in stor.keys():
                     node_info_connectors = stor['connectors']
                     for j in range(1, len(node_info_connectors) + 1):
-                        connectors = node_info_connectors[j - 1]
                         if j % stor['max_drive_per_controller'] == 1:
                             row.append([" " * 17, stor['type'],
                                     stor['max_drive_per_controller'], ""])
                 if 'disk_array' in stor.keys():
                     node_info_disk_array = stor['disk_array']
                     for j in range(1, len(node_info_disk_array) + 1):
-                        disk_array = node_info_disk_array[j - 1]
                         row.append([" " * 17, stor['type'], "", ""])
             table.add_rows(row)
             print table.draw()
@@ -314,6 +312,7 @@ class InfrasimCommands(object):
         monitor.init()
         monitor.print_global_status()
         logger_cmd.info("cmd res: get global status OK")
+
 
 def methods_of(obj):
     result = []
@@ -408,7 +407,7 @@ def command_handler():
     args = parser.parse_args(sys.argv[1:])
     cmd = ''
     for word in sys.argv[1:]:
-        cmd += word+" "
+        cmd += word + " "
     logger_cmd.info("cmd rev: infrasim {}".format(cmd))
     if hasattr(args, "init"):
         # Do init

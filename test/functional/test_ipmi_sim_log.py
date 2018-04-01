@@ -5,18 +5,18 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 import unittest
 import time
-import re
 import os
 from infrasim import model
 from infrasim import run_command
 from test import fixtures
-from infrasim import config
 from infrasim.log import infrasim_logdir
 
 
 # command prefix for test cases
 log_path = os.path.join(infrasim_logdir, 'test/ipmi_sim.log')
 ipmi_fru_list = "ipmitool -H 127.0.0.1 -U admin -P admin fru list"
+
+
 class test_ipmi_sim_full_log(unittest.TestCase):
     def setUp(self):
         self.node_info = {}

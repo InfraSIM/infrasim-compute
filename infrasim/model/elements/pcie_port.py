@@ -47,7 +47,6 @@ class CPCIEPort(CElement):
             if 'sec_bus' in self.__port_info or 'pri_bus' in self.__port_info:
                 raise ArgsNotCorrect("<sec_bus> and <pri_bus> should appear with <addr>")
 
-
     def init(self):
         self.logger.info("port start ")
         self.__device = self.__port_info.get('device')

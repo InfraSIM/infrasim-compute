@@ -58,7 +58,7 @@ class MegaSASController(CBaseStorageController):
         super(MegaSASController, self).handle_parms()
 
         drive_nums = len(self._drive_list)
-        cntrl_nums = int(math.ceil(float(drive_nums)/self._max_drive_per_controller)) or 1
+        cntrl_nums = int(math.ceil(float(drive_nums) / self._max_drive_per_controller)) or 1
 
         bus_nr_generator = None
 

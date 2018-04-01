@@ -289,17 +289,20 @@ class test_node_cli(unittest.TestCase):
         self.assertEqual(len(os.listdir(config.infrasim_home)), 1)
 
         # Verify if it will reinstall packages when user confirmed 'Y'
-        result = run_command_with_user_input("infrasim init", True, subprocess.PIPE, subprocess.PIPE, subprocess.PIPE, "Y\nY\nY\n")
+        result = run_command_with_user_input("infrasim init", True, subprocess.PIPE,
+                                             subprocess.PIPE, subprocess.PIPE, "Y\nY\nY\n")
         assert "downloading Infrasim_Qemu" in result[1]
         assert "downloading OpenIpmi" in result[1]
         assert "downloading Seabios" in result[1]
 
-        result = run_command_with_user_input("infrasim init", True, subprocess.PIPE, subprocess.PIPE, subprocess.PIPE, "Y\nyes\nn\n")
+        result = run_command_with_user_input("infrasim init", True, subprocess.PIPE,
+                                             subprocess.PIPE, subprocess.PIPE, "Y\nyes\nn\n")
         assert "downloading Infrasim_Qemu" in result[1]
         assert "downloading OpenIpmi" in result[1]
         assert "downloading Seabios" not in result[1]
 
-        result = run_command_with_user_input("infrasim init", True, subprocess.PIPE, subprocess.PIPE, subprocess.PIPE, "no\nN\nY\n")
+        result = run_command_with_user_input("infrasim init", True, subprocess.PIPE,
+                                             subprocess.PIPE, subprocess.PIPE, "no\nN\nY\n")
         assert "downloading Infrasim_Qemu" not in result[1]
         assert "downloading OpenIpmi" not in result[1]
         assert "downloading Seabios" in result[1]

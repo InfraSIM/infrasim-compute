@@ -495,13 +495,13 @@ class test_racadm_configuration_change(unittest.TestCase):
         self.channel = self.ssh.invoke_shell()
 
         # Test 1
-        self.channel.send("help"+chr(13))
+        self.channel.send("help" + chr(13))
         time.sleep(1)
         str_output = read_buffer(self.channel)
         assert "racadm" in str_output
 
         # Test 2
-        self.channel.send("racadm help"+chr(13))
+        self.channel.send("racadm help" + chr(13))
         time.sleep(1)
         str_output = read_buffer(self.channel)
         assert "hwinventory" in str_output
@@ -542,7 +542,7 @@ class test_racadm_configuration_change(unittest.TestCase):
         self.channel = self.ssh.invoke_shell()
 
         # Test racadmsim is working
-        self.channel.send("racadm help"+chr(13))
+        self.channel.send("racadm help" + chr(13))
         time.sleep(1)
         str_output = read_buffer(self.channel)
         assert "hwinventory" in str_output
@@ -582,7 +582,7 @@ class test_racadm_configuration_change(unittest.TestCase):
         self.channel = self.ssh.invoke_shell()
 
         # Test racadmsim is working
-        self.channel.send("racadm help"+chr(13))
+        self.channel.send("racadm help" + chr(13))
         time.sleep(1)
         str_output = read_buffer(self.channel)
         assert "hwinventory" in str_output

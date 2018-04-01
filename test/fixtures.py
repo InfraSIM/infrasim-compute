@@ -1,5 +1,6 @@
-
+import os
 from infrasim import helper
+
 
 class FakeConfig(object):
     def __init__(self):
@@ -19,7 +20,6 @@ class FakeConfig(object):
                     {
                         "type": "ahci",
                         "max_drive_per_controller": 6,
-                        "use_jbod": "true",
                         "use_msi": "true",
                         "max_cmds": 1024,
                         "max_sge": 128,
@@ -43,6 +43,7 @@ class FakeConfig(object):
 
     def get_node_info(self):
         return self.__node_info
+
 
 class NvmeConfig(object):
     def __init__(self):
@@ -71,7 +72,8 @@ class NvmeConfig(object):
                                 "size": 40,
                                 "model": "SATADOM",
                                 "serial": "20160518AA851134100",
-                                "file": "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
+                                "file": os.environ.get(
+                                                'TEST_IMAGE_PATH') or "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
                             }
                         ]
                     },
