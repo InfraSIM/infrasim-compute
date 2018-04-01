@@ -6,10 +6,10 @@ from infrasim.workspace import Workspace
 ns = api.namespace("admin", "InfraSIM monitor administration")
 
 
-# @ns.route('/')
-# class root(Resource):
-#     def get(self):
-#         return "Hello world to InfraSIM Monitor", 200
+@ns.route('/')
+class default(Resource):
+    def get(self):
+        return "Hello world to InfraSIM Monitor", 200
 
 
 @ns.route('/<string:nodename>')

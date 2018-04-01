@@ -199,9 +199,9 @@ class test_megasas_controller_with_two_drives(unittest.TestCase):
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
                                                                 {
-                                                                    'file': '{}'.format(os.environ.get(
-                                                                                                    'TEST_IMAGE_PATH',
-                                                                                                    test_img_file)),
+                                                                    'file': '{}'.format(
+                                                                        os.environ.get('TEST_IMAGE_PATH') or
+                                                                        test_img_file),
                                                                     'bootindex': 1,
                                                                     'use_msi': 'true',
                                                                     'size': 8
@@ -274,9 +274,9 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
                                                                 {
-                                                                    'file': '{}'.format(os.environ.get(
-                                                                                            'TEST_IMAGE_PATH',
-                                                                                            test_img_file)),
+                                                                    'file': '{}'.format(
+                                                                        os.environ.get('TEST_IMAGE_PATH') or
+                                                                        test_img_file),
                                                                     'bootindex': 1,
                                                                     'use_msi': 'true',
                                                                     'size': 8
@@ -551,9 +551,9 @@ class test_megasas_controller_with_six_drives(unittest.TestCase):
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
                                                                 {
-                                                                    'file': '{}'.format(os.environ.get(
-                                                                                                    'TEST_IMAGE_PATH',
-                                                                                                    test_img_file)),
+                                                                    'file': '{}'.format(
+                                                                        os.environ.get('TEST_IMAGE_PATH') or
+                                                                        test_img_file),
                                                                     'bootindex': 1,
                                                                     'use_msi': 'true',
                                                                     'size': 8
@@ -632,9 +632,9 @@ class test_lsi_controller_with_six_drives(unittest.TestCase):
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
                                                                 {
-                                                                    'file': '{}'.format(os.environ.get(
-                                                                                                'TEST_IMAGE_PATH',
-                                                                                                test_img_file)),
+                                                                    'file': '{}'.format(
+                                                                        os.environ.get('TEST_IMAGE_PATH') or
+                                                                        test_img_file),
                                                                     'bootindex': 1,
                                                                     'use_msi': 'true',
                                                                     'size': 8
