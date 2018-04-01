@@ -160,10 +160,6 @@ with open('{}', 'wb') as f:
             read_data_file = "/tmp/read_data"
             status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 -d {}".format(dev, read_data_file))
             assert status == 0
-            #status, read_data = ssh.exec_command("hexdump {} -n 2048".format(read_data_file))
-            #assert status == 0
-            #status, binfile_data = ssh.exec_command("hexdump {} -n 2048".format(bin_file_name))
-            #assert read_data == binfile_data
             status, _ = ssh.exec_command("cmp {} {}".format(bin_file_name, read_data_file))
             assert status == 0
 
@@ -356,11 +352,11 @@ with open('{}', 'wb') as f:
                     assert int(robj.groupdict().get('index')) < 5
                     if robj.groupdict().get('used'):
                         current_lba_index = int(robj.groupdict().get('index'))
+                        assert current_lba_index is not None
                 else:
                     robj = re.search(r'(?P<key>\w+)\s+:\s+.*', rsp_id_ns)
                     assert robj
                     assert robj.groupdict().get('key') in key_words
-            assert current_lba_index is not None
 
             # Check namespace logical block size in command output
             status, rsp_sg = ssh.exec_command("sg_readcap {}".format(dev))

@@ -40,7 +40,7 @@ class test_ipmi_sim_full_log(unittest.TestCase):
 
     def test_full_log(self):
         try:
-            status_output = run_command(ipmi_fru_list)[1]
+            run_command(ipmi_fru_list)[1]
             with open(log_path, "r") as fp:
                 lines = fp.readlines()
             assert "Activate session" in str(lines)
@@ -72,7 +72,7 @@ class test_ipmi_sim_error_log_only(unittest.TestCase):
 
     def test_full_log(self):
         try:
-            status_output = run_command(ipmi_fru_list)[1]
+            run_command(ipmi_fru_list)[1]
             with open(log_path, "r") as fp:
                 lines = fp.readlines()
             assert "Activate session" not in str(lines)

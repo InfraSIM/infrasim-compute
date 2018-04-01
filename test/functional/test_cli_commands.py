@@ -270,6 +270,7 @@ class test_node_cli(unittest.TestCase):
 
         assert "Node {} runtime workspace doesn't exist".format(self.node_name) in output_info['destroy'][1]
 
+    @unittest.skipIf(os.environ.get("SKIP_INIT"), "Skip init test to avoid installing packages from bintray.")
     def test_init(self):
         """
         CLI test: test init "-f" which will remove existing workspace
