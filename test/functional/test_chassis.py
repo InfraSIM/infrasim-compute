@@ -3,17 +3,19 @@
 Copyright @ 2018 EMC Corporation All Rights Reserved
 *********************************************************
 '''
-import unittest
-import pprint
 import os
-import time
-import yaml
+import pprint
 import shutil
-from infrasim import model
-from infrasim import helper
-from infrasim import InfraSimError
-import paramiko
+import subprocess
 from test import fixtures
+import time
+import unittest
+
+from infrasim import InfraSimError
+from infrasim import helper
+from infrasim import model
+import paramiko
+import yaml
 
 a_boot_image = "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
 b_boot_image = "/home/infrasim/jenkins/data/ubuntu14.04.4_b.qcow2"
@@ -22,6 +24,7 @@ new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 ssh = None
 conf = {}
 chassis = None
+nodes_ip = ["192.168.188.91", "192.168.188.92"]
 
 
 def setup_module():
@@ -50,6 +53,10 @@ def start_chassis():
     global ssh
 
     conf = fixtures.ChassisConfig().get_chassis_info()
+    conf["data"]["pn"] = "What_ever_SN"
+    conf["data"]["sn"] = "What_ever_SN"
+    conf["data"]["psu1_pn"] = "A380-B737-C909"
+
     node0_log = "/tmp/qemu_node0.log"
     node1_log = "/tmp/qemu_node1.log"
     compute_0 = conf["nodes"][0]["compute"]
@@ -59,9 +66,6 @@ def start_chassis():
     compute_1 = conf["nodes"][1]["compute"]
     compute_1["storage_backend"][0]["drives"][0]["file"] = b_boot_image
     compute_1["extra_option"] = "-D {} -trace events=/tmp/trace_items".format(node1_log)
-
-    conf["data"]["sn"] = "WHAT_EVER_SN"
-    conf["data"]["psu1_pn"] = "A380-B737-C909"
 
     if os.path.exists(node0_log):
         os.remove(node0_log)
@@ -86,12 +90,12 @@ def stop_chassis():
     conf = {}
 
 
-def run_cmd(cmd):
+def run_cmd(cmd, ip, port):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    paramiko.util.log_to_file("filename.log")
-    helper.try_func(600, paramiko.SSHClient.connect, ssh, "127.0.0.1",
-                    port=2222, username="root", password="root", timeout=120)
+    # paramiko.util.log_to_file("filename.log")
+    helper.try_func(600, paramiko.SSHClient.connect, ssh, ip,
+                    port=port, username="root", password="root", timeout=120)
 
     stdin, stdout, stderr = ssh.exec_command(cmd)
     while not stdout.channel.exit_status_ready():
@@ -115,15 +119,27 @@ class test_chassis(unittest.TestCase):
 
         with open("/tmp/qemu_node0.log") as fi:
             rst = fi.read()
-        self.assertIn("in [commu_internal_check], chassis/psu1_pn=A380-B737-C909", rst,
+        self.assertIn("in [commu_internal_check], chassis/psu1_pn={}".format(conf["data"]["psu1_pn"]), rst,
                       "Can't get information from shared memory!")
-        self.assertIn("in [commu_internal_check], chassis/sn=WHAT_EVER_SN", rst,
+        self.assertIn("in [commu_internal_check], chassis/sn={}".format(conf["data"]["sn"]), rst,
                       "Can't get information from shared memory!")
 
         with open("/tmp/qemu_node1.log") as fi:
             rst = fi.read()
-        self.assertIn("in [commu_internal_check], chassis/psu1_pn=A380-B737-C909", rst,
+        self.assertIn("in [commu_internal_check], chassis/psu1_pn={}".format(conf["data"]["psu1_pn"]), rst,
                       "Can't get information from shared memory!")
-        self.assertIn("in [commu_internal_check], chassis/sn=WHAT_EVER_SN", rst,
+        self.assertIn("in [commu_internal_check], chassis/sn={}".format(conf["data"]["sn"]), rst,
                       "Can't get information from shared memory!")
+
+    def test_fru_pn_sn(self):
+        for ip in nodes_ip:
+            cmd = ["ipmitool", "-I", "lanplus", "-U", "admin", "-P", "admin", "-H", ip, "fru", "print", "0"]
+            result = subprocess.check_output(cmd)
+            self.assertIn(conf["data"]["pn"], result, "Failed to get pn from node {}".format(ip))
+            self.assertIn(conf["data"]["sn"], result, "Failed to get sn from node {}".format(ip))
+
+    def test_smbios_sn(self):
+        for ip in nodes_ip:
+            result = run_cmd("dmidecode -t chassis", ip, 8022)
+            self.assertIn("Serial Number: {}".format(conf["data"]["sn"]), result, "Chassis SN is not correct in {}".format(ip))
 
