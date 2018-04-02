@@ -346,7 +346,7 @@ with open('{}', 'wb') as f:
 
                 if line.startswith('lbaf'):
                     robj = re.search(
-                        r'lbaf\s+(?P<index>\d+)\s+:\s+ms:(?P<ms>\d+)\s+ds:(?P<ds>\d+)\s+rp:\d+(\s+)?(?P<used>\(.*\))?',
+                        r'lbaf\s+(?P<index>\d+)\s+:\s+ms:(?P<ms>\d+)\s+(lba)?ds:(?P<ds>\d+)\s+rp:\d+(\s+)?(?P<used>\(.*\))?',
                         line)
                     assert robj
                     assert int(robj.groupdict().get('index')) < 5
