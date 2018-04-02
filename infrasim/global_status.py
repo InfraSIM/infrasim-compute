@@ -33,6 +33,7 @@ def get_task_pid(pid_file):
 
 
 class NodeStatus(object):
+
     def __init__(self, node_name):
         self.__node_name = node_name
 
@@ -112,7 +113,7 @@ class InfrasimMonitor(object):
         node = get_dir_list(infrasim_home)
         # remove the file whose name starts from "."
         for nd in node:
-            if nd[0] is not '.':
+            if nd[0] is not '.' and Workspace.check_node(nd):
                 nd_status = NodeStatus(nd)
                 self.__node_list.append(nd_status)
 
@@ -134,7 +135,7 @@ class InfrasimMonitor(object):
             if racadm_flag and ipmi_console_flag and socat_flag:
                 break
         header_line = ['name', 'netns', 'bmc pid', 'node pid']
-        width = [12, 6, 6, 6]
+        width = [12, 12, 6, 6]
         align = ['c', 'l', 'l', 'l']
         if socat_flag:
             header_line.append('socat pid')
@@ -186,8 +187,11 @@ class InfrasimMonitor(object):
                 else:
                     line.append('-')
             port = ''
-            for p in node.get_port_status():
-                port += "{} ".format(p)
+            try:
+                for p in node.get_port_status():
+                    port += "{} ".format(p)
+            except Exception as _:
+                pass
             if port == '':
                 line.append('-')
             else:
