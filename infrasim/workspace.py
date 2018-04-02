@@ -125,6 +125,10 @@ class Workspace(object):
                                 format(node_name))
         return node_info
 
+    @staticmethod
+    def check_node(node_name):
+        return os.path.exists(os.path.join(config.infrasim_home, node_name, "etc", "infrasim.yml"))
+
     def __init__(self, node_info):
         self.__node_info = node_info
         self.__workspace_name = node_info["name"]
