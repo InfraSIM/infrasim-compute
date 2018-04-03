@@ -7,7 +7,7 @@ ns = api.namespace("admin", "InfraSIM monitor administration")
 
 
 @ns.route('/')
-class root(Resource):
+class default(Resource):
     def get(self):
         return "Hello world to InfraSIM Monitor", 200
 

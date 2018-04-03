@@ -7,6 +7,7 @@ import unittest
 import os
 import time
 import re
+import tempfile
 from infrasim import model
 from infrasim import helper
 from infrasim import sshclient
@@ -14,9 +15,10 @@ from test import fixtures
 
 old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
-image = "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
+image = os.environ.get('TEST_IMAGE_PATH') or "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
 
 conf = {}
+
 
 def setup_module():
     os.environ['PATH'] = new_path
@@ -52,7 +54,7 @@ class test_nvme(unittest.TestCase):
         time.sleep(5)
 
     @classmethod
-    @unittest.skipIf(not os.path.exists(image), \
+    @unittest.skipIf(not os.path.exists(image),
                      "Skip this test! No ubuntu image found in folder '/home/infrasim/jenkins/data'.\
 Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tools/tree/master/packer'!")
     def setUpClass(cls):
@@ -66,7 +68,7 @@ Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tool
     def get_nvme_disks(self):
         # Return nvme , eg. ['/dev/nvme0n1', '/dev/nvme0n2']
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         nvme_list = []
         status, output = ssh.exec_command("nvme list |grep \"/dev\" |awk '{print $1}'")
         nvme_list = output.split()
@@ -75,7 +77,7 @@ Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tool
     def get_nvme_dev(self):
         # Return nvme drive device, eg. ['nvme0', 'nvme1']
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         nvme_dev_list = []
         status, output = ssh.exec_command("ls /sys/class/nvme")
         nvme_dev_list = output.split()
@@ -84,7 +86,7 @@ Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tool
     def get_nvme_ns_list(self, nvme):
         # Return name space id list, eg. ['1', '2']
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         status, output = ssh.exec_command("ls /sys/class/nvme/{} |grep {}".format(nvme, nvme))
         nsid_list = []
 
@@ -96,7 +98,6 @@ Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tool
 
     def test_nvme_disk_count(self):
         global conf
-        image = "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
         if not os.path.exists(image):
             self.skipTest("Skip this test! No ubuntu image found in folder '/home/infrasim/jenkins/data'.\
 Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tools/tree/master/packer'!")
@@ -113,7 +114,7 @@ Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tool
         # pattern, eg. "0xff"
         # Return script path
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         script_name = "/tmp/gen_{}.py".format(str(pattern))
         script_content = '''#!/usr/bin/env python
 import struct
@@ -126,14 +127,14 @@ with open('{}', 'wb') as f:
 
     def _run_gen_bin_script(self, bin_file_name, script_name):
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         status, output = ssh.exec_command("python {}".format(script_name))
         return status
 
     def _clean_up(self):
         # Clean up temperary files
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         status, output = ssh.exec_command("ls /tmp/")
         print "OUTPUT: {}".format(output)
         status, output = ssh.exec_command("rm /tmp/*")
@@ -142,10 +143,10 @@ with open('{}', 'wb') as f:
 
     def test_read_write_verify(self):
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
 
         pattern = 0xff
-        bin_file_name = "/tmp/{}_bin_file".format(str(pattern))
+        _, bin_file_name = tempfile.mkstemp(suffix=".bin", prefix="nvme-test-")
         script_name = self._create_gen_bin_script(bin_file_name, pattern)
         assert self._run_gen_bin_script(bin_file_name, script_name) == 0
 
@@ -157,36 +158,32 @@ with open('{}', 'wb') as f:
 
             # Verify data consistent as written
             read_data_file = "/tmp/read_data"
-            status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 >{}".format(dev, read_data_file))
+            status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 -d {}".format(dev, read_data_file))
             assert status == 0
-            status, read_data = ssh.exec_command("hexdump {} -n 2048".format(read_data_file))
+            status, _ = ssh.exec_command("cmp {} {}".format(bin_file_name, read_data_file))
             assert status == 0
-            status, binfile_data = ssh.exec_command("hexdump {} -n 2048".format(bin_file_name))
-            assert read_data == binfile_data
 
         pattern = 0x00
-        bin_file_name = "/tmp/{}_bin_file".format(str(pattern))
+        _, bin_file_name = tempfile.mkstemp(suffix=".bin", prefix="nvme-test-")
         script_name = self._create_gen_bin_script(bin_file_name, pattern)
         assert self._run_gen_bin_script(bin_file_name, script_name) == 0
 
         for dev in nvme_list:
             # restore drive data to all zero
-            status, output = ssh.exec_command("nvme write {} -d {} -c 4 -z 2048".format(dev, bin_file_name))
+            status, _ = ssh.exec_command("nvme write {} -d {} -c 4 -z 2048".format(dev, bin_file_name))
             assert status == 0
             read_data_file = "/tmp/read_data"
-            status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 >{}".format(dev, read_data_file))
+            status, _ = ssh.exec_command("nvme read {} -c 4 -z 2048 -d {}".format(dev, read_data_file))
             assert status == 0
-            status, read_data = ssh.exec_command("hexdump {} -n 2048".format(read_data_file))
+            status, _ = ssh.exec_command("cmp {} {}".format(bin_file_name, read_data_file))
             assert status == 0
-            status, binfile_data = ssh.exec_command("hexdump {}".format(bin_file_name))
-            assert read_data == binfile_data
         self._clean_up()
 
     def test_id_ctrl(self):
         global conf
         nvme_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         nvme_config_list = []
         nvme_id_ctrl_list = []
 
@@ -227,7 +224,7 @@ with open('{}', 'wb') as f:
         nvme_list = self.get_nvme_disks()
 
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         for dev in nvme_list:
             status, rsp = ssh.exec_command("nvme get-ns-id {}".format(dev))
             ns_id_get = rsp.split(":")[2]
@@ -235,19 +232,19 @@ with open('{}', 'wb') as f:
             ns_id_read = result.group(2)
             assert int(ns_id_get) == int(ns_id_read)
 
-
     def test_get_log(self):
         global conf
         nvme_dev_list = self.get_nvme_dev()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         # Now infrasim design only support log_id(1, 2, 3)
         log_id_max = 3
         for nvme in nvme_dev_list:
             nsid_list = self.get_nvme_ns_list(nvme)
             for ns_id in nsid_list:
                 for log_id in range(1, log_id_max + 1):
-                    status, rsp = ssh.exec_command("nvme get-log /dev/{} -n {} -i {} -l 512".format(nvme, ns_id, log_id))
+                    status, rsp = ssh.exec_command(
+                        "nvme get-log /dev/{} -n {} -i {} -l 512".format(nvme, ns_id, log_id))
                     print rsp
                     assert nvme, ns_id in rsp
                     assert str(log_id) in rsp
@@ -256,7 +253,7 @@ with open('{}', 'wb') as f:
         # To get MT devices list.
         nvme_model_list = []
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         status, output = ssh.exec_command("nvme list |grep \"/dev\" |awk '{print $1,$3}'")
         nvme_model_list = output.split("\n")[:-1]
         mt_list = []
@@ -286,7 +283,7 @@ with open('{}', 'wb') as f:
     def test_error_log(self):
         nvme_disk_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         for nvme in nvme_disk_list:
             status, output = ssh.exec_command("nvme error-log {}".format(nvme))
             assert re.search("Error Log Entries for device:{} entries:(\d+)".format(nvme.split("/")[2]), output)
@@ -294,54 +291,73 @@ with open('{}', 'wb') as f:
     def test_write_zeroes(self):
         nvme_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
 
         pattern = 0xff
-        bin_file_name = "/tmp/{}_bin_file".format(str(pattern))
+        _, bin_file_name = tempfile.mkstemp(suffix=".bin", prefix="nvme-test-")
         script_name = self._create_gen_bin_script(bin_file_name, pattern)
         assert self._run_gen_bin_script(bin_file_name, script_name) == 0
 
         for dev in nvme_list:
             # Write 0xff to 2048 byte of nvme disks
             status, output = ssh.exec_command("nvme write {} -d {} -c 4 -z 2048".format(dev, bin_file_name))
-            read_data_file = "read_data"
-            # Verify data consistent as written
-            status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 > {}".format(dev, read_data_file))
+            assert status == 0
+            read_data_file = "/tmp/read_data.bin"
 
-            status, read_data = ssh.exec_command("hexdump {} -n 2048".format(read_data_file))
-            status, binfile_data = ssh.exec_command("hexdump {}".format(bin_file_name))
-            assert read_data == binfile_data
+            # Verify data consistent as written
+            status, _ = ssh.exec_command("nvme read {} -c 4 -z 2048 -d {}".format(dev, read_data_file))
+            assert status == 0
+
+            status, _ = ssh.exec_command("cmp {} {}".format(bin_file_name, read_data_file))
+            assert status == 0
 
         # Restore drive data to all zero
         pattern = 0x00
-        bin_file_name = "/tmp/{}_bin_file".format(str(pattern))
+        _, bin_file_name = tempfile.mkstemp(suffix=".bin", prefix="nvme-test-")
         script_name = self._create_gen_bin_script(bin_file_name, pattern)
         assert self._run_gen_bin_script(bin_file_name, script_name) == 0
         for dev in nvme_list:
             # Write 0x00 to 2048 byte of nvme disks
             status, output = ssh.exec_command("nvme write-zeroes {} -c 4".format(dev))
+            assert status == 0
 
-            read_data_file = "read_zero"
-            status, output = ssh.exec_command("nvme read {} -c 4 -z 2048 > {}".format(dev, read_data_file))
-
-            status, read_data = ssh.exec_command("hexdump {} -n 2048".format(read_data_file))
-
-            status, binfile_data = ssh.exec_command("hexdump {} -n 2048".format(bin_file_name))
-            assert read_data == binfile_data
+            read_data_file = "/tmp/read_zero.bin"
+            status, _ = ssh.exec_command("nvme read {} -c 4 -z 2048 -d {}".format(dev, read_data_file))
+            status, _ = ssh.exec_command("cmp {} {}".format(bin_file_name, read_data_file))
+            assert status == 0
         self._clean_up()
 
     def test_identify_namespace(self):
         nvme_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         for dev in nvme_list:
             status, rsp_id_ns = ssh.exec_command("nvme id-ns {}".format(dev))
             # Check identity keywords existance in command output
-            key_words = ["nsze", "ncap", "nuse", "nsfeat", "nlbaf", "flbas", "mc", \
-                         "dpc", "dps", "nmic", "rescap", "fpi", "nawun", "nawupf", \
-                         "nacwu", "nabsn", "nabo", "nabspf", "noiob", "nvmcap", \
+            key_words = ["nsze", "ncap", "nuse", "nsfeat", "nlbaf", "flbas", "mc",
+                         "dpc", "dps", "nmic", "rescap", "fpi", "nawun", "nawupf",
+                         "nacwu", "nabsn", "nabo", "nabspf", "noiob", "nvmcap",
                          "nguid", "eui64", "lbaf"]
-            assert set(key_words)<set(rsp_id_ns.split())
+            print rsp_id_ns
+            current_lba_index = None
+            for line in rsp_id_ns.split(os.linesep):
+                if line.startswith('NVME'):
+                    continue
+
+                if line.startswith('lbaf'):
+                    robj = re.search(
+                        r'lbaf\s+(?P<index>\d+)\s+:\s+ms:(?P<ms>\d+)\s+(lba)?ds:'
+                        r'(?P<ds>\d+)\s+rp:\d+(\s+)?(?P<used>\(.*\))?',
+                        line)
+                    assert robj
+                    assert int(robj.groupdict().get('index')) < 5
+                    if robj.groupdict().get('used'):
+                        current_lba_index = int(robj.groupdict().get('index'))
+                        assert current_lba_index is not None
+                else:
+                    robj = re.search(r'(?P<key>\w+)\s+:\s+.*', rsp_id_ns)
+                    assert robj
+                    assert robj.groupdict().get('key') in key_words
 
             # Check namespace logical block size in command output
             status, rsp_sg = ssh.exec_command("sg_readcap {}".format(dev))
@@ -355,70 +371,78 @@ with open('{}', 'wb') as f:
         # Test get and set arbitration feature.
         nvme_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         # select [0-3]: current/default/saved/supported
         sel = 0
         # feature id 1: arbitration
         feature_id = 1
         for dev in nvme_list:
             status, rsp_before_set = ssh.exec_command("nvme get-feature {} -f {} -s {}".format(dev, feature_id, sel))
-            # Check keywords existance in command output
-            key_words = ["get-feature:0x1", "(Arbitration),", "Current"]
-            assert set(key_words)<set(rsp_before_set.split())
+            print rsp_before_set
+            match_obj = re.search(
+                r'^get-feature:0x(?P<feature_id>\d+) \(Arbitration\), Current value:\s?0x(?P<value>[0-9a-fA-F]+)',
+                rsp_before_set)
+            assert match_obj
+            assert feature_id == int(match_obj.groupdict().get('feature_id'), 16)
 
             # Prepare set feature value
-            arb_before_set = re.search(r"Current value:0x(\w*)", rsp_before_set).group(1)
-            exp_arb_after_set = int(arb_before_set, 16)+1
+            exp_arb_after_set = int(match_obj.groupdict().get('value'), 16) + 1
 
             # Set feature
-            status, rsp_set = ssh.exec_command("nvme set-feature {} -f {} -v {}".\
-                                                     format(dev, feature_id, exp_arb_after_set))
+            status, rsp_set = ssh.exec_command(
+                "nvme set-feature {} -f {} -v {}".format(dev, feature_id, exp_arb_after_set))
 
             # Get feature again and verify
             status, rsp_after_set = ssh.exec_command("nvme get-feature {} -f {} -s {}".format(dev, feature_id, sel))
-            arb_after_set = re.search(r"Current value:0x(\w*)", rsp_after_set).group(1)
-            assert exp_arb_after_set ==  int(arb_after_set, 16)
+            arb_after_set = re.search(r"Current value:\s?0x([0-9a-fA-F]+)", rsp_after_set).group(1)
+            assert exp_arb_after_set == int(arb_after_set, 16)
 
     def test_get_set_temp_feature(self):
         # Test get and set temparature feature.
         nvme_list = self.get_nvme_disks()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         # select [0-3]: current/default/saved/supported
         sel = 0
         # feature id 4: temparature
         feature_id = 4
         for dev in nvme_list:
             status, rsp_before_set = ssh.exec_command("nvme get-feature {} -f {} -s {}".format(dev, feature_id, sel))
+            print rsp_before_set
+            match_obj = re.search(
+                r'^get-feature:0x(?P<id>\d+) \(Temperature Threshold\), Current value:\s?0x(?P<value>[0-9a-fA-F]+)',
+                rsp_before_set)
+            assert match_obj
+            assert feature_id == int(match_obj.groupdict().get('id'), 16)
             # Check keywords existance in command output
-            key_words = ["get-feature:0x4", "(Temperature", "Current"]
-            assert set(key_words)<set(rsp_before_set.split())
 
             # Prepare set temparature feature value
-            temp_before_set = re.search(r"Current value:0x(\w*)", rsp_before_set).group(1)
-            exp_temp_after_set = int(temp_before_set, 16)+1
+            exp_temp_after_set = int(match_obj.groupdict().get('value'), 16) + 1
 
             # Set feature
-            status, rsp_set = ssh.exec_command("nvme set-feature {} -f {} -v {}".\
-                                                     format(dev, feature_id, exp_temp_after_set))
+            status, rsp_set = ssh.exec_command(
+                "nvme set-feature {} -f {} -v {}".format(dev, feature_id, exp_temp_after_set))
 
             # Get feature again and verify
             status, rsp_after_set = ssh.exec_command("nvme get-feature {} -f {} -s {}".format(dev, feature_id, sel))
-            temp_after_set = re.search(r"Current value:0x(\w*)", rsp_after_set).group(1)
-            assert exp_temp_after_set ==  int(temp_after_set, 16)
+            temp_after_set = re.search(r"Current value:\s?0x([0-9a-fA-F]+)", rsp_after_set).group(1)
+            assert exp_temp_after_set == int(temp_after_set, 16)
 
     def test_flush(self):
         # Test flush command, it commit data/metadata associated with the specified namespace to volatile media.
         nvme_ctrls = self.get_nvme_dev()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
         for nvme in nvme_ctrls:
             ns_list = self.get_nvme_ns_list(nvme)
             for ns in ns_list:
-                status, output = ssh.exec_command("nvme flush /dev/{} -n {}".format(nvme, ns))
-            # Check keywords existance in command output
-            key_words = ["Flush:", "NVMe", "success"]
-            assert set(key_words)<=set(output.split())
+                status, output = ssh.exec_command("nvme flush /dev/{}n{} -n {}".format(nvme, ns, ns))
+                assert status == 0
+                print output
+
+                # Check keywords existance in command output
+                key_words = ["Flush:", "NVMe", "success"]
+                assert set(key_words) <= set(output.split())
 
     def test_compare(self):
         # Test compare command, compare success when disk data of specified range is identical
@@ -429,27 +453,34 @@ with open('{}', 'wb') as f:
         data_size = 4096
         block_count = 8
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.connect() is True
+        assert ssh.wait_for_host_up() is True
 
         pattern = 0xff
-        bin_file_name = "/tmp/{}_bin_file".format(str(pattern))
+        _, bin_file_name = tempfile.mkstemp(suffix=".bin", prefix="nvme-test-")
         script_name = self._create_gen_bin_script(bin_file_name, pattern)
         assert self._run_gen_bin_script(bin_file_name, script_name) == 0
         for dev in nvme_list:
-            status, output = ssh.exec_command("nvme compare {} -z {} -s {} -c {} -d {}\n".\
-                                   format(dev, data_size, start_block, block_count, bin_file_name))
+            status, output = ssh.exec_command(
+                "nvme compare {} -z {} -s {} -c {} -d {}\n".format(dev, data_size, start_block,
+                                                                   block_count, bin_file_name))
             assert 0 != status
             print "compare OUTPUT: {}".format(output)
-            assert "COMPARE_FAILED" in output
+            cobj = re.search(r"[Cc]ompare:\s?COMPARE_FAILED\(\d+\)", output)
+            assert cobj
+            # assert "COMPARE_FAILED" in output
 
-            status, output = ssh.exec_command("nvme write {} -z {} -s {} -c {} -d {}\n".\
-                                                    format(dev, data_size, start_block, block_count, bin_file_name))
+            status, output = ssh.exec_command(
+                "nvme write {} -z {} -s {} -c {} -d {}\n".format(dev, data_size, start_block,
+                                                                 block_count, bin_file_name))
             assert 0 == status
             print "write OUTPUT: {}".format(output)
-            assert "write: Success" in output
+            cobj = re.search(r"[Ww]rite:\s?[Ss]uccess", output)
+            assert cobj
 
-            status, output = ssh.exec_command("nvme compare {} -z {} -s {} -c {} -d {}\n".\
-                                   format(dev, data_size, start_block, block_count, bin_file_name))
+            status, output = ssh.exec_command(
+                "nvme compare {} -z {} -s {} -c {} -d {}\n".format(dev, data_size, start_block,
+                                                                   block_count, bin_file_name))
             assert 0 == status
             print "compare OUTPUT: {}".format(output)
-            assert "compare: Success" in output
+            cobj = re.search(r"[Cc]ompare:\s?[Ss]uccess", output)
+            assert cobj

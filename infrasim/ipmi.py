@@ -51,7 +51,7 @@ def start_ipmi(conf_file=config.infrasim_default_config):
         bmc.precheck()
         cmd = bmc.get_commandline()
         logger.debug(cmd)
-        run_command(cmd+" &", True, None, None)
+        run_command(cmd + " &", True, None, None)
 
         logger.info("bmc start")
     except CommandRunFailed as e:

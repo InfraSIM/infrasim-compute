@@ -5,10 +5,9 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 
 from .sensor import Sensor
-from .common import logger, msg_queue, send_ipmitool_command
+from .common import logger, send_ipmitool_command
 import os
 import sys
-import struct
 
 sensor_list = []
 sensor_name_list = []
@@ -55,14 +54,15 @@ def read_sensor_raw_value(sensor_num, event_type="threshold"):
         logger.info(info)
         return int(value, 16)
     elif event_type == "discrete":
-        value = '0x'+result.split()[2]+result.split()[3]
+        value = '0x' + result.split()[2] + result.split()[3]
         info = "sensor num: {0} value: {1}".format(hex(sensor_num), value)
         logger.info(info)
         return value
 
+
 def parse_sdrs():
     dump_all_sdrs(SDR_NAME)
-    if os.path.isfile(SDR_NAME) == False:
+    if os.path.isfile(SDR_NAME) is False:
         print "The file don't exist, Please double check!"
         sys.exit(1)
 
@@ -72,11 +72,11 @@ def parse_sdrs():
     record_header_size = 5
     while offset < file_size:
         # get record type
-        fd.seek(offset+3)
+        fd.seek(offset + 3)
         record_type = ord(fd.read(1))
 
         # get record length
-        fd.seek(offset+4)
+        fd.seek(offset + 4)
         record_length = ord(fd.read(1))
 
         # we just care record type 0x1 and 0x2 right now
@@ -85,27 +85,27 @@ def parse_sdrs():
             continue
 
         # get mc address
-        fd.seek(offset+5)
+        fd.seek(offset + 5)
         mc = ord(fd.read(1))
 
         # get LUN
-        fd.seek(offset+6)
+        fd.seek(offset + 6)
         lun = ord(fd.read(1))
 
         # get sensor num
-        fd.seek(offset+7)
+        fd.seek(offset + 7)
         sensor_num = ord(fd.read(1))
 
         # get sensor capability
-        fd.seek(offset+11)
+        fd.seek(offset + 11)
         sensor_cap = ord(fd.read(1))
 
         # get sensor type
-        fd.seek(offset+12)
+        fd.seek(offset + 12)
         sensor_type = ord(fd.read(1))
 
         # get event type
-        fd.seek(offset+13)
+        fd.seek(offset + 13)
         event_type = ord(fd.read(1))
 
         if event_type == 0x0:
@@ -116,35 +116,35 @@ def parse_sdrs():
             sensor_value = read_sensor_raw_value(sensor_num, "discrete")
 
         # get lower threshold mask(lower byte)
-        fd.seek(offset+14)
+        fd.seek(offset + 14)
         sensor_ltm_lb = ord(fd.read(1))
 
         # get lower threshold mask(upper byte)
-        fd.seek(offset+15)
+        fd.seek(offset + 15)
         sensor_ltm_ub = ord(fd.read(1))
 
         # get upper threshold mask(lower byte)
-        fd.seek(offset+16)
+        fd.seek(offset + 16)
         sensor_utm_lb = ord(fd.read(1))
 
         # get upper threshold mask(upper byte)
-        fd.seek(offset+17)
+        fd.seek(offset + 17)
         sensor_utm_ub = ord(fd.read(1))
 
         # settable threshold mask
-        fd.seek(offset+18)
+        fd.seek(offset + 18)
         sensor_rtm = ord(fd.read(1))
 
         # readable threshold mask
-        fd.seek(offset+19)
+        fd.seek(offset + 19)
         sensor_stm = ord(fd.read(1))
 
         # get sensor units 1 byte
-        fd.seek(offset+20)
+        fd.seek(offset + 20)
         sensor_su1 = ord(fd.read(1))
 
         # get sensor units 2 byte
-        fd.seek(offset+21)
+        fd.seek(offset + 21)
         sensor_su2 = ord(fd.read(1))
 
         sensor_name = ''
@@ -153,7 +153,7 @@ def parse_sdrs():
         if record_type == 0x1:
             # get sensor name
             sensor_name_length = record_header_size + record_length - 48
-            fd.seek(offset+48)
+            fd.seek(offset + 48)
             for index in range(0, sensor_name_length):
                 sensor_name += chr(ord(fd.read(1)))
 
@@ -165,27 +165,27 @@ def parse_sdrs():
                                        sensor_type)
 
             # get sensor "M" value lower byte
-            fd.seek(offset+24)
+            fd.seek(offset + 24)
             sensor_m_lb = ord(fd.read(1))
 
             # get sensor "M" value upper byte
-            fd.seek(offset+25)
+            fd.seek(offset + 25)
             sensor_m_ub = ord(fd.read(1))
 
             # get sensor "B" value lower byte
-            fd.seek(offset+26)
+            fd.seek(offset + 26)
             sensor_b_lb = ord(fd.read(1))
 
             # get sensor "B" value upper byte
-            fd.seek(offset+27)
+            fd.seek(offset + 27)
             sensor_b_ub = ord(fd.read(1))
 
             # get Accuracy
-            fd.seek(offset+28)
+            fd.seek(offset + 28)
             sensor_acc = ord(fd.read(1))
 
             # get exp value
-            fd.seek(offset+29)
+            fd.seek(offset + 29)
             sensor_exp = ord(fd.read(1))
 
             #  set sensor "M" value lower byte
@@ -206,22 +206,22 @@ def parse_sdrs():
             sensor_obj.set_exp(sensor_exp)
 
             # set threshold
-            fd.seek(offset+36)
+            fd.seek(offset + 36)
             sensor_obj.set_unr(ord(fd.read(1)))
 
-            fd.seek(offset+37)
+            fd.seek(offset + 37)
             sensor_obj.set_uc(ord(fd.read(1)))
 
-            fd.seek(offset+38)
+            fd.seek(offset + 38)
             sensor_obj.set_unc(ord(fd.read(1)))
 
-            fd.seek(offset+39)
+            fd.seek(offset + 39)
             sensor_obj.set_lnr(ord(fd.read(1)))
 
-            fd.seek(offset+40)
+            fd.seek(offset + 40)
             sensor_obj.set_lc(ord(fd.read(1)))
 
-            fd.seek(offset+41)
+            fd.seek(offset + 41)
             sensor_obj.set_lnc(ord(fd.read(1)))
 
             # output the sensor reading factor
@@ -230,7 +230,7 @@ def parse_sdrs():
         else:
             # get sensor name
             sensor_name_length = record_header_size + record_length - 32
-            fd.seek(offset+32)
+            fd.seek(offset + 32)
             for index in range(0, sensor_name_length):
                 sensor_name += chr(ord(fd.read(1)))
 

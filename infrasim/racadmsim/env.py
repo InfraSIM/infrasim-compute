@@ -13,6 +13,5 @@ auth_map = {}
 racadm_data = None
 logger_r = None
 node_name = None
-#local_env is a thread-safe variable set
+# local_env is a thread-safe variable set
 local_env = threading.local()
-

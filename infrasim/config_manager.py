@@ -136,7 +136,8 @@ class NodeMap(object):
             os.chmod(dst, 0664)
         except IOError:
             logger_config.exception("Node {}'s configuration failed to be updated.".format(node_name))
-            raise InfraSimError("Node {}'s configuration failed to be updated. Check file mode of {}.".format(node_name, dst))
+            raise InfraSimError("Node {}'s configuration failed to be updated. Check file mode of {}.".format(node_name,
+                                                                                                              dst))
         print "Node {}'s configuration mapping is updated".format(node_name)
         logger_config.info("request res: Node {}'s configuration mapping is updated".format(node_name))
 

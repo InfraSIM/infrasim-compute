@@ -103,7 +103,7 @@ class test_racadm_robust(unittest.TestCase):
                          password='admin',
                          port=10022)
         self.channel = self.ssh.invoke_shell()
-        self.channel.send("racadm help"+chr(13))
+        self.channel.send("racadm help" + chr(13))
         time.sleep(1)
         str_output = read_buffer(self.channel)
         assert "hwinventory" in str_output
@@ -140,7 +140,7 @@ class test_racadm_robust(unittest.TestCase):
                          password='admin',
                          port=10022)
         self.channel = self.ssh.invoke_shell()
-        self.channel.send("racadm help"+chr(13))
+        self.channel.send("racadm help" + chr(13))
         time.sleep(1)
         str_output = read_buffer(self.channel)
         assert "hwinventory" in str_output
@@ -177,7 +177,7 @@ class test_racadm_robust(unittest.TestCase):
                          password='admin',
                          port=10022)
         self.channel = self.ssh.invoke_shell()
-        self.channel.send("racadm help"+chr(13))
+        self.channel.send("racadm help" + chr(13))
         time.sleep(1)
         str_output = read_buffer(self.channel)
         assert "hwinventory" in str_output
@@ -214,7 +214,7 @@ class test_racadm_robust(unittest.TestCase):
                          password='admin',
                          port=10022)
         self.channel = self.ssh.invoke_shell()
-        self.channel.send("racadm help"+chr(13))
+        self.channel.send("racadm help" + chr(13))
         time.sleep(1)
         str_output = read_buffer(self.channel)
         assert "hwinventory" in str_output
@@ -235,13 +235,13 @@ class test_racadm_robust(unittest.TestCase):
         self.channel = self.ssh.invoke_shell()
 
         # Go to iDRAC console
-        self.channel.send("help"+chr(13))
+        self.channel.send("help" + chr(13))
         time.sleep(1)
         str_output = read_buffer(self.channel)
         assert "racadm" in str_output
 
         # Go to racadm console
-        self.channel.send("racadm"+chr(13))
+        self.channel.send("racadm" + chr(13))
         time.sleep(1)
         str_output = read_buffer(self.channel)
         assert "Welcome to RacadmConsole" in str_output
@@ -252,7 +252,7 @@ class test_racadm_robust(unittest.TestCase):
         assert "racadmsim>>" in str_output
 
         # Exit racadm console
-        self.channel.send("exit"+chr(13))
+        self.channel.send("exit" + chr(13))
         time.sleep(1)
         str_output = read_buffer(self.channel)
         assert "Exit RacadmConsole console" in str_output

@@ -6,8 +6,6 @@ Copyright @ 2017 EMC Corporation All Rights Reserved
 import unittest
 import os
 import time
-import yaml
-import shutil
 from infrasim import model
 from infrasim import helper
 from infrasim import InfraSimError

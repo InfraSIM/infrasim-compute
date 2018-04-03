@@ -120,7 +120,7 @@ def get_environment():
             logger_env.info("infrasim default configuration "
                             "information: \n{}\n".
                             format(node_info))
-    except:
+    except Exception:
         pass
 
 

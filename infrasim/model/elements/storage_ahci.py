@@ -46,7 +46,7 @@ class AHCIController(CBaseStorageController):
         super(AHCIController, self).handle_parms()
 
         drive_nums = len(self._drive_list)
-        cntrl_nums = int(math.ceil(float(drive_nums)/self._max_drive_per_controller)) or 1
+        cntrl_nums = int(math.ceil(float(drive_nums) / self._max_drive_per_controller)) or 1
         for cntrl_index in range(0, cntrl_nums):
             self._attributes["id"] = "sata{}".format(self._start_idx + cntrl_index)
             self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)

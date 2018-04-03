@@ -82,7 +82,7 @@ class REPL(object):
             return None
 
         if cmd[0] not in self.commands:
-            self.output('Unknown command, run "help" for detail'+linesep)
+            self.output('Unknown command, run "help" for detail' + linesep)
             return None
 
         func = self.commands[cmd[0]]
@@ -91,11 +91,11 @@ class REPL(object):
             if rsp is None:
                 return linesep
             else:
-                return str(rsp)+linesep
+                return str(rsp) + linesep
         except QuitREPL:
             raise
         except Exception:
-            return traceback.format_exc()+linesep
+            return traceback.format_exc() + linesep
 
     def run(self):
         self.welcome()
@@ -205,6 +205,7 @@ class REPL(object):
             lines.append("\t{:<12}{}".format(fn, simple_doc))
 
         return linesep.join(lines)
+
 
 if __name__ == "__main__":
     repl = REPL()

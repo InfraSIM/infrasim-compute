@@ -10,6 +10,7 @@ import logging
 
 app = Flask(__name__)
 
+
 def start(instance, host, port):
     api.add_namespace(qmp_ns)
     api.add_namespace(hmp_ns)

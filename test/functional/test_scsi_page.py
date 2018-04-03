@@ -22,7 +22,7 @@ Test inquiry/mode sense data injection of scsi drive
 file_prefix = os.path.dirname(os.path.realpath(__file__))
 test_img_file = "/tmp/kcs.img"
 test_drive_image = "/tmp/empty_scsi.img"
-page_file = file_prefix+"/fake_page.bin"
+page_file = file_prefix + "/fake_page.bin"
 conf = {}
 tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
@@ -134,7 +134,7 @@ def start_node(node_type):
     s.recv()
 
     payload_port_forward = {
-        "execute":"human-monitor-command",
+        "execute": "human-monitor-command",
         "arguments": {
             "command-line": "hostfwd_add ::2222-:22"
         }

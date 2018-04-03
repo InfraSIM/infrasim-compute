@@ -54,7 +54,7 @@ class CNetwork(CElement):
                 for each_addr in list_addr:
                     try:
                         int(each_addr, 16)
-                    except:
+                    except Exception:
                         raise ArgsNotCorrect("[CNetwork] ERROR: mac address invalid: {}".
                                              format(self.__mac_address))
 

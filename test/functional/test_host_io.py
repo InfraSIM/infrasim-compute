@@ -5,16 +5,12 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 """
 import unittest
 import os
-import yaml
 import time
-import paramiko
 import subprocess
 import re
-import json
 from infrasim import model
 from infrasim import run_command
 from infrasim import helper
-from infrasim.helper import UnixSocket
 from test import fixtures
 
 old_path = os.environ.get('PATH')
@@ -52,7 +48,7 @@ class test_kcs_io(unittest.TestCase):
         drives = [e for e in filter(lambda x:"sd" in x, drives.split())]
 
         for drive in drives:
-            stdin, stdout, stderr = ssh.exec_command('sg_inq /dev/'+drive)
+            stdin, stdout, stderr = ssh.exec_command('sg_inq /dev/' + drive)
             lines = stdout.channel.recv(2048)
             if serial in lines:
                 ssh.close()
@@ -120,7 +116,7 @@ class test_kcs_io(unittest.TestCase):
         if conf:
             self.stop_node()
         for i in range(97, 109):
-            disk_file = "/tmp/sd{}.img".format(chr(i));
+            disk_file = "/tmp/sd{}.img".format(chr(i))
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
 
@@ -157,7 +153,7 @@ class test_kcs_io(unittest.TestCase):
         drive = self.get_drive(sas_drive_serial)
         ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command(
-            'dd if=/root/source.bin of=/dev/'+drive+' bs=512 seek=0 count=1 conv=fsync')
+            'dd if=/root/source.bin of=/dev/' + drive + ' bs=512 seek=0 count=1 conv=fsync')
         while not stdout.channel.exit_status_ready():
             pass
 
@@ -178,7 +174,7 @@ class test_kcs_io(unittest.TestCase):
         while not stdout.channel.exit_status_ready():
             pass
         stdin, stdout, stderr = ssh.exec_command(
-            'dd if=/dev/'+drive+' of=/root/target.bin bs=512 skip=0 count=1 conv=fsync')
+            'dd if=/dev/' + drive + ' of=/root/target.bin bs=512 skip=0 count=1 conv=fsync')
         while not stdout.channel.exit_status_ready():
             pass
 
@@ -234,7 +230,7 @@ class test_kcs_io(unittest.TestCase):
         drive = self.get_drive(boot_drive_serial)
         ssh = helper.prepare_ssh()
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
-            if 'sd'+i != drive:
+            if 'sd' + i != drive:
                 stdin, stdout, stderr = ssh.exec_command(
                     'dd if=/root/source.bin of=/dev/sd' + i + ' bs=512 seek=0 count=1 conv=fsync')
 
@@ -246,13 +242,13 @@ class test_kcs_io(unittest.TestCase):
 
         ssh = helper.prepare_ssh()
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
-            if 'sd'+i not in[boot_drive, sas_drive, sata_drive]:
+            if 'sd' + i not in[boot_drive, sas_drive, sata_drive]:
                 stdin, stdout, stderr = ssh.exec_command(
                     'dd if=/dev/sd' + i + ' of=/root/target_' + i + '.bin bs=512 skip=0 count=1 conv=fsync')
         ssh.close()
         ssh = helper.prepare_ssh()
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
-            if 'sd'+i not in[boot_drive, sas_drive, sata_drive]:
+            if 'sd' + i not in[boot_drive, sas_drive, sata_drive]:
                 stdin, stdout, stderr = ssh.exec_command(
                     'cat /root/target_' + i + '.bin')
                 lines = stdout.channel.recv(2048)
@@ -271,7 +267,7 @@ class test_kcs_io(unittest.TestCase):
 
         ssh = helper.prepare_ssh()
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
-            if 'sd'+i not in[boot_drive, sas_drive, sata_drive]:
+            if 'sd' + i not in[boot_drive, sas_drive, sata_drive]:
                 stdin, stdout, stderr = ssh.exec_command(
                     'rm /root/target_' + i + '.bin')
 
@@ -296,7 +292,7 @@ class test_kcs_io(unittest.TestCase):
         drive = self.get_drive(sas_drive_serial)
         ssh = helper.prepare_ssh()
         stdin, stdout, stderr = ssh.exec_command(
-            'dd if=test_file of=/dev/'+drive+' bs=10M seek=8388607 count=1 conv=fsync')
+            'dd if=test_file of=/dev/' + drive + ' bs=10M seek=8388607 count=1 conv=fsync')
         while not stdout.channel.exit_status_ready():
             pass
         ssh.exec_command('rm -rf test_file')
@@ -309,7 +305,7 @@ class test_kcs_io(unittest.TestCase):
         assert "Device size: 4294967296 bytes, 4096.0 MiB, 4.29 GB" in lines
 
         stdin, stdout, stderr = ssh.exec_command(
-            'sg_format --format /dev/'+drive)
+            'sg_format --format /dev/' + drive)
         while not stdout.channel.exit_status_ready():
             pass
         ssh.close()
@@ -317,7 +313,7 @@ class test_kcs_io(unittest.TestCase):
         ssh = helper.prepare_ssh()
         while True:
             stdin, stdout, stderr = ssh.exec_command(
-                'sg_requests -p /dev/'+drive)
+                'sg_requests -p /dev/' + drive)
             while not stdout.channel.exit_status_ready():
                 pass
             lines = stdout.channel.recv(2048)
@@ -334,7 +330,8 @@ class test_kcs_io(unittest.TestCase):
         # 00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
         # *
         # 00000200
-        assert re.match(r"00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|\*\00000200", lines)
+        assert re.match(r"00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|\*\00000200",
+                        lines)
         ssh.close()
 
     def test_sata_drive_erase_master_pw(self):
@@ -345,21 +342,22 @@ class test_kcs_io(unittest.TestCase):
         # Set master password
         master_pw = "master_password"
         ssh = helper.prepare_ssh()
-        stdin, stdout, stderr = ssh.exec_command('hdparm --user-master m --security-set-pass '+master_pw+' /dev/'+drive)
+        stdin, stdout, stderr = ssh.exec_command(
+            'hdparm --user-master m --security-set-pass ' + master_pw + ' /dev/' + drive)
         lines = stdout.channel.recv(2048)
         # Check master password set command response correctly
         assert re.search(r"Issuing SECURITY_SET_PASS command, password=", lines)
 
         # Set user password and check if "Security Mode feature set" enabled.
         usr_pw = "user_password"
-        stdin, stdout, stderr = ssh.exec_command('hdparm --security-set-pass '+usr_pw+' /dev/'+drive)
+        stdin, stdout, stderr = ssh.exec_command('hdparm --security-set-pass ' + usr_pw + ' /dev/' + drive)
         lines = stdout.channel.recv(2048)
         # Check user password set command response correctly
         assert re.search(r"Issuing SECURITY_SET_PASS command, password=", lines)
 
-        stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/'+drive)
+        stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/' + drive)
         lines = stdout.channel.recv(2048)
-        print 'hdparm -I /dev/'+drive+'\r\n', lines
+        print 'hdparm -I /dev/' + drive + '\r\n', lines
         assert re.search(r"\*\s+Security Mode feature set", lines)
         assert re.search(r"\s+device size with M = 1024\*1024:\s+4096 MBytes", lines)
 
@@ -369,13 +367,14 @@ class test_kcs_io(unittest.TestCase):
         # Write disk
         stdin, stdout, stderr = ssh.exec_command('echo abcdefg > test_file')
         stdin, stdout, stderr = ssh.exec_command(
-            'dd if=test_file of=/dev/'+drive+' bs=10M seek=8388607 count=1 conv=fsync')
+            'dd if=test_file of=/dev/' + drive + ' bs=10M seek=8388607 count=1 conv=fsync')
         ssh.exec_command('rm -rf test_file')
         ssh.close()
 
         # Erase disk
         ssh = helper.prepare_ssh()
-        stdin, stdout, stderr = ssh.exec_command('hdparm --user-master m --security-erase '+master_pw+' /dev/'+drive)
+        stdin, stdout, stderr = ssh.exec_command(
+            'hdparm --user-master m --security-erase ' + master_pw + ' /dev/' + drive)
         while not stdout.channel.exit_status_ready():
             pass
         stdin, stdout, stderr = ssh.exec_command('dd if=/dev/{} skip=8388607 count=1 | hexdump -C'.format(drive))
@@ -385,9 +384,10 @@ class test_kcs_io(unittest.TestCase):
         # 00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
         # *
         # 00000200
-        assert re.match(r"00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|\*\00000200", lines)
+        assert re.match(r"00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|\*\00000200",
+                        lines)
 
-        stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/'+drive)
+        stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/' + drive)
         lines = stdout.channel.recv(2048)
         ssh.close()
 
@@ -398,20 +398,20 @@ class test_kcs_io(unittest.TestCase):
         # Otherwise, it will take long time which is not suitable for functional test.
         drive = self.get_drive(sata_drive_serial)
         ssh = helper.prepare_ssh()
-        stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/'+drive)
+        stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/' + drive)
         lines = stdout.channel.recv(2048)
         assert re.search(r"\*\s+Security Mode feature set", lines) is None
 
         usr_pw = "user_password"
-        stdin, stdout, stderr = ssh.exec_command('hdparm --security-set-pass '+usr_pw+' /dev/'+drive)
+        stdin, stdout, stderr = ssh.exec_command('hdparm --security-set-pass ' + usr_pw + ' /dev/' + drive)
         lines = stdout.channel.recv(2048)
         # Check user password set command response correctly
         assert re.search(r"Issuing SECURITY_SET_PASS command, password=", lines)
 
-        stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/'+drive)
+        stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/' + drive)
         lines = stdout.channel.recv(2048)
         # Expect "Security Mode feature set" to be enabled after set user password
-        print "hdparm -I /dev/"+drive+'\r\n', lines
+        print "hdparm -I /dev/" + drive + '\r\n', lines
         assert re.search(r"\*\s+Security Mode feature set", lines)
         assert re.search(r"\s+device size with M = 1024\*1024:\s+4096 MBytes", lines)
         ssh.close()
@@ -425,12 +425,12 @@ class test_kcs_io(unittest.TestCase):
         ssh = helper.prepare_ssh()
         # Write to the last block of drive
         stdin, stdout, stderr = ssh.exec_command(
-            'dd if=test_file of=/dev/'+drive+' bs=10M seek=8388607 count=1 conv=fsync')
+            'dd if=test_file of=/dev/' + drive + ' bs=10M seek=8388607 count=1 conv=fsync')
         ssh.exec_command('rm -rf test_file')
         ssh.close()
 
         ssh = helper.prepare_ssh()
-        stdin, stdout, stderr = ssh.exec_command('hdparm --user-master u --security-erase '+usr_pw+' /dev/'+drive)
+        stdin, stdout, stderr = ssh.exec_command('hdparm --user-master u --security-erase ' + usr_pw + ' /dev/' + drive)
         while not stdout.channel.exit_status_ready():
             pass
         stdin, stdout, stderr = ssh.exec_command('dd if=/dev/{} skip=8388607 count=1 | hexdump -C'.format(drive))
@@ -441,9 +441,10 @@ class test_kcs_io(unittest.TestCase):
         # *
         # 00000200
         print "hexdump result after formating:\r\n", lines
-        assert re.match(r"00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|\*\00000200", lines)
+        assert re.match(r"00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|\*\00000200",
+                        lines)
 
-        stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/'+drive)
+        stdin, stdout, stderr = ssh.exec_command('hdparm -I /dev/' + drive)
         lines = stdout.channel.recv(2048)
         # Expect "Security Mode feature set" to be disabled
         assert re.search(r"\*\s+Security Mode feature set", lines) is None

@@ -37,6 +37,7 @@ power_reset_cmd = cmd_prefix + 'power reset'
 p = r"mac=(?P<mac>\w{2}:\w{2}:\w{2}:\w{2}:\w{2}:\w{2})"
 r = re.compile(p)
 
+
 def get_mac():
     pid = get_qemu_pid()
     if pid == "":
@@ -47,6 +48,7 @@ def get_mac():
     with open(qemu_cmdline) as fd:
         cmdline = fd.readline()
     return r.findall(cmdline)
+
 
 def get_qemu_pid():
     pid = ""

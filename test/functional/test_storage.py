@@ -7,16 +7,15 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 # -*- coding: utf-8 -*-
 
 import os
+import re
 import unittest
 from test import fixtures
 import yaml
-import json
 from infrasim import config
 from infrasim import model
 from infrasim import helper
 from infrasim import run_command
-from infrasim import InfraSimError
-from infrasim.helper import UnixSocket
+from infrasim.sshclient import SSH
 
 """
 SAS controllers type includes:
@@ -30,17 +29,7 @@ tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
-# download the Cirros timy os image for boot order test.
-MD5_IMG = "986e5e63e8231a307babfbe9c81ca210"
-DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
-test_img_file = "/tmp/kcs.img"
-
-try:
-    helper.fetch_image(DOWNLOAD_URL, MD5_IMG, test_img_file)
-
-except InfraSimError, e:
-    print e.value
-    assert False
+test_img_file = "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
 
 drive2 = [{"size": 8, "file": "/tmp/sda.img"},
           {"size": 16, "file": "/tmp/sdb.img"}]
@@ -68,6 +57,63 @@ def set_port_forward_try_ssh(node):
     time.sleep(5)
 
 
+def get_storage_list():
+    storage_list = []
+    ssh = SSH("127.0.0.1", "root", "root", port=2222)
+    assert ssh.wait_for_host_up() is True
+
+    status, output = ssh.exec_command("which lsscsi")
+    assert status == 0
+
+    status, output = ssh.exec_command("lsscsi -t -H")
+    print output
+    assert status == 0
+    for c in output.strip().split(os.linesep):
+        c_obj = re.search('\[(?P<bus>\d+)\]\s+(?P<controller>\w+)\s?.*:?', c)
+        if c_obj is None:
+            continue
+
+        c_name = c_obj.groupdict().get('controller')
+        c_bus = c_obj.groupdict().get('bus')
+
+        assert c_name and c_bus
+        # map should be as below for example:
+        # {'name': 'ahci', 'buses': [], 'disks':[]}
+        controller_map = {}
+        for c_map in storage_list:
+            if c_map and c_name == c_map['name']:
+                controller_map = c_map
+                break
+
+        if controller_map:
+            if c_bus not in controller_map["buses"] and controller_map['name'] == c_name:
+                controller_map["buses"].append(c_bus)
+        else:
+            # initialize map, and and it to storage_list
+            controller_map['name'] = c_name
+            controller_map["buses"] = []
+            controller_map["disks"] = []
+            controller_map["buses"].append(c_bus)
+            storage_list.append(controller_map)
+
+    status, output = ssh.exec_command("lsscsi -pgw")
+    assert status == 0
+    print output
+    for d in output.strip().split(os.linesep):
+        d_obj = re.search('\[(?P<bus>\d+):\d+:\d+:\d+\]\s+disk\s+(?P<device_name>\/dev\/sd\w+)\s+.*', d)
+        if d_obj is None:
+            continue
+
+        bus = d_obj.groupdict().get('bus')
+        device_name = d_obj.groupdict().get('device_name')
+        assert bus and device_name
+        for c_map in storage_list:
+            if bus in c_map['buses']:
+                assert device_name not in c_map['disks']
+                c_map['disks'].append(device_name)
+    return storage_list
+
+
 class test_ahci_controller_with_two_drives(unittest.TestCase):
 
     @classmethod
@@ -90,7 +136,6 @@ class test_ahci_controller_with_two_drives(unittest.TestCase):
         # Update ahci controller with two drives
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",
-            "use_jbod": "true",
             "use_msi": "true",
             "max_cmds": 1024,
             "max_sge": 128,
@@ -104,6 +149,7 @@ class test_ahci_controller_with_two_drives(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
+        helper.port_forward(node)
 
         controller_type = run_command("infrasim node info {} | grep -c ahci".
                                       format(self.conf["name"]))
@@ -136,18 +182,32 @@ class test_megasas_controller_with_two_drives(unittest.TestCase):
             if os.path.exists(drive["file"]):
                 os.unlink(drive["file"])
 
-
     def test_controller_with_drive2(self):
         # Update megasas controller with two drives
         self.conf["compute"]["storage_backend"] = [{
             "type": "megasas",
-            "use_jbod": "true",
             "use_msi": "true",
             "max_cmds": 1024,
             "max_sge": 128,
             "max_drive_per_controller": 6,
             "drives": drive2
             }]
+
+        self.conf['compute']['storage_backend'].insert(0,
+                                                       {
+                                                           "type": "ahci",
+                                                           "max_drive_per_controller": 6,
+                                                           "drives": [
+                                                                {
+                                                                    'file': '{}'.format(
+                                                                        os.environ.get('TEST_IMAGE_PATH') or
+                                                                        test_img_file),
+                                                                    'bootindex': 1,
+                                                                    'use_msi': 'true',
+                                                                    'size': 8
+                                                                }
+                                                            ]
+                                                       })
         with open('/tmp/test.yml', 'w') as outfile:
             yaml.dump(self.conf, outfile, default_flow_style=False)
         os.system("infrasim config add test {}".format(tmp_conf_file))
@@ -155,6 +215,7 @@ class test_megasas_controller_with_two_drives(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
+        helper.port_forward(node)
 
         controller_type = run_command("infrasim node info {} | grep -c megasas".
                                       format(self.conf["name"]))
@@ -167,6 +228,15 @@ class test_megasas_controller_with_two_drives(unittest.TestCase):
         assert "/tmp/sda.img" in qemu_cmdline
         assert "/tmp/sdb.img" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
+
+        storage_list = get_storage_list()
+        megasas_info = None
+        for c_map in storage_list:
+            if c_map.get('name') == 'megaraid_sas':
+                megasas_info = c_map
+                break
+        assert megasas_info
+        assert len(megasas_info.get('disks')) == 2
 
 
 class test_lsi_controller_with_two_drives(unittest.TestCase):
@@ -187,18 +257,33 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
             if os.path.exists(drive["file"]):
                 os.unlink(drive["file"])
 
-
     def test_controller_with_drive2(self):
         # Update lsi controller with two drives
         self.conf["compute"]["storage_backend"] = [{
             "type": "lsi",
-            "use_jbod": "true",
             "use_msi": "true",
             "max_cmds": 1024,
             "max_sge": 128,
             "max_drive_per_controller": 6,
             "drives": drive2
             }]
+
+        self.conf['compute']['storage_backend'].insert(0,
+                                                       {
+                                                           "type": "ahci",
+                                                           "max_drive_per_controller": 6,
+                                                           "drives": [
+                                                                {
+                                                                    'file': '{}'.format(
+                                                                        os.environ.get('TEST_IMAGE_PATH') or
+                                                                        test_img_file),
+                                                                    'bootindex': 1,
+                                                                    'use_msi': 'true',
+                                                                    'size': 8
+                                                                }
+                                                            ]
+                                                       })
+
         with open('/tmp/test.yml', 'w') as outfile:
             yaml.dump(self.conf, outfile, default_flow_style=False)
 
@@ -207,6 +292,7 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
+        helper.port_forward(node)
 
         controller_type = run_command("infrasim node info {} | grep -c lsi".
                                       format(self.conf["name"]))
@@ -219,6 +305,15 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
         assert "/tmp/sda.img" in qemu_cmdline
         assert "/tmp/sdb.img" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
+
+        storage_list = get_storage_list()
+        lsi_info = None
+        for c_map in storage_list:
+            if c_map.get('name') == 'sym53c8xx':
+                lsi_info = c_map
+                break
+        assert lsi_info
+        assert len(lsi_info.get('disks')) == 2
 
 
 class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
@@ -252,7 +347,6 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         # Update ahci controller with seven drives
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",
-            "use_jbod": "true",
             "use_msi": "true",
             "max_cmds": 1024,
             "max_sge": 128,
@@ -292,7 +386,6 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         # Update ahci controller with seven drives
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",
-            "use_jbod": "true",
             "use_msi": "true",
             "max_cmds": 1024,
             "max_sge": 128,
@@ -303,7 +396,6 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         controllers = []
         controllers.append({
             'type': 'ahci',
-            'use_jbod': 'true',
             'use_msi': 'true',
             'max_cmds': 1024,
             'max_sge': 128,
@@ -312,7 +404,6 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         })
         controllers.append({
             'type': 'ahci',
-            'use_jbod': 'true',
             'use_msi': 'true',
             'max_cmds': 1024,
             'max_sge': 128,
@@ -389,12 +480,10 @@ class test_ahci_controller_with_six_drives(unittest.TestCase):
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
 
-
     def test_controller_with_drive6(self):
         # Update ahci controller with six drives
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",
-            "use_jbod": "true",
             "use_msi": "true",
             "max_cmds": 1024,
             "max_sge": 128,
@@ -445,18 +534,33 @@ class test_megasas_controller_with_six_drives(unittest.TestCase):
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
 
-
     def test_controller_with_drive6(self):
         # Update megasas controller with six drives
         self.conf["compute"]["storage_backend"] = [{
             "type": "megasas",
-            "use_jbod": "true",
             "use_msi": "true",
             "max_cmds": 1024,
             "max_sge": 128,
             "max_drive_per_controller": 6,
             "drives": drive6
             }]
+
+        self.conf['compute']['storage_backend'].insert(0,
+                                                       {
+                                                           "type": "ahci",
+                                                           "max_drive_per_controller": 6,
+                                                           "drives": [
+                                                                {
+                                                                    'file': '{}'.format(
+                                                                        os.environ.get('TEST_IMAGE_PATH') or
+                                                                        test_img_file),
+                                                                    'bootindex': 1,
+                                                                    'use_msi': 'true',
+                                                                    'size': 8
+                                                                }
+                                                            ]
+                                                       })
+
         with open('/tmp/test.yml', 'w') as outfile:
             yaml.dump(self.conf, outfile, default_flow_style=False)
         os.system("infrasim config add test {}".format(tmp_conf_file))
@@ -464,6 +568,7 @@ class test_megasas_controller_with_six_drives(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
+        helper.port_forward(node)
 
         controller_type = run_command("infrasim node info {} | grep -c megasas".
                                       format(self.conf["name"]))
@@ -480,6 +585,15 @@ class test_megasas_controller_with_six_drives(unittest.TestCase):
         assert "/tmp/sde.img" in qemu_cmdline
         assert "/tmp/sdf.img" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
+
+        storage_list = get_storage_list()
+        megasas_info = None
+        for c_map in storage_list:
+            if c_map.get('name') == 'megaraid_sas':
+                megasas_info = c_map
+                break
+        assert megasas_info
+        assert len(megasas_info.get('disks')) == 6
 
 
 class test_lsi_controller_with_six_drives(unittest.TestCase):
@@ -501,18 +615,33 @@ class test_lsi_controller_with_six_drives(unittest.TestCase):
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
 
-
     def test_controller_with_drive6(self):
         # Update lsi controller with six drives
         self.conf["compute"]["storage_backend"] = [{
             "type": "lsi",
-            "use_jbod": "true",
             "use_msi": "true",
             "max_cmds": 1024,
             "max_sge": 128,
             "max_drive_per_controller": 6,
             "drives": drive6
             }]
+
+        self.conf['compute']['storage_backend'].insert(0,
+                                                       {
+                                                           "type": "ahci",
+                                                           "max_drive_per_controller": 6,
+                                                           "drives": [
+                                                                {
+                                                                    'file': '{}'.format(
+                                                                        os.environ.get('TEST_IMAGE_PATH') or
+                                                                        test_img_file),
+                                                                    'bootindex': 1,
+                                                                    'use_msi': 'true',
+                                                                    'size': 8
+                                                                }
+                                                            ]
+                                                       })
+
         with open('/tmp/test.yml', 'w') as outfile:
             yaml.dump(self.conf, outfile, default_flow_style=False)
         os.system("infrasim config add test {}".format(tmp_conf_file))
@@ -520,6 +649,7 @@ class test_lsi_controller_with_six_drives(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
+        helper.port_forward(node)
 
         controller_type = run_command("infrasim node info {} | grep -c lsi".
                                       format(self.conf["name"]))
@@ -536,6 +666,15 @@ class test_lsi_controller_with_six_drives(unittest.TestCase):
         assert "/tmp/sde.img" in qemu_cmdline
         assert "/tmp/sdf.img" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
+
+        storage_list = get_storage_list()
+        lsi_info = None
+        for c_map in storage_list:
+            if c_map.get('name') == 'sym53c8xx':
+                lsi_info = c_map
+                break
+        assert lsi_info
+        assert len(lsi_info.get('disks')) == 6
 
 
 class test_three_storage_controllers(unittest.TestCase):
@@ -557,7 +696,6 @@ class test_three_storage_controllers(unittest.TestCase):
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
 
-
     def test_three_controllers_each_with_six_drives(self):
 
         image_path = "{}/{}".format(config.infrasim_home, self.conf["name"])
@@ -569,13 +707,12 @@ class test_three_storage_controllers(unittest.TestCase):
         drives.append({'size': 8, 'file': "{}/sde.img".format(image_path)})
         drives.append({'size': 16, 'file': "{}/sdf.img".format(image_path)})
         self.conf['compute']['storage_backend'][0]['drives'].extend(drives)
-        self.conf['compute']['storage_backend'][0]['drives'][0]['file'] = "{}/sda.img".\
-            format(image_path)
+        self.conf['compute']['storage_backend'][0]['drives'][0]['file'] = \
+            os.environ.get('TEST_IMAGE_PATH') or test_img_file
 
         controllers = []
         controllers.append({
             'type': 'megasas',
-            'use_jbod': 'true',
             'use_msi': 'true',
             'max_cmds': 1024,
             'max_sge': 128,
@@ -584,7 +721,6 @@ class test_three_storage_controllers(unittest.TestCase):
             })
         controllers.append({
             'type': 'lsi',
-            'use_jbod': 'true',
             'use_msi': 'true',
             'max_cmds': 1024,
             'max_sge': 128,
@@ -619,6 +755,7 @@ class test_three_storage_controllers(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
+        helper.port_forward(node)
 
         controller_type_ahci = run_command("infrasim node info {} | grep -c ahci".
                                            format(self.conf["name"]))
@@ -637,25 +774,18 @@ class test_three_storage_controllers(unittest.TestCase):
         os.system("ls {}/{}".format(config.infrasim_home, self.conf["name"]))
 
         assert "qemu-system-x86_64" in qemu_cmdline
-        assert "{}/sda.img".format(image_path) in qemu_cmdline
-        assert "{}/sdb.img".format(image_path) in qemu_cmdline
-        assert "{}/sdc.img".format(image_path) in qemu_cmdline
-        assert "{}/sdd.img".format(image_path) in qemu_cmdline
-        assert "{}/sde.img".format(image_path) in qemu_cmdline
-        assert "{}/sdf.img".format(image_path) in qemu_cmdline
-        assert "{}/sdg.img".format(image_path) in qemu_cmdline
-        assert "{}/sdh.img".format(image_path) in qemu_cmdline
-        assert "{}/sdi.img".format(image_path) in qemu_cmdline
-        assert "{}/sdj.img".format(image_path) in qemu_cmdline
-        assert "{}/sdk.img".format(image_path) in qemu_cmdline
-        assert "{}/sdl.img".format(image_path) in qemu_cmdline
-        assert "{}/sdm.img".format(image_path) in qemu_cmdline
-        assert "{}/sdn.img".format(image_path) in qemu_cmdline
-        assert "{}/sdo.img".format(image_path) in qemu_cmdline
-        assert "{}/sdp.img".format(image_path) in qemu_cmdline
-        assert "{}/sdq.img".format(image_path) in qemu_cmdline
-        assert "{}/sdr.img".format(image_path) in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
+        storage_list = get_storage_list()
+        assert len(storage_list) == 3
+        for c_map in storage_list:
+            if c_map.get('name') == 'ahci':
+                assert len(c_map.get('buses')) == 2 * 6  # 2 controllers * 6 ports per controller
+                assert len(c_map.get('disks')) == 6
+            elif c_map.get('name') == 'megaraid_sas' or c_map.get('name') == 'sym53c8xx':
+                assert len(c_map.get('buses')) == 1
+                assert len(c_map.get('disks')) == 6
+            else:
+                assert False
 
 
 class test_four_storage_controllers(unittest.TestCase):
@@ -677,7 +807,6 @@ class test_four_storage_controllers(unittest.TestCase):
             if os.path.exists(disk_file):
                 os.unlink(disk_file)
 
-
     def test_four_controllers_each_with_six_drives(self):
         image_path = "{}/{}".format(config.infrasim_home, self.conf["name"])
         # Add several storage controllers/drives in node config file.
@@ -688,13 +817,12 @@ class test_four_storage_controllers(unittest.TestCase):
         drives.append({'size': 8, 'file': "{}/sde.img".format(image_path)})
         drives.append({'size': 16, 'file': "{}/sdf.img".format(image_path)})
         self.conf['compute']['storage_backend'][0]['drives'].extend(drives)
-        self.conf['compute']['storage_backend'][0]['drives'][0]['file'] = "{}/sda.img".\
-            format(image_path)
+        self.conf['compute']['storage_backend'][0]['drives'][0]['file'] = \
+            os.environ.get('TEST_IMAGE_PATH') or test_img_file
 
         controllers = []
         controllers.append({
             'type': 'megasas',
-            'use_jbod': 'true',
             'use_msi': 'true',
             'max_cmds': 1024,
             'max_sge': 128,
@@ -703,7 +831,6 @@ class test_four_storage_controllers(unittest.TestCase):
         })
         controllers.append({
             'type': 'lsi',
-            'use_jbod': 'true',
             'use_msi': 'true',
             'max_cmds': 1024,
             'max_sge': 128,
@@ -712,7 +839,6 @@ class test_four_storage_controllers(unittest.TestCase):
         })
         controllers.append({
             'type': 'ahci',
-            'use_jbod': 'true',
             'use_msi': 'true',
             'max_cmds': 1024,
             'max_sge': 128,
@@ -756,6 +882,7 @@ class test_four_storage_controllers(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
+        helper.port_forward(node)
 
         controller_type_ahci = run_command("infrasim node info {} | grep -c ahci".
                                            format(self.conf["name"]))
@@ -771,33 +898,22 @@ class test_four_storage_controllers(unittest.TestCase):
         qemu_pid = get_qemu_pid(node)
         qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
 
-        os.system("ls {}/{}".format(config.infrasim_home, self.conf["name"]))
         assert "qemu-system-x86_64" in qemu_cmdline
-        assert "{}/sda.img".format(image_path) in qemu_cmdline
-        assert "{}/sdb.img".format(image_path) in qemu_cmdline
-        assert "{}/sdc.img".format(image_path) in qemu_cmdline
-        assert "{}/sdd.img".format(image_path) in qemu_cmdline
-        assert "{}/sde.img".format(image_path) in qemu_cmdline
-        assert "{}/sdf.img".format(image_path) in qemu_cmdline
-        assert "{}/sdg.img".format(image_path) in qemu_cmdline
-        assert "{}/sdh.img".format(image_path) in qemu_cmdline
-        assert "{}/sdi.img".format(image_path) in qemu_cmdline
-        assert "{}/sdj.img".format(image_path) in qemu_cmdline
-        assert "{}/sdk.img".format(image_path) in qemu_cmdline
-        assert "{}/sdl.img".format(image_path) in qemu_cmdline
-        assert "{}/sdm.img".format(image_path) in qemu_cmdline
-        assert "{}/sdn.img".format(image_path) in qemu_cmdline
-        assert "{}/sdo.img".format(image_path) in qemu_cmdline
-        assert "{}/sdp.img".format(image_path) in qemu_cmdline
-        assert "{}/sdq.img".format(image_path) in qemu_cmdline
-        assert "{}/sdr.img".format(image_path) in qemu_cmdline
-        assert "{}/sds.img".format(image_path) in qemu_cmdline
-        assert "{}/sdt.img".format(image_path) in qemu_cmdline
-        assert "{}/sdu.img".format(image_path) in qemu_cmdline
-        assert "{}/sdv.img".format(image_path) in qemu_cmdline
-        assert "{}/sdw.img".format(image_path) in qemu_cmdline
-        assert "{}/sdx.img".format(image_path) in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
+
+        storage_list = get_storage_list()
+
+        # Only has three types of controller
+        assert len(storage_list) == 3
+        for c_map in storage_list:
+            if c_map.get('name') == 'ahci':
+                assert len(c_map.get('buses')) == 3 * 6  # 3 controllers * 6 ports per controller
+                assert len(c_map.get('disks')) == 12
+            elif c_map.get('name') == 'megaraid_sas' or c_map.get('name') == 'sym53c8xx':
+                assert len(c_map.get('buses')) == 1
+                assert len(c_map.get('disks')) == 6
+            else:
+                assert False
 
 
 class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
@@ -826,7 +942,6 @@ class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
         controllers = []
         controllers.append({
             'type': 'megasas',
-            'use_jbod': 'true',
             'use_msi': 'true',
             'max_cmds': 1024,
             'max_sge': 128,
@@ -835,7 +950,6 @@ class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
         })
         controllers.append({
             'type': 'lsi',
-            'use_jbod': 'true',
             'use_msi': 'true',
             'max_cmds': 1024,
             'max_sge': 128,
@@ -856,12 +970,11 @@ class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
 
         self.conf["compute"]["storage_backend"][0] = {
             "type": "ahci",
-            "use_jbod": "true",
             "use_msi": "true",
             "max_cmds": 1024,
             "max_sge": 128,
             "max_drive_per_controller": 6,
-            "drives": [{"size": 8, "bootindex": 1, "file": test_img_file},
+            "drives": [{"size": 8, "bootindex": 1, "file": os.environ.get('TEST_IMAGE_PATH') or test_img_file},
                        {"size": 16, "file": "{}/sdb.img".format(image_path)}]}
         print self.conf
 
@@ -900,7 +1013,6 @@ class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
         image_path = "{}/{}".format(config.infrasim_home, self.conf["name"])
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",
-            "use_jbod": "true",
             "use_msi": "true",
             "max_cmds": 1024,
             "max_sge": 128,
@@ -911,7 +1023,6 @@ class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
         controllers = []
         controllers.append({
             'type': 'ahci',
-            'use_jbod': 'true',
             'use_msi': 'true',
             'max_cmds': 1024,
             'max_sge': 128,
@@ -920,7 +1031,6 @@ class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
         })
         controllers.append({
             'type': 'lsi',
-            'use_jbod': 'true',
             'use_msi': 'true',
             'max_cmds': 1024,
             'max_sge': 128,
@@ -930,7 +1040,7 @@ class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
         self.conf['compute']['storage_backend'].extend(controllers)
 
         drives = []
-        drives.append({'size': 8, 'bootindex': 1, 'file': test_img_file})
+        drives.append({'size': 8, 'bootindex': 1, 'file': os.environ.get('TEST_IMAGE_PATH') or test_img_file})
         drives.append({'size': 16, 'file': "{}/sdd.img".format(image_path)})
         self.conf['compute']['storage_backend'][1]['drives'].extend(drives)
 
@@ -975,7 +1085,6 @@ class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
         image_path = "{}/{}".format(config.infrasim_home, self.conf["name"])
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",
-            "use_jbod": "true",
             "use_msi": "true",
             "max_cmds": 1024,
             "max_sge": 128,
@@ -985,7 +1094,6 @@ class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
         controllers = []
         controllers.append({
             'type': 'ahci',
-            'use_jbod': 'true',
             'use_msi': 'true',
             'max_cmds': 1024,
             'max_sge': 128,
@@ -994,7 +1102,6 @@ class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
         })
         controllers.append({
             'type': 'lsi',
-            'use_jbod': 'true',
             'use_msi': 'true',
             'max_cmds': 1024,
             'max_sge': 128,
@@ -1008,7 +1115,7 @@ class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
         self.conf['compute']['storage_backend'][1]['drives'].extend(drives)
         drives1 = []
         drives1.append({'size': 8, 'file': "{}/sdf.img".format(image_path)})
-        drives1.append({'size': 16, 'bootindex': 1, 'file': test_img_file})
+        drives1.append({'size': 16, 'bootindex': 1, 'file': os.environ.get('TEST_IMAGE_PATH') or test_img_file})
         self.conf['compute']['storage_backend'][2]['drives'].extend(drives1)
         print self.conf
         with open('/tmp/test.yml', 'w') as outfile:

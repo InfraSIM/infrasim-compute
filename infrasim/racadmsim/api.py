@@ -159,10 +159,9 @@ class RacadmConsole(REPL):
                 env.logger_r.info("[rsp][repl] Quite REPL")
                 return
 
-
             # PRINT
             self.output(linesep)
-            self.output(" ".join(["racadm"]+cmd))
+            self.output(" ".join(["racadm"] + cmd))
             env.logger_r.info("[rsp][repl]{}{}".format(linesep, out))
             if out is not None:
                 self.output(out)

@@ -65,7 +65,7 @@ class Command_Handler:
 
     def set_sensor_mode(self, args):
         if len(args) < 2:
-            msg_queue.put(self.handle_sensor_mode.__doc__+'\n')
+            msg_queue.put(self.handle_sensor_mode.__doc__ + '\n')
             return
 
         sensor_obj = self.get_sensor_instance(args[0])
@@ -75,18 +75,18 @@ class Command_Handler:
         # sensor mode check
         mode = args[1]
         if mode not in ['user', 'auto', 'fault']:
-            msg_queue.put(self.handle_sensor_mode.__doc__+'\n')
+            msg_queue.put(self.handle_sensor_mode.__doc__ + '\n')
             return
 
         # if mode is fault, we also need specify the fault level
         if mode == 'fault':
             if len(args) < 3:
-                msg_queue.put(self.handle_sensor_mode.__doc__+'\n')
+                msg_queue.put(self.handle_sensor_mode.__doc__ + '\n')
                 return
 
             fault_level = args[2]
             if fault_level not in ['lnr', 'lc', 'lnc', 'unc', 'uc', 'unr']:
-                msg_queue.put(self.handle_sensor_mode.__doc__+'\n')
+                msg_queue.put(self.handle_sensor_mode.__doc__ + '\n')
                 return
 
             sensor_obj.set_fault_level(fault_level)
@@ -105,7 +105,7 @@ class Command_Handler:
 
     def get_sensor_mode(self, args):
         if len(args) != 1:
-            msg_queue.put(self.handle_sensor_mode.__doc__+'\n')
+            msg_queue.put(self.handle_sensor_mode.__doc__ + '\n')
             return
 
         sensor_obj = self.get_sensor_instance(args[0])
@@ -125,7 +125,7 @@ class Command_Handler:
             sensor mode get <sensorID>
         """
         if len(args) == 0:
-            msg_queue.put(self.handle_sensor_mode.__doc__+'\n')
+            msg_queue.put(self.handle_sensor_mode.__doc__ + '\n')
             return
         if args[0] == "set":
             self.set_sensor_mode(args[1:])
@@ -160,7 +160,7 @@ class Command_Handler:
             if sensor_obj.get_event_type() == 'threshold':
                 try:
                     analog_value = float(args[1])
-                except:
+                except Exception:
                     error_info = 'illgel sensor value: {0}\n'.format(args[1])
                     msg_queue.put(error_info)
                     self.add_msg(error_info)
@@ -179,14 +179,14 @@ class Command_Handler:
                 try:
                     int(args[1], 16)
                 except ValueError:
-                    msg_queue.put(self.handle_sensor_value.__doc__+'\n')
+                    msg_queue.put(self.handle_sensor_value.__doc__ + '\n')
                     return
                 if args[1].lower().startswith("0x") and len(args[1]) == 6:
                     raw_value = args[1]
                 elif not args[1].lower().startswith("0x") and len(args[1]) == 4:
-                    raw_value = "0x"+args[1]
+                    raw_value = "0x" + args[1]
                 else:
-                    msg_queue.put(self.handle_sensor_value.__doc__+'\n')
+                    msg_queue.put(self.handle_sensor_value.__doc__ + '\n')
                     return
                 info = 'sensor name: {0} raw value: {1}\n'.\
                     format(sensor_obj.get_name(), raw_value)
@@ -204,14 +204,14 @@ class Command_Handler:
             if args[1].lower() != 'state' \
                     or int(args[2]) not in range(0, 15) \
                     or args[3] not in ['1', '0']:
-                msg_queue.put(self.handle_sensor_value.__doc__+'\n')
+                msg_queue.put(self.handle_sensor_value.__doc__ + '\n')
                 return
 
             # Set bit for discrete sensor
             sensor_obj.set_state(int(args[2]), int(args[3]))
 
         else:
-            msg_queue.put(self.handle_sensor_value.__doc__+'\n')
+            msg_queue.put(self.handle_sensor_value.__doc__ + '\n')
             return
 
     # ######### GET SENSOR VALUE FUNCTION ##########
@@ -222,7 +222,7 @@ class Command_Handler:
         :param args: <sensor id>
         """
         if len(args) != 1:
-            msg_queue.put(self.handle_sensor_value.__doc__+'\n')
+            msg_queue.put(self.handle_sensor_value.__doc__ + '\n')
             return
 
         sensor_obj = self.get_sensor_instance(args[0])
@@ -251,7 +251,7 @@ class Command_Handler:
             get: get <sensor id>
         """
         if len(args) == 0:
-            msg_queue.put(self.handle_sensor_value.__doc__+'\n')
+            msg_queue.put(self.handle_sensor_value.__doc__ + '\n')
             return
         if args[0] == "set":
             self.set_sensor_value(args[1:])
@@ -267,7 +267,7 @@ class Command_Handler:
             info mode value
         """
         if len(args) == 0:
-            msg_queue.put(self.handle_sensor_command.__doc__+'\n')
+            msg_queue.put(self.handle_sensor_command.__doc__ + '\n')
             return
         if args[0] == "info":
             self.dump_sensor_info(args[1:])
@@ -374,7 +374,7 @@ class Command_Handler:
 
     def get_sel(self, args):
         if len(args) != 1:
-            msg_queue.put(self.handle_sel_command.__doc__+'\n')
+            msg_queue.put(self.handle_sel_command.__doc__ + '\n')
             return
 
         sensor_obj = self.get_sensor_instance(args[0])

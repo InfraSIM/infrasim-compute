@@ -5,8 +5,6 @@ Copyright @ 2017 EMC Corporation All Rights Reserved
 '''
 import unittest
 import os
-import time
-import yaml
 import shutil
 from infrasim import model
 from infrasim import helper
@@ -236,10 +234,10 @@ class test_disk_array_topo(unittest.TestCase):
         # 8 drives(2 ports for each) and 2 enclosure.
         expect = {}
         for i in range(8):
-            expect["0 "+hex(wwn_drv + i * 4 + 1)] = False
-            expect["0 "+hex(wwn_drv + i * 4 + 2)] = False
-        expect["13 "+hex(wwn_exp0 - 1)] = False
-        expect["13 "+hex(wwn_exp1 - 1)] = False
+            expect["0 " + hex(wwn_drv + i * 4 + 1)] = False
+            expect["0 " + hex(wwn_drv + i * 4 + 2)] = False
+        expect["13 " + hex(wwn_exp0 - 1)] = False
+        expect["13 " + hex(wwn_exp1 - 1)] = False
         # check the returned content.
         for line in rst_lines:
             expect.update({line: True})

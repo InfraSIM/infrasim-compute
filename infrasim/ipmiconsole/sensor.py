@@ -12,40 +12,40 @@ from .sel import SEL
 from functools import wraps
 
 sensor_unit = {
-    0:  'percent',    34: 'm',                  68: 'megabit',
-    1:  'degrees C',  35: 'cu cm',              69: 'gigabit',
-    2:  'degrees F',  36: 'cu m',               70: 'byte',
-    3:  'degrees K',  37: 'liters',             71: 'kilobyte',
-    4:  'Volts',      38: 'fluid ounce',        72: 'megabyte',
-    5:  'Amps',       39: 'radians',            73: 'gigabyte',
-    6:  'Watts',      40: 'steradians',         74: 'word (data)',
-    7:  'Joules',      41: 'revolutions',        75: 'dword',
-    8:  'Coulombs',    42: 'cycles',             76: 'qword',
-    9:  'VA',          43: 'gravities',          77: 'line (re. mem.  line)',
-    10: 'Nits',        44: 'ounce',              78: 'hit',
-    11: 'lumen',       45: 'pound',              79: 'miss',
-    12: 'lux',         46: 'ft-lb',              80: 'retry',
-    13: 'Candela',     47: 'oz-in',              81: 'reset',
-    14: 'kPa',         48: 'gauss',              82: 'overrun / overflow',
-    15: 'PSI',         49: 'gilberts',           83: 'underrun',
-    16: 'Newton',      50: 'henry',              84: 'collision',
-    17: 'CFM',         51: 'millihenry',         85: 'packets',
-    18: 'RPM',         52: 'farad',              86: 'messages',
-    19: 'Hz',          53: 'microfarad',         87: 'characters',
-    20: 'microsecond', 54: 'ohms',               88: 'error',
-    21: 'millisecond', 55: 'siemens',            89: 'correctable error',
-    22: 'second',      56: 'mole',               90: 'uncorrectable error',
-    23: 'minute',      57: 'becquerel',          91: 'fatal error',
-    24: 'hour',        58: 'PPM (parts/million)',  92: 'grams',
-    25: 'day',         59: 'reserved',
-    26: 'week',        60: 'Decibels',
-    27: 'mil',         61: 'DbA',
-    28: 'inches',      62: 'DbC',
-    29: 'feet',        63: 'gray',
-    30: 'cu in',      64: 'sievert',
-    31: 'cu feet',    65: 'color temp deg K',
-    32: 'mm',        66: 'bit',
-    33: 'cm',        67: 'kilobit',
+    0: 'percent', 34: 'm', 68: 'megabit',
+    1: 'degrees C', 35: 'cu cm', 69: 'gigabit',
+    2: 'degrees F', 36: 'cu m', 70: 'byte',
+    3: 'degrees K', 37: 'liters', 71: 'kilobyte',
+    4: 'Volts', 38: 'fluid ounce', 72: 'megabyte',
+    5: 'Amps', 39: 'radians', 73: 'gigabyte',
+    6: 'Watts', 40: 'steradians', 74: 'word (data)',
+    7: 'Joules', 41: 'revolutions', 75: 'dword',
+    8: 'Coulombs', 42: 'cycles', 76: 'qword',
+    9: 'VA', 43: 'gravities', 77: 'line (re. mem.  line)',
+    10: 'Nits', 44: 'ounce', 78: 'hit',
+    11: 'lumen', 45: 'pound', 79: 'miss',
+    12: 'lux', 46: 'ft-lb', 80: 'retry',
+    13: 'Candela', 47: 'oz-in', 81: 'reset',
+    14: 'kPa', 48: 'gauss', 82: 'overrun / overflow',
+    15: 'PSI', 49: 'gilberts', 83: 'underrun',
+    16: 'Newton', 50: 'henry', 84: 'collision',
+    17: 'CFM', 51: 'millihenry', 85: 'packets',
+    18: 'RPM', 52: 'farad', 86: 'messages',
+    19: 'Hz', 53: 'microfarad', 87: 'characters',
+    20: 'microsecond', 54: 'ohms', 88: 'error',
+    21: 'millisecond', 55: 'siemens', 89: 'correctable error',
+    22: 'second', 56: 'mole', 90: 'uncorrectable error',
+    23: 'minute', 57: 'becquerel', 91: 'fatal error',
+    24: 'hour', 58: 'PPM (parts/million)', 92: 'grams',
+    25: 'day', 59: 'reserved',
+    26: 'week', 60: 'Decibels',
+    27: 'mil', 61: 'DbA',
+    28: 'inches', 62: 'DbC',
+    29: 'feet', 63: 'gray',
+    30: 'cu in', 64: 'sievert',
+    31: 'cu feet', 65: 'color temp deg K',
+    32: 'mm', 66: 'bit',
+    33: 'cm', 67: 'kilobit',
 }
 
 
@@ -196,14 +196,14 @@ class Sensor:
         #  1    0    c    a
         # bit 0 > 15
         # bit 0 is reserved, bit 1 is state 14 ... bit 15 is state 0
-        value_in_bin = "{0:b}".format(int(self.value[4:6]+self.value[2:4], 16)).zfill(16)
-        value_to_set = "{0:b}".format(int(value[4:6]+value[2:4], 16)).zfill(16)
+        value_in_bin = "{0:b}".format(int(self.value[4:6] + self.value[2:4], 16)).zfill(16)
+        value_to_set = "{0:b}".format(int(value[4:6] + value[2:4], 16)).zfill(16)
         list_diff = []
 
         for i in range(0, 15):
             state_id = i
-            bit_orig = value_in_bin[15-state_id]
-            bit_targ = value_to_set[15-state_id]
+            bit_orig = value_in_bin[15 - state_id]
+            bit_targ = value_to_set[15 - state_id]
             if bit_orig != bit_targ:
                 list_diff.append((state_id, int(bit_targ)))
 
@@ -229,7 +229,7 @@ class Sensor:
         if state_bit not in range(0, 2):
             raise ValueError('Bit to set must be 0 or 1')
 
-        value_in_int = int(self.value[4:6]+self.value[2:4], 16)
+        value_in_int = int(self.value[4:6] + self.value[2:4], 16)
 
         if state_bit:
             mask = 1 << state_id
@@ -241,7 +241,7 @@ class Sensor:
         value_in_hex = hex(value_in_int)[2:].zfill(4)
 
         self.lock_sensor_write.acquire()
-        self.value = "0x"+value_in_hex[2:4]+value_in_hex[0:2]
+        self.value = "0x" + value_in_hex[2:4] + value_in_hex[0:2]
         command = "sensor_set_bit " + hex(self.mc) + " " + hex(self.lun) \
                   + " " + hex(self.ID) + " " + str(state_id) + " " \
                   + str(state_bit) + " 0x01\n"
@@ -337,9 +337,12 @@ class Sensor:
         Bexpo = self.exp & 0x0f
 
         # formula: convert RAW value to human readable value
-        formula_1 = lambda x: (M*x+B*10**Bexpo)*10**Rexpo
+        def formula_1(x):
+            return (M * x + B * 10 ** Bexpo) * 10 ** Rexpo
+
         # formula: convert human readable value to RAW value
-        formula_2 = lambda x: (x / (10**Rexpo) - B*10**Bexpo) / M
+        def formula_2(x):
+            return (x / (10 ** Rexpo) - B * 10 ** Bexpo) / M
         return (formula_1, formula_2)
 
     # settable threshold mask

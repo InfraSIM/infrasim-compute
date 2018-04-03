@@ -47,7 +47,7 @@ def daemonize(pidfile, stdin='/dev/null', stdout='/dev/null',
         os.write(fd, '%d\n' % os.getpid())
         os.close(fd)
         os.rename(nm, pidfile)
-    except:
+    except Exception:
         raise
 
     for f in sys.stdout, sys.stderr:

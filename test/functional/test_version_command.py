@@ -32,7 +32,7 @@ class test_version_command(unittest.TestCase):
             if 'failed' in str_output:
                 assert False
             version_list = str_output.split('\n')
-            for i in range(len(version_list)-1):
+            for i in range(len(version_list) - 1):
                 version_list[i] = version_list[i].split(':')[1].strip()
             self.assertIsNotNone(
                 re.search('Linux (\d+\.){2}\d+', version_list[0]),

@@ -44,6 +44,7 @@ def EXCEPTION(self, message, *args, **kws):
     # Yes, logger takes its '*args' as 'args'.
     self._log(EXCEPT_LEVEL_NUM, message, args, **kws)
 
+
 # add EXCEPTION level
 logging.Logger.exception = EXCEPTION
 logging.addLevelName(EXCEPT_LEVEL_NUM, "EXCEPTION")
@@ -130,7 +131,7 @@ class LoggerList(object):
                                         'runtime.log')
             logger = self.__logger_list[logger_name.value]
             handler = CompressedRotatingFileHandler(
-                log_file, maxBytes=4*1024*1024, backupCount=100)
+                log_file, maxBytes=4 * 1024 * 1024, backupCount=100)
             formatter = logging.Formatter(
                 '%(asctime)s - {} - %(filename)s:'
                 '%(lineno)s - %(levelname)s - %(message)s'
@@ -196,5 +197,6 @@ class InfrasimLog(object):
             self.add_node(node_name)
         logger_list = self.__node_list[node_name]
         return logger_list.get_logger(logger_name)
+
 
 infrasim_log = InfrasimLog()

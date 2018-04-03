@@ -11,7 +11,6 @@ import threading
 import re
 import paramiko
 import os
-import logging
 import atexit
 import signal
 from os import linesep
@@ -29,7 +28,7 @@ env.logger_r = infrasim_log.get_logger(LoggerType.racadm.value)
 def atexit_cb(sig=signal.SIGTERM, stack=None):
     if "server" in env.local_env.__dict__:
         env.local_env.server.stop()
-    
+
 
 def auth(username, password):
     if username in env.auth_map and env.auth_map[username] == password:
@@ -118,7 +117,7 @@ def start(instance="default",
 
     cmd_rev = 'racadmsim '
     for word in sys.argv[1:]:
-        cmd_rev += word+' '
+        cmd_rev += word + ' '
     env.logger_r.info('racadmsim command rev: {}'.format(cmd_rev))
     if os.path.exists(data_src):
         env.racadm_data = data_src
@@ -131,6 +130,7 @@ def start(instance="default",
                       format(env.node_name, ipaddr, port))
     env.local_env.server.run()
 
+
 if __name__ == "__main__":
     # Try to run this from code root directory, with command:
     #     python -m infrasim.racadmsim
@@ -139,4 +139,3 @@ if __name__ == "__main__":
 
     server = sshim.Server(iDRACServer, logger=env.logger_r, port=10022, handler=iDRACHandler)
     server.run()
-

@@ -7,11 +7,9 @@ import unittest
 import os
 import time
 import yaml
-import json
 from infrasim import model
 from infrasim import helper
 from infrasim import InfraSimError
-from infrasim.helper import UnixSocket
 import paramiko
 from test import fixtures
 
@@ -46,6 +44,7 @@ conf = {}
 tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
+
 
 def setup_module():
     test_img_file = "/tmp/kcs.img"

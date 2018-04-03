@@ -133,7 +133,7 @@ class test_ipmi_sol(unittest.TestCase):
         # the SOL receives something and it means SOL is alive
         deli = "[SOL Session operational.  Use ~? for help]"
         deli_index = sol_out.find(deli)
-        string_left = sol_out[len(deli)+deli_index:]
+        string_left = sol_out[len(deli) + deli_index:]
         p = re.compile(r"\w")
 
         assert p.search(string_left) is not None

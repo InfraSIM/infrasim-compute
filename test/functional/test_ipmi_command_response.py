@@ -83,7 +83,7 @@ class test_ipmicommand_response(unittest.TestCase):
                                              stdout=subprocess.PIPE,
                                              stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
-        except:
+        except Exception:
             assert False
 
     def test_lan_print(self):
@@ -92,7 +92,7 @@ class test_ipmicommand_response(unittest.TestCase):
                                              stdout=subprocess.PIPE,
                                              stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
-        except:
+        except Exception:
             assert False
 
     def test_sensor_list(self):
@@ -101,7 +101,7 @@ class test_ipmicommand_response(unittest.TestCase):
                                              stdout=subprocess.PIPE,
                                              stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
-        except:
+        except Exception:
             assert False
 
     def test_sel_list(self):
@@ -110,7 +110,7 @@ class test_ipmicommand_response(unittest.TestCase):
                                              stdout=subprocess.PIPE,
                                              stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
-        except:
+        except Exception:
             assert False
 
     def test_sdr_list(self):
@@ -119,7 +119,7 @@ class test_ipmicommand_response(unittest.TestCase):
                                              stdout=subprocess.PIPE,
                                              stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
-        except:
+        except Exception:
             assert False
 
     def test_user_list(self):
@@ -128,7 +128,7 @@ class test_ipmicommand_response(unittest.TestCase):
                                              stdout=subprocess.PIPE,
                                              stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
-        except:
+        except Exception:
             assert False
 
     def test_user_compressed_list(self):
@@ -137,7 +137,7 @@ class test_ipmicommand_response(unittest.TestCase):
                                              stdout=subprocess.PIPE,
                                              stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
-        except:
+        except Exception:
             assert False
 
     def test_user_summary(self):
@@ -146,7 +146,7 @@ class test_ipmicommand_response(unittest.TestCase):
                                              stdout=subprocess.PIPE,
                                              stderr=subprocess.PIPE)
             self.assertEqual(returncode, 0)
-        except:
+        except Exception:
             assert False
 
     def test_sel_info_entries_count_check(self):
@@ -158,7 +158,7 @@ class test_ipmicommand_response(unittest.TestCase):
                                              stderr=subprocess.PIPE)
             str_out = str(output)
             self.assertIsNone(re.search('Entries(\s)*:(\s)*0', str_out))
-        except:
+        except Exception:
             assert False
 
     def test_chassic_bootdev_pxe(self):
@@ -174,7 +174,7 @@ class test_ipmicommand_response(unittest.TestCase):
                 assert True
             else:
                 assert False
-        except:
+        except Exception:
             assert False
 
     def test_chassic_bootdev_disk(self):
@@ -190,7 +190,7 @@ class test_ipmicommand_response(unittest.TestCase):
                 assert True
             else:
                 assert False
-        except:
+        except Exception:
             assert False
 
     def test_chassic_bootdev_cdrom(self):
@@ -206,5 +206,5 @@ class test_ipmicommand_response(unittest.TestCase):
                 assert True
             else:
                 assert False
-        except:
+        except Exception:
             assert False

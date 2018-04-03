@@ -431,7 +431,7 @@ def version_match(expression, runtime_version):
 
     v_target = v.split(".")
     v_runtime = runtime_version.split(".")
-    v_diff = [int(r)-int(t) for t, r in zip(v_target, v_runtime)]
+    v_diff = [int(r) - int(t) for t, r in zip(v_target, v_runtime)]
     symbol = 0
     for x in v_diff:
         if x != 0:
@@ -624,7 +624,7 @@ class UnixSocket(object):
         self.s.connect(self.path)
 
     def send(self, payload):
-        logger.info("C:"+json.dumps(payload, indent=4).decode('string_escape'))
+        logger.info("C:" + json.dumps(payload, indent=4).decode('string_escape'))
         self.s.send(payload)
 
     def recv(self):
@@ -635,7 +635,7 @@ class UnixSocket(object):
             if len(snip) < 1024:
                 break
 
-        logger.info("S:"+json.dumps(rsp, indent=4).decode('string_escape'))
+        logger.info("S:" + json.dumps(rsp, indent=4).decode('string_escape'))
         return rsp
 
     def close(self):

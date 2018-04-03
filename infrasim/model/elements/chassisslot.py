@@ -27,7 +27,7 @@ class CChassisSlot(CElement):
             raise ArgsNotCorrect("[BackendStorage] Unsupported chassis slot: {}".
                                  format(chassis_slot))
         key = "slot_{}".format(chassis_slot)
-        if self.__nvme_map_dict.has_key(key):
+        if key in self.__nvme_map_dict:
             raise ArgsNotCorrect("[BackendStorage] Chassis slot: {} has been used".
                                  format(chassis_slot))
         nvme_map_dict = dev_attrs
@@ -57,7 +57,7 @@ class CChassisSlot(CElement):
 
         nvme_dict = oem_dict.get('nvme')
         for slot_id in self.__nvme_map_dict.keys():
-            if nvme_dict.has_key(slot_id):
+            if slot_id in nvme_dict:
                 nvme_dict[slot_id].update(self.__nvme_map_dict[slot_id])
             else:
                 nvme_dict[slot_id] = self.__nvme_map_dict[slot_id]

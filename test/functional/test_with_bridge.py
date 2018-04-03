@@ -9,7 +9,6 @@ import unittest
 import re
 import time
 import paramiko
-import json
 from test import fixtures
 from infrasim import run_command
 from infrasim import CommandRunFailed, InfraSimError

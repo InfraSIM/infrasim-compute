@@ -102,8 +102,10 @@ events_map = {
         0x02: 'Redundancy Degraded Redundancy still exists, but at a less than full level.',
         0x03: 'Non-redundant Entered from Redundancy Degraded or Fully Redundant',
         0x04: 'Non-redundant Entered from Non-redundant:Insufficient Resources',
-        0x05: 'Non-redundant:Insufficient Resources Unit is non-redundant and has insufficient resources to maintain normal operation.',
-        0x06: 'Redundancy Degraded from Fully Redundant Unit has lost some redundant resource(s) but is still in a redundant state',
+        0x05: 'Non-redundant:Insufficient Resources Unit is non-redundant and has insufficient resources to \
+               maintain normal operation.',
+        0x06: 'Redundancy Degraded from Fully Redundant Unit has lost some redundant resource(s) but is still \
+               in a redundant state',
         0x07: 'Entered from Non-redundant:Sufficient Resources or Non-redundant:Insufficient Resources'
     },
 
@@ -154,17 +156,17 @@ sensor_specific_event_map = {
 
     # Power Supply (also used for  power converters [e.g. DC-to-DC converters]
     0x08: {
-        0x00: [0x0,  0x0, 0x0, 'Presence detected '],
-        0x01: [0x1,  0x0, 0x0, 'Power Supply Failure detected '],
-        0x02: [0x2,  0x0, 0x0, 'Predictive Failure'],
-        0x03: [0x3,  0x0, 0x0, 'Power Supply input lost (AC/DC)'],
-        0x04: [0x4,  0x0, 0x0, 'Power Supply input lost or out-of-range'],
-        0x05: [0x5,  0x0, 0x0, 'Power Supply input out-of-range, but presen'],
-        0x06: [0x36,  0x0, 0x0, 'Configuration error.Vendor mismatch, for power supplies that include this status'],
-        0x07: [0x36,  0x0, 0x1, 'Revision mismatch, for power supplies that include this status.'],
-        0x08: [0x36,  0x0, 0x2, 'Processor missing'],
-        0x09: [0x36,  0x0, 0x3, 'Power Supply rating mismatch'],
-        0x0A: [0x36,  0x0, 0x4, 'Voltage rating mismatch']},
+        0x00: [0x0, 0x0, 0x0, 'Presence detected '],
+        0x01: [0x1, 0x0, 0x0, 'Power Supply Failure detected '],
+        0x02: [0x2, 0x0, 0x0, 'Predictive Failure'],
+        0x03: [0x3, 0x0, 0x0, 'Power Supply input lost (AC/DC)'],
+        0x04: [0x4, 0x0, 0x0, 'Power Supply input lost or out-of-range'],
+        0x05: [0x5, 0x0, 0x0, 'Power Supply input out-of-range, but presen'],
+        0x06: [0x36, 0x0, 0x0, 'Configuration error.Vendor mismatch, for power supplies that include this status'],
+        0x07: [0x36, 0x0, 0x1, 'Revision mismatch, for power supplies that include this status.'],
+        0x08: [0x36, 0x0, 0x2, 'Processor missing'],
+        0x09: [0x36, 0x0, 0x3, 'Power Supply rating mismatch'],
+        0x0A: [0x36, 0x0, 0x4, 'Voltage rating mismatch']},
 
     # Power Unit
     0x09: {
@@ -186,7 +188,8 @@ sensor_specific_event_map = {
         0x04: [0x4, 0x0, 0x0, 'Memory Device Disabled'],
         0x05: [0x5, 0x0, 0x0, 'Correctable ECC / other correctable memory error logging limit reached'],
         0x06: [0x6, 0x0, 0x0, 'Presence detected. Indicates presence of entity associated with the sensor'],
-        0x07: [0x7, 0x0, 0x0, 'Configuration error. Indicates a memory configuration error for the entity associated with the sensor'],
+        0x07: [0x7, 0x0, 0x0, 'Configuration error. Indicates a memory configuration error for the entity \
+                               associated with the sensor'],
         0x08: [0x8, 0x0, 0x0, 'Spare. Indicates entity associated with the sensor represents a spare unit of memory'],
         0x09: [0x9, 0x0, 0x0, 'Memory Automatically Throttled'],
         0x0A: [0xA, 0x0, 0x0, 'Critical Overtemperature']},
@@ -383,7 +386,8 @@ sensor_specific_event_map = {
         0x00: [0x0, 0x0, 0x0, 'Session Activated'],
         0x01: [0x1, 0x0, 0x0, 'Session Deactivated'],
         0x02: [0x2, 0x0, 0x0, 'Invalid Username or Password '],
-        0x03: [0x3, 0x0, 0x0, 'Invalid password disable A users access has been disabled due to a series of bad password attempts']},
+        0x03: [0x3, 0x0, 0x0, 'Invalid password disable A users access has been disabled due to a \
+                               series of bad password attempts']},
 
     # Version Change
     0x2B: {
@@ -504,7 +508,7 @@ class SEL:
                 msg_queue.put(info)
         else:
             error_info = 'sensor num: {0} event type {1} not exist\n'.format(
-                        hex(self.sensor_num), hex(self.event_type))
+                hex(self.sensor_num), hex(self.event_type))
             logger.error(error_info)
             msg_queue.put(error_info)
         return True
@@ -546,10 +550,11 @@ class SEL:
     # send SEL to IPMI simulator
     def send_event(self):
         command = 'sel_add ' + hex(self.mc) + ' ' + hex(self.record_type) + ' ' \
-              + hex(self.ts_1) + ' ' + hex(self.ts_2) + ' ' + hex(self.ts_3) + ' ' + hex(self.ts_4) + ' ' \
-              + hex(self.gid_1) + ' ' + hex(self.gid_2) + ' ' + hex(self.evm_rev) + ' ' \
-              + hex(self.sensor_type) + ' ' + hex(self.sensor_num) + ' ' + hex((self.event_dir << 7) | self.event_type) + ' ' \
-              + hex(self.event_data_1) + ' ' + hex(self.event_data_2) + ' ' + hex(self.event_data_3) + '\n'
+            + hex(self.ts_1) + ' ' + hex(self.ts_2) + ' ' + hex(self.ts_3) + ' ' + hex(self.ts_4) + ' ' \
+            + hex(self.gid_1) + ' ' + hex(self.gid_2) + ' ' + hex(self.evm_rev) + ' ' \
+            + hex(self.sensor_type) + ' ' + hex(self.sensor_num) + ' ' \
+            + hex((self.event_dir << 7) | self.event_type) + ' ' \
+            + hex(self.event_data_1) + ' ' + hex(self.event_data_2) + ' ' + hex(self.event_data_3) + '\n'
         logger.info(command)
         send_ipmi_sim_command(command)
 

@@ -24,7 +24,7 @@ class Workspace(object):
         try:
             with open(node_yml_path, 'r') as fp:
                 node_info = YAMLLoader(fp).get_data()
-        except:
+        except Exception:
             raise InfraSimError("Fail to read node {} information from runtime workspace".
                                 format(node_name))
 

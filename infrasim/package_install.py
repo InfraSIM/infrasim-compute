@@ -86,7 +86,7 @@ def check_package(package="Qemu", cmd="which qemu-system-x86_64"):
     install_package = True
     if has_package:
         while True:
-            ans = raw_input(package+" already exists. Overwrite it? (Y/n)")
+            ans = raw_input(package + " already exists. Overwrite it? (Y/n)")
             if ans.lower() not in ('yes', 'no', 'y', 'n'):
                 print("Invalid input. Please respond with 'yes' or 'no' (or 'y' or 'n').")
                 continue
