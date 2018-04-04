@@ -6,3 +6,4 @@ testtools
 nose-cov==1.6
 coverage >=3.6
 nose-exclude==0.5
+flake8-junit-report
