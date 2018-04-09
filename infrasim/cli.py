@@ -5,6 +5,7 @@ import inspect
 import os
 import sys
 import time
+from texttable import Texttable
 
 from global_status import InfrasimMonitor
 from infrasim import InfraSimError
