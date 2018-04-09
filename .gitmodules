@@ -1,0 +1,3 @@
+[submodule "test/ivn"]
+	path = test/ivn
+	url = https://github.com/InfraSIM/infrasim-network
