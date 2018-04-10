@@ -16,6 +16,9 @@ from infrasim import helper
 from infrasim import model
 import paramiko
 import yaml
+import sys
+from setuptools.command.setopt import config_file
+import tempfile
 
 a_boot_image = "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
 b_boot_image = "/home/infrasim/jenkins/data/ubuntu14.04.4_b.qcow2"
@@ -25,9 +28,19 @@ ssh = None
 conf = {}
 chassis = None
 nodes_ip = ["192.168.188.91", "192.168.188.92"]
+ivn_cfg_file = None
+
+try:
+    from ivn.core import Topology
+except ImportError as e:
+    path_ivn = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "ivn")
+    print path_ivn
+    sys.path.append(path_ivn)
+    from ivn.core import Topology
 
 
 def setup_module():
+    global ivn_cfg_file
     os.environ["PATH"] = new_path
     if os.path.exists(a_boot_image) is False:
         raise Exception("Not found image {}".format(a_boot_image))
@@ -36,13 +49,33 @@ def setup_module():
     with open("/tmp/trace_items", "w") as fo:
         fo.write("comm_log\n")
         fo.write("comm_failed\n")
+    ivn_cfg_file = saved_config_file()
+    # check the existence of required namespace.
+    cmd = ["ip", "netns", "list"]
+    result = subprocess.check_output(cmd)
+    if "node1ns (id" not in result or "node0ns (id" not in result:
+        topo = Topology(ivn_cfg_file)
+        topo.create()
 
 
 def teardown_module():
     global conf
+    global ivn_cfg_file
     if conf:
         stop_chassis()
     os.environ["PATH"] = old_path
+
+    topo = Topology(ivn_cfg_file)
+    topo.delete()
+    os.unlink(ivn_cfg_file)
+
+
+def saved_config_file():
+    ivn_cfg = fixtures.IvnConfig()
+    fi = tempfile.NamedTemporaryFile(delete=False)
+    yaml.safe_dump(ivn_cfg.get_ivn_info(), fi, default_flow_style=False)
+    fi.close()
+    return fi.name
 
 
 def start_chassis():

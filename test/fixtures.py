@@ -347,3 +347,82 @@ class ChassisConfig(object):
     def get_chassis_info(self):
         return self.__chassis_info
 
+
+class IvnConfig(object):
+
+    def __init__(self):
+        self.__info = {
+            "namespace": [
+                "node0ns",
+                "node1ns"
+            ],
+            "ovs": [
+                "br-int"
+            ],
+            "connection": {
+                "ns0-einf0": "vint0",
+                "ns1-einf0": "vint1"
+            },
+            "node0ns": {
+                "bridges": [
+                    {
+                        "ifname": "br0",
+                        "type": "static",
+                        "netmask": "255.255.255.0",
+                        "bridge_ports": "ns0-einf0",
+                        "address": "192.168.188.91"
+                    }
+                ],
+                "interfaces": [
+                    {
+                        "ifname": "ns0-einf0",
+                        "type": "static",
+                        "netmask": "255.255.255.0",
+                        "address": "0.0.0.0"
+                    }
+                ]
+            },
+            "br-int": {
+                "netmask": "255.255.255.0",
+                "type": "static",
+                "ports": [
+                    "vint0",
+                    "vint1"
+                ],
+                "address": "192.168.188.90"
+            },
+            "node1ns": {
+                "bridges": [
+                    {
+                        "ifname": "br0",
+                        "type": "static",
+                        "netmask": "255.255.255.0",
+                        "bridge_ports": "ns1-einf0",
+                        "address": "192.168.188.92"
+                    }
+                ],
+                "interfaces": [
+                    {
+                        "ifname": "ns1-einf0",
+                        "type": "static",
+                        "netmask": "255.255.255.0",
+                        "address": "0.0.0.0"
+                    }
+                ]
+            },
+            "portforward": {
+                "rules": [
+                    "192.168.188.91 5901 15901",
+                    "192.168.188.92 5901 25901",
+                    "192.168.188.91 8022 18022",
+                    "192.168.188.92 8022 28022"
+                ],
+                "io_interfaces": [
+                    "ens160",
+                    "br-int"
+                ]
+            }
+        }
+
+    def get_ivn_info(self):
+        return self.__info
