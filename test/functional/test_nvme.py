@@ -146,7 +146,7 @@ with open('{}', 'wb') as f:
         assert ssh.wait_for_host_up() is True
 
         pattern = 0xff
-        _, bin_file_name = tempfile.mkstemp(suffix=".bin", prefix="nvme-test-")
+        bin_file_name = tempfile.mktemp(suffix=".bin", prefix="nvme-test-")
         script_name = self._create_gen_bin_script(bin_file_name, pattern)
         assert self._run_gen_bin_script(bin_file_name, script_name) == 0
 
@@ -164,7 +164,7 @@ with open('{}', 'wb') as f:
             assert status == 0
 
         pattern = 0x00
-        _, bin_file_name = tempfile.mkstemp(suffix=".bin", prefix="nvme-test-")
+        bin_file_name = tempfile.mktemp(suffix=".bin", prefix="nvme-test-")
         script_name = self._create_gen_bin_script(bin_file_name, pattern)
         assert self._run_gen_bin_script(bin_file_name, script_name) == 0
 
@@ -294,7 +294,7 @@ with open('{}', 'wb') as f:
         assert ssh.wait_for_host_up() is True
 
         pattern = 0xff
-        _, bin_file_name = tempfile.mkstemp(suffix=".bin", prefix="nvme-test-")
+        bin_file_name = tempfile.mktemp(suffix=".bin", prefix="nvme-test-")
         script_name = self._create_gen_bin_script(bin_file_name, pattern)
         assert self._run_gen_bin_script(bin_file_name, script_name) == 0
 
@@ -313,7 +313,7 @@ with open('{}', 'wb') as f:
 
         # Restore drive data to all zero
         pattern = 0x00
-        _, bin_file_name = tempfile.mkstemp(suffix=".bin", prefix="nvme-test-")
+        bin_file_name = tempfile.mktemp(suffix=".bin", prefix="nvme-test-")
         script_name = self._create_gen_bin_script(bin_file_name, pattern)
         assert self._run_gen_bin_script(bin_file_name, script_name) == 0
         for dev in nvme_list:
@@ -456,7 +456,7 @@ with open('{}', 'wb') as f:
         assert ssh.wait_for_host_up() is True
 
         pattern = 0xff
-        _, bin_file_name = tempfile.mkstemp(suffix=".bin", prefix="nvme-test-")
+        bin_file_name = tempfile.mktemp(suffix=".bin", prefix="nvme-test-")
         script_name = self._create_gen_bin_script(bin_file_name, pattern)
         assert self._run_gen_bin_script(bin_file_name, script_name) == 0
         for dev in nvme_list:
