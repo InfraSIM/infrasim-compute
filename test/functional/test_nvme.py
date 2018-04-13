@@ -108,7 +108,7 @@ Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tool
                 nvme_config_list.append(drive["namespaces"])
         assert len(nvme_list) == sum(nvme_config_list)
 
-    def _create_gen_bin_script(self, bin_file_name, pattern):
+    def _create_gen_bin_script(self, bin_file_name, pattern, block=4):
         # Parameters:
         # script_name, eg. "/tmp/script_name.py"
         # pattern, eg. "0xff"
@@ -119,9 +119,9 @@ Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tool
         script_content = '''#!/usr/bin/env python
 import struct
 with open('{}', 'wb') as f:
-    for i in range(512 * 4):
+    for i in range(512 * {}):
         f.write(struct.pack('=B',{}))
-'''.format(bin_file_name, pattern)
+'''.format(bin_file_name, block, pattern)
         status, output = ssh.exec_command("echo \"{}\" > {}".format(script_content, script_name))
         return script_name
 
@@ -457,7 +457,7 @@ with open('{}', 'wb') as f:
 
         pattern = 0xff
         bin_file_name = tempfile.mktemp(suffix=".bin", prefix="nvme-test-")
-        script_name = self._create_gen_bin_script(bin_file_name, pattern)
+        script_name = self._create_gen_bin_script(bin_file_name, pattern, block_count)
         assert self._run_gen_bin_script(bin_file_name, script_name) == 0
         for dev in nvme_list:
             status, output = ssh.exec_command(
