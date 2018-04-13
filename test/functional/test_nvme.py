@@ -71,7 +71,7 @@ Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tool
         assert ssh.wait_for_host_up() is True
         nvme_list = []
         status, output = ssh.exec_command("nvme list |grep \"/dev\" |awk '{print $1}'")
-        nvme_list = output.split()
+        nvme_list = [dev.strip(os.linesep) for dev in output.strip().split()]
         return nvme_list
 
     def get_nvme_dev(self):
