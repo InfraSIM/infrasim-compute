@@ -164,7 +164,7 @@ class PackageManager(object):
 
 
 def read_packages_info():
-    version_yml = os.path.join(config.get_infrasim_root(), "packages.yml")
+    version_yml = os.path.join(config.get_infrasim_root(), "components-version/packages.yml")
     package_list = None
     with open(version_yml, "r") as fp:
         package_list = YAMLLoader(fp).get_data()
