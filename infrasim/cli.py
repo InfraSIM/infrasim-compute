@@ -51,7 +51,7 @@ def node_workspace_exists(func):
 
 class ConfigCommands(object):
 
-    def get_map_manager(self, name, config_file=None):
+    def _get_map_manager(self, name, config_file=None):
         is_chassis = False
         has_node = nm.in_map_folder(name)
         has_chassis = cm.in_map_folder(name)
@@ -73,7 +73,7 @@ class ConfigCommands(object):
     @args("config_file", help="Node Config File Path")
     def add(self, name, config_file):
         try:
-            mm = self.get_map_manager(name, config_file)
+            mm = self._get_map_manager(name, config_file)
             mm.add(name, config_file)
             logger_cmd.info("cmd res: add {} OK".format(name))
         except InfraSimError, e:
@@ -83,7 +83,7 @@ class ConfigCommands(object):
     @args("name", help="Specify name to delete configuration mapping")
     def delete(self, name):
         try:
-            mm = self.get_map_manager(name)
+            mm = self._get_map_manager(name)
             mm.delete(name)
             logger_cmd.info("cmd res: delete {} OK".format(name))
         except InfraSimError, e:
@@ -94,7 +94,7 @@ class ConfigCommands(object):
     @args("config_file", help="Node Config File Path")
     def update(self, name, config_file):
         try:
-            mm = self.get_map_manager(name, config_file)
+            mm = self._get_map_manager(name, config_file)
             mm.update(name, config_file)
             logger_cmd.info("cmd res: update {} OK".format(name))
         except InfraSimError, e:
@@ -113,7 +113,7 @@ class ConfigCommands(object):
     @args("name", nargs='?', default="default",
           help="Specify name to open its configuration in editor")
     def edit(self, name):
-        mm = self.get_map_manager(name)
+        mm = self._get_map_manager(name)
         if name not in mm.get_name_list():
             print "Fail to find {0} configuration. It is not registered. Check by:\n" \
                   "    infrasim config list".format(name)
