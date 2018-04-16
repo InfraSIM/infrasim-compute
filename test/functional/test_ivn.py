@@ -4,6 +4,7 @@ Copyright @ 2018 Dell EMC Corporation All Rights Reserved
 *********************************************************
 """
 import unittest
+import re
 import os
 import subprocess
 import tempfile
@@ -62,10 +63,12 @@ class test_ivn(unittest.TestCase):
         topo = Topology(ivn_file)
         topo.create()
         result = subprocess.check_output(["ip", "netns", "list"])
-        self.assertIn("node1ns (id:", result, "node1ns is missing")
-        self.assertIn("node0ns (id:", result, "node0ns is missing")
+	reobj = re.search(r'node1ns(\s?\(id:\s?\d+\))?', result)
+	assert reobj
+	reobj = re.search(r'node0ns(\s?\(id:\s?\d+\))?', result)
+	assert reobj
 
         topo.delete()
         result = subprocess.check_output(["ip", "netns", "list"])
-        self.assertNotIn("node1ns (id:", result, "delete node1ns failed")
-        self.assertNotIn("node0ns (id:", result, "delete node0ns failed")
+        self.assertNotIn("node1ns", result, "delete node1ns failed")
+        self.assertNotIn("node0ns", result, "delete node0ns failed")
