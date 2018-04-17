@@ -19,7 +19,6 @@ import infrasim.model as model
 from infrasim.workspace import Workspace
 from test import fixtures
 
-
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
@@ -287,7 +286,8 @@ class test_node_cli(unittest.TestCase):
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         run_command("infrasim init -s -f")
-        self.assertEqual(len(os.listdir(config.infrasim_home)), 1)
+        dirs = [ i for i in os.listdir(config.infrasim_home) if i.startswith('.') is False ]
+        self.assertEqual(len(dirs), 0)
 
         # Verify if it will reinstall packages when user confirmed 'Y'
         result = run_command_with_user_input("infrasim init", True, subprocess.PIPE,
@@ -346,7 +346,7 @@ class test_config_cli_with_runtime_node(unittest.TestCase):
         output_ps_qemu = run_command("ps ax | grep qemu")
         self.assertEqual(output_ps_qemu[0], 0)
 
-        assert "Node {}'s configuration mapping is updated".format(self.test_name) in output_update[1]
+        assert "{}'s configuration mapping is updated".format(self.test_name) in output_update[1]
         assert "dell_r730xd" not in output_ps_qemu[1]
 
     def test_delete_config_then_start_node(self):
@@ -358,7 +358,7 @@ class test_config_cli_with_runtime_node(unittest.TestCase):
         output_start = run_command("infrasim node start {}".format(self.test_name))
         self.assertEqual(output_start[0], 0)
 
-        assert "Node {}'s configuration mapping removed".format(self.test_name) in output_delete[1]
+        assert "{}'s configuration mapping removed".format(self.test_name) in output_delete[1]
         assert "{}-socat is running".format(self.test_name) in output_start[1]
         assert "{}-bmc is running".format(self.test_name) in output_start[1]
         assert "{}-node is running".format(self.test_name) in output_start[1]
@@ -399,7 +399,7 @@ class test_config_cli_without_runtime_node(unittest.TestCase):
         output_ps_qemu = run_command("ps ax | grep qemu")
         self.assertEqual(output_ps_qemu[0], 0)
 
-        assert "Node {}'s configuration mapping is updated".format(self.test_name) in output_update[1]
+        assert "{}'s configuration mapping is updated".format(self.test_name) in output_update[1]
         assert "dell_r730xd" in output_ps_qemu[1]
 
     def test_delete_config_then_start_node(self):
@@ -411,8 +411,8 @@ class test_config_cli_without_runtime_node(unittest.TestCase):
         output_start = run_command("infrasim node start {}".format(self.test_name))
         self.assertEqual(output_start[0], 0)
 
-        assert "Node {}'s configuration mapping removed".format(self.test_name) in output_delete[1]
-        assert "Node {}'s configuration is not defined.".format(self.test_name) in output_start[1]
+        assert "{}'s configuration mapping removed".format(self.test_name) in output_delete[1]
+        assert "{}'s configuration is not defined.".format(self.test_name) in output_start[1]
 
 
 class test_command_navigation(unittest.TestCase):
