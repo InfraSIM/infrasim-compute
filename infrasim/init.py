@@ -15,6 +15,7 @@ from .log import infrasim_log, LoggerType, infrasim_logdir
 from .version import version
 from infrasim.yaml_loader import YAMLLoader
 from .config import infrasim_default_config
+from infrasim.workspace import Workspace
 
 mac_base = "00:60:16:"
 logger_env = infrasim_log.get_logger(LoggerType.environment.value)
@@ -53,6 +54,8 @@ def init_infrasim_conf(node_type):
         os.mkdir(config.infrasim_home)
     if not os.path.exists(config.infrasim_node_config_map):
         os.mkdir(config.infrasim_node_config_map)
+    if not os.path.exists(config.infrasim_chassis_config_map):
+        os.mkdir(config.infrasim_chassis_config_map)
 
     # create_infrasim_log_directories
     if not os.path.exists(infrasim_logdir):
@@ -94,14 +97,19 @@ def destroy_existing_nodes():
     nodes = os.listdir(config.infrasim_home)
     if os.path.exists(config.infrasim_node_config_map):
         nodes.remove('.node_map')
+    if os.path.exists(config.infrasim_chassis_config_map):
+        nodes.remove('.chassis_map')
     for node in nodes:
-        os.system("infrasim node destroy {}".format(node))
+        if Workspace.check_node(node):
+            os.system("infrasim node destroy {}".format(node))
+        else:
+            os.system("infrasim chassis destroy {}".format(node))
 
 
 def check_existing_workspace():
     if os.path.exists(config.infrasim_home):
-        nodes = os.listdir(config.infrasim_home)
-        if len(nodes) > 1:
+        nodes = [i for i in os.listdir(config.infrasim_home) if i.startswith('.') is False]
+        if len(nodes) > 0:
             return True
         else:
             return False

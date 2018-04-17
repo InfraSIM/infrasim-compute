@@ -5,27 +5,27 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 # -*- coding: utf-8 -*-
 
-
 import os
 import time
 import uuid
+
 from infrasim import CommandRunFailed, ArgsNotCorrect, CommandNotFound
-from infrasim import run_command, has_option
 from infrasim import helper, config
+from infrasim import run_command, has_option
 from infrasim.helper import run_in_namespace, NumaCtl
-from infrasim.model.core.task import Task
 from infrasim.model.core.element import CElement
+from infrasim.model.core.task import Task
+from infrasim.model.elements.backend import CBackendNetwork
+from infrasim.model.elements.backend import CBackendStorage
 from infrasim.model.elements.chardev import CCharDev
 from infrasim.model.elements.cpu import CCPU
-from infrasim.model.elements.memory import CMemory
-from infrasim.model.elements.backend import CBackendStorage
-from infrasim.model.elements.backend import CBackendNetwork
-from infrasim.model.elements.ipmi import CIPMI
-from infrasim.model.elements.pci_topo import CPCITopologyManager
 from infrasim.model.elements.fw_cfg import CPCIEFwcfg
+from infrasim.model.elements.ipmi import CIPMI
+from infrasim.model.elements.machine import CMachine
+from infrasim.model.elements.memory import CMemory
+from infrasim.model.elements.pci_topo import CPCITopologyManager
 from infrasim.model.elements.pcie_topology import CPCIETopology
 from infrasim.model.elements.qemu_monitor import CQemuMonitor
-from infrasim.model.elements.machine import CMachine
 
 
 class CCompute(Task, CElement):
@@ -67,6 +67,7 @@ class CCompute(Task, CElement):
         self.__enable_monitor = False
 
         self.__force_shutdown = None
+        self.__shm_key = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -194,6 +195,8 @@ class CCompute(Task, CElement):
         self.__extra_option = self.__compute.get("extra_option")
         self.__qemu_bin = self.__compute.get("qemu_bin", self.__qemu_bin)
         self.__force_shutdown = self.__compute.get("force_shutdown", True)
+
+        self.__shm_key = self.__compute.get("communicate", {}).get("shm_key")
 
         machine_obj = CMachine(self.__machine)
         machine_obj.logger = self.logger
@@ -376,6 +379,9 @@ class CCompute(Task, CElement):
         if self.__cmdline:
             self.add_option("--append \"{}\"".format(self.__cmdline))
 
+        if self.__shm_key:
+            self.add_option("-communicate shmkey={}".format(self.__shm_key))
+
         for element_obj in self.__element_list:
             element_obj.handle_parms()
 
@@ -402,3 +408,4 @@ class CCompute(Task, CElement):
             time.sleep(1)
         else:
             super(CCompute, self).terminate()
+

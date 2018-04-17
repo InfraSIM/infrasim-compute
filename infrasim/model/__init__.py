@@ -7,10 +7,10 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 # Author:  Robert Xia <robert.xia@emc.com>,
 # Forrest Gu <Forrest.Gu@emc.com>
 
-
 from infrasim.model.core.element import CElement
 from infrasim.model.core.task import Task
 from infrasim.model.core.node import CNode
+from infrasim.model.core.chassis import CChassis
 
 from infrasim.model.elements.chardev import CCharDev
 from infrasim.model.elements.cpu import CCPU
@@ -43,6 +43,7 @@ from infrasim.model.tasks.bmc import CBMC
 from infrasim.model.tasks.socat import CSocat
 from infrasim.model.tasks.racadm import CRacadm
 from infrasim.model.tasks.monitor import CMonitor
+from infrasim.model.tasks.chassis_daemon import CChassisDaemon
 
 __all__ = ["CNode",
            "CCharDev",
@@ -73,4 +74,6 @@ __all__ = ["CNode",
            "CSocat",
            "CMonitor",
            "CRacadm",
-           "CMachine"]
+           "CMachine",
+           "CChassisDaemon",
+           "CChassis"]

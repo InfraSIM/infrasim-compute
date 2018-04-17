@@ -1,0 +1,8 @@
+#!/usr/bin/python
+import sys
+from infrasim import chassis
+
+if __name__ == '__main__':
+    chassis_name = sys.argv[1]
+    bin_file = sys.argv[2]
+    chassis.chassis_main(chassis_name, bin_file)

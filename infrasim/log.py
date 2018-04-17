@@ -10,6 +10,7 @@ EXCEPT_LEVEL_NUM = 35
 
 
 class CompressedRotatingFileHandler(logging.handlers.RotatingFileHandler):
+
     def doRollover(self):
         """
         Do a rollover, as described in __init__().
@@ -156,10 +157,38 @@ class LoggerList(object):
             logger.handlers = []
 
 
+class ChassisLogger(object):
+
+    def __init__(self):
+        self.__logger = None
+
+    def init(self, chassis_name):
+        log_base = os.path.join(infrasim_logdir, chassis_name)
+        if not os.path.exists(log_base):
+            os.mkdir(log_base)
+        logger = logging.getLogger(chassis_name)
+        log_file = os.path.join(
+                infrasim_logdir, chassis_name, "chassis.log")
+        self.__handler = logging.FileHandler(log_file)
+        formatter = logging.Formatter(
+            '%(asctime)s - {} - %(filename)s:'
+            '%(lineno)s - %(levelname)s - %(message)s'.
+                format(chassis_name))
+        self.__handler.setFormatter(formatter)
+        logger.addHandler(self.__handler)
+        logger.setLevel(logging.DEBUG)
+        self.__logger = logger
+
+    def get_logger(self):
+        return self.__logger
+
+
 class InfrasimLog(object):
+
     def __init__(self):
         self.__node_list = {}
         self.__default = LoggerList(0)
+        self.__chassis_logger = None
 
     def add_node(self, node_name):
         node_id_list = []
@@ -197,6 +226,13 @@ class InfrasimLog(object):
             self.add_node(node_name)
         logger_list = self.__node_list[node_name]
         return logger_list.get_logger(logger_name)
+
+    def get_chassis_logger(self, chassis_name):
+        if self.__chassis_logger is None:
+            self.__chassis_logger = ChassisLogger()
+            self.__chassis_logger.init(chassis_name)
+            self.__chassis_name = chassis_name
+        return self.__chassis_logger.get_logger()
 
 
 infrasim_log = InfrasimLog()

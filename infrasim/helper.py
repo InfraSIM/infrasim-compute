@@ -63,6 +63,7 @@ def fetch_image(url, checksum, dst):
 
 
 def run_in_namespace(func):
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         namespace = None
@@ -78,6 +79,7 @@ def run_in_namespace(func):
         else:
             ret = func(*args, **kwargs)
         return ret
+
     return wrapper
 
 
@@ -150,6 +152,7 @@ def getfamaddr(sa):
 
 
 class NetworkInterface(object):
+
     def __init__(self, name):
         self.name = name
         self.index = libc.if_nametoindex(name)
@@ -261,6 +264,7 @@ def get_ns_path(nspath=None, nsname=None, nspid=None):
 
 
 class Namespace(object):
+
     def __init__(self, nsname=None, nspath=None, nspid=None):
         self.mypath = get_ns_path(nspid=os.getpid())
         self.targetpath = get_ns_path(nspath,
@@ -281,6 +285,7 @@ class Namespace(object):
 
 
 def double_fork(func):
+
     @wraps(func)
     def wrapper(*args, **kwargs):
 
@@ -299,7 +304,7 @@ def double_fork(func):
                 elif "exception" in rsp:
                     raise rsp["exception"]
         except OSError, e:
-            print >>sys.stderr, "fork #1 failed: %d (%s)" % (e.errno, e.strerror)
+            print >> sys.stderr, "fork #1 failed: %d (%s)" % (e.errno, e.strerror)
             sys.exit(1)
 
         os.setsid()
@@ -311,7 +316,7 @@ def double_fork(func):
                 # exit from second parent
                 os._exit(os.EX_OK)
         except OSError, e:
-            print >>sys.stderr, "fork #2 failed: %d (%s)" % (e.errno, e.strerror)
+            print >> sys.stderr, "fork #2 failed: %d (%s)" % (e.errno, e.strerror)
             sys.exit(1)
 
         try:
@@ -457,10 +462,12 @@ class qemu_version(object):
                 - @helper.qemu_version(">=2.10")
                 - @helper.qemu_version("==2.6.2")
     '''
+
     def __init__(self, expression):
         self.expression = expression
 
     def __call__(self, func):
+
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Get QEMU runtime version
@@ -671,13 +678,13 @@ def port_forward(node):
     time.sleep(3)
 
 
-def prepare_ssh():
+def prepare_ssh(ip_addr="127.0.0.1", port=2222):
     # wait until system is ready for ssh.
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     paramiko.util.log_to_file("filename.log")
     try_func(600, paramiko.SSHClient.connect, ssh,
-             "127.0.0.1", port=2222, username="root",
+             ip_addr, port=port, username="root",
              password="root", timeout=120)
     return ssh
 
