@@ -174,8 +174,16 @@ class CChassis(object):
         for item in slots:
             if item.get("type") == "nvme":
                 # process nvme device.
-                nvme_dev.append(copy.deepcopy(item))
-                self.__process_nvme_data(item)
+                for x in range(item.get("repeat", 1)):
+                    drv = copy.deepcopy(item)
+                    drv["chassis_slot"] = drv["chassis_slot"] + x
+                    drv["file"] = drv["file"].format(x)
+                    drv["serial"] = drv["serial"].format(x)
+                    drv["id"] = drv["id"].format(x)
+                    if drv.get("bus"):
+                        drv["bus"] = drv["bus"].format(x)
+                    nvme_dev.append(drv)
+                    self.__process_nvme_data(drv)
             else:
                 # process SAS drive
                 for x in range(item.get("repeat", 1)):
