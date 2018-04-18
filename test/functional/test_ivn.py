@@ -62,10 +62,42 @@ class test_ivn(unittest.TestCase):
         topo = Topology(ivn_file)
         topo.create()
         result = subprocess.check_output(["ip", "netns", "list"])
+        print result
         self.assertIn("node1ns (id:", result, "node1ns is missing")
         self.assertIn("node0ns (id:", result, "node0ns is missing")
 
         topo.delete()
         result = subprocess.check_output(["ip", "netns", "list"])
+        print result
         self.assertNotIn("node1ns (id:", result, "delete node1ns failed")
         self.assertNotIn("node0ns (id:", result, "delete node0ns failed")
+
+
+class test_switch_ports(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
+
+    def test_cd_vswitch_ports(self):
+        global ivn_file
+        topo = Topology(ivn_file)
+
+        topo.create()
+        result1 = subprocess.check_output(['sudo', 'ovs-vsctl', 'list-br'])
+        self.assertIn("br-int", result1, "vswitch is missing")
+        result2 = subprocess.check_output(['sudo', 'ovs-vsctl', 'list-ports','br-int'])
+        self.assertIn("vint0", result2, "ports is missing")
+        self.assertIn("vint1", result2, "ports is missing")
+
+        topo.delete()
+        result1 = subprocess.check_output(['sudo', 'ovs-vsctl', 'list-br'])
+        self.assertNotIn("br-int", result1, "delete vswitch success")
+
+
+
+
