@@ -144,16 +144,35 @@ class CChassis(object):
 
         self.__dataset.append("chassis", buf)
 
+    def __translate_user_data(self, src):
+        """
+        process custom data.
+        """
+        ret = {}
+        for k, v in src.items():
+            if isinstance(v, int):
+                value = '\0' * v  # treat int value as buffer size.
+            if isinstance(v, str):
+                value = v.encode()  # treat string as user data
+            if isinstance(v, dict):
+                value = self.__translate_user_data(v)
+            ret[k] = value
+        return ret
+
     def __process_sas_drv_data(self, drv):
+        # universal data for SAS drv
         data = {
                 "serial": drv["serial"],
                 "log_page": '\0' * 2048,
                 "mode_page": '\0' * 2048
             }
+        if drv.get("user_data"):
+            # add custom data if it has
+            data["user_data"] = self.__translate_user_data(drv["user_data"])
         self.__dataset.append("slot_{}".format(drv["slot_number"]), data)
-        pass
 
     def __process_nvme_data(self, drv):
+        # universal data for NVMe drv
         num_queues = drv.get("queues", 64)
         elpe = drv.get("elpe", 3)
         # len_feature = sizeof(NvmeFeatureVal) + sizeof(uint32_t) * n->num_queues;   NvmeFeatureVal = 10 * uint32_t + 4 * uint64_t
@@ -165,8 +184,10 @@ class CChassis(object):
             "feature" : '\0' * len_feature,
             "elpes" : '\0' * len_error_log_page
             }
+        if drv.get("user_data"):
+            # add custom data if it has
+            data["user_data"] = self.__translate_user_data(drv["user_data"])
         self.__dataset.append("slot_{}".format(drv["chassis_slot"]), data)
-        pass
 
     def __process_chassis_slots(self, slots):
         nvme_dev = []
