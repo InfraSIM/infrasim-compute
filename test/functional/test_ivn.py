@@ -83,7 +83,7 @@ class test_switch_ports(unittest.TestCase):
     def tearDownClass(cls):
         pass
 
-    def test_cd_vswitch_ports(self):
+    def test__vswitch_ports(self):
         global ivn_file
         topo = Topology(ivn_file)
 
