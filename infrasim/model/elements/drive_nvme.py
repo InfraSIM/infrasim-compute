@@ -5,13 +5,13 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 # -*- coding: utf-8 -*-
 
-
 from infrasim import ArgsNotCorrect
 from infrasim import helper
 from infrasim.model.elements.drive import CBaseDrive
 
 
 class NVMeController(CBaseDrive):
+
     def __init__(self, dev_info):
         super(NVMeController, self).__init__()
         self._name = "nvme"
@@ -152,5 +152,8 @@ class NVMeController(CBaseDrive):
 
         if self.__firmware_version:
             self._dev_attrs["firmware_version"] = "\"{}\"".format(self.__firmware_version)
+
+        if self.chassis_slot:
+            self._dev_attrs["slot_number"] = self.chassis_slot
 
         self.add_option(self.build_device_option(self._name, **self._dev_attrs))

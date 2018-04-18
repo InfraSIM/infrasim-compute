@@ -154,8 +154,16 @@ class CChassis(object):
         pass
 
     def __process_nvme_data(self, drv):
+        num_queues = drv.get("queues", 64)
+        elpe = drv.get("elpe", 3)
+        # len_feature = sizeof(NvmeFeatureVal) + sizeof(uint32_t) * n->num_queues;   NvmeFeatureVal = 10 * uint32_t + 4 * uint64_t
+        len_feature = 4 * 10 + 8 * 4 + 4 * num_queues
+        # len_error_log_page = sizeof(NvmeErrorLog) * (n->elpe + 1) + sizeof(num_errors) + sizeof(error_count) + sizeof(elp_index) + pad_byte
+        len_error_log_page = 64 * (elpe + 1) + 4
         data = {
-            "serial" : drv["serial"].encode()
+            "serial" : drv["serial"].encode(),
+            "feature" : '\0' * len_feature,
+            "elpes" : '\0' * len_error_log_page
             }
         self.__dataset.append("slot_{}".format(drv["chassis_slot"]), data)
         pass
