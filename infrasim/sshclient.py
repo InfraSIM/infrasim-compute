@@ -77,7 +77,7 @@ class SSH(object):
                          format(self.host_ip, ex))
         return self.transport is not None
 
-    def exec_command(self, cmd, indata=None, timeout=30):
+    def exec_command(self, cmd, indata=None, timeout=60):
         if self.transport is None or self.transport.is_active() is False:
             self.reconnect()
             if self.transport is None or self.transport.is_active() is False:
@@ -112,7 +112,7 @@ class SSH(object):
             return indata.split('\n')
         return []
 
-    def poll(self, session, timeout=30, indata=[]):
+    def poll(self, session, timeout=60, indata=[]):
         session.setblocking(0)
         index = 0
         timeout_flag = False

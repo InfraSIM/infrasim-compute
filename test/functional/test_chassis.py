@@ -53,7 +53,7 @@ def setup_module():
     # check the existence of required namespace.
     cmd = ["ip", "netns", "list"]
     result = subprocess.check_output(cmd)
-    if "node1ns (id" not in result or "node0ns (id" not in result:
+    if "node1ns" not in result or "node0ns" not in result:
         topo = Topology(ivn_cfg_file)
         topo.create()
 
