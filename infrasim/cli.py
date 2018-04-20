@@ -1,5 +1,4 @@
 import argparse
-from difflib import IS_CHARACTER_JUNK
 from functools import wraps
 import inspect
 import os
@@ -63,7 +62,7 @@ class ConfigCommands(object):
                 is_chassis = True
 
             if (is_chassis and has_node) or (is_chassis is False and has_chassis):
-                    raise InfraSimError("Type from config file is not match with name")
+                raise InfraSimError("Type from config file is not match with name")
         else:
             is_chassis = has_chassis
 
@@ -430,7 +429,7 @@ class NodeCommands(object):
                         drive = node_info_drives[j - 1]
                         if j % stor['max_drive_per_controller'] == 1:
                             row.append([" " * 17, stor['type'],
-                                    stor['max_drive_per_controller'], drive['size']])
+                                        stor['max_drive_per_controller'], drive['size']])
                         else:
                             row.append([" " * 17, "", "", drive['size']])
                 if 'connectors' in stor.keys():
@@ -438,7 +437,7 @@ class NodeCommands(object):
                     for j in range(1, len(node_info_connectors) + 1):
                         if j % stor['max_drive_per_controller'] == 1:
                             row.append([" " * 17, stor['type'],
-                                    stor['max_drive_per_controller'], ""])
+                                        stor['max_drive_per_controller'], ""])
                 if 'disk_array' in stor.keys():
                     node_info_disk_array = stor['disk_array']
                     for j in range(1, len(node_info_disk_array) + 1):

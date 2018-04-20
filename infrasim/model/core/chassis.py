@@ -1,14 +1,10 @@
 import copy
 import os
-import pprint
 import re
 import shutil
-import struct
 import subprocess
-import sys
-import traceback
 
-from infrasim import config, helper
+from infrasim import config
 from infrasim import InfraSimError
 from infrasim.chassis.dataset import DataSet
 from infrasim.chassis.emu_data import FruFile
@@ -106,7 +102,7 @@ class CChassis(object):
         if ChassisWorkspace.check_workspace_exists(self.__chassis_name):
             shutil.rmtree(self.workspace.get_workspace())
         self.logger.info("[Chassis] Chassis {} runtime workspcace is destroyed".
-                           format(self.__chassis_name))
+                         format(self.__chassis_name))
         print "Chassis {} runtime workspace is destroyed.".format(self.__chassis_name)
 
     def status(self):
@@ -126,7 +122,7 @@ class CChassis(object):
             # bios.ModifyType2BaseboardInformation("")
             bios.save(bios_file)
             emu_file = os.path.join(config.infrasim_home, node["name"],
-                                     "data", "{}.emu".format(node["type"]))
+                                    "data", "{}.emu".format(node["type"]))
             emu = FruFile(emu_file)
             emu.ChangeChassisInfo(data["pn"], data["sn"])
             emu.Save(emu_file)
@@ -162,10 +158,10 @@ class CChassis(object):
     def __process_sas_drv_data(self, drv):
         # universal data for SAS drv
         data = {
-                "serial": drv["serial"],
-                "log_page": '\0' * 2048,
-                "mode_page": '\0' * 2048
-            }
+            "serial": drv["serial"],
+            "log_page": '\0' * 2048,
+            "mode_page": '\0' * 2048
+        }
         if drv.get("user_data"):
             # add custom data if it has
             data["user_data"] = self.__translate_user_data(drv["user_data"])
@@ -175,15 +171,17 @@ class CChassis(object):
         # universal data for NVMe drv
         num_queues = drv.get("queues", 64)
         elpe = drv.get("elpe", 3)
-        # len_feature = sizeof(NvmeFeatureVal) + sizeof(uint32_t) * n->num_queues;   NvmeFeatureVal = 10 * uint32_t + 4 * uint64_t
+        # len_feature = sizeof(NvmeFeatureVal) + sizeof(uint32_t) * n->num_queues;
+        # NvmeFeatureVal = 10 * uint32_t + 4 * uint64_t
         len_feature = 4 * 10 + 8 * 4 + 4 * num_queues
-        # len_error_log_page = sizeof(NvmeErrorLog) * (n->elpe + 1) + sizeof(num_errors) + sizeof(error_count) + sizeof(elp_index) + pad_byte
+        # len_error_log_page = sizeof(NvmeErrorLog) * (n->elpe + 1) +
+        # sizeof(num_errors) + sizeof(error_count) + sizeof(elp_index) + pad_byte
         len_error_log_page = 64 * (elpe + 1) + 4
         data = {
-            "serial" : drv["serial"].encode(),
-            "feature" : '\0' * len_feature,
-            "elpes" : '\0' * len_error_log_page
-            }
+            "serial": drv["serial"].encode(),
+            "feature": '\0' * len_feature,
+            "elpes": '\0' * len_error_log_page
+        }
         if drv.get("user_data"):
             # add custom data if it has
             data["user_data"] = self.__translate_user_data(drv["user_data"])
@@ -223,7 +221,7 @@ class CChassis(object):
             for controller in node["compute"]["storage_backend"]:
                 if controller.get("slot_range"):
                     controller["drives"] = controller.get("drives", [])
-                    slot_range = [ int(x) for x in controller["slot_range"].split('-')]
+                    slot_range = [int(x) for x in controller["slot_range"].split('-')]
                     for drv in sas_dev:
                         if drv["slot_number"] >= slot_range[0] and drv["slot_number"] < slot_range[1]:
                             controller["drives"].append(drv)
@@ -241,4 +239,4 @@ class CChassis(object):
         self.__dataset.save(self.__file_name)
         # set sharemeory id for sub node.
         for node in self.__chassis.get("nodes"):
-            node["compute"]["communicate"] = {"shm_key" : "share_mem_{}".format(self.__chassis_name)}
+            node["compute"]["communicate"] = {"shm_key": "share_mem_{}".format(self.__chassis_name)}

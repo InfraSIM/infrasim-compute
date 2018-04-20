@@ -7,7 +7,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import os
 import yaml
 from texttable import Texttable
-from infrasim import config, chassis
+from infrasim import config
 from infrasim.yaml_loader import YAMLLoader
 from infrasim import DirectoryNotFound, InfraSimError
 from .log import LoggerType, infrasim_log
@@ -27,11 +27,11 @@ class BaseMap(object):
 
     def get_logger(self, name):
         pass
-    
+
     def in_map_folder(self, name):
         self.load()
         return name in self.__name_list
-                
+
     def load(self):
         self.__name_list = []
         if not os.path.exists(self.__mapping_folder):
@@ -144,7 +144,8 @@ class BaseMap(object):
             os.chmod(dst, 0664)
         except IOError:
             logger_config.exception("Item {}'s configuration failed to be updated.".format(item_name))
-            raise InfraSimError("Item {}'s configuration failed to be updated. Check file mode of {}.".format(item_name, dst))
+            raise InfraSimError(
+                "Item {}'s configuration failed to be updated. Check file mode of {}.".format(item_name, dst))
         print "Item {}'s configuration mapping is updated".format(item_name)
         logger_config.info("request res: Item {}'s configuration mapping is updated".format(item_name))
 
@@ -253,7 +254,7 @@ class ChassisMap(BaseMap):
             with open(filename, 'w') as fo:
                 yaml.dump(node, fo, default_flow_style=False)
             os.chmod(filename, 0664)
-            sub_nodes.append({"node_name":node_name, "file":filename})
+            sub_nodes.append({"node_name": node_name, "file": filename})
             logger_config.info("Item {}'s yaml file: {}".format(node_name, filename))
         return sub_nodes
 
@@ -277,9 +278,9 @@ class ChassisMap(BaseMap):
         try:
             for node in sub_nodes:
                 node_name = node["node_name"]
-                self.__nm.add(node_name, node["file"]);
+                self.__nm.add(node_name, node["file"])
                 installed_node.append(node_name)
-        except InfraSimError as e:
+        except InfraSimError:
             for node in installed_node:
                 self.__nm.delete(node)
             raise InfraSimError("Node {0} in {1} is already existed.".format(node_name, item_name))
@@ -293,7 +294,7 @@ class ChassisMap(BaseMap):
         config_path = os.path.join(self.get_mapping_folder(), "{}.yml".format(item_name))
         node_names = self.__get_node_names(config_path)
         for node in node_names:
-            self.__nm.delete(node);
+            self.__nm.delete(node)
         super(ChassisMap, self).delete(item_name)
 
     def update(self, item_name, config_path):
@@ -304,9 +305,8 @@ class ChassisMap(BaseMap):
         installed_node = []
         for node in sub_nodes:
             node_name = node["node_name"]
-            self.__nm.update(node_name, node["file"]);
+            self.__nm.update(node_name, node["file"])
             installed_node.append(node_name)
         super(ChassisMap, self).update(item_name, config_path)
         print "Chassis {} is updated with nodes:{}.".format(item_name, installed_node)
         logger_config.info("Chassis {} is updated with nodes:{}.".format(item_name, installed_node))
-

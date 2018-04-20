@@ -3,14 +3,13 @@
 Copyright @ 2018 Dell EMC Corporation All Rights Reserved
 *********************************************************
 '''
-
 import math
 import struct
 
 
 class DataSet(object):
     '''
-    Save data into file 
+    Save data into file
     '''
 
     def __init__(self):
@@ -32,7 +31,7 @@ class DataSet(object):
 
         if isinstance(data, str):
             _len = int(math.ceil(len(data) / 4.0) * 4)
-            return [ _len, _len + _total_len ]
+            return [_len, _len + _total_len]
 
         for key in data.keys():
             length_dict[key] = self.__get_length(data[key])
@@ -40,7 +39,7 @@ class DataSet(object):
 
         _total_len += struct.calcsize(self._fmt) * len(data)
 
-        return [ length_dict, _total_len ]
+        return [length_dict, _total_len]
 
     def write_bin_file(self, fo, data, length):
         if isinstance(data, str):
@@ -78,4 +77,3 @@ class DataSet(object):
         if len(section) == 1:
             return (section[0][1] - len_headers, section[0][2])
         return None
-

@@ -6,16 +6,13 @@ Copyright @ 2018 EMC Corporation All Rights Reserved
 import os
 import shutil
 import subprocess
-import time
 import unittest
 import paramiko
-import re
 import yaml
 import sys
 import tempfile
 
 from test import fixtures
-from infrasim import InfraSimError
 from infrasim import helper
 from infrasim import model
 
@@ -79,7 +76,7 @@ def saved_config_file():
 
 def start_chassis():
     """
-    
+
     """
     global conf
     global ssh
@@ -173,7 +170,8 @@ class test_chassis(unittest.TestCase):
     def test_smbios_sn(self):
         for ip in nodes_ip:
             result = run_cmd("dmidecode -t chassis", ip, 8022)
-            self.assertIn("Serial Number: {}".format(conf["data"]["sn"]), result, "Chassis SN is not correct in {}".format(ip))
+            self.assertIn("Serial Number: {}".format(conf["data"]["sn"]),
+                          result, "Chassis SN is not correct in {}".format(ip))
 
     def test_nvme_share_feature(self):
         read_temperatue = ["nvme", "get-feature", "/dev/nvme0n1", "-f", "4", "-s", "0"]
@@ -181,7 +179,7 @@ class test_chassis(unittest.TestCase):
         n0_1 = run_cmd(' '.join(read_temperatue), nodes_ip[0])
         n1_1 = run_cmd(' '.join(read_temperatue), nodes_ip[1])
 
-        msg = run_cmd(' '.join(set_temperatue), nodes_ip[0])
+        run_cmd(' '.join(set_temperatue), nodes_ip[0])
 
         n0_2 = run_cmd(' '.join(read_temperatue), nodes_ip[0])
         n1_2 = run_cmd(' '.join(read_temperatue), nodes_ip[1])

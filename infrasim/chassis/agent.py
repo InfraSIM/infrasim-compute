@@ -44,7 +44,7 @@ class Agent(object):
     def get(self, title):
         """
         return the content of section.
-        :param title: full name of section. 
+        :param title: full name of section.
         :return data: whole data of the section.
         """
         length = self.__get_section(title)
@@ -55,7 +55,7 @@ class Agent(object):
 
     def set(self, title, data):
         """
-        change value of section. 
+        change value of section.
         fail if data length exceeds the size.
         :param  title: full name of section will be modified.
         :param  data:  data will be saved.
@@ -92,4 +92,3 @@ class Agent(object):
         """
         self.__file.seek(0, os.SEEK_SET)
         return self.__iterate_sections()
-
