@@ -29,6 +29,8 @@ from ctypes import (
 )
 from infrasim import InfraSimError, run_command
 from . import logger
+from functools import reduce
+
 
 libc = cdll.LoadLibrary('libc.so.6')
 setns = libc.setns
@@ -303,7 +305,7 @@ def double_fork(func):
                     return rsp["ret"]
                 elif "exception" in rsp:
                     raise rsp["exception"]
-        except OSError, e:
+        except OSError as e:
             print >> sys.stderr, "fork #1 failed: %d (%s)" % (e.errno, e.strerror)
             sys.exit(1)
 
@@ -315,13 +317,13 @@ def double_fork(func):
             if pid > 0:
                 # exit from second parent
                 os._exit(os.EX_OK)
-        except OSError, e:
+        except OSError as e:
             print >> sys.stderr, "fork #2 failed: %d (%s)" % (e.errno, e.strerror)
             sys.exit(1)
 
         try:
             ret = func(*args, **kwargs)
-        except Exception, e:
+        except Exception as e:
             p_s.send({
                 "exception": e
             })
@@ -636,7 +638,7 @@ class UnixSocket(object):
 
     def recv(self):
         rsp = ""
-        while 1:
+        while True:
             snip = self.s.recv(1024)
             rsp += snip
             if len(snip) < 1024:
@@ -704,3 +706,17 @@ def fw_cfg_file_create(cfg_list, workspace):
     f.write(bin_sum)
     f.close()
     return file_path
+
+
+def get_ws_folder(element):
+    parent = element.owner
+    while parent and not hasattr(parent, "get_workspace"):
+        parent = parent.owner
+
+    ws = None
+    if hasattr(parent, "get_workspace"):
+        ws = parent.get_workspace()
+
+    if ws is None or not os.path.exists(ws):
+        ws = ""
+    return ws

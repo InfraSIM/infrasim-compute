@@ -7,10 +7,8 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import os
 from infrasim import ArgsNotCorrect
-from infrasim.dae import DAEProcessHelper
 from infrasim.model.core.element import CElement
 from infrasim.model.elements.network import CNetwork
-from infrasim.model.elements.storage import CBaseStorageController
 from infrasim.model.elements.storage_mega import MegaSASController
 from infrasim.model.elements.storage_lsi import LSISASController
 from infrasim.model.elements.drive_nvme import NVMeController
@@ -57,7 +55,7 @@ class CBackendStorage(CElement):
         super(CBackendStorage, self).__init__()
         self.__backend_storage_info = backend_storage_info
         self.__controller_list = []
-        self.__diskarray_list = []
+        self.__diskarray = None
         self.__pci_topology_manager = None
 
         # Global controller index managed by CBackendStorage
@@ -84,8 +82,10 @@ class CBackendStorage(CElement):
         elif "ahci" in model:
             controller_obj = AHCIController(controller_info)
         elif "disk_array" in model:
+            if self.__diskarray:
+                raise ArgsNotCorrect("[BackendStorage] Only 1 disk array object allowed")
             controller_obj = DiskArrayController(controller_info)
-            self.__diskarray_list.append(controller_obj)
+            self.__diskarray = controller_obj
         else:
             raise ArgsNotCorrect("[BackendStorage] Unsupported controller type: {}".
                                  format(model))
@@ -106,6 +106,7 @@ class CBackendStorage(CElement):
 
         if ws is None or not os.path.exists(ws):
             ws = ""
+        return ws
 
     def init(self):
         for controller in self.__backend_storage_info:
@@ -114,8 +115,8 @@ class CBackendStorage(CElement):
                 controller_obj.set_pci_topology_mgr(self.__pci_topology_manager)
             self.__controller_list.append(controller_obj)
 
-        for diskarray in self.__diskarray_list:
-            diskarray.apply_device(self.__backend_storage_info)
+        if self.__diskarray:
+            self.__diskarray.apply_device(self.__backend_storage_info)
 
         for controller_obj in self.__controller_list:
             if isinstance(controller_obj, AHCIController):
