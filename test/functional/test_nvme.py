@@ -62,7 +62,6 @@ Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tool
 
     @classmethod
     def tearDownClass(cls):
-        return
         if conf:
             cls.stop_node()
 
