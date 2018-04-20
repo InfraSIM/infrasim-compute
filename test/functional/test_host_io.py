@@ -11,6 +11,7 @@ import re
 from infrasim import model
 from infrasim import run_command
 from infrasim import helper
+from infrasim import sshclient
 from test import fixtures
 
 old_path = os.environ.get('PATH')
@@ -215,68 +216,58 @@ class test_kcs_io(unittest.TestCase):
         assert 'source.bin' not in lines
 
     def test_copy_file_across_drives(self):
-        ssh = helper.prepare_ssh()
-        stdin, stdout, stderr = ssh.exec_command('touch /root/source.bin')
-        while not stdout.channel.exit_status_ready():
-            pass
+        # ssh = helper.prepare_ssh()
+        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
+        ssh.connect()
+        assert ssh.wait_for_host_up()
+        rc, output = ssh.exec_command('touch /root/source.bin')
+        assert rc == 0
 
-        stdin, stdout, stderr = ssh.exec_command(
+        rc, output = ssh.exec_command(
             "echo 'Test message is found! :D' >> /root/source.bin")
-        while not stdout.channel.exit_status_ready():
-            pass
-
-        ssh.close()
 
         drive = self.get_drive(boot_drive_serial)
-        ssh = helper.prepare_ssh()
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
             if 'sd' + i != drive:
-                stdin, stdout, stderr = ssh.exec_command(
+                rc, output = ssh.exec_command(
                     'dd if=/root/source.bin of=/dev/sd' + i + ' bs=512 seek=0 count=1 conv=fsync')
-
-        ssh.close()
+                assert rc == 0
 
         boot_drive = self.get_drive(boot_drive_serial)
         sas_drive = self.get_drive(sas_drive_serial)
         sata_drive = self.get_drive(sata_drive_serial)
 
-        ssh = helper.prepare_ssh()
+        # ssh = helper.prepare_ssh()
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
             if 'sd' + i not in[boot_drive, sas_drive, sata_drive]:
-                stdin, stdout, stderr = ssh.exec_command(
+                rc, output = ssh.exec_command(
                     'dd if=/dev/sd' + i + ' of=/root/target_' + i + '.bin bs=512 skip=0 count=1 conv=fsync')
-        ssh.close()
-        ssh = helper.prepare_ssh()
+                assert rc == 0
+
+        # ssh = helper.prepare_ssh()
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
             if 'sd' + i not in[boot_drive, sas_drive, sata_drive]:
-                stdin, stdout, stderr = ssh.exec_command(
+                rc, output = ssh.exec_command(
                     'cat /root/target_' + i + '.bin')
-                lines = stdout.channel.recv(2048)
-                assert 'Test message is found! :D' in lines
-        ssh.close()
+                assert 'Test message is found! :D' in output
+        #ssh.close()
 
-        ssh = helper.prepare_ssh()
-        stdin, stdout, stderr = ssh.exec_command('rm /root/source.bin')
-        while not stdout.channel.exit_status_ready():
-            pass
-        ssh.close()
+        #ssh = helper.prepare_ssh()
+        rc, output = ssh.exec_command('rm /root/source.bin')
+        assert rc == 0
 
         boot_drive = self.get_drive(boot_drive_serial)
         sas_drive = self.get_drive(sas_drive_serial)
         sata_drive = self.get_drive(sata_drive_serial)
 
-        ssh = helper.prepare_ssh()
         for i in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'):
             if 'sd' + i not in[boot_drive, sas_drive, sata_drive]:
-                stdin, stdout, stderr = ssh.exec_command(
+                rc, output = ssh.exec_command(
                     'rm /root/target_' + i + '.bin')
-
-                stdin, stdout, stderr = ssh.exec_command(
+                assert rc == 0
+                rc, output = ssh.exec_command(
                     'ls /root' + i + '/target_' + i + '.bin')
-
-                lines = stdout.channel.recv(2048)
-                assert 'target_' + i + '.bin' not in lines
-        ssh.close()
+                assert rc != 0
         time.sleep(2)
 
     def test_sas_drive_erase(self):

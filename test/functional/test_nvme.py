@@ -378,7 +378,7 @@ with open('{}', 'wb') as f:
         feature_id = 1
         for dev in nvme_list:
             status, rsp_before_set = ssh.exec_command("nvme get-feature {} -f {} -s {}".format(dev, feature_id, sel))
-            print rsp_before_set
+            print "Before set: ", rsp_before_set
             match_obj = re.search(
                 r'^get-feature:0x(?P<feature_id>\d+) \(Arbitration\), Current value:\s?0x(?P<value>[0-9a-fA-F]+)',
                 rsp_before_set)
@@ -391,11 +391,16 @@ with open('{}', 'wb') as f:
             # Set feature
             status, rsp_set = ssh.exec_command(
                 "nvme set-feature {} -f {} -v {}".format(dev, feature_id, exp_arb_after_set))
+            assert status == 0
 
             # Get feature again and verify
             status, rsp_after_set = ssh.exec_command("nvme get-feature {} -f {} -s {}".format(dev, feature_id, sel))
-            arb_after_set = re.search(r"Current value:\s?0x([0-9a-fA-F]+)", rsp_after_set).group(1)
-            assert exp_arb_after_set == int(arb_after_set, 16)
+            print "After set: ", rsp_after_set
+            assert status == 0
+            match_obj = re.search(r"Current value:\s?0x([0-9a-fA-F]+)", rsp_after_set)
+            assert match_obj
+            arb_after_set = int(match_obj.group(1), 16)
+            assert exp_arb_after_set == arb_after_set
 
     def test_get_set_temp_feature(self):
         # Test get and set temparature feature.

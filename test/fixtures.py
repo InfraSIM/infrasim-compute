@@ -80,7 +80,7 @@ class NvmeConfig(object):
                         ]
                     },
                     {
-                        "cmb_size_mb": 2,
+                        "cmb_size_mb": 1,
                         "drives": [
                             {
                                 "size": 8
@@ -94,7 +94,7 @@ class NvmeConfig(object):
 
                     },
                     {
-                        "cmb_size_mb": 2,
+                        "cmb_size_mb": 1,
                         "drives": [
                             {
                                 "size": 8
