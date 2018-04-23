@@ -144,7 +144,7 @@ class PackageManager(object):
 
         try:
             self.__depcache.commit(acquire_progress, install_progress)
-        except apt_pkg.Error as e:
+        except Exception as e:
             print "{} is not installed (Reason: {})".format(package_name, e)
 
         return target_pkg.inst_state == apt_pkg.INSTSTATE_OK
