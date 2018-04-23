@@ -6,13 +6,13 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 from infrasim.model.core.task import Task
 from infrasim.log import infrasim_log
-from infrasim.workspace import ChassisWorkspace
 
 
 class CChassisDaemon(Task):
     '''
     start/stop /usr/local/bin/infrasim-chassis
     '''
+
     def __init__(self, chassis_name, file_name):
         super(CChassisDaemon, self).__init__()
         self.__bin = "infrasim-chassis"
@@ -25,16 +25,15 @@ class CChassisDaemon(Task):
             format(self.__bin,
                    self.__chassis_name,
                    self.__file_name)
-                  
+
         return chassis_str
 
     def init(self, workspace):
         self.set_workspace(workspace)
         self.set_task_name("{}-chassis".format(self.__chassis_name))
-        
+
     def start(self):
         self.run()
 
     def status(self):
         pass
-            

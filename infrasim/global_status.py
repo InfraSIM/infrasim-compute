@@ -190,7 +190,7 @@ class InfrasimMonitor(object):
             try:
                 for p in node.get_port_status():
                     port += "{} ".format(p)
-            except Exception as _:
+            except Exception:
                 pass
             if port == '':
                 line.append('-')

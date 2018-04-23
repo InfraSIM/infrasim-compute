@@ -154,12 +154,12 @@ class ChassisWorkspace(Workspace):
     @staticmethod
     def get_chassis_info_in_workspace(chassis_name):
         chassis_yml_path = os.path.join(config.infrasim_home, chassis_name,
-                                     "etc/chassis.yml")
+                                        "etc/chassis.yml")
         chassis_info = None
         try:
             with open(chassis_yml_path, 'r') as fp:
                 chassis_info = YAMLLoader(fp).get_data()
-        except:
+        except Exception:
             raise InfraSimError("Fail to read node {} information from runtime workspace".
                                 format(chassis_name))
 

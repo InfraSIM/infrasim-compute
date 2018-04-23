@@ -66,7 +66,7 @@ class CNetwork(CElement):
         self.__bus = self.__network.get('bus')
         self.__addr = self.__network.get('addr')
         self.__multifunction = self.__network.get('multifunction')
-        self.__port_forwards = self.__network.get('port_forward',[])
+        self.__port_forwards = self.__network.get('port_forward', [])
 
     def handle_parms(self):
         if self.__network_mode == "bridge":

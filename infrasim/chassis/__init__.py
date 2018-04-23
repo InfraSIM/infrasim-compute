@@ -3,23 +3,21 @@
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
-
-import os
 import sys
 import signal
-import time
 import atexit
-import dataset
-from infrasim.log import infrasim_log, LoggerType
+from infrasim.log import infrasim_log
 from time import sleep
-import inspect
 import traceback
 from share_memory import CShareMemory
 
 flag_quit = False
+
+
 def atexit_cb(sig=signal.SIGTERM, stack=None):
     global flag_quit
     flag_quit = True
+
 
 def chassis_main(name, data_file):
     """
@@ -28,7 +26,7 @@ def chassis_main(name, data_file):
     global flag_quit
     flag_quit = False
     try:
-        #register the atexit call back function
+        # register the atexit call back function
         atexit.register(atexit_cb)
         signal.signal(signal.SIGINT, atexit_cb)
         signal.signal(signal.SIGTERM, atexit_cb)

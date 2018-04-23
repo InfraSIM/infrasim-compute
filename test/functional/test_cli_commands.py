@@ -5,7 +5,6 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
 # -*- coding: utf-8 -*-
-
 import os
 import unittest
 import subprocess
@@ -286,7 +285,7 @@ class test_node_cli(unittest.TestCase):
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         run_command("infrasim init -s -f")
-        dirs = [ i for i in os.listdir(config.infrasim_home) if i.startswith('.') is False ]
+        dirs = [i for i in os.listdir(config.infrasim_home) if i.startswith('.') is False]
         self.assertEqual(len(dirs), 0)
 
         # Verify if it will reinstall packages when user confirmed 'Y'

@@ -3,7 +3,7 @@
 Copyright @ 2018 Dell EMC Corporation All Rights Reserved
 *********************************************************
 This file contains the function to modify Emulation data.
-Refer to Platform Management FRU Information Storage Definition V1.3 
+Refer to Platform Management FRU Information Storage Definition V1.3
 '''
 import math
 import struct
@@ -53,7 +53,7 @@ class FruCmd(object):
                 offset = self.data[index] * 8
                 if offset != 0:
                     end = offset + self.data[offset + 1] * 8
-                    self._data_area.append({ "start":offset, "end":end, "data":self.data[offset:end]})
+                    self._data_area.append({"start": offset, "end": end, "data": self.data[offset:end]})
                 else:
                     self._data_area.append(None)
 
@@ -65,7 +65,8 @@ class FruCmd(object):
                 for area in self._data_area[FruCmd.CHASSIS_INFO_AREA:FruCmd.MULTIRECORD_AREA + 1]:
                     if area and internal_start < area["start"] and internal_stop > area["start"]:
                         internal_stop = area["start"]
-                self._data_area[FruCmd.INTERNAL_USE_AREA] = { "start":internal_start, "end":internal_stop, "data":self.data[internal_start:internal_stop] }
+                self._data_area[FruCmd.INTERNAL_USE_AREA] = {
+                    "start": internal_start, "end": internal_stop, "data": self.data[internal_start:internal_stop]}
             return True
         return False
 
@@ -113,7 +114,7 @@ class FruCmd(object):
                         area["start"] += pad
 
         end = start + len(result)
-        self._data_area[FruCmd.CHASSIS_INFO_AREA] = {"start":start, "end":end, "data":result}
+        self._data_area[FruCmd.CHASSIS_INFO_AREA] = {"start": start, "end": end, "data": result}
 
     def UpdateData(self):
         # Adjust start positon of all areas
@@ -144,7 +145,7 @@ class FruFile(object):
         with open(src_file, "r") as fi:
             lines = fi.readlines()
 
-        is_processing_fru = False;
+        is_processing_fru = False
         fru_cmd = None
         for line in lines:
             if is_processing_fru:
@@ -174,4 +175,3 @@ class FruFile(object):
         with open(emu, "w") as fo:
             for item in self._data:
                 fo.write(str(item))
-

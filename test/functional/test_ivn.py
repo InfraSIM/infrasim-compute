@@ -63,10 +63,10 @@ class test_ivn(unittest.TestCase):
         topo = Topology(ivn_file)
         topo.create()
         result = subprocess.check_output(["ip", "netns", "list"])
-	reobj = re.search(r'node1ns(\s?\(id:\s?\d+\))?', result)
-	assert reobj
-	reobj = re.search(r'node0ns(\s?\(id:\s?\d+\))?', result)
-	assert reobj
+        reobj = re.search(r'node1ns(\s?\(id:\s?\d+\))?', result)
+        assert reobj
+        reobj = re.search(r'node0ns(\s?\(id:\s?\d+\))?', result)
+        assert reobj
 
         topo.delete()
         result = subprocess.check_output(["ip", "netns", "list"])

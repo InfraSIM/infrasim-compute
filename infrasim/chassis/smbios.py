@@ -9,8 +9,8 @@ import struct
 class SMBios(object):
     '''
     Decode smbios.bin and modify sn.
-    
-    Ref to SMBios SPEC Ver: 2.7.1, 
+
+    Ref to SMBios SPEC Ver: 2.7.1,
     Chapter 5.2.1:
     struct SMBIOSEntryPoint {
      char EntryPointString[4];    //This is _SM_
@@ -29,8 +29,8 @@ class SMBios(object):
      uchar BCDRevision;           //Unused
      uchar pad;                   //pad.
     };
-    
-    Chapter 6.1.2: 
+
+    Chapter 6.1.2:
     struct SMBIOSHeader {
      uchar Type;
      uchar Length;
@@ -63,11 +63,11 @@ class SMBios(object):
 
     def __decode(self):
         """
-        Decode the SMBIOSEntryPoint 
+        Decode the SMBIOSEntryPoint
         """
         # unpack Entry Table
         entry = struct.unpack_from(SMBios._fmt_entry, self._buf, 0)
-        self.__entry = entry;
+        self.__entry = entry
 
         offset = struct.calcsize(SMBios._fmt_entry)
         for _ in range(0, entry[12]):

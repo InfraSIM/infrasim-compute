@@ -4,21 +4,17 @@ Copyright @ 2018 EMC Corporation All Rights Reserved
 *********************************************************
 '''
 import os
-import pprint
 import shutil
 import subprocess
-from test import fixtures
-import time
 import unittest
-
-from infrasim import InfraSimError
-from infrasim import helper
-from infrasim import model
 import paramiko
 import yaml
 import sys
-from setuptools.command.setopt import config_file
 import tempfile
+
+from test import fixtures
+from infrasim import helper
+from infrasim import model
 
 a_boot_image = "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
 b_boot_image = "/home/infrasim/jenkins/data/ubuntu14.04.4_b.qcow2"
@@ -53,7 +49,7 @@ def setup_module():
     # check the existence of required namespace.
     cmd = ["ip", "netns", "list"]
     result = subprocess.check_output(cmd)
-    if "node1ns" not in result or "node0ns" not in result:
+    if "node1ns " not in result or "node0ns " not in result:
         topo = Topology(ivn_cfg_file)
         topo.create()
 
@@ -80,7 +76,7 @@ def saved_config_file():
 
 def start_chassis():
     """
-    
+
     """
     global conf
     global ssh
@@ -123,7 +119,7 @@ def stop_chassis():
     conf = {}
 
 
-def run_cmd(cmd, ip, port):
+def run_cmd(cmd, ip, port=8022):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     # paramiko.util.log_to_file("filename.log")
@@ -174,5 +170,20 @@ class test_chassis(unittest.TestCase):
     def test_smbios_sn(self):
         for ip in nodes_ip:
             result = run_cmd("dmidecode -t chassis", ip, 8022)
-            self.assertIn("Serial Number: {}".format(conf["data"]["sn"]), result, "Chassis SN is not correct in {}".format(ip))
+            self.assertIn("Serial Number: {}".format(conf["data"]["sn"]),
+                          result, "Chassis SN is not correct in {}".format(ip))
 
+    def test_nvme_share_feature(self):
+        read_temperatue = ["nvme", "get-feature", "/dev/nvme0n1", "-f", "4", "-s", "0"]
+        set_temperatue = ["nvme", "set-feature", "/dev/nvme0n1", "-f", "4", "-v", "0xbef"]
+        n0_1 = run_cmd(' '.join(read_temperatue), nodes_ip[0])
+        n1_1 = run_cmd(' '.join(read_temperatue), nodes_ip[1])
+
+        run_cmd(' '.join(set_temperatue), nodes_ip[0])
+
+        n0_2 = run_cmd(' '.join(read_temperatue), nodes_ip[0])
+        n1_2 = run_cmd(' '.join(read_temperatue), nodes_ip[1])
+
+        self.assertEqual(n0_1, n1_1, "Orignal value mismatch.")
+        self.assertEqual(n0_2, n1_2, "New value mismatch.")
+        self.assertNotEqual(n0_1, n0_2, "Failed to change value.")

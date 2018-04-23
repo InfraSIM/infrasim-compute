@@ -408,4 +408,3 @@ class CCompute(Task, CElement):
             time.sleep(1)
         else:
             super(CCompute, self).terminate()
-
