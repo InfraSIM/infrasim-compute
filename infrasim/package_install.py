@@ -39,6 +39,7 @@ def install_bintray_packages(repo, package):
         raise Exception("No {} package in {}".format(package, BASE_URL))
     download_link = BASE_URL + repo + "/" + package + "/versions/" \
                     + infrasim_version + "/files"
+    print("downloading " + download_link + "...")
     response = requests.get(download_link)
     data = response.json()
     latest_time = data[0]["created"]
@@ -51,8 +52,9 @@ def install_bintray_packages(repo, package):
             path = item["path"]
             file_name = item["name"]
             sha256 = item["sha256"]
-    response = requests.get(
-        "https://dl.bintray.com/infrasim/" + repo + "/" + path)
+    download_link = "https://dl.bintray.com/infrasim/" + repo + "/" + path
+    print("downloading " + download_link + "...")
+    response = requests.get(download_link)
     if not response:
         raise Exception("Failed to fetch package {} from bintray.\n"
                         "response code is {}".format(package, response))
