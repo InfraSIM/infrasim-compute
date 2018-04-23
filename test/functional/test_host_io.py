@@ -250,9 +250,9 @@ class test_kcs_io(unittest.TestCase):
                 rc, output = ssh.exec_command(
                     'cat /root/target_' + i + '.bin')
                 assert 'Test message is found! :D' in output
-        #ssh.close()
+        # ssh.close()
 
-        #ssh = helper.prepare_ssh()
+        # ssh = helper.prepare_ssh()
         rc, output = ssh.exec_command('rm /root/source.bin')
         assert rc == 0
 
