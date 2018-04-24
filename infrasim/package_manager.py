@@ -31,6 +31,12 @@ class PackageManager(object):
         if update_cache:
             self.__init_apt_cache()
 
+        # second time to take effect for switching sources
+        self.__init_apt_pkg_cache()
+
+        if update_cache:
+            self.__init_apt_cache()
+
     def __init_apt_pkg_cache(self):
         apt_pkg.init()
         op_progress = None
@@ -39,12 +45,29 @@ class PackageManager(object):
         self.__apt_pkg_cache = apt_pkg.Cache(op_progress)
         self.__depcache = apt_pkg.DepCache(self.__apt_pkg_cache)
 
+    def __check_if_entry_exists(self, entry):
+        '''
+        Event python-apt will check the entry exists, but it can't
+        handle the entry with attribute like '[trusted=true]'
+        '''
+        fp = open("/etc/apt/sources.list", "r")
+        lines = fp.readlines()
+        fp.close()
+        for line in lines:
+            if set(line.strip().split()) == set(entry.strip().split()):
+                return True
+        return False
+
     def __add_entry(self, entry):
         """
         add single entry in /etc/apt/sources.list
         """
         if entry is None:
-            return False
+            return
+
+        if self.__check_if_entry_exists(entry):
+            print "{} exists".format(entry)
+            return
 
         source_entry = aptsources.sourceslist.SourceEntry(entry)
         source_list = source_entry.mysplit(entry)
@@ -89,6 +112,7 @@ class PackageManager(object):
 
         cache = apt.cache.Cache(op_progress)
         cache.update(acquire_progress)  # apt-get update
+        cache.open()
         cache.commit()
 
     def is_installed(self, package_name):
@@ -172,7 +196,7 @@ def read_packages_info():
 
 
 def install_all_packages(force=True, entry=None):
-    pm = PackageManager(source_list_entry=entry, progress=False)
+    pm = PackageManager(source_list_entry=entry, progress=True)
     # install offical packages
     # don't have to install the depencies for each installation
     for pkg_name in ("socat", "ipmitool", "libssh-dev", "libffi-dev", "libyaml-dev"):

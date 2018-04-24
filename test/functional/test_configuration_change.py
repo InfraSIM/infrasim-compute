@@ -719,7 +719,7 @@ class test_infrasim_monitor_configuration_change(unittest.TestCase):
         valid_nic = []
         for interface in helper.get_all_interfaces():
             ip = helper.get_interface_ip(interface)
-            if ip:
+            if ip and interface != "docker0":
                 valid_nic.append({"interface": interface, "ip": ip})
 
         if len(valid_nic) < 2:
