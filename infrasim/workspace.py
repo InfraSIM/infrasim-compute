@@ -15,6 +15,8 @@ class Workspace(object):
 
     @staticmethod
     def check_workspace_exists(node_name):
+        if node_name is None:
+            raise InfraSimError("chassis name is mandatory")
         return os.path.exists(os.path.join(config.infrasim_home, node_name))
 
     @staticmethod
