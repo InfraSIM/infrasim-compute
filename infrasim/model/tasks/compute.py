@@ -391,7 +391,7 @@ class CCompute(Task, CElement):
             super(CCompute, self).terminate()
             return
 
-        if self._task_is_running():
+        if self.task_is_running():
             self.__monitor.open()
             if self.__monitor.get_mode() == "readline":
                 self.__monitor.send("system_powerdown\n")
@@ -401,7 +401,7 @@ class CCompute(Task, CElement):
 
         start = time.time()
         while time.time() - start < 2 * 60:
-            if not self._task_is_running():
+            if not self.task_is_running():
                 if os.path.exists(self.get_pid_file()):
                     os.remove(self.get_pid_file())
                 break

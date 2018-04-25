@@ -386,7 +386,7 @@ class CBMC(Task):
             if os.path.exists(self.__config_file):
                 shutil.copy(self.__config_file,
                             os.path.join(self.get_workspace(), "etc/vbmc.conf"))
-        elif self.get_workspace() and not self._task_is_running():
+        elif self.get_workspace() and not self.task_is_running():
             # render template
             self.__render_template()
             self.write_bmc_config(os.path.join(self.get_workspace(), "etc/vbmc.conf"))

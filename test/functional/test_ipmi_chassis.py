@@ -4,7 +4,6 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
 import unittest
-import time
 import re
 import os
 from infrasim import model
@@ -67,12 +66,10 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
         self.node_info = {}
         fake_config = fixtures.FakeConfig()
         self.node_info = fake_config.get_node_info()
-        node = model.CNode(self.node_info)
-        node.init()
-        node.precheck()
-        node.start()
-        # FIXME: sleep is not a good way to wait qemu starts up.
-        time.sleep(3)
+        self.__node = model.CNode(self.node_info)
+        self.__node.init()
+        self.__node.precheck()
+        self.__node.start()
 
     def tearDown(self):
         node = model.CNode(self.node_info)
@@ -81,89 +78,72 @@ class test_ipmi_command_chassis_control(unittest.TestCase):
         node.terminate_workspace()
 
     def test_chassis_power_off_on(self):
-        try:
-            status_output = run_command(power_status_cmd)[1]
-            assert 'Chassis Power is on' in status_output
-            pid = get_qemu_pid()
-            assert pid != ""
-            assert os.path.exists("/proc/{}".format(pid))
+        status_output = run_command(power_status_cmd)[1]
+        assert 'Chassis Power is on' in status_output
+        pid = get_qemu_pid()
+        assert pid != ""
+        assert os.path.exists("/proc/{}".format(pid))
 
-            # Get qemu mac addresses
-            macs_former = get_mac()
+        # Get qemu mac addresses
+        macs_former = get_mac()
 
-            run_command(power_off_cmd)
-            status_output = run_command(power_status_cmd)[1]
-            assert 'Chassis Power is off' in status_output
-            pid = get_qemu_pid()
-            assert pid == ""
+        run_command(power_off_cmd)
+        status_output = run_command(power_status_cmd)[1]
+        assert 'Chassis Power is off' in status_output
+        pid = get_qemu_pid()
+        assert pid == ""
 
-            run_command(power_on_cmd)
-            time.sleep(2.5)
-            status_output = run_command(power_status_cmd)[1]
-            assert 'Chassis Power is on' in status_output
-            pid = get_qemu_pid()
-            assert pid != ""
-            assert os.path.exists("/proc/{}".format(pid))
+        run_command(power_on_cmd)
+        assert self.__node.wait_node_up(timeout=5)
+        status_output = run_command(power_status_cmd)[1]
+        assert 'Chassis Power is on' in status_output
+        pid = get_qemu_pid()
+        assert pid != ""
+        assert os.path.exists("/proc/{}".format(pid))
 
-            # Get qemu mac addresses again
-            macs_latter = get_mac()
-            # Verify mac address list remains the same
-            assert sorted(macs_former) == sorted(macs_latter)
-
-        except Exception as e:
-            print e
-            import traceback
-            print traceback.format_exc()
-            assert False
+        # Get qemu mac addresses again
+        macs_latter = get_mac()
+        # Verify mac address list remains the same
+        assert sorted(macs_former) == sorted(macs_latter)
 
     def test_chassis_power_cycle(self):
-        try:
-            # Get qemu mac addresses
-            macs_former = get_mac()
+        # Get qemu mac addresses
+        macs_former = get_mac()
 
-            pid_before = get_qemu_pid()
-            run_command(power_cycle_cmd)
-            time.sleep(2.5)
-            pid = get_qemu_pid()
-            assert pid != ""
-            assert os.path.exists("/proc/{}".format(pid))
-            pid_after = get_qemu_pid()
-            assert pid_after != pid_before
+        pid_before = get_qemu_pid()
+        run_command(power_cycle_cmd)
+        assert self.__node.wait_node_up(timeout=5)
+        pid = get_qemu_pid()
+        assert pid != ""
+        assert os.path.exists("/proc/{}".format(pid))
+        pid_after = get_qemu_pid()
+        assert pid_after != pid_before
 
-            # Get qemu mac addresses again
-            macs_latter = get_mac()
+        # Get qemu mac addresses again
+        macs_latter = get_mac()
 
-            # Verify mac address list remains the same
-            assert sorted(macs_former) == sorted(macs_latter)
-
-        except Exception as e:
-            print e
-            assert False
+        # Verify mac address list remains the same
+        assert sorted(macs_former) == sorted(macs_latter)
 
     def test_chassis_power_reset(self):
-        try:
-            # Get qemu mac addresses
-            macs_former = get_mac()
+        # Get qemu mac addresses
+        macs_former = get_mac()
 
-            pid_before = get_qemu_pid()
-            assert pid_before != ""
-            assert os.path.exists("/proc/{}".format(pid_before))
+        pid_before = get_qemu_pid()
+        assert pid_before != ""
+        assert os.path.exists("/proc/{}".format(pid_before))
 
-            run_command(power_reset_cmd)
+        run_command(power_reset_cmd)
 
-            time.sleep(2.5)
-            pid_after = get_qemu_pid()
-            assert pid_after != ""
-            assert os.path.exists("/proc/{}".format(pid_after))
+        assert self.__node.wait_node_up(timeout=5)
+        pid_after = get_qemu_pid()
+        assert pid_after != ""
+        assert os.path.exists("/proc/{}".format(pid_after))
 
-            assert pid_after != pid_before
+        assert pid_after != pid_before
 
-            # Get qemu mac addresses again
-            macs_latter = get_mac()
+        # Get qemu mac addresses again
+        macs_latter = get_mac()
 
-            # Verify mac address list remains the same
-            assert sorted(macs_former) == sorted(macs_latter)
-
-        except Exception as e:
-            print e
-            assert False
+        # Verify mac address list remains the same
+        assert sorted(macs_former) == sorted(macs_latter)

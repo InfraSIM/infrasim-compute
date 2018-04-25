@@ -12,11 +12,12 @@ import yaml
 import re
 import time
 import infrasim.config as config
-from infrasim import run_command, run_command_with_user_input, CommandRunFailed
+from infrasim import run_command, CommandRunFailed
 from test.fixtures import FakeConfig
 import infrasim.model as model
 from infrasim.workspace import Workspace
 from test import fixtures
+from infrasim.package_manager import PackageManager
 
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
@@ -288,24 +289,36 @@ class test_node_cli(unittest.TestCase):
         dirs = [i for i in os.listdir(config.infrasim_home) if i.startswith('.') is False]
         self.assertEqual(len(dirs), 0)
 
-        # Verify if it will reinstall packages when user confirmed 'Y'
-        result = run_command_with_user_input("infrasim init", True, subprocess.PIPE,
-                                             subprocess.PIPE, subprocess.PIPE, "Y\nY\nY\n")
-        assert "downloading Infrasim_Qemu" in result[1]
-        assert "downloading OpenIpmi" in result[1]
-        assert "downloading Seabios" in result[1]
+        package_list = [{"name": "infrasim-qemu", "version": "2.10.1-ubuntu-xenial-1.0.251"},
+                        {"name": "infrasim-openipmi", "version": "2.0.24-1.4.79ubuntu16.04.1"}]
+        pm = PackageManager(update_cache=True, progress=True)
+        for pkg in package_list:
+            assert pm.do_install(pkg.get('name'), version_str=pkg.get('version'), force=True)
 
-        result = run_command_with_user_input("infrasim init", True, subprocess.PIPE,
-                                             subprocess.PIPE, subprocess.PIPE, "Y\nyes\nn\n")
-        assert "downloading Infrasim_Qemu" in result[1]
-        assert "downloading OpenIpmi" in result[1]
-        assert "downloading Seabios" not in result[1]
+        for pkg in package_list:
+            rc, output = run_command('dpkg -s {} | grep \"^Version:\"'.format(pkg.get('name')))
+            reobj = re.search(r'^Version:\s?(?P<version>.*)', output.strip())
+            assert reobj
+            assert pkg.get('version') == reobj.groupdict().get('version')
 
-        result = run_command_with_user_input("infrasim init", True, subprocess.PIPE,
-                                             subprocess.PIPE, subprocess.PIPE, "no\nN\nY\n")
-        assert "downloading Infrasim_Qemu" not in result[1]
-        assert "downloading OpenIpmi" not in result[1]
-        assert "downloading Seabios" in result[1]
+        package_list = [{"name": "infrasim-qemu", "version": "latest"},
+                        {"name": "infrasim-openipmi", "version": "latest"}]
+        for pkg in package_list:
+            assert pm.do_install(pkg.get('name'), version_str=pkg.get('version'), force=True)
+
+        for pkg in package_list:
+            rc, output = run_command('dpkg -s {} | grep \"^Version:\"'.format(pkg.get('name')))
+            reobj = re.search(r'^Version:\s?(?P<version>.*)', output.strip())
+            assert reobj
+            assert pkg.get('version') != reobj.groupdict().get('version')
+
+        for pkg in package_list:
+            pm.do_uninstall(pkg.get('name'))
+
+        for pkg in package_list:
+            self.assertRaises(CommandRunFailed, run_command,
+                              cmd='dpkg -l | grep {}'.format(pkg.get('name')), shell=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 class test_config_cli_with_runtime_node(unittest.TestCase):

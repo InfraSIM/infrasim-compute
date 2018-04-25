@@ -7,7 +7,7 @@ from infrasim import run_command
 from infrasim.socat import get_socat
 from infrasim.ipmi import get_ipmi
 from infrasim.qemu import get_qemu
-from infrasim.package_install import package_install
+from infrasim.package_manager import install_all_packages
 from infrasim import helper
 from infrasim import WorkspaceExisting
 import config
@@ -75,10 +75,6 @@ def init_infrasim_conf(node_type):
         f.write(infrasim_conf)
 
 
-def install_packages():
-    package_install()
-
-
 def config_library_link():
     run_command("ldconfig")
 
@@ -132,7 +128,8 @@ def get_environment():
         pass
 
 
-def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, target_home=None, config_file=None):
+def infrasim_init(node_type="dell_r730", skip_installation=True, force=False,
+                  target_home=None, config_file=None, entry=None):
     if check_existing_workspace():
         if not force:
             raise WorkspaceExisting("There is node workspace existing.\n"
@@ -144,7 +141,7 @@ def infrasim_init(node_type="dell_r730", skip_installation=True, force=False, ta
             create_infrasim_directories()
 
     if not skip_installation:
-        install_packages()
+        install_all_packages(force, entry)
         config_library_link()
         update_bridge_cfg()
 

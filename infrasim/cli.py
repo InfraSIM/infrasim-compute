@@ -615,6 +615,9 @@ def command_handler():
     init_parser.add_argument("-i", "--infrasim-home", action="store",
                              help="Target infrasim home folder,"
                                   " default $HOME/.infrasim")
+    init_parser.add_argument("-e", "--entry", action="store",
+                             help="source list entry, e.g., "
+                             "deb http://download.virtualbox.org/virtualbox/debian trusty contrib")
     exclusive_group = init_parser.add_mutually_exclusive_group()
     exclusive_group.add_argument("-c", "--config-file", action="store", help="Node configuration file")
     exclusive_group.add_argument("-t", "--type", action="store", default="dell_r730", help="Node type")
@@ -631,10 +634,9 @@ def command_handler():
     if hasattr(args, "init"):
         # Do init
         try:
-            infrasim_init(args.type, args.skip_installation,
-                          args.force, args.infrasim_home,
-                          args.config_file)
-            print "Infrasim init OK"
+            infrasim_init(args.type, skip_installation=args.skip_installation,
+                          force=args.force, target_home=args.infrasim_home,
+                          config_file=args.config_file, entry=args.entry)
         except Exception as e:
             msg = "Infrasim init failed\nException Type: {}\n" \
                   "Error Message:\n{}".format(e.__class__.__name__,
