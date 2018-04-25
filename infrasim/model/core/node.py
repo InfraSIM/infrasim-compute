@@ -8,6 +8,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import os
 import shutil
 import uuid
+import time
 
 from infrasim import ArgsNotCorrect
 from infrasim import config, helper
@@ -237,8 +238,15 @@ class CNode(object):
             task.status()
 
     def __is_running(self):
-        state = False
+        state = True
         for task in self.__tasks_list:
-            state |= task._task_is_running()
+            state &= task.task_is_running()
 
         return state
+
+    def wait_node_up(self, timeout=180):
+        start = time.time()
+        while self.__is_running() is False:
+            if time.time() - start > timeout:
+                return False
+        return True

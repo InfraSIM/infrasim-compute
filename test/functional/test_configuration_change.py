@@ -719,7 +719,8 @@ class test_infrasim_monitor_configuration_change(unittest.TestCase):
         valid_nic = []
         for interface in helper.get_all_interfaces():
             ip = helper.get_interface_ip(interface)
-            if ip and interface != "docker0":
+            if ip and (interface.startswith("en") or interface.startswith("eth") or
+                       interface.startswith("br")):
                 valid_nic.append({"interface": interface, "ip": ip})
 
         if len(valid_nic) < 2:
@@ -740,6 +741,14 @@ class test_infrasim_monitor_configuration_change(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
+
+        # Check if port is opened
+        start = time.time()
+        while helper.check_if_port_in_use(valid_nic[0]["ip"], 9005) is False:
+            time.sleep(1)
+            if time.time() - start > 10:
+                break
+        assert helper.check_if_port_in_use(valid_nic[0]["ip"], 9005) is True
 
         # Connect to wrong interface
         try:

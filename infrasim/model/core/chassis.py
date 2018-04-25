@@ -47,11 +47,11 @@ class CChassis(object):
 
     def __check_namespace(self):
         ns_string = subprocess.check_output(["ip", "netns", "list"])
-        ns_list = re.findall(r'(\w+) \(id', ns_string)
+        ns_list = re.findall(r'(\w+)(\s+\(id)?', ns_string)
         nodes = self.__chassis.get("nodes", [])
         for node in nodes:
             ns_name = node["namespace"]
-            if ns_name not in ns_list:
+            if ns_name not in [ns[0] for ns in ns_list]:
                 raise Exception("Namespace {0} doesn't exist".format(ns_name))
 
     def precheck(self, *args):

@@ -94,12 +94,13 @@ class Task(object):
         except Exception:
             pid = "-1"
         finally:
+            pid = "-1" if pid == '' else pid
             return int(pid)
 
     def __task_is_running(self, pid):
         return pid > 0 and os.path.exists("/proc/{}".format(pid))
 
-    def _task_is_running(self, pid=-1):
+    def task_is_running(self, pid=-1):
         pid = self.get_task_pid() if pid < 0 else pid
         return self.__task_is_running(pid)
 
@@ -109,7 +110,7 @@ class Task(object):
             if time.time() - start > timeout:
                 break
 
-            if self._task_is_running(pid):
+            if self.task_is_running(pid):
                 break
 
             lock.release()
@@ -118,7 +119,7 @@ class Task(object):
 
         # in case the process created, but exit accidently, so
         # check again
-        return self._task_is_running(pid)
+        return self.task_is_running(pid)
 
     def __print_task(self, pid, name, state, color=icolors.GREEN):
         print("{}{}{}".format(icolors.WHITE, "[", icolors.NORMAL), end='')
@@ -146,7 +147,7 @@ class Task(object):
                            format(self.__task_name, cmdline))
 
         with lock.acquire():
-            if self._task_is_running():
+            if self.task_is_running():
                 self.__print_task(self.get_task_pid(), self.__task_name, "running")
                 self.__logger.info("[ {:<6} ] {} is already running".format(self.get_task_pid(),
                                                                             self.__task_name))

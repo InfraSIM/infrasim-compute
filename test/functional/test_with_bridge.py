@@ -299,6 +299,8 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
             interface_ip = helper.get_interface_ip(intf)
             if intf == "lo" or not interface_ip:
                 continue
+            if not re.search(r'^(\d+\.){3}\d+', interface_ip):
+                continue
             interface = intf
             break
 
