@@ -190,17 +190,28 @@ class CChassis(object):
     def __process_chassis_slots(self, slots):
         nvme_dev = []
         sas_dev = []
+
+        def format_value(src, value):
+            """
+            parse format and plus initial value
+            """
+            m = re.match(r"^(?P<pre>.+){(?P<initial>\d+)}(?P<post>.*)$", src)
+            if m:
+                src = "{0}{1}{2}".format(m.group('pre'), value + int(m.group('initial')), m.group('post'))
+            else:
+                src = src.format(value)
+            return src
         for item in slots:
             if item.get("type") == "nvme":
                 # process nvme device.
                 for x in range(item.get("repeat", 1)):
                     drv = copy.deepcopy(item)
                     drv["chassis_slot"] = drv["chassis_slot"] + x
-                    drv["file"] = drv["file"].format(x)
-                    drv["serial"] = drv["serial"].format(x)
-                    drv["id"] = drv["id"].format(x)
+                    drv["file"] = format_value(drv["file"], x)
+                    drv["serial"] = format_value(drv["serial"], x)
+                    drv["id"] = format_value(drv["id"], x)
                     if drv.get("bus"):
-                        drv["bus"] = drv["bus"].format(x)
+                        drv["bus"] = format_value(drv["bus"], x)
                     nvme_dev.append(drv)
                     self.__process_nvme_data(drv)
             else:
@@ -210,8 +221,8 @@ class CChassis(object):
                     sas_dev.append(drv)
                     drv["slot_number"] = drv.pop("chassis_slot") + x
                     drv["wwn"] = drv["wwn"] + x * 4
-                    drv["serial"] = drv["serial"].format(x)
-                    drv["file"] = drv["file"].format(x)
+                    drv["serial"] = format_value(drv["serial"], x)
+                    drv["file"] = format_value(drv["file"], x)
                     self.__process_sas_drv_data(drv)
 
         for node in self.__chassis.get("nodes"):
