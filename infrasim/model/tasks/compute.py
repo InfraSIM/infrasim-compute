@@ -26,6 +26,7 @@ from infrasim.model.elements.memory import CMemory
 from infrasim.model.elements.pci_topo import CPCITopologyManager
 from infrasim.model.elements.pcie_topology import CPCIETopology
 from infrasim.model.elements.qemu_monitor import CQemuMonitor
+from infrasim.model.elements.pci_passthrough import CPCIEPassthrough
 
 
 class CCompute(Task, CElement):
@@ -272,6 +273,10 @@ class CCompute(Task, CElement):
             self.__monitor.set_workspace(self.get_workspace())
             self.__monitor.logger = self.logger
             self.__element_list.append(self.__monitor)
+
+        for ppi in self.__compute.get("pcie-passthrough", []):
+            ppi_obj = CPCIEPassthrough(ppi)
+            self.__element_list.append(ppi_obj)
 
         for element in self.__element_list:
             element.init()
