@@ -75,7 +75,7 @@ class ConfigCommands(object):
             mm = self._get_map_manager(name, config_file)
             mm.add(name, config_file)
             logger_cmd.info("cmd res: add {} OK".format(name))
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
@@ -85,7 +85,7 @@ class ConfigCommands(object):
             mm = self._get_map_manager(name)
             mm.delete(name)
             logger_cmd.info("cmd res: delete {} OK".format(name))
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
@@ -96,18 +96,18 @@ class ConfigCommands(object):
             mm = self._get_map_manager(name, config_file)
             mm.update(name, config_file)
             logger_cmd.info("cmd res: update {} OK".format(name))
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
         if Workspace.check_workspace_exists(name):
-            print "Node {0} runtime workspace exists.\n" \
+            print "{1} {0} runtime workspace exists.\n" \
                   "If you want to apply updated configuration, please destroy runtime workspace first.\n" \
                   "You can run commands: \n" \
-                  "    infrasim node destroy {0}\n" \
-                  "    infrasim node start {0}".format(name)
-            logger_cmd.warning("Node {0} runtime workspace exists. "
-                               "Need to destroy node runtime workspace first".format(name))
+                  "    infrasim {1} destroy {0}\n" \
+                  "    infrasim {1} start {0}".format(name, mm.get_type())
+            logger_cmd.warning("{1} {0} runtime workspace exists. "
+                               "Need to destroy {1} runtime workspace first".format(name, mm.get_type()))
 
     @args("name", nargs='?', default="default",
           help="Specify name to open its configuration in editor")
@@ -131,7 +131,7 @@ class ConfigCommands(object):
                       "before start or restart, " \
                       "or this edit won't work." .format(name)
             logger_cmd.info("cmd res: edit {} OK".format(name))
-        except OSError, e:
+        except OSError as e:
             print e
             logger_cmd.error("cmd res: {}".format(e))
 
@@ -142,7 +142,7 @@ class ConfigCommands(object):
             print "\n\033[1;93;44mNode list\033[0m"
             nm.list()
             logger_cmd.info("cmd res: list OK")
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
@@ -153,7 +153,7 @@ class NodeConfigCommands(object):
         try:
             nm.add(node_name, config_file)
             logger_cmd.info("cmd res: add node {} OK".format(node_name))
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
@@ -161,7 +161,7 @@ class NodeConfigCommands(object):
         try:
             nm.delete(node_name)
             logger_cmd.info("cmd res: delete node {} OK".format(node_name))
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
@@ -169,7 +169,7 @@ class NodeConfigCommands(object):
         try:
             nm.update(node_name, config_file)
             logger_cmd.info("cmd res: update node {} OK".format(node_name))
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
@@ -201,7 +201,7 @@ class NodeConfigCommands(object):
                       "before start or restart, " \
                       "or this edit won't work." .format(node_name)
             logger_cmd.info("cmd res: edit node {} OK".format(node_name))
-        except OSError, e:
+        except OSError as e:
             print e
             logger_cmd.error("cmd res: {}".format(e))
 
@@ -209,7 +209,7 @@ class NodeConfigCommands(object):
         try:
             nm.list()
             logger_cmd.info("cmd res: list OK")
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
@@ -220,7 +220,7 @@ class ChassisConfigCommands(object):
         try:
             cm.add(chassis_name, config_file)
             logger_cmd.info("cmd res: add chassis {} OK".format(chassis_name))
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
@@ -228,7 +228,7 @@ class ChassisConfigCommands(object):
         try:
             cm.delete(chassis_name)
             logger_cmd.info("cmd res: delete chassis {} OK".format(chassis_name))
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
@@ -236,7 +236,7 @@ class ChassisConfigCommands(object):
         try:
             cm.update(chassis_name, config_file)
             logger_cmd.info("cmd res: update chassis {} OK".format(chassis_name))
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
@@ -268,7 +268,7 @@ class ChassisConfigCommands(object):
                       "before start or restart, " \
                       "or this edit won't work." .format(chassis_name)
             logger_cmd.info("cmd res: edit chassis {} OK".format(chassis_name))
-        except OSError, e:
+        except OSError as e:
             print e
             logger_cmd.error("cmd res: {}".format(e))
 
@@ -276,7 +276,7 @@ class ChassisConfigCommands(object):
         try:
             cm.list()
             logger_cmd.info("cmd res: list OK")
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
@@ -301,7 +301,7 @@ class NodeCommands(object):
             node = model.CNode(node_info)
             self._node_preinit(node)
 
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
             return
@@ -332,7 +332,7 @@ class NodeCommands(object):
             self._node_preinit(node, ignore_check=True)
             node.stop()
             logger_cmd.info("cmd res: stop node {} OK".format(node_name))
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
             return
@@ -354,7 +354,7 @@ class NodeCommands(object):
             self._node_preinit(node, ignore_check=True)
             node.status()
             logger_cmd.info("cmd res: get node {} status OK".format(node_name))
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
 
@@ -363,7 +363,7 @@ class NodeCommands(object):
         if Workspace.check_workspace_exists(node_name):
             try:
                 node_info = Workspace.get_node_info_in_workspace(node_name)
-            except InfraSimError, e:
+            except InfraSimError as e:
                 print e.value
                 logger_cmd.error("cmd res: {}".format(e.value))
                 return
@@ -377,7 +377,7 @@ class NodeCommands(object):
         try:
             self._node_preinit(node, ignore_check=True)
             node.stop()
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
         node.terminate_workspace()
@@ -445,7 +445,7 @@ class NodeCommands(object):
             table.add_rows(row)
             print table.draw()
             logger_cmd.info("cmd res: get node {} info OK".format(node_name))
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
             return
@@ -465,7 +465,7 @@ class ChassisCommands(object):
             chassis.precheck()
             chassis.init()
 
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
             return
@@ -486,7 +486,7 @@ class ChassisCommands(object):
             chassis = model.CChassis(chassis_name, chassis_info)
             chassis.init()
 
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
             return
@@ -504,7 +504,7 @@ class ChassisCommands(object):
         if Workspace.check_workspace_exists(chassis_name):
             try:
                 chassis_info = ChassisWorkspace.get_chassis_info_in_workspace(chassis_name)
-            except InfraSimError, e:
+            except InfraSimError as e:
                 print e.value
                 logger_cmd.error("cmd res: {}".format(e.value))
                 return
@@ -518,7 +518,7 @@ class ChassisCommands(object):
         try:
             chassis.init()
             chassis.destroy()
-        except InfraSimError, e:
+        except InfraSimError as e:
             print e.value
             logger_cmd.error("cmd res: {}".format(e.value))
         logger_cmd.info("cmd res: destroy chassis {} OK".format(chassis_name))

@@ -53,7 +53,7 @@ class BaseMap(object):
         logger_config.info("request rev: add item {0} with file {1}".format(item_name, config_path))
         try:
             self.load()
-        except DirectoryNotFound, e:
+        except DirectoryNotFound as e:
             print e.value
             logger_config.exception(e.value)
 
@@ -78,7 +78,7 @@ class BaseMap(object):
         dst = os.path.join(self.__mapping_folder, "{}.yml".format(item_name))
         with open(dst, 'w') as fp:
             yaml.dump(node_info, fp, default_flow_style=False, indent=2)
-        os.chmod(dst, 0664)
+        os.chmod(dst, 0o664)
 
         self.__name_list.append(item_name)
         print "Item {}'s configuration mapping added.".format(item_name)
@@ -93,7 +93,7 @@ class BaseMap(object):
         logger_config.info("request rev: delete item {}".format(item_name))
         try:
             self.load()
-        except DirectoryNotFound, e:
+        except DirectoryNotFound as e:
             print e.value
             logger_config.exception(e.value)
 
@@ -115,7 +115,7 @@ class BaseMap(object):
         logger_config.info("request rev: update item {0} with file {1}".format(item_name, config_path))
         try:
             self.load()
-        except DirectoryNotFound, e:
+        except DirectoryNotFound as e:
             print e.value
             logger_config.exception(e.value)
 
@@ -141,7 +141,7 @@ class BaseMap(object):
             node_info["name"] = item_name
             with open(dst, 'w') as fp:
                 yaml.dump(node_info, fp, default_flow_style=False)
-            os.chmod(dst, 0664)
+            os.chmod(dst, 0o664)
         except IOError:
             logger_config.exception("Item {}'s configuration failed to be updated.".format(item_name))
             raise InfraSimError(
@@ -157,7 +157,7 @@ class BaseMap(object):
         logger.info("request rev: list")
         try:
             self.load()
-        except DirectoryNotFound, e:
+        except DirectoryNotFound as e:
             print e.value
             logger.exception(e.value)
 
@@ -204,6 +204,9 @@ class NodeMap(BaseMap):
     def get_logger(self, name):
         return infrasim_log.get_logger(LoggerType.config.value, name)
 
+    def get_type(self):
+        return "node"
+
 
 class ChassisMap(BaseMap):
 
@@ -211,6 +214,9 @@ class ChassisMap(BaseMap):
         super(ChassisMap, self).__init__(config.infrasim_chassis_config_map)
         self.__nm = nm
         self.__chassis_name = None
+
+    def get_type(self):
+        return "chassis"
 
     def get_logger(self, name):
         return infrasim_log.get_chassis_logger(name)
@@ -253,7 +259,7 @@ class ChassisMap(BaseMap):
             filename = os.path.join("/tmp/", node_name + ".yml")
             with open(filename, 'w') as fo:
                 yaml.dump(node, fo, default_flow_style=False)
-            os.chmod(filename, 0664)
+            os.chmod(filename, 0o664)
             sub_nodes.append({"node_name": node_name, "file": filename})
             logger_config.info("Item {}'s yaml file: {}".format(node_name, filename))
         return sub_nodes
