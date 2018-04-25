@@ -6,6 +6,7 @@ from infrasim import ArgsNotCorrect
 from infrasim import InfraSimError
 from infrasim import logger
 
+
 class CPCIEPassthrough(CElement):
     def __init__(self, passthrough_info):
         super(CPCIEPassthrough, self).__init__()
@@ -29,7 +30,6 @@ class CPCIEPassthrough(CElement):
             logger.error("read_config: {}".format(e))
         finally:
             return v
-
 
     def init(self):
         self.__host_bdf = self.__pci_dev_info.get("host")
@@ -85,7 +85,8 @@ class CPCIEPassthrough(CElement):
             driver_path = "{}/{}/driver".format(device_prefix, device_bdf)
             if os.path.exists(driver_path):
                 current_driver = os.path.basename(os.readlink(driver_path))
-                logger.info("Binding driver from {} to {} for {}".format(current_driver, self.__target_driver, device_bdf))
+                logger.info("Binding driver from {} to {} for {}".format(current_driver,
+                                                                         self.__target_driver, device_bdf))
                 if current_driver == self.__target_driver:
                     logger.warn("{} is already bound to {}".format(device_bdf, self.__target_driver))
                     continue
@@ -98,14 +99,16 @@ class CPCIEPassthrough(CElement):
                     device_id = self.__read_config(device_bdf, 2, 2)
 
                     logger.info("write {:04x} {:04x} to {}/{}/new_id".format(vendor_id,
-                                                                       device_id,
-                                                                       driver_prefix, self.__target_driver))
+                                                                             device_id,
+                                                                             driver_prefix,
+                                                                             self.__target_driver))
                     new_id_fd = os.open("{}/{}/new_id".format(driver_prefix, self.__target_driver),
-                                            os.O_WRONLY)
+                                        os.O_WRONLY)
                     os.write(new_id_fd, "{:04x} {:04x}".format(vendor_id, device_id))
 
             fd2 = os.open("/sys/bus/pci/drivers_probe", os.O_WRONLY)
             os.write(fd2, device_bdf)
+
 
 if __name__ == '__main__':
     info = {'driver': 'vfio-pci', 'host': '0000:5e:00.0'}
