@@ -64,7 +64,7 @@ class test_ivn(unittest.TestCase):
         topo.create()
         result1 = subprocess.check_output(['ovs-vsctl', 'list-br'])
         self.assertIn("br-int", result1, "vswitch is missing")
-        result2 = subprocess.check_output(['ovs-vsctl', 'list-ports','br-int'])
+        result2 = subprocess.check_output(['ovs-vsctl', 'list-ports', 'br-int'])
         self.assertIn("vint0", result2, "ports is missing")
         self.assertIn("vint1", result2, "ports is missing")
         result = subprocess.check_output(["ip", "netns", "list"])
