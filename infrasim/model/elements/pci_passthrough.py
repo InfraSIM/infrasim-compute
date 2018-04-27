@@ -14,6 +14,9 @@ class CPCIEPassthrough(CElement):
         self.__host_bdf = None
         self.__target_driver = None
         self.__dev_sysfs = []
+        self.__bus = None
+        self.__addr = None
+        self.__multifunction = None
 
     def precheck(self):
         pass
@@ -33,6 +36,9 @@ class CPCIEPassthrough(CElement):
 
     def init(self):
         self.__host_bdf = self.__pci_dev_info.get("host")
+        self.__bus = self.__pci_dev_info.get("bus")
+        self.__addr = self.__pci_dev_info.get("addr")
+        self.__multifunction = self.__pci_dev_info.get("multifunction")
         if self.__host_bdf is None:
             raise ArgsNotCorrect("host should be set.")
 
@@ -73,6 +79,13 @@ class CPCIEPassthrough(CElement):
             device = "pci-assign"
 
         device_option = "-device {},host={}".format(device, self.__host_bdf)
+        if self.__bus:
+            device_option = "{},bus={}" .format(device_option, self.__bus)
+        if self.__addr:
+            device_option = "{},addr={}" .format(device_option, self.__addr)
+        if self.__multifunction:
+            device_option = "{},multifunction={}".format(device_option, self.__multifunction)
+
         logger.info("{}".format(device_option))
         self.add_option(device_option)
 
@@ -108,6 +121,15 @@ class CPCIEPassthrough(CElement):
 
             fd2 = os.open("/sys/bus/pci/drivers_probe", os.O_WRONLY)
             os.write(fd2, device_bdf)
+
+            iommu_group_path = os.readlink(os.path.join([device_prefix, self.__host_bdf, "iommu_group"]))
+            iommu_group_id = int(iommu_group_path.split('/')[-1])
+            if os.path.exists("/dev/fio/{}".format(iommu_group_id)):
+                os.chown("/dev/fio/{}".format(iommu_group_id), os.environ.get("SUDO_UID"),
+                         os.environ.get("SUDO_GID"))
+
+            if os.path.exists("/dev/fio/fio"):
+                os.chmod("/dev/fio/fio", 0664)
 
 
 if __name__ == '__main__':
