@@ -106,7 +106,7 @@ class Task(object):
         return self.__task_is_running(pid)
 
     def __wait_task_completed(self, lock, pid=-1, timeout=15):
-        timeout = timeout - self.checking_time
+        timeout = timeout - self.checking_time + 1
 
         start = time.time()
         while True:
