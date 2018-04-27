@@ -166,6 +166,7 @@ class CCompute(Task, CElement):
                 self.__boot_menu = "on" if self.__compute['boot']['menu'] in [True, 'on'] else "off"
             self.__boot_splash_name = self.__compute['boot'].get('splash', None)
             self.__boot_splash_time = self.__compute['boot'].get('splash-time', None)
+            self.checking_time = self.__compute['boot'].get('checking_time', 1)
         else:
             self.__boot_order = "ncd"
 
