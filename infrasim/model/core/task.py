@@ -38,6 +38,7 @@ class Task(object):
         # no actual run shall be taken
         self.__asyncronous = False
         self.__netns = None
+        self.checking_time = 1
 
     @property
     def netns(self):
@@ -105,6 +106,8 @@ class Task(object):
         return self.__task_is_running(pid)
 
     def __wait_task_completed(self, lock, pid=-1, timeout=15):
+        timeout = timeout - self.checking_time + 1
+
         start = time.time()
         while True:
             if time.time() - start > timeout:
@@ -157,7 +160,7 @@ class Task(object):
                 # created, but actually the qemu died.
                 os.remove(pid_file)
 
-            pid = self.execute_command(cmdline, self.__logger, log_path=self.__log_path)
+            pid = self.execute_command(cmdline, self.__logger, log_path=self.__log_path, duration=self.checking_time)
 
             if self.__wait_task_completed(lock, pid):
                 self.__print_task(pid, self.__task_name, "running")
@@ -211,7 +214,7 @@ class Task(object):
 
     @staticmethod
     @double_fork
-    def execute_command(command, logger, log_path="",):
+    def execute_command(command, logger, log_path="", duration=1):
         args = shlex.split(command)
         proc = subprocess.Popen(args, stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE,
@@ -220,7 +223,7 @@ class Task(object):
 
         flags = fcntl.fcntl(proc.stderr, fcntl.F_GETFL)
         fcntl.fcntl(proc.stderr, fcntl.F_SETFL, flags | os.O_NONBLOCK)
-        time.sleep(1)
+        time.sleep(duration)
 
         errout = None
         try:
