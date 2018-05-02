@@ -44,6 +44,8 @@ class PackageManager(object):
         if self.__progress:
             op_progress = apt.progress.text.OpProgress()
         self.__apt_pkg_cache = apt_pkg.Cache(op_progress)
+        self.__apt_pkg_cache.update(apt.progress.base.AcquireProgress(),
+                                    apt_pkg.SourceList())
         self.__depcache = apt_pkg.DepCache(self.__apt_pkg_cache)
 
     def __check_if_entry_exists(self, entry):
@@ -115,6 +117,7 @@ class PackageManager(object):
         cache.update(acquire_progress)  # apt-get update
         cache.open()
         cache.commit()
+        cache.close()
 
     def is_installed(self, package_name):
         """
