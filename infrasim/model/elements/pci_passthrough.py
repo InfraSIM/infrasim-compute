@@ -122,7 +122,7 @@ class CPCIEPassthrough(CElement):
             fd2 = os.open("/sys/bus/pci/drivers_probe", os.O_WRONLY)
             os.write(fd2, device_bdf)
 
-            iommu_group_path = os.readlink(os.path.join([device_prefix, self.__host_bdf, "iommu_group"]))
+            iommu_group_path = os.readlink(os.path.join(device_prefix, self.__host_bdf, "iommu_group"))
             iommu_group_id = int(iommu_group_path.split('/')[-1])
             if os.path.exists("/dev/fio/{}".format(iommu_group_id)):
                 os.chown("/dev/fio/{}".format(iommu_group_id), os.environ.get("SUDO_UID"),
