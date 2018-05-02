@@ -779,7 +779,7 @@ class test_three_storage_controllers(unittest.TestCase):
         assert len(storage_list) == 3
         for c_map in storage_list:
             if c_map.get('name') == 'ahci':
-                assert len(c_map.get('buses')) == 2 * 6  # 2 controllers * 6 ports per controller
+                assert len(c_map.get('buses')) == 1 * 6  # 1 controllers * 6 ports per controller
                 assert len(c_map.get('disks')) == 6
             elif c_map.get('name') == 'megaraid_sas' or c_map.get('name') == 'sym53c8xx':
                 assert len(c_map.get('buses')) == 1
@@ -907,7 +907,7 @@ class test_four_storage_controllers(unittest.TestCase):
         assert len(storage_list) == 3
         for c_map in storage_list:
             if c_map.get('name') == 'ahci':
-                assert len(c_map.get('buses')) == 3 * 6  # 3 controllers * 6 ports per controller
+                assert len(c_map.get('buses')) == 2 * 6  # 2 controllers * 6 ports per controller
                 assert len(c_map.get('disks')) == 12
             elif c_map.get('name') == 'megaraid_sas' or c_map.get('name') == 'sym53c8xx':
                 assert len(c_map.get('buses')) == 1
