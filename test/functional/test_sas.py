@@ -6,6 +6,7 @@ Copyright @ 2017 EMC Corporation All Rights Reserved
 import unittest
 import os
 import shutil
+import re
 from infrasim import model
 from infrasim import helper
 from infrasim import InfraSimError
@@ -17,7 +18,7 @@ from test import fixtures
 Test inquiry/mode sense data injection of scsi drive
 """
 file_prefix = os.path.dirname(os.path.realpath(__file__))
-test_img_file = "/tmp/kcs.img"
+test_img_file = os.environ.get('TEST_IMAGE_PATH') or "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
 test_drive_image = "/tmp/test_drv{}.img"
 conf = {}
 tmp_conf_file = "/tmp/test.yml"
@@ -25,20 +26,17 @@ old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 ssh = None
 wwn_drv = 5764824129059301745
+drv_count = 8
+wwn_drv1 = 5764824129059311745
+drv1_count = 4
 wwn_exp0 = 5764611469514216599
 wwn_exp1 = 5764611469514216699
 
+wwn_exp2 = 5764611469514216799
+wwn_exp3 = 5764611469514216899
+
 
 def setup_module():
-    test_img_file = "/tmp/kcs.img"
-    DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
-    MD5_KCS_IMG = "986e5e63e8231a307babfbe9c81ca210"
-    try:
-        helper.fetch_image(DOWNLOAD_URL, MD5_KCS_IMG, test_img_file)
-    except InfraSimError as e:
-        print e.value
-        assert False
-
     os.environ["PATH"] = new_path
     if os.path.exists("/tmp/topo"):
         shutil.rmtree("/tmp/topo")
@@ -52,7 +50,7 @@ def teardown_module():
     os.environ["PATH"] = old_path
 
 
-def start_node(node_type):
+def start_node():
     """
     create two drive for comparasion.
     First drive has additional page, second doesn't
@@ -64,7 +62,7 @@ def start_node(node_type):
     conf = fake_config.get_node_info()
     conf["compute"]["boot"] = {
         "boot_order": "c"
-        }
+    }
 
     conf["compute"]["storage_backend"] = [
         {
@@ -105,7 +103,7 @@ def start_node(node_type):
                         "type": 28,
                         "drives": [
                             {
-                                "repeat": 8,
+                                "repeat": drv_count,
                                 "start_phy_id": 12,
                                 "format": "raw",
                                 "share-rw": "true",
@@ -135,7 +133,7 @@ def start_node(node_type):
                                 "side": 0,
                                 "name": "lcc-a",
                                 "ses": {
-                                   "buffer_data": "/home/infrasim/workspace/bins/buffer.bin"
+                                    "buffer_data": "/home/infrasim/workspace/bins/buffer.bin"
                                 }
                             },
                             {
@@ -156,12 +154,108 @@ def start_node(node_type):
                                 "side": 1,
                                 "name": "lcc-b",
                                 "ses": {
-                                   "buffer_data": "/home/infrasim/workspace/bins/buffer.bin"
+                                    "buffer_data": "/home/infrasim/workspace/bins/buffer.bin"
                                 }
                             }
                         ]
                     },
                     "name": "enclosure_0"
+                },
+                {
+                    "enclosure": {
+                        "type": 28,
+                        "drives": [
+                            {
+                                "repeat": drv1_count,
+                                "start_phy_id": 12,
+                                "format": "raw",
+                                "share-rw": "true",
+                                "version": "B29C",
+                                "file": "/tmp/topo/sdb{}.img",
+                                "slot_number": 0,
+                                "serial": "ZABCE{}",
+                                "wwn": wwn_drv1
+                            }
+                        ],
+                        "expanders": [
+                            {
+                                "phy_count": 36,
+                                "wwn": wwn_exp2,
+                                "ports": [
+                                    {
+                                        "phy": 0,
+                                        "id": 0,
+                                        "number": 4
+                                    },
+                                    {
+                                        "phy": 4,
+                                        "id": 1,
+                                        "number": 4
+                                    }
+                                ],
+                                "side": 0,
+                                "name": "lcc-a",
+                                "ses": {
+                                    "buffer_data": "/home/infrasim/workspace/bins/buffer.bin"
+                                }
+                            },
+                            {
+                                "phy_count": 36,
+                                "wwn": wwn_exp3,
+                                "ports": [
+                                    {
+                                        "phy": 0,
+                                        "id": 0,
+                                        "number": 4
+                                    },
+                                    {
+                                        "phy": 4,
+                                        "id": 1,
+                                        "number": 4
+                                    }
+                                ],
+                                "side": 1,
+                                "name": "lcc-b",
+                                "ses": {
+                                    "buffer_data": "/home/infrasim/workspace/bins/buffer.bin"
+                                }
+                            }
+                        ]
+                    },
+                    "name": "enclosure_1"
+                },
+                {
+                    "connections": [
+                        {"link": [
+                            {
+                                "disk_array": "enclosure_0",
+                                "exp": "lcc-a",
+                                "number": 4,
+                                "phy": 4
+                            },
+                            {
+                                "disk_array": "enclosure_1",
+                                "exp": "lcc-a",
+                                "number": 4,
+                                "phy": 0
+                            }
+                        ]},
+                        {"link": [
+                            {
+                                "disk_array": "enclosure_0",
+                                "exp": "lcc-b",
+                                "number": 4,
+                                "phy": 4
+                            },
+                            {
+                                "disk_array": "enclosure_1",
+                                "exp": "lcc-b",
+                                "number": 4,
+                                "phy": 0
+                            }
+                        ]
+                        }
+                    ]
                 }
             ]
         }
@@ -206,7 +300,7 @@ class test_disk_array_topo(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        start_node(node_type="quanta_d51")
+        start_node()
 
     @classmethod
     def tearDownClass(cls):
@@ -214,33 +308,105 @@ class test_disk_array_topo(unittest.TestCase):
 
     def test_sasi_disk_serial(self):
         # check the availability of drives and enclosures.
-        drv_list = run_cmd("ls /dev/sd*").split(" ")
+        drv_list = run_cmd("ls /dev/sd*").split("\n")
         for i in drv_list:
             rst = run_cmd("sg_inq {0}".format(i))
             if "B29C" in rst:
-                self.assertIn("ZABCD0", rst, "Serial Number not as expected:\n"
+                self.assertIn("Unit serial number: ZABC", rst, "Serial Number not as expected:\n"
                               "{}".format(rst))
 
     def test_scsi_devices_availability(self):
+        """
+        Verify all devices can be found by OS.
+        """
         rst = run_cmd("lspci")
-        self.assertIn("Serial Attached SCSI controller: LSI Logic", rst,
-                      "SAS Controller not loaded!")
+        self.assertIn("Serial Attached SCSI controller: LSI Logic", rst, "SAS Controller not loaded!")
 
         # check the wwn and type of devices
-        rst = run_cmd("for f in /sys/bus/scsi/devices/0*;"
+        rst = run_cmd("for f in /sys/bus/scsi/devices/6*;"
                       "do cat $f/type | tr '\n' ' ' && cat $f/sas_address; done")
         rst_lines = rst.splitlines()
-        # prepare expected string. 0 end device, 13 enclosure.
-        # 8 drives(2 ports for each) and 2 enclosure.
+        # prepare expected string. type=0:end device, type=13:enclosure.
+        # drives with 2 ports for each and seses.
         expect = {}
-        for i in range(8):
+        for i in range(drv_count):
             expect["0 " + hex(wwn_drv + i * 4 + 1)] = False
             expect["0 " + hex(wwn_drv + i * 4 + 2)] = False
+
         expect["13 " + hex(wwn_exp0 - 1)] = False
         expect["13 " + hex(wwn_exp1 - 1)] = False
+
+        for i in range(drv1_count):
+            expect["0 " + hex(wwn_drv1 + i * 4 + 1)] = False
+            expect["0 " + hex(wwn_drv1 + i * 4 + 2)] = False
+
+        expect["13 " + hex(wwn_exp2 - 1)] = False
+        expect["13 " + hex(wwn_exp3 - 1)] = False
         # check the returned content.
         for line in rst_lines:
             expect.update({line: True})
         for key, val in expect.iteritems():
-            self.assertTrue(
-                val, "SCSI Device not found in sys: {0}".format(key))
+            self.assertTrue(val, "SCSI Device not found in sys: {0}".format(key))
+
+    def test_sas_chain(self):
+        """
+        Verify the connection between expanders
+        """
+        topology = {}
+
+        def split_link(msg):
+            """
+            a helper to extract connection to another expander
+            """
+            msg = msg.rstrip().split('\n')
+            result = {}
+            for link in msg:
+                m = re.match(
+                    "^\s+phy\s+(?P<phy>\d+):.:attached:\[(?P<atta_wwn>[0-9a-f]+):(?P<atta_phy>\d+) exp .*\]", link)
+                if m:
+                    item = {"atta_wwn": "0x" + m.group("atta_wwn"), "atta_phy": int(m.group("atta_phy"))}
+                    result[int(m.group("phy"))] = item
+            # "  phy   0:U:attached:[50000396dc89949f:04 exp i(SSP+STP+SMP)]  12 Gbps"
+            return result
+
+        def verify_link(wwn, phy, atta_wwn, atta_phy, number):
+            """
+            helper to verify connection in both direction.
+            """
+            def verify(wwn, phy, atta_wwn, atta_phy):
+                """
+                verify connection in one direction.
+                """
+                self.assertIn(wwn, topology.keys(), "Mismatch expander [{}]".format(wwn))
+                links = topology[wwn]["subs"]
+                self.assertIn(phy, links.keys(), "Mismatch phy {} in expander {}".format(phy, wwn))
+                atta = links[phy]
+                self.assertEqual(
+                    atta_wwn, atta["atta_wwn"],
+                    "Mismatch atta_wwn {} in phy {} of exp {}".format(atta_wwn, phy, wwn))
+                self.assertEqual(
+                    atta_phy, atta["atta_phy"],
+                    "Mismatch atta_phy {} in phy {} of exp {}".format(atta_phy, phy, wwn))
+
+            # verify conections
+            wwn = hex(wwn)
+            atta_wwn = hex(atta_wwn)
+            for index in range(number):
+                verify(wwn, phy + index, atta_wwn, atta_phy + index)
+                verify(atta_wwn, atta_phy + index, wwn, phy + index)
+
+        # prepare the list of expander's wwn
+        content = run_cmd("ls -1 /dev/bsg/expander-*")
+        exp_list = content.rstrip().split('\n')
+        for name in exp_list:
+            content = run_cmd("sudo smp_discover {}".format(name))
+            exp_child = split_link(content)
+
+            content = run_cmd("sudo smp_discover -M {}".format(name))
+            exp_wwn = content.rstrip()
+
+            topology[exp_wwn] = {"name": name, "subs": exp_child}
+
+        # verify connection between expanders.
+        verify_link(wwn_exp0, 4, wwn_exp2, 0, 4)
+        verify_link(wwn_exp1, 4, wwn_exp3, 0, 4)
