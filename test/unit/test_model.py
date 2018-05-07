@@ -44,76 +44,60 @@ class qemu_functions(unittest.TestCase):
         cls.node.terminate_workspace()
 
     def test_set_cpu(self):
-        try:
-            cpu_info = {
-                "quantities": 2,
-                "type": "Haswell"
-            }
+        cpu_info = {
+            "quantities": 2,
+            "type": "Haswell"
+        }
 
-            cpu = model.CCPU(cpu_info)
-            cpu.init()
-            cpu.precheck()
-            cpu.handle_parms()
-            assert "-cpu Haswell" in cpu.get_option()
-            assert "-smp 2" in cpu.get_option()
-        except Exception:
-            assert False
+        cpu = model.CCPU(cpu_info)
+        cpu.init()
+        cpu.precheck()
+        cpu.handle_parms()
+        assert "-cpu Haswell" in cpu.get_option()
+        assert "-smp 2" in cpu.get_option()
 
     def test_set_cpu_no_info(self):
-        try:
-            cpu_info = {}
+        cpu_info = {}
 
-            cpu = model.CCPU(cpu_info)
-            cpu.init()
-            cpu.precheck()
-            cpu.handle_parms()
-            assert "-cpu host" in cpu.get_option()
-            assert "-smp 2" in cpu.get_option()
-        except Exception:
-            assert False
+        cpu = model.CCPU(cpu_info)
+        cpu.init()
+        cpu.precheck()
+        cpu.handle_parms()
+        assert "-cpu host" in cpu.get_option()
+        assert "-smp 2" in cpu.get_option()
 
     def test_set_cpu_only_quantity(self):
-        try:
-            cpu_info = {
-                "quantities": 8
-            }
+        cpu_info = {
+            "quantities": 8
+        }
 
-            cpu = model.CCPU(cpu_info)
-            cpu.init()
-            cpu.precheck()
-            cpu.handle_parms()
-            assert "-smp 8,sockets=2,cores=4,threads=1" in cpu.get_option()
-        except Exception:
-            assert False
+        cpu = model.CCPU(cpu_info)
+        cpu.init()
+        cpu.precheck()
+        cpu.handle_parms()
+        assert "-smp 8,sockets=2,cores=4,threads=1" in cpu.get_option()
 
+    @raises(ArgsNotCorrect)
     def test_set_cpu_negative_quantity(self):
-        try:
-            cpu_info = {
-                "quantities": -2
-            }
+        cpu_info = {
+            "quantities": -2
+        }
 
-            cpu = model.CCPU(cpu_info)
-            cpu.init()
-            cpu.precheck()
-            cpu.handle_parms()
-        except ArgsNotCorrect:
-            assert True
-        else:
-            assert False
+        cpu = model.CCPU(cpu_info)
+        cpu.init()
+        cpu.precheck()
+        cpu.handle_parms()
 
     def test_set_cpu_feature_nx(self):
-        try:
-            cpu_info = {
-                "features": "+nx"
-            }
+        cpu_info = {
+            "features": "+nx"
+        }
 
-            cpu = model.CCPU(cpu_info)
-            cpu.init()
-            cpu.precheck()
-            cpu.handle_parms()
-            assert "-cpu host,+nx" in cpu.get_option()
-        except Exception:
-            assert False
+        cpu = model.CCPU(cpu_info)
+        cpu.init()
+        cpu.precheck()
+        cpu.handle_parms()
+        assert "-cpu host,+nx" in cpu.get_option()
 
     def test_set_menu_unsupported_type_digit(self):
         with open(config.infrasim_default_config, "r") as f_yml:
@@ -150,68 +134,56 @@ class qemu_functions(unittest.TestCase):
         assert "menu=on" in compute.get_commandline()
 
     def test_set_ahci_storage_controller(self):
-        try:
-            backend_storage_info = [{
-                "type": "ahci",
-                "max_drive_per_controller": 6,
-                "drives": [{"size": 8, "file": "/tmp/sda.img"}]
-            }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "-device ahci" in storage.get_option()
-        except Exception:
-            assert False
+        backend_storage_info = [{
+            "type": "ahci",
+            "max_drive_per_controller": 6,
+            "drives": [{"size": 8, "file": "/tmp/sda.img"}]
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "-device ahci" in storage.get_option()
 
     def test_set_nvme_controller(self):
-        try:
-            backend_storage_info = [{
-                "type": "nvme",
-                "cmb_size": 256,
-                "serial": "26E0A024T2VD",
-                "size": 8
-            }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "-device nvme" in storage.get_option()
-        except Exception:
-            assert False
+        backend_storage_info = [{
+            "type": "nvme",
+            "cmb_size": 256,
+            "serial": "26E0A024T2VD",
+            "size": 8
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "-device nvme" in storage.get_option()
 
     def test_set_nvme_controller_default_serial(self):
-        try:
-            backend_storage_info = [{
-                "type": "nvme",
-                "cmb_size": 256,
-                "size": 8
-            }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            p = re.compile(r"-device nvme.*serial=\w+")
-            m = p.search(storage.get_option())
-            assert m is not None
-        except Exception:
-            assert False
+        backend_storage_info = [{
+            "type": "nvme",
+            "cmb_size": 256,
+            "size": 8
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        p = re.compile(r"-device nvme.*serial=\w+")
+        m = p.search(storage.get_option())
+        assert m is not None
 
     def test_set_nvme_controller_default_cmb_size(self):
-        try:
-            backend_storage_info = [{
-                "type": "nvme",
-                "serial": "26E0A024T2VD",
-                "size": 8
-            }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "-device nvme" in storage.get_option()
-            assert "cmb_size_mb=256" in storage.get_option()
-        except Exception:
-            assert False
+        backend_storage_info = [{
+            "type": "nvme",
+            "serial": "26E0A024T2VD",
+            "size": 8
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "-device nvme" in storage.get_option()
+        assert "cmb_size_mb=256" in storage.get_option()
 
     def test_set_nvme_controller_invalid_cmb_size(self):
         try:
@@ -229,44 +201,38 @@ class qemu_functions(unittest.TestCase):
             assert False
 
     def test_set_lsi_storage_controller(self):
-        try:
-            backend_storage_info = [{
-                "type": "lsi",
-                "max_drive_per_controller": 6,
-                "drives": [{"size": 8, "file": "/tmp/sda.img"}]
-            }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "-device lsi" in storage.get_option()
-        except Exception:
-            assert False
+        backend_storage_info = [{
+            "type": "lsi",
+            "max_drive_per_controller": 6,
+            "drives": [{"size": 8, "file": "/tmp/sda.img"}]
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "-device lsi" in storage.get_option()
 
     def test_set_megasas_storage_controller(self):
-        try:
-            backend_storage_info = [{
-                "type": "megasas",
-                "max_drive_per_controller": 6,
-                "use_jbod": True,
-                "msi": True,
-                "max_cmds": 1024,
-                "max_sge": 128,
-                "sas_address": "000abc",
-                "drives": [{"size": 8, "file": "/tmp/sda.img"}]
-            }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "-device megasas" in storage.get_option()
-            assert "use_jbod=True" in storage.get_option()
-            assert "msi=True" in storage.get_option()
-            assert "max_cmds=1024" in storage.get_option()
-            assert "max_sge=128" in storage.get_option()
-            assert "sas_address=000abc" in storage.get_option()
-        except Exception:
-            assert False
+        backend_storage_info = [{
+            "type": "megasas",
+            "max_drive_per_controller": 6,
+            "use_jbod": True,
+            "msi": True,
+            "max_cmds": 1024,
+            "max_sge": 128,
+            "sas_address": "000abc",
+            "drives": [{"size": 8, "file": "/tmp/sda.img"}]
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "-device megasas" in storage.get_option()
+        assert "use_jbod=True" in storage.get_option()
+        assert "msi=True" in storage.get_option()
+        assert "max_cmds=1024" in storage.get_option()
+        assert "max_sge=128" in storage.get_option()
+        assert "sas_address=000abc" in storage.get_option()
 
     @raises(ArgsNotCorrect)
     def test_unsupported_storage_controller(self):
@@ -282,252 +248,212 @@ class qemu_functions(unittest.TestCase):
         assert "-device scsi" in storage.get_option()
 
     def test_set_ahci_storage_controller_2x(self):
-        try:
-            backend_storage_info = [{
-                "type": "ahci",
-                "max_drive_per_controller": 2,
-                "drives": [{"size": 8, "file": "/tmp/sda.img"},
-                           {"size": 8, "file": "/tmp/sdb.img"},
-                           {"size": 8, "file": "/tmp/sdc.img"}]
-            }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "sata1.0" in storage.get_option()
-        except Exception:
-            assert False
+        backend_storage_info = [{
+            "type": "ahci",
+            "max_drive_per_controller": 2,
+            "drives": [{"size": 8, "file": "/tmp/sda.img"},
+                        {"size": 8, "file": "/tmp/sdb.img"},
+                        {"size": 8, "file": "/tmp/sdc.img"}]
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "sata1.0" in storage.get_option()
 
     def test_set_ahci_drive_model(self):
-        try:
-            backend_storage_info = [{
-                "type": "ahci",
-                "max_drive_per_controller": 6,
-                "drives": [{"size": 8,
-                            "model": "SATADOM",
-                            "file": "/tmp/sda.img"}]
-            }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "SATADOM" in storage.get_option()
-        except Exception:
-            assert False
+        backend_storage_info = [{
+            "type": "ahci",
+            "max_drive_per_controller": 6,
+            "drives": [{"size": 8,
+                        "model": "SATADOM",
+                        "file": "/tmp/sda.img"}]
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "SATADOM" in storage.get_option()
 
     def test_set_ahci_drive_serial(self):
-        try:
-            backend_storage_info = [{
-                "type": "ahci",
-                "max_drive_per_controller": 6,
-                "drives": [
-                    {"size": 8, "file": "/tmp/sda.img",
-                     "model": "SATADOM", "serial": "HUSMM442"}
-                ]
-            }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "HUSMM442" in storage.get_option()
-        except Exception:
-            assert False
+        backend_storage_info = [{
+            "type": "ahci",
+            "max_drive_per_controller": 6,
+            "drives": [
+                {"size": 8, "file": "/tmp/sda.img",
+                    "model": "SATADOM", "serial": "HUSMM442"}
+            ]
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "HUSMM442" in storage.get_option()
 
     def test_set_scsi_drive_vender(self):
-        try:
-            backend_storage_info = [{
-                "type": "megasas-gen2",
-                "max_drive_per_controller": 6,
-                "drives": [
-                    {"size": 8, "serial": "HUSMM442", "file": "/tmp/sda.img",
-                        "model": "SATADOM", "vendor": "Hitachi"}],
-            }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "Hitachi" in storage.get_option()
-        except Exception:
-            assert False
+        backend_storage_info = [{
+            "type": "megasas-gen2",
+            "max_drive_per_controller": 6,
+            "drives": [
+                {"size": 8, "serial": "HUSMM442", "file": "/tmp/sda.img",
+                    "model": "SATADOM", "vendor": "Hitachi"}],
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "Hitachi" in storage.get_option()
 
     def test_set_scsi_drive_rotation(self):
-        try:
-            backend_storage_info = [{
-                "type": "megasas-gen2",
-                "max_drive_per_controller": 6,
-                "drives": [{
-                    "size": 8, "model": "SATADOM",
-                    "serial": "HUSMM442", "vendor": "Hitachi",
-                    "rotation": 1, "file": "/tmp/sda.img"
-                }]
+        backend_storage_info = [{
+            "type": "megasas-gen2",
+            "max_drive_per_controller": 6,
+            "drives": [{
+                "size": 8, "model": "SATADOM",
+                "serial": "HUSMM442", "vendor": "Hitachi",
+                "rotation": 1, "file": "/tmp/sda.img"
             }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "rotation" in storage.get_option()
-        except Exception:
-            assert False
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "rotation" in storage.get_option()
 
     def test_set_scsi_drive_product(self):
-        try:
-            backend_storage_info = [{
-                "type": "megasas-gen2",
-                "max_drive_per_controller": 6,
-                "drives": [{
-                        "size": 8, "model": "SATADOM", "file": "/tmp/sda.img",
-                        "serial": "HUSMM442", "vendor": "Hitachi",
-                        "rotation": 1, "product": "Quanta"}]
-            }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "product" in storage.get_option()
-        except Exception:
-            assert False
+        backend_storage_info = [{
+            "type": "megasas-gen2",
+            "max_drive_per_controller": 6,
+            "drives": [{
+                    "size": 8, "model": "SATADOM", "file": "/tmp/sda.img",
+                    "serial": "HUSMM442", "vendor": "Hitachi",
+                    "rotation": 1, "product": "Quanta"}]
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "product" in storage.get_option()
 
     def test_set_scsi_drive_port_index(self):
-        try:
-            backend_storage_info = [{
-                "type": "megasas-gen2",
-                "max_drive_per_controller": 6,
-                "drives": [{
-                    "size": 8,
-                    "file": "/tmp/sda.img",
-                    "port_index": "1"
-                }]
+        backend_storage_info = [{
+            "type": "megasas-gen2",
+            "max_drive_per_controller": 6,
+            "drives": [{
+                "size": 8,
+                "file": "/tmp/sda.img",
+                "port_index": "1"
             }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "port_index=1" in storage.get_option()
-        except Exception:
-            assert False
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "port_index=1" in storage.get_option()
 
     def test_set_scsi_drive_port_wwn(self):
-        try:
-            backend_storage_info = [{
-                "type": "megasas-gen2",
-                "max_drive_per_controller": 6,
-                "drives": [{
-                    "size": 8,
-                    "file": "/tmp/sda.img",
-                    "port_wwn": "wwn-000abc"
-                }]
+        backend_storage_info = [{
+            "type": "megasas-gen2",
+            "max_drive_per_controller": 6,
+            "drives": [{
+                "size": 8,
+                "file": "/tmp/sda.img",
+                "port_wwn": "wwn-000abc"
             }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "port_wwn=wwn-000abc" in storage.get_option()
-        except Exception:
-            assert False
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "port_wwn=wwn-000abc" in storage.get_option()
 
     def test_set_scsi_drive_channel(self):
-        try:
-            backend_storage_info = [{
-                "type": "megasas-gen2",
-                "max_drive_per_controller": 6,
-                "drives": [{
-                    "size": 8,
-                    "file": "/tmp/sda.img",
-                    "channel": "1"
-                }]
+        backend_storage_info = [{
+            "type": "megasas-gen2",
+            "max_drive_per_controller": 6,
+            "drives": [{
+                "size": 8,
+                "file": "/tmp/sda.img",
+                "channel": "1"
             }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "channel=1" in storage.get_option()
-        except Exception:
-            assert False
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "channel=1" in storage.get_option()
 
     def test_set_scsi_scsiid(self):
-        try:
-            backend_storage_info = [{
-                "type": "megasas-gen2",
-                "max_drive_per_controller": 6,
-                "drives": [{
-                    "size": 8,
-                    "file": "/tmp/sda.img",
-                    "scsi-id": "1"
-                }]
+        backend_storage_info = [{
+            "type": "megasas-gen2",
+            "max_drive_per_controller": 6,
+            "drives": [{
+                "size": 8,
+                "file": "/tmp/sda.img",
+                "scsi-id": "1"
             }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "scsi-id=1" in storage.get_option()
-        except Exception:
-            assert False
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "scsi-id=1" in storage.get_option()
 
     def test_set_scsi_lun(self):
-        try:
-            backend_storage_info = [{
-                "type": "megasas-gen2",
-                "max_drive_per_controller": 6,
-                "drives": [{
-                    "size": 8,
-                    "file": "/tmp/sda.img",
-                    "lun": "1"
-                }]
+        backend_storage_info = [{
+            "type": "megasas-gen2",
+            "max_drive_per_controller": 6,
+            "drives": [{
+                "size": 8,
+                "file": "/tmp/sda.img",
+                "lun": "1"
             }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "lun=1" in storage.get_option()
-        except Exception:
-            assert False
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "lun=1" in storage.get_option()
 
     def test_set_scsi_slot(self):
-        try:
-            backend_storage_info = [{
-                "type": "megasas-gen2",
-                "max_drive_per_controller": 6,
-                "drives": [{
-                    "size": 8,
-                    "file": "/tmp/sda.img",
-                    "slot_number": "2"
-                }]
+        backend_storage_info = [{
+            "type": "megasas-gen2",
+            "max_drive_per_controller": 6,
+            "drives": [{
+                "size": 8,
+                "file": "/tmp/sda.img",
+                "slot_number": "2"
             }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "slot_number=2" in storage.get_option()
-        except Exception:
-            assert False
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "slot_number=2" in storage.get_option()
 
     def test_set_drive_page_file_exist(self):
         file_name = "/tmp/an_avaiable_page_file.bin"
         os.system("touch {0}".format(file_name))
         ps = r"-device \S+page_file={0}[\s,]".format(file_name)
         p = re.compile(ps)
-        try:
-            backend_storage_info = [{
-                "type": "megasas-gen2",
-                "max_drive_per_controller": 6,
-                "drives": [{
-                    "size": 8, "model": "SATADOM",
-                    "serial": "HUSMM442", "vendor": "Hitachi",
-                    "rotation": 1, "file": "/tmp/sda.img",
-                    "page-file": file_name
-                }]
+        backend_storage_info = [{
+            "type": "megasas-gen2",
+            "max_drive_per_controller": 6,
+            "drives": [{
+                "size": 8, "model": "SATADOM",
+                "serial": "HUSMM442", "vendor": "Hitachi",
+                "rotation": 1, "file": "/tmp/sda.img",
+                "page-file": file_name
             }]
+        }]
 
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            m = p.search(storage.get_option())
-            assert m is not None
-        except Exception:
-            assert False
-        finally:
-            os.system("rm -f {0}".format(file_name))
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        m = p.search(storage.get_option())
+        assert m is not None
+        os.system("rm -f {0}".format(file_name))
 
     def test_set_drive_page_file_not_exist(self):
         file_name = "/tmp/an_avaiable_page_file.bin"
@@ -556,42 +482,36 @@ class qemu_functions(unittest.TestCase):
             assert False
 
     def test_enable_drive_share_rw(self):
-        try:
-            backend_storage_info = [{
-                "type": "megasas-gen2",
-                "max_drive_per_controller": 6,
-                "drives": [{
-                    "size": 8,
-                    "file": "/tmp/sda.img",
-                    "share-rw": "true"
-                }]
+        backend_storage_info = [{
+            "type": "megasas-gen2",
+            "max_drive_per_controller": 6,
+            "drives": [{
+                "size": 8,
+                "file": "/tmp/sda.img",
+                "share-rw": "true"
             }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "share-rw=true" in storage.get_option()
-        except Exception:
-            assert False
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "share-rw=true" in storage.get_option()
 
     def test_disable_drive_share_rw(self):
-        try:
-            backend_storage_info = [{
-                "type": "megasas-gen2",
-                "max_drive_per_controller": 6,
-                "drives": [{
-                    "size": 8,
-                    "file": "/tmp/sda.img",
-                    "share-rw": "false"
-                }]
+        backend_storage_info = [{
+            "type": "megasas-gen2",
+            "max_drive_per_controller": 6,
+            "drives": [{
+                "size": 8,
+                "file": "/tmp/sda.img",
+                "share-rw": "false"
             }]
-            storage = model.CBackendStorage(backend_storage_info)
-            storage.init()
-            storage.precheck()
-            storage.handle_parms()
-            assert "share-rw=false" in storage.get_option()
-        except Exception:
-            assert False
+        }]
+        storage = model.CBackendStorage(backend_storage_info)
+        storage.init()
+        storage.precheck()
+        storage.handle_parms()
+        assert "share-rw=false" in storage.get_option()
 
     def test_fault_drive_share_rw(self):
         try:

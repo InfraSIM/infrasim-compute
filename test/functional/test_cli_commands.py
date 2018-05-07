@@ -289,6 +289,7 @@ class test_node_cli(unittest.TestCase):
         dirs = [i for i in os.listdir(config.infrasim_home) if i.startswith('.') is False]
         self.assertEqual(len(dirs), 0)
 
+        # install specific versions
         package_list = [{"name": "infrasim-qemu", "version": "2.10.1-ubuntu-xenial-1.0.251"},
                         {"name": "infrasim-openipmi", "version": "2.0.24-1.4.79ubuntu16.04.1"}]
         pm = PackageManager(update_cache=True, progress=True)
@@ -301,6 +302,7 @@ class test_node_cli(unittest.TestCase):
             assert reobj
             assert pkg.get('version') == reobj.groupdict().get('version')
 
+        # upgrade to latest version
         package_list = [{"name": "infrasim-qemu", "version": "latest"},
                         {"name": "infrasim-openipmi", "version": "latest"}]
         for pkg in package_list:
@@ -312,6 +314,20 @@ class test_node_cli(unittest.TestCase):
             assert reobj
             assert pkg.get('version') != reobj.groupdict().get('version')
 
+        # downgrade to specific versions
+        package_list = [{"name": "infrasim-qemu", "version": "2.10.1-ubuntu-xenial-1.0.251"},
+                        {"name": "infrasim-openipmi", "version": "2.0.24-1.4.79ubuntu16.04.1"}]
+        pm = PackageManager(update_cache=True, progress=True)
+        for pkg in package_list:
+            assert pm.do_install(pkg.get('name'), version_str=pkg.get('version'), force=True)
+
+        for pkg in package_list:
+            rc, output = run_command('dpkg -s {} | grep \"^Version:\"'.format(pkg.get('name')))
+            reobj = re.search(r'^Version:\s?(?P<version>.*)', output.strip())
+            assert reobj
+            assert pkg.get('version') == reobj.groupdict().get('version')
+
+        # uninstall the versions
         for pkg in package_list:
             pm.do_uninstall(pkg.get('name'))
 
@@ -319,6 +335,18 @@ class test_node_cli(unittest.TestCase):
             self.assertRaises(CommandRunFailed, run_command,
                               cmd='dpkg -l | grep {}'.format(pkg.get('name')), shell=True,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        # install the packages again for the subsequent tests
+        package_list = [{"name": "infrasim-qemu", "version": "latest"},
+                        {"name": "infrasim-openipmi", "version": "latest"}]
+        for pkg in package_list:
+            assert pm.do_install(pkg.get('name'), version_str=pkg.get('version'), force=True)
+
+        for pkg in package_list:
+            rc, output = run_command('dpkg -s {} | grep \"^Version:\"'.format(pkg.get('name')))
+            reobj = re.search(r'^Version:\s?(?P<version>.*)', output.strip())
+            # make sure the package is installed
+            assert reobj
 
 
 class test_config_cli_with_runtime_node(unittest.TestCase):

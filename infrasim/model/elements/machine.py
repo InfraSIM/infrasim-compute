@@ -17,6 +17,8 @@ class CMachine(CElement):
         self.__usb_state = None
         self.__vmport_state = None
         self.__mem_merge = None
+        self.__sata = None
+        self.__igd_passthru = None
 
     def precheck(self):
         pass
@@ -30,6 +32,8 @@ class CMachine(CElement):
         self.__vmport_state = self.__machine.get("vmport", "off")
         self.__mem_merge = self.__machine.get("mem-merge", False)
         self.__kernel_irqchip = self.__machine.get("kernel-irqchip", "off")
+        self.__sata = self.__machine.get("sata", "false")
+        self.__igd_passthru = self.__machine.get("igd-passthru")
 
     def handle_parms(self):
         machine_option = "-machine {},usb={},vmport={}".format(
@@ -41,5 +45,11 @@ class CMachine(CElement):
 
         if self.__kernel_irqchip is not None:
             machine_option = ','.join([machine_option, "kernel-irqchip={}".format(self.__kernel_irqchip)])
+
+        if self.__sata:
+            machine_option = ','.join([machine_option, "sata={}".format(self.__sata)])
+
+        if self.__igd_passthru:
+            machine_option = ','.join([machine_option, "igd-passthru={}".format(self.__igd_passthru)])
 
         self.add_option(machine_option)

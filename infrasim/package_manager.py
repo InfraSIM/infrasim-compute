@@ -4,7 +4,8 @@ try:
     import apt_pkg
 except ImportError:
     from infrasim import run_command
-    run_command("apt-get install python-apt")
+    run_command("apt-get update")
+    run_command("apt-get install --no-install-recommends python-apt -y -q")
     import apt_pkg
 import apt.cache
 import apt.progress.text
@@ -43,6 +44,8 @@ class PackageManager(object):
         if self.__progress:
             op_progress = apt.progress.text.OpProgress()
         self.__apt_pkg_cache = apt_pkg.Cache(op_progress)
+        self.__apt_pkg_cache.update(apt.progress.base.AcquireProgress(),
+                                    apt_pkg.SourceList())
         self.__depcache = apt_pkg.DepCache(self.__apt_pkg_cache)
 
     def __check_if_entry_exists(self, entry):
@@ -114,6 +117,7 @@ class PackageManager(object):
         cache.update(acquire_progress)  # apt-get update
         cache.open()
         cache.commit()
+        cache.close()
 
     def is_installed(self, package_name):
         """
@@ -121,8 +125,7 @@ class PackageManager(object):
         """
         for pkg in self.__apt_pkg_cache.packages:
             if package_name == pkg.name:
-                return (pkg.inst_state == apt_pkg.INSTSTATE_OK and
-                        pkg.current_state == apt_pkg.CURSTATE_INSTALLED)
+                return pkg.current_state == apt_pkg.CURSTATE_INSTALLED
         return False
 
     def __get_version(self, package_name, version_str):

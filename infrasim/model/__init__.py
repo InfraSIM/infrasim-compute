@@ -37,6 +37,7 @@ from infrasim.model.elements.pcie_downstream import CPCIEDownstream
 from infrasim.model.elements.fw_cfg import CPCIEFwcfg
 from infrasim.model.elements.qemu_monitor import CQemuMonitor
 from infrasim.model.elements.machine import CMachine
+from infrasim.model.elements.pci_passthrough import CPCIEPassthrough
 
 from infrasim.model.tasks.compute import CCompute
 from infrasim.model.tasks.bmc import CBMC
@@ -76,4 +77,5 @@ __all__ = ["CNode",
            "CRacadm",
            "CMachine",
            "CChassisDaemon",
-           "CChassis"]
+           "CChassis",
+           "CPCIEPassthrough"]
