@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import yaml
 import sys
+import time
 
 from test import fixtures
 
@@ -44,6 +45,8 @@ def setup_module():
 
 def teardown_module():
     global ivn_file
+    topo = Topology(ivn_file)
+    topo.delete()
     os.unlink(ivn_file)
     os.environ['PATH'] = old_path
 
@@ -72,8 +75,22 @@ class test_ivn(unittest.TestCase):
         assert reobj
         reobj = re.search(r'node0ns(\s?\(id:\s?\d+\))?', result)
         assert reobj
-
+        cmd_infrasim_node = ['ip', 'netns', 'exec', 'node1ns', 'infrasim', 'node', 'start']
+        subprocess.call(cmd_infrasim_node)
+        time.sleep(3)
+        cmd_node_status = ['ip', 'netns', 'exec', 'node1ns', 'infrasim', 'node', 'status']
+        result_status = subprocess.check_output(cmd_node_status)
+        reobj = re.search(r'(.*)socat(.*)run(.*)', result_status)
+        assert reobj
+        reobj = re.search(r'(.*)racadm(.*)run(.*)', result_status)
+        assert reobj
+        reobj = re.search(r'(.*)bmc(.*)run(.*)', result_status)
+        assert reobj
+        reobj = re.search(r'(.*)node(.*)run(.*)', result_status)
+        assert reobj
         topo.delete()
+        cmd_infrasim_node = ['infrasim', 'node', 'stop']
+        subprocess.call(cmd_infrasim_node)
         result = subprocess.check_output(["ip", "netns", "list"])
         self.assertNotIn("node1ns", result, "delete node1ns failed")
         self.assertNotIn("node0ns", result, "delete node0ns failed")
