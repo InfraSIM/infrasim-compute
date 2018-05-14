@@ -114,7 +114,8 @@ class Workspace(object):
         # Update identifier accordingly
         path_data_dst = os.path.join(self._workspace, "data")
         if has_option(self._info, "bmc", "emu_file"):
-            shutil.copy(self._info["bmc"]["emu_file"], path_data_dst)
+            if os.path.dirname(self._info["bmc"]["emu_file"]) != path_data_dst:
+                shutil.copy(self._info["bmc"]["emu_file"], path_data_dst)
         elif not os.path.exists(os.path.join(path_data_dst, "{0}.emu".format(node_type))):
             path_emu_src = os.path.join(config.infrasim_data, "{0}/{0}.emu".format(node_type))
             shutil.copy(path_emu_src, os.path.join(path_data_dst, "{}.emu".
@@ -122,7 +123,8 @@ class Workspace(object):
 
         # VI. Move bios.bin
         if has_option(self._info, "compute", "smbios"):
-            shutil.copy(self._info["compute"]["smbios"], path_data_dst)
+            if os.path.dirname(self._info["compute"]["smbios"]) != path_data_dst:
+                shutil.copy(self._info["compute"]["smbios"], path_data_dst)
         elif not os.path.exists(os.path.join(path_data_dst, "{0}_smbios.bin".format(node_type))):
             path_bios_src = os.path.join(config.infrasim_data,
                                          "{0}/{0}_smbios.bin".format(node_type))
