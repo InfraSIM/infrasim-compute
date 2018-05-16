@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import subprocess
+import yaml
 
 from infrasim import config
 from infrasim import InfraSimError
@@ -87,6 +88,7 @@ class CChassis(object):
         self._init_sub_node(*args)
 
         self.__render_chassis_info()
+        self.__update_node_cfg()
         self.process_by_node_names("start", *args)
 
     def stop(self, *args):
@@ -115,17 +117,41 @@ class CChassis(object):
         """
         data = self.__chassis["data"]
         for node in self.__chassis.get("nodes"):
-            bios_file = os.path.join(config.infrasim_home, node["name"],
-                                     "data", "{}_smbios.bin".format(node["type"]))
+            ws = os.path.join(config.infrasim_home, node["name"])
+            ws_data = os.path.join(ws, "data")
+
+            def get_file(src, default_name):
+                if src is None:
+                    dst = os.path.join(ws_data, default_name)
+                else:
+                    dst = os.path.join(ws_data, os.path.basename(src))
+                return dst
+            bios_file = get_file(node["compute"].get("smbios"), "{}_smbios.bin".format(node["type"]))
             bios = SMBios(bios_file)
             bios.ModifyType3ChassisInformation(data["sn"])
             # bios.ModifyType2BaseboardInformation("")
             bios.save(bios_file)
-            emu_file = os.path.join(config.infrasim_home, node["name"],
-                                    "data", "{}.emu".format(node["type"]))
+
+            emu_file = get_file(node.get("bmc", {}).get("emu_file"), "{}.emu".format(node["type"]))
             emu = FruFile(emu_file)
             emu.ChangeChassisInfo(data["pn"], data["sn"])
             emu.Save(emu_file)
+
+            node["compute"]["smbios"] = bios_file
+            bmc = node.get("bmc", {})
+            node["bmc"] = bmc
+            bmc["emu_file"] = emu_file
+
+    def __update_node_cfg(self):
+        """
+        refresh yml file of node
+        """
+        for node in self.__chassis.get("nodes"):
+            ws = os.path.join(config.infrasim_home, node["name"])
+            ws_etc = os.path.join(ws, "etc")
+            yml_file = os.path.join(ws_etc, "infrasim.yml")
+            with open(yml_file, 'w') as fp:
+                yaml.dump(node, fp, default_flow_style=False)
 
     def __process_chassis_data(self, data):
         if data is None:

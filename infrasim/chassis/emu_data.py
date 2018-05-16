@@ -49,13 +49,29 @@ class FruCmd(object):
             return False
         if self.data[0] == 0x01:
             # decode Common Header. Refer to FRM spec, chapter 8
-            for index in range(FruCmd.INTERNAL_USE_AREA, FruCmd.MULTIRECORD_AREA + 1):
+            for index in range(FruCmd.INTERNAL_USE_AREA, FruCmd.MULTIRECORD_AREA):
                 offset = self.data[index] * 8
                 if offset != 0:
                     end = offset + self.data[offset + 1] * 8
                     self._data_area.append({"start": offset, "end": end, "data": self.data[offset:end]})
                 else:
                     self._data_area.append(None)
+
+            # decode each record and get whold MultiRecord area
+            offset = self.data[FruCmd.MULTIRECORD_AREA] * 8
+            if offset != 0:
+                end = offset
+                while (self.data[end + 1] & 0x80) == 0:
+                    # get length of current record.
+                    record_length = self.data[end + 2]
+                    if record_length == 0:
+                        raise Exception("Wrong format of multi-record")
+                    end += record_length
+                # plus length of current record.
+                end += 5
+                self._data_area.append({"start": offset, "end": end, "data": self.data[offset:end]})
+            else:
+                self._data_area.append(None)
 
             # Split Internal Use Area because it may not comply with the spec and doesn't has length.
             # Take start position of next area as its end postion.
@@ -95,37 +111,24 @@ class FruCmd(object):
         # update checksum.
         result[length - 1] = (-sum(result)) & 0xff
 
-        # rebuild Chassis_info_area
-        base = self.data[2] * 8
-        if base == 0:
-            # create chassis_info_area and append after the last one
-            start = 0
-            for area in self._data_area:
-                if area and start < area["end"]:
-                    start = area["end"]
-        else:
-            # adjust space of existing chassis_info_area.
-            start = base
-            pad = len(result) - len(self._data_area[FruCmd.CHASSIS_INFO_AREA]["data"])
-            if pad > 0:
-                # move staty position of following area
-                for area in self._data_area:
-                    if area and area["start"] > start:
-                        area["start"] += pad
-
-        end = start + len(result)
-        self._data_area[FruCmd.CHASSIS_INFO_AREA] = {"start": start, "end": end, "data": result}
+        self._data_area[FruCmd.CHASSIS_INFO_AREA] = {"start": 0, "end": 0, "data": result}
 
     def UpdateData(self):
-        # Adjust start positon of all areas
-        for area in self._data_area:
+        # Adjust positon of all areas
+        start = 8
+        for index in (FruCmd.CHASSIS_INFO_AREA, FruCmd.BOARD_INFO_AREA, FruCmd.PRODUCT_INFO_AREA,
+                      FruCmd.MULTIRECORD_AREA, FruCmd.INTERNAL_USE_AREA):
+            area = self._data_area[index]
             if area:
-                start = area["start"]
+                area["start"] = start
                 end = area["start"] + len(area["data"])
                 self.data[start:end] = area["data"]
-                index = self._data_area.index(area)
                 self.data[index] = area["start"] / 8
-
+                area["end"] = end
+                start = end
+        # ensure the length doesn't exceed.
+        if len(self.data) > self.len:
+            del self.data[self.len:]
         # update checksum of Entry Point
         self.data[7] = (-sum(self.data[0:8]) & 0xff)
 
