@@ -9,7 +9,6 @@ import shutil
 import re
 from infrasim import model
 from infrasim import helper
-from infrasim import InfraSimError
 import paramiko
 from test import fixtures
 
