@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import yaml
 import sys
+import shutil
 from infrasim import run_command
 from test.fixtures import FakeConfig
 from infrasim.model import CNode
@@ -19,7 +20,7 @@ from test import fixtures
 
 old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
-a_boot_image = "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
+a_boot_image = os.environ.get('TEST_IMAGE_PATH') or "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
 b_boot_image = "/home/infrasim/jenkins/data/ubuntu14.04.4_b.qcow2"
 conf = {}
 ivn_file = None
@@ -46,6 +47,10 @@ def saved_config_file():
 def setup_module():
     global ivn_file
     os.environ['PATH'] = new_path
+    if os.path.exists(a_boot_image) is False:
+        raise Exception("Not found image {}".format(a_boot_image))
+    if os.path.exists(b_boot_image) is False:
+        shutil.copy(a_boot_image, b_boot_image)
     ivn_file = saved_config_file()
 
 
@@ -58,6 +63,7 @@ def teardown_module():
 
 
 class test_ivn(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         pass
