@@ -6,6 +6,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import os
 import fnmatch
+import re
 from infrasim import run_command
 from infrasim import config
 from infrasim.yaml_loader import YAMLLoader
@@ -14,6 +15,7 @@ HAS_PYTHON_APT = True
 try:
     import apt
     import apt_pkg
+    import aptsources.sourceslist
 except ImportError:
     HAS_PYTHON_APT = False
 
@@ -22,7 +24,8 @@ class PackageManager(object):
     def __init__(self, update_cache=True, purge=True,
                  install_recommends=True, force=True,
                  autoremove=True, autoclean=False,
-                 only_upgrade=True, allow_unauthenticated=True):
+                 only_upgrade=True, allow_unauthenticated=True,
+                 source_list_entry=None):
         self.__update_cache = update_cache
         self.__purge = purge
         self.__install_recommends = install_recommends
@@ -38,9 +41,70 @@ class PackageManager(object):
             global apt, apt_pkg
             import apt
             import apt_pkg
+            import aptsources.sourceslist
+
+        self.__add_entry(source_list_entry)
 
         self.__cache = self.__get_cache()
         self.init()
+
+    def __check_if_entry_exists(self, entry):
+        '''
+        Event python-apt will check the entry exists, but it can't
+        handle the entry with attribute like '[trusted=true]'
+        '''
+        fp = open("/etc/apt/sources.list", "r")
+        lines = fp.readlines()
+        fp.close()
+        for line in lines:
+            if set(line.strip().split()) == set(entry.strip().split()):
+                return True
+        return False
+
+    def __add_entry(self, entry):
+        """
+        add single entry in /etc/apt/sources.list
+        """
+        if entry is None:
+            return
+
+        if self.__check_if_entry_exists(entry):
+            print "{} exists".format(entry)
+            return
+
+        source_entry = aptsources.sourceslist.SourceEntry(entry)
+        source_list = source_entry.mysplit(entry)
+        if (source_list[0] not in ["deb", "deb-src"]) or (len(source_list) < 4):
+            logger.error("Invalid entry ({}).".format(entry))
+            return
+
+        typ = source_list[0]
+        uri = None
+        distribution = None
+        attribute = None
+        components = []
+        for source in source_list:
+            if source in ["deb", "deb-src"]:
+                continue
+            elif re.search(r'^https?:\/\/\w+', source):
+                uri = source
+            elif re.search(r'^\[.*\]', source):
+                attribute = source
+            elif source in ["trusty", "xenial"]:
+                distribution = source
+            else:
+                components.append(source)
+
+        if uri is None or distribution is None:
+            return
+
+        if attribute:
+            uri = " ".join([attribute, uri])
+        sources_list = aptsources.sourceslist.SourcesList()
+        sources_list.backup(".orig")
+        logger.info("adding source list entry: {} {} {} {}".format(typ, uri, distribution, " ".join(components)))
+        sources_list.add(typ, uri, distribution, components)
+        sources_list.save()
 
     def init(self):
         if self.__update_cache:
@@ -150,16 +214,16 @@ class PackageManager(object):
         try:
             _, out = run_command(cmd)
         except Exception as e:
-            raise e
             logger.exception(e)
+            raise e
 
         if "Invalid operation" in out:
             cmd = "{} unmarkauto {}".format("apt-mark", pkg_name)
             try:
                 run_command(cmd)
             except Exception as e:
-                raise e
                 logger.exception(e)
+                raise e
 
     def __get_cache(self):
         cache = None
@@ -236,8 +300,8 @@ class PackageManager(object):
                 logger.info(out)
                 self.__mark_installed_manually(pkg_name)
             except Exception as e:
-                raise e
                 logger.exception(e)
+                raise e
 
     def do_remove(self, pkgname, version="latest"):
         package = None
@@ -278,8 +342,8 @@ class PackageManager(object):
                 print out
                 logger.info(out)
             except Exception as e:
-                raise e
                 logger.exception(e)
+                raise e
 
     def do_cleanup(self, action=None):
         if action not in frozenset(['autoremove', 'autoclean']):
@@ -296,8 +360,8 @@ class PackageManager(object):
             print out
             logger.info(out)
         except Exception as e:
-            raise e
             logger.exception(e)
+            raise e
 
 
 def read_packages_info():
@@ -309,7 +373,7 @@ def read_packages_info():
 
 
 def install_all_packages(force=True, entry=None):
-    pm = PackageManager(only_upgrade=False, force=force)
+    pm = PackageManager(only_upgrade=False, force=force, source_list_entry=entry)
     # install offical packages
     # don't have to install the depencies for each installation
     for pkg_name in ("socat", "ipmitool", "libssh-dev", "libffi-dev", "libyaml-dev"):
