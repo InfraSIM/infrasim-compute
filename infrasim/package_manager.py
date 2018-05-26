@@ -1,193 +1,301 @@
-import os
-import re
-try:
-    import apt_pkg
-except ImportError:
-    from infrasim import run_command
-    run_command("apt-get update")
-    run_command("apt-get install --no-install-recommends python-apt -y -q")
-    import apt_pkg
-import apt.cache
-import apt.progress.text
-import apt.progress.base
-import aptsources.sourceslist
+'''
+*********************************************************
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
+'''
 
+import os
+import fnmatch
+from infrasim import run_command
 from infrasim import config
 from infrasim.yaml_loader import YAMLLoader
+from infrasim import logger
+HAS_PYTHON_APT = True
+try:
+    import apt
+    import apt_pkg
+except ImportError:
+    HAS_PYTHON_APT = False
 
 
 class PackageManager(object):
+    def __init__(self, update_cache=True, purge=True,
+                 install_recommends=True, force=True,
+                 autoremove=True, autoclean=False,
+                 only_upgrade=True, allow_unauthenticated=True):
+        self.__update_cache = update_cache
+        self.__purge = purge
+        self.__install_recommends = install_recommends
+        self.__force = force
+        self.__autoremove = autoremove
+        self.__autoclean = autoclean
+        self.__only_upgrade = only_upgrade
+        self.__allow_unauthenticated = allow_unauthenticated
 
-    def __init__(self, update_cache=True, source_list_entry=None, progress=False):
-        apt_pkg.init_config()
-        # _MUST_ called prior to apt_pkg initialization
-        # single entry in sources.list file
-        # such as 'deb https://<repo url> trusty main'
-        self.__add_entry(source_list_entry)
+        if not HAS_PYTHON_APT:
+            run_command("apt-get update")
+            run_command("apt-get install --no-install-recommends python-apt -y -q")
+            global apt, apt_pkg
+            import apt
+            import apt_pkg
 
-        self.__progress = progress
+        self.__cache = self.__get_cache()
+        self.init()
 
-        self.__init_apt_pkg_cache()
-
-        if update_cache:
-            self.__init_apt_cache()
-
-        # second time to take effect for switching sources
-        self.__init_apt_pkg_cache()
-
-        if update_cache:
-            self.__init_apt_cache()
-
-    def __init_apt_pkg_cache(self):
-        apt_pkg.init()
-        op_progress = None
-        if self.__progress:
-            op_progress = apt.progress.text.OpProgress()
-        self.__apt_pkg_cache = apt_pkg.Cache(op_progress)
-        self.__apt_pkg_cache.update(apt.progress.base.AcquireProgress(),
-                                    apt_pkg.SourceList())
-        self.__depcache = apt_pkg.DepCache(self.__apt_pkg_cache)
-
-    def __check_if_entry_exists(self, entry):
-        '''
-        Event python-apt will check the entry exists, but it can't
-        handle the entry with attribute like '[trusted=true]'
-        '''
-        fp = open("/etc/apt/sources.list", "r")
-        lines = fp.readlines()
-        fp.close()
-        for line in lines:
-            if set(line.strip().split()) == set(entry.strip().split()):
-                return True
-        return False
-
-    def __add_entry(self, entry):
-        """
-        add single entry in /etc/apt/sources.list
-        """
-        if entry is None:
-            return
-
-        if self.__check_if_entry_exists(entry):
-            print "{} exists".format(entry)
-            return
-
-        source_entry = aptsources.sourceslist.SourceEntry(entry)
-        source_list = source_entry.mysplit(entry)
-        if (source_list[0] not in ["deb", "deb-src"]) or (len(source_list) < 4):
-            print "Invalid entry ({}).".format(entry)
-            return
-
-        typ = source_list[0]
-        uri = None
-        distribution = None
-        attribute = None
-        components = []
-        for source in source_list:
-            if source in ["deb", "deb-src"]:
-                continue
-            elif re.search(r'^https?:\/\/\w+', source):
-                uri = source
-            elif re.search(r'^\[.*\]', source):
-                attribute = source
-            elif source in ["trusty", "xenial"]:
-                distribution = source
+    def init(self):
+        if self.__update_cache:
+            for retry in range(3):
+                try:
+                    self.__cache.update(apt.progress.text.AcquireProgress())
+                    break
+                except apt.cache.FetchFailedException as e:
+                    raise e
+                    logger.exception(e)
             else:
-                components.append(source)
+                logger.error("Failed to update apt cache")
 
-        if uri is None or distribution is None:
-            return
+            self.__cache.open(progress=None)
 
-        if attribute:
-            uri = " ".join([attribute, uri])
-        sources_list = aptsources.sourceslist.SourcesList()
-        sources_list.backup(".orig")
-        print "adding source list entry: {} {} {} {}".format(typ, uri, distribution, " ".join(components))
-        sources_list.add(typ, uri, distribution, components)
-        sources_list.save()
+    def __get_package_versions(self, pkgname, pkg, pkg_cache):
+        try:
+            versions = set(v.version for v in pkg.versions)
+        except AttributeError as e:
+            logger.exception(e)
+            raise e
 
-    def __init_apt_cache(self):
-        op_progress = None
-        acquire_progress = None
-        if self.__progress:
-            op_progress = apt.progress.text.OpProgress()
-            acquire_progress = apt.progress.text.AcquireProgress()
+        return versions
 
-        cache = apt.cache.Cache(op_progress)
-        cache.update(acquire_progress)  # apt-get update
-        cache.open()
-        cache.commit()
-        cache.close()
+    def __package_version_compare(self, version, other_version):
+        try:
+            return apt_pkg.version_compare(version, other_version)
+        except AttributeError as e:
+            logger.exception(e)
+            raise e
 
-    def is_installed(self, package_name):
-        """
-        check if package_name is installed
-        """
-        for pkg in self.__apt_pkg_cache.packages:
-            if package_name == pkg.name:
-                return pkg.current_state == apt_pkg.CURSTATE_INSTALLED
-        return False
+    def __check_package_status(self, pkgname, version, state):
+        try:
+            package = self.__cache[pkgname]
+            ll_package = self.__cache._cache[pkgname]
+        except KeyError:
+            if state == 'install':
+                try:
+                    provided_packages = self.__cache.get_providing_packages(pkgname)
+                    if provided_packages:
+                        is_installed = False
+                        upgradable = False
+                        version_ok = False
 
-    def __get_version(self, package_name, version_str):
-        target_version = None
-        for v in self.__apt_pkg_cache[package_name].version_list:
-            if v.ver_str == version_str:
-                target_version = v
-                break
-        return target_version
-
-    def do_install(self, package_name, version_str=None, force=True):
-        """
-        install one specific apt package
-        """
-        acquire_progress = apt.progress.base.AcquireProgress()
-        install_progress = apt.progress.base.InstallProgress()
-        target_pkg = None
-
-        for pkg in self.__apt_pkg_cache.packages:
-            if pkg.name == package_name:
-                target_pkg = pkg
-                break
-
-        op_progress = None
-        if self.__progress:
-            op_progress = apt.progress.text.OpProgress()
-        self.__depcache.init(op_progress)
-        if (package_name not in self.__apt_pkg_cache) or (target_pkg is None):
-            print "{} not in cache, please check source.".format(package_name)
-            return False
-
-        if version_str and version_str != "latest":
-            # print self.__apt_pkg_cache[package_name].version_list
-            target_version = None
-            target_version = self.__get_version(package_name, version_str)
-            if target_version:
-                self.__depcache.set_candidate_ver(target_pkg,
-                                                  target_version)
-
-        self.__depcache.mark_install(target_pkg)
-        if force and self.is_installed(package_name):
-            self.__depcache.set_reinstall(target_pkg, True)
+                        if self.__cache.is_virtual_package(pkgname) and len(provided_packages) == 1:
+                            package = provided_packages[0]
+                            installed, version_ok, upgradable, has_files = self.__check_package_status(package.name,
+                                                                                                       version,
+                                                                                                       state='install')
+                            if installed:
+                                is_installed = True
+                        return is_installed, version_ok, upgradable, False
+                except AttributeError:
+                    return False, False, True, False
+            else:
+                return False, False, False, False
 
         try:
-            self.__depcache.commit(acquire_progress, install_progress)
+            has_files = len(package.installed_files) > 0
+        except UnicodeDecodeError:
+            has_files = True
+        except AttributeError:
+            has_files = False
+
+        try:
+            package_is_installed = ll_package.current_state == apt_pkg.CURSTATE_INSTALLED
+        except AttributeError:
+            try:
+                package_is_installed = package.is_installed
+            except AttributeError as e:
+                logger.exception(e)
+                raise e
+
+        version_is_installed = package_is_installed
+        if version:
+            versions = self.__get_package_versions(pkgname, package, self.__cache._cache)
+            available_upgrades = fnmatch.filter(versions, version)
+
+            if package_is_installed:
+                try:
+                    installed_version = package.installed.version
+                except AttributeError as e:
+                    logger.exception(e)
+                    raise e
+
+                logger.info("installed version: {}".format(installed_version))
+                version_is_installed = fnmatch.fnmatch(installed_version, version)
+
+                package_is_upgradable = False
+                for candidate in available_upgrades:
+                    if self.__package_version_compare(candidate, installed_version) > 0:
+                        package_is_upgradable = True
+                        break
+            else:
+                package_is_upgradable = bool(available_upgrades)
+        else:
+            try:
+                package_is_upgradable = package.is_upgradable
+            except AttributeError as e:
+                logger.exception(e)
+                raise e
+
+        return package_is_installed, version_is_installed, package_is_upgradable, has_files
+
+    def __mark_installed_manually(self, pkg_name):
+        cmd = "{} manual {}".format("apt-mark", pkg_name)
+        try:
+            _, out = run_command(cmd)
         except Exception as e:
-            print "{} is not installed (Reason: {})".format(package_name, e)
+            raise e
+            logger.exception(e)
 
-        return target_pkg.inst_state == apt_pkg.INSTSTATE_OK
+        if "Invalid operation" in out:
+            cmd = "{} unmarkauto {}".format("apt-mark", pkg_name)
+            try:
+                run_command(cmd)
+            except Exception as e:
+                raise e
+                logger.exception(e)
 
-    def do_uninstall(self, package_name):
-        self.__init_apt_pkg_cache()
-        if self.is_installed(package_name):
-            for pkg in self.__apt_pkg_cache.packages:
-                if pkg.name == package_name:
-                    self.__depcache.mark_delete(pkg, True)
-                    self.__depcache.commit(apt.progress.base.AcquireProgress(),
-                                           apt.progress.base.InstallProgress())
+    def __get_cache(self):
+        cache = None
+        try:
+            cache = apt.Cache()
+        except SystemError:
+            try:
+                run_command("apt-get update -q")
+            except Exception as e:
+                logger.exception(e)
+                raise e
+            cache = apt.Cache()
+        return cache
 
-    def list_all_packages(self):
-        for pkg in self.__apt_pkg_cache.packages:
-            print pkg.name, pkg.current_state, pkg.inst_state, pkg.current_ver
+    def do_install(self, pkg_name, version='latest', default_release=None):
+        combined_package_version = ""
+        installed, installed_version, upgradable, has_files = self.__check_package_status(pkg_name, version, state='install')
+
+        logger.info(
+            "install(): installed {}, installed_version {}, upgradable {}, has_files {}".format(installed,
+                                                                                                installed_version,
+                                                                                                upgradable,
+                                                                                                has_files))
+        if (not installed and not self.__only_upgrade) or (installed and not installed_version) or \
+                (self.__only_upgrade and upgradable):
+            if version != "latest":
+                combined_package_version = "'{}={}'".format(pkg_name, version)
+            else:
+                combined_package_version = "'{}'".format(pkg_name)
+
+        if installed_version and upgradable and version:
+            if version != "latest":
+                combined_package_version = "'{}={}'".format(pkg_name, version)
+            else:
+                combined_package_version = "'{}'".format(pkg_name)
+
+        logger.info("combined_package_version: {}".format(combined_package_version))
+
+        if combined_package_version:
+            if self.__force:
+                force_yes = "--force-yes"
+            else:
+                force_yes = ''
+
+            if self.__autoremove:
+                autoremove = '--auto-remove'
+            else:
+                autoremove = ''
+
+            if self.__only_upgrade:
+                only_upgrade = '--only-upgrade'
+            else:
+                only_upgrade = ''
+
+            cmd = "{} -y {} {} {} install {}".format("apt-get", only_upgrade, force_yes,
+                                                     autoremove, combined_package_version)
+
+            if default_release:
+                cmd += " -t '{}'".format(default_release)
+
+            if self.__install_recommends is False:
+                cmd += ' -o APT::Install-Recommends=no'
+            else:
+                cmd += ' -o APT::Install-Recommends=yes'
+
+            if self.__allow_unauthenticated:
+                cmd += " --allow-unauthenticated"
+
+            logger.info(cmd)
+            try:
+                rc, out = run_command(cmd)
+                print out
+                logger.info(out)
+                self.__mark_installed_manually(pkg_name)
+            except Exception as e:
+                raise e
+                logger.exception(e)
+
+    def do_remove(self, pkgname, version="latest"):
+        package = None
+        installed, installed_version, upgradable, has_files = self.__check_package_status(pkgname, version, state='remove')
+        logger.info(
+            "remove(): installed {}, installed_version {}, upgradable {}, has_files {}".format(installed,
+                                                                                               installed_version,
+                                                                                               upgradable,
+                                                                                               has_files))
+        if (installed and version == "latest") or installed_version or (has_files and self.__purge):
+            package = pkgname
+
+        if not package:
+            return
+
+        else:
+            if self.__force:
+                force_yes = "--force-yes"
+            else:
+                force_yes = ""
+
+            if self.__purge:
+                purge = "--purge"
+            else:
+                purge = ""
+
+            if self.__autoremove:
+                autoremove = "--auto-remove"
+            else:
+                autoremove = ""
+
+            cmd = "{} -q -y {} {} {} remove {}".format("apt-get", purge, force_yes, autoremove, package)
+
+            logger.info(cmd)
+            try:
+                rc, out = run_command(cmd)
+                print out
+                logger.info(out)
+            except Exception as e:
+                raise e
+                logger.exception(e)
+
+    def do_cleanup(self, action=None):
+        if action not in frozenset(['autoremove', 'autoclean']):
+            raise AssertionError('Expected "autoremove" or "autoclean" clean action.')
+
+        if self.__force:
+            force_yes = "--force-yes"
+        else:
+            force_yes = ""
+
+        cmd = "{} -y {} {}".format("apt-get", force_yes, action)
+        try:
+            _, out = run_command(cmd)
+            print out
+            logger.info(out)
+        except Exception as e:
+            raise e
+            logger.exception(e)
 
 
 def read_packages_info():
@@ -199,11 +307,11 @@ def read_packages_info():
 
 
 def install_all_packages(force=True, entry=None):
-    pm = PackageManager(source_list_entry=entry, progress=True)
+    pm = PackageManager(only_upgrade=False, force=force)
     # install offical packages
     # don't have to install the depencies for each installation
     for pkg_name in ("socat", "ipmitool", "libssh-dev", "libffi-dev", "libyaml-dev"):
-        pm.do_install(pkg_name, version_str=None, force=False)
+        pm.do_install(pkg_name)
 
     # install infrasim packages
     package_info_list = read_packages_info()
@@ -212,8 +320,7 @@ def install_all_packages(force=True, entry=None):
         return
 
     for pkg_info in package_info_list:
-        res = pm.do_install(pkg_info.get('name'), version_str=pkg_info.get('version'), force=force)
-        print "Installing {}... {}".format(pkg_info.get('name'), "Done" if res else "Fail")
+        pm.do_install(pkg_info.get('name'), version=pkg_info.get('version'))
 
 
 if __name__ == '__main__':
