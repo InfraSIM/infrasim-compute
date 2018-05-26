@@ -49,8 +49,8 @@ class PackageManager(object):
                     self.__cache.update(apt.progress.text.AcquireProgress())
                     break
                 except apt.cache.FetchFailedException as e:
-                    raise e
                     logger.exception(e)
+                    continue
             else:
                 logger.error("Failed to update apt cache")
 

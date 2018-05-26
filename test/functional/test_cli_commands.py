@@ -340,7 +340,8 @@ class test_node_cli(unittest.TestCase):
 
         # install the packages again for the subsequent tests
         package_list = [{"name": "infrasim-qemu", "version": "latest"},
-                        {"name": "infrasim-openipmi", "version": "latest"}]
+                        {"name": "infrasim-openipmi", "version": "latest"},
+                        {"name": "infrasim-seabios", "version": "latest"}]
         for pkg in package_list:
             pm.do_install(pkg.get('name'), version=pkg.get('version'))
 
