@@ -338,7 +338,7 @@ class test_node_cli(unittest.TestCase):
                               cmd='dpkg -l | grep {}'.format(pkg.get('name')), shell=True,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        ## install the packages again for the subsequent tests
+        # install the packages again for the subsequent tests
         package_list = [{"name": "infrasim-qemu", "version": "latest"},
                         {"name": "infrasim-openipmi", "version": "latest"}]
         for pkg in package_list:

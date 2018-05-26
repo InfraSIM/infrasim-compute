@@ -176,7 +176,8 @@ class PackageManager(object):
 
     def do_install(self, pkg_name, version='latest', default_release=None):
         combined_package_version = ""
-        installed, installed_version, upgradable, has_files = self.__check_package_status(pkg_name, version, state='install')
+        installed, installed_version, upgradable, has_files = self.__check_package_status(pkg_name,
+                                                                                          version, state='install')
 
         logger.info(
             "install(): installed {}, installed_version {}, upgradable {}, has_files {}".format(installed,
@@ -240,7 +241,8 @@ class PackageManager(object):
 
     def do_remove(self, pkgname, version="latest"):
         package = None
-        installed, installed_version, upgradable, has_files = self.__check_package_status(pkgname, version, state='remove')
+        installed, installed_version, upgradable, has_files = self.__check_package_status(pkgname,
+                                                                                          version, state='remove')
         logger.info(
             "remove(): installed {}, installed_version {}, upgradable {}, has_files {}".format(installed,
                                                                                                installed_version,
