@@ -66,7 +66,8 @@ class PackageManager(object):
         add single entry in /etc/apt/sources.list
         """
         if entry is None:
-            return
+            # set to defaut entry
+            entry = "deb https://dl.bintray.com/infrasim/deb xenial main"
 
         if self.__check_if_entry_exists(entry):
             print "{} exists".format(entry)
