@@ -25,7 +25,7 @@ class AHCIController(CBaseStorageController):
         super(AHCIController, self).init()
 
         self._start_idx = self.controller_index
-        idx = 0
+        idx = 1  # reserv 0 for cdrom
         for drive_info in self._controller_info.get("drives", []):
             ide_obj = IDEDrive(drive_info)
             ide_obj.logger = self.logger

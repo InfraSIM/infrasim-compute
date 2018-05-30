@@ -23,6 +23,7 @@ from infrasim.model.elements.storage_ahci import AHCIController
 from infrasim.model.elements.drive import CBaseDrive
 from infrasim.model.elements.drive_scsi import SCSIDrive
 from infrasim.model.elements.drive_ide import IDEDrive
+from infrasim.model.elements.cdrom import IDECdrom
 from infrasim.model.elements.drive_nvme import NVMeController
 from infrasim.model.elements.ses import SESDevice
 from infrasim.model.elements.backend import CBackendNetwork
@@ -57,6 +58,7 @@ __all__ = ["CNode",
            "AHCIController",
            "SCSIDrive",
            "IDEDrive",
+           "IDECdrom",
            "NVMeController",
            "SESDevice",
            "CNetwork",

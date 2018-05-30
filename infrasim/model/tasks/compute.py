@@ -27,6 +27,7 @@ from infrasim.model.elements.pci_topo import CPCITopologyManager
 from infrasim.model.elements.pcie_topology import CPCIETopology
 from infrasim.model.elements.qemu_monitor import CQemuMonitor
 from infrasim.model.elements.pci_passthrough import CPCIEPassthrough
+from infrasim.model.elements.cdrom import IDECdrom
 
 
 class CCompute(Task, CElement):
@@ -46,13 +47,11 @@ class CCompute(Task, CElement):
         self.__boot_splash_name = None
         self.__boot_splash_time = None
         self.__qemu_bin = "qemu-system-x86_64"
-        self.__cdrom_file = None
         self.__vendor_type = None
         # remember cpu object
         self.__cpu_obj = None
         self.__numactl_info = False
         self.__numactl_mode = None
-        self.__cdrom_file = None
         self.__display = None
 
         # Node wise attributes
@@ -171,8 +170,6 @@ class CCompute(Task, CElement):
         else:
             self.__boot_order = "ncd"
 
-        self.__cdrom_file = self.__compute.get('cdrom')
-
         self.__numactl_info = self.__compute.get("numa_control")
         if self.__numactl_info and os.path.exists("/usr/bin/numactl"):
             self.__numactl_mode = self.__numactl_info.get("mode", "auto")
@@ -274,6 +271,17 @@ class CCompute(Task, CElement):
             self.__monitor.logger = self.logger
             self.__element_list.append(self.__monitor)
 
+        # create cdrom if exits
+        cdrom_info = self.__compute.get("cdrom")
+        if cdrom_info:
+            cdrom_obj = IDECdrom(cdrom_info)
+            cdrom_obj.logger = self.logger
+            cdrom_obj.index = 0
+            cdrom_obj.owner = cdrom_obj
+            cdrom_obj.set_bus(0)
+            cdrom_obj.set_scsi_id(0)
+            self.__element_list.append(cdrom_obj)
+
         for ppi in self.__compute.get("pcie-passthrough", []):
             ppi_obj = CPCIEPassthrough(ppi)
             self.__element_list.append(ppi_obj)
@@ -359,9 +367,6 @@ class CCompute(Task, CElement):
             boot_param.append("splash-time={}".format(self.__boot_splash_time))
         tmp = ","
         self.add_option("-boot {}".format(tmp.join(boot_param)))
-
-        if self.__cdrom_file:
-            self.add_option("-cdrom {}".format(self.__cdrom_file))
 
         if self.__socket_serial and self.__sol_enabled:
             chardev = CCharDev({
