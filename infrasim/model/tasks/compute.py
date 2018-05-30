@@ -28,6 +28,8 @@ from infrasim.model.elements.pcie_topology import CPCIETopology
 from infrasim.model.elements.qemu_monitor import CQemuMonitor
 from infrasim.model.elements.pci_passthrough import CPCIEPassthrough
 from infrasim.model.elements.cdrom import IDECdrom
+from infrasim.model.elements.guest_agent import GuestAgent
+from infrasim.model.elements.serial import CSerial
 
 
 class CCompute(Task, CElement):
@@ -282,6 +284,11 @@ class CCompute(Task, CElement):
             cdrom_obj.set_scsi_id(0)
             self.__element_list.append(cdrom_obj)
 
+        # create channel for guest agent
+        has_guest_agent = self.__compute.get('guest-agent')
+        if has_guest_agent or has_guest_agent == 'on':
+            self.__element_list.append(GuestAgent(self.get_workspace()))
+
         for ppi in self.__compute.get("pcie-passthrough", []):
             ppi_obj = CPCIEPassthrough(ppi)
             self.__element_list.append(ppi_obj)
@@ -377,10 +384,15 @@ class CCompute(Task, CElement):
             chardev.logger = self.logger
             chardev.set_id("serial0")
             chardev.init()
+            chardev.precheck()
             chardev.handle_parms()
-
             self.add_option(chardev.get_option())
-            self.add_option("-device isa-serial,chardev={}".format(chardev.get_id()))
+
+            serial_obj = CSerial(chardev, {"index": 1})
+            serial_obj.init()
+            serial_obj.precheck()
+            serial_obj.handle_parms()
+            self.add_option(serial_obj.get_option())
 
         self.add_option("-uuid {}".format(str(uuid.uuid4())))
 

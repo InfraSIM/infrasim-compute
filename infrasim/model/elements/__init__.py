@@ -4,4 +4,4 @@ __all__ = ["chardev", "cpu",
            "pcie_rootport", "pcie_upstream", "pcie_downstream",
            "pcie_topology", "pci_bridge", "pci_topo", "fw_cfg", "ses",
            "storage", "storage_ahci", "storage_lsi", "storage_mega",
-           "machine", "pci_passthrough", "cdrom"]
+           "machine", "pci_passthrough", "cdrom", "guest_agent", "serial"]
