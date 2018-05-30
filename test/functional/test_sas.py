@@ -47,16 +47,12 @@ def teardown_module():
     if conf:
         stop_node()
     os.environ["PATH"] = old_path
+    shutil.rmtree("/tmp/topo", True)
 
 
 def start_node():
-    """
-    create two drive for comparasion.
-    First drive has additional page, second doesn't
-    """
-    global conf
-    global tmp_conf_file
     global ssh
+    global conf
     fake_config = fixtures.FakeConfig()
     conf = fake_config.get_node_info()
     conf["compute"]["boot"] = {
@@ -76,6 +72,7 @@ def start_node():
         },
         {
             "type": "lsisas3008",
+            "sas_address": 5764824129059291136,
             "max_drive_per_controller": 32,
             "connectors": [
                 {
@@ -117,6 +114,7 @@ def start_node():
                             {
                                 "phy_count": 36,
                                 "wwn": wwn_exp0,
+                                "phy_map": "35-10,8,9",
                                 "ports": [
                                     {
                                         "phy": 0,
@@ -264,20 +262,19 @@ def start_node():
     node.init()
     node.precheck()
     node.start()
-
     helper.port_forward(node)
     ssh = helper.prepare_ssh()
 
 
 def stop_node():
     global conf
-    global tmp_conf_file
+    fake_config = fixtures.FakeConfig()
+    conf = fake_config.get_node_info()
     node = model.CNode(conf)
     node.init()
     node.stop()
     node.terminate_workspace()
-    conf = {}
-    shutil.rmtree("/tmp/topo", True)
+    conf = None
 
 
 def run_cmd(cmd):
@@ -329,23 +326,24 @@ class test_disk_array_topo(unittest.TestCase):
         # drives with 2 ports for each and seses.
         expect = {}
         for i in range(drv_count):
-            expect["0 " + hex(wwn_drv + i * 4 + 1)] = False
-            expect["0 " + hex(wwn_drv + i * 4 + 2)] = False
+            expect["0 " + hex(wwn_drv + i * 4 + 1)] = 0
+            expect["0 " + hex(wwn_drv + i * 4 + 2)] = 0
 
-        expect["13 " + hex(wwn_exp0 - 1)] = False
-        expect["13 " + hex(wwn_exp1 - 1)] = False
+        expect["13 " + hex(wwn_exp0 - 1)] = 0
+        expect["13 " + hex(wwn_exp1 - 1)] = 0
 
         for i in range(drv1_count):
-            expect["0 " + hex(wwn_drv1 + i * 4 + 1)] = False
-            expect["0 " + hex(wwn_drv1 + i * 4 + 2)] = False
+            expect["0 " + hex(wwn_drv1 + i * 4 + 1)] = 0
+            expect["0 " + hex(wwn_drv1 + i * 4 + 2)] = 0
 
-        expect["13 " + hex(wwn_exp2 - 1)] = False
-        expect["13 " + hex(wwn_exp3 - 1)] = False
+        expect["13 " + hex(wwn_exp2 - 1)] = 0
+        expect["13 " + hex(wwn_exp3 - 1)] = 0
         # check the returned content.
         for line in rst_lines:
-            expect.update({line: True})
+            expect[line] = expect.get(line) + 1
+
         for key, val in expect.iteritems():
-            self.assertTrue(val, "SCSI Device not found in sys: {0}".format(key))
+            self.assertEqual(val, 1, "SCSI Device count error in sys: {0} count={1}".format(key, val))
 
     def test_sas_chain(self):
         """
