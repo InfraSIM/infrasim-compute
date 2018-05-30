@@ -58,8 +58,10 @@ class LSISASController(CBaseStorageController):
         for ses_obj in self._ses_list:
             ses_obj.init()
 
-        ws = helper.get_ws_folder(self)
-        self.__dae_file = os.path.join(ws, "data", "diskarray{}.json".format(self.controller_index))
+        # prepare dae file if disk array connected.
+        if self._controller_info.get("hba_ports"):
+            ws = helper.get_ws_folder(self)
+            self.__dae_file = os.path.join(ws, "data", "diskarray{}.json".format(self.controller_index))
 
         # Update controller index, tell CBackendStorage what the controller index
         # should be for the next
@@ -68,12 +70,13 @@ class LSISASController(CBaseStorageController):
     def handle_parms(self):
         drv_args = []
         # handle drive options
-        for drive_obj in self._drive_list:
-            drive_obj.handle_parms()
-            # export options to json file
-            drv_args.append(drive_obj.get_option())
+        if self.__dae_file:
+            for drive_obj in self._drive_list:
+                drive_obj.handle_parms()
+                # export options to json file
+                drv_args.append(drive_obj.get_option())
 
-        self._drive_list = []
+            self._drive_list = []
 
         super(LSISASController, self).handle_parms()
 
@@ -96,4 +99,5 @@ class LSISASController(CBaseStorageController):
 
             self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)
 
-        DiskArrayController.export_json_data(self.__dae_file, drv_args, self._controller_info)
+        if self.__dae_file:
+            DiskArrayController.export_json_data(self.__dae_file, drv_args, self._controller_info)
