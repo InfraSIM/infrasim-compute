@@ -12,13 +12,13 @@ from infrasim import helper
 import paramiko
 from test import fixtures
 
-
 """
 Test inquiry/mode sense data injection of scsi drive
 """
 file_prefix = os.path.dirname(os.path.realpath(__file__))
 test_img_file = os.environ.get('TEST_IMAGE_PATH') or "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
-test_drive_image = "/tmp/test_drv{}.img"
+test_drive_array_image = "/tmp/test_drv{}.img"
+test_drive_directly_image = "/tmp/empty_scsi.img"
 conf = {}
 tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
@@ -49,7 +49,7 @@ def teardown_module():
     os.environ["PATH"] = old_path
 
 
-def start_node():
+def start_node_enclosure():
     """
     create two drive for comparasion.
     First drive has additional page, second doesn't
@@ -269,6 +269,71 @@ def start_node():
     ssh = helper.prepare_ssh()
 
 
+def start_node_directly():
+    global conf
+    global tmp_conf_file
+    global ssh
+    os.system("touch {0}".format(test_drive_directly_image))
+    fake_config = fixtures.FakeConfig()
+    conf = fake_config.get_node_info()
+    conf["compute"]["boot"] = {
+        "boot_order": "c"
+    }
+
+    conf["compute"]["storage_backend"] = [
+        {
+            "type": "ahci",
+            "max_drive_per_controller": 6,
+            "drives": [
+                {
+                    "size": 8,
+                    "file": test_img_file
+                }
+            ]
+        },
+        {
+            "type": "lsisas3008",
+            "max_drive_per_controller": 32,
+            "drives": [
+                {
+                    "file": test_drive_directly_image,
+                    "format": "raw",
+                    "vendor": "SEAGATE",
+                    "product": "ST4000NM0005",
+                    "serial": "01234567",
+                    "version": "M001",
+                    "wwn": "0x5000C500852E2971",
+                    "share-rw": "true",
+                    "cache": "none",
+                    "scsi-id": 0,
+                    "slot_number": 0
+                },
+                {
+                    "file": test_drive_directly_image,
+                    "format": "raw",
+                    "vendor": "SEAGATE",
+                    "product": "ST4000NM0005",
+                    "serial": "12345678",
+                    "version": "M001",
+                    "wwn": "0x5000C500852E3141",
+                    "share-rw": "true",
+                    "cache": "none",
+                    "scsi-id": 1,
+                    "slot_number": 1
+                }
+            ]
+        }
+    ]
+
+    node = model.CNode(conf)
+    node.init()
+    node.precheck()
+    node.start()
+
+    helper.port_forward(node)
+    ssh = helper.prepare_ssh()
+
+
 def stop_node():
     global conf
     global tmp_conf_file
@@ -299,7 +364,7 @@ class test_disk_array_topo(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        start_node()
+        start_node_enclosure()
 
     @classmethod
     def tearDownClass(cls):
@@ -409,3 +474,23 @@ class test_disk_array_topo(unittest.TestCase):
         # verify connection between expanders.
         verify_link(wwn_exp0, 4, wwn_exp2, 0, 4)
         verify_link(wwn_exp1, 4, wwn_exp3, 0, 4)
+
+
+class test_disk_directly(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        start_node_directly()
+
+    @classmethod
+    def tearDownClass(cls):
+        stop_node()
+
+    def test_sas_directly(self):
+        lines = run_cmd("lsscsi -w")
+        print("\n")
+        print(lines)
+        reobj = re.search("0x5000C500852E3141", lines, re.IGNORECASE)
+        assert reobj
+        reobj = re.search("0x5000C500852E2971", lines, re.IGNORECASE)
+        assert reobj
