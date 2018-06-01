@@ -11,7 +11,6 @@ from infrasim import model
 from infrasim import helper
 import paramiko
 from test import fixtures
-import time
 
 """
 Test inquiry/mode sense data injection of scsi drive
