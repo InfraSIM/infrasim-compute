@@ -18,17 +18,15 @@ class test_boot_order(unittest.TestCase):
         fake_config = fixtures.FakeConfig()
         self.conf = fake_config.get_node_info()
         os.system("touch /tmp/test.iso")
-        self.conf['compute']['machine'] = {}
-        mi = {"type": "q35", "sata": "on"}
-        self.conf['compute']['machine'].update(mi)
-        self.conf['compute']['cdrom'] = "/tmp/test.iso"
+        self.conf['compute']['cdrom'] = {}
+        self.conf['compute']['cdrom']['file'] = "/tmp/test.iso"
         self.conf['compute']['boot'] = {'boot_order': 'ncd'}
 
         node = model.CNode(self.conf)
         node.init()
         node.precheck()
         node.start()
-        time.sleep(3)
+        node.wait_node_up()
 
         # Start sol in a subprocess
         self.fw = open('/tmp/test_sol', 'wb')

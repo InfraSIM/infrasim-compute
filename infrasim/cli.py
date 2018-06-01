@@ -612,9 +612,6 @@ def command_handler():
                              help="Ignore qemu/openipmi package installation")
     init_parser.add_argument("-f", "--force", action="store_true",
                              help="Destroy existing Nodes")
-    init_parser.add_argument("-i", "--infrasim-home", action="store",
-                             help="Target infrasim home folder,"
-                                  " default $HOME/.infrasim")
     init_parser.add_argument("-e", "--entry", action="store",
                              help="source list entry, e.g., "
                              "deb http://download.virtualbox.org/virtualbox/debian trusty contrib")
@@ -635,8 +632,7 @@ def command_handler():
         # Do init
         try:
             infrasim_init(args.type, skip_installation=args.skip_installation,
-                          force=args.force, target_home=args.infrasim_home,
-                          config_file=args.config_file, entry=args.entry)
+                          force=args.force, config_file=args.config_file, entry=args.entry)
         except Exception as e:
             msg = "Infrasim init failed\nException Type: {}\n" \
                   "Error Message:\n{}".format(e.__class__.__name__,

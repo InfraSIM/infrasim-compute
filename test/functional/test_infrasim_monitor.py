@@ -15,6 +15,7 @@ from infrasim import model
 from test import fixtures
 from infrasim import helper
 import requests
+import time
 
 TMP_CONF_FILE = "/tmp/test.yml"
 form_drive_name = "scsi0-0-{}-0"
@@ -48,6 +49,19 @@ class test_infrasim_monitor(unittest.TestCase):
         self.conf = None
         os.environ["PATH"] = self.old_path
 
+    def wait_port_up(self, addr, port, timeout=10):
+        start = time.time()
+        while True:
+            if helper.check_if_port_in_use(addr, port):
+                return True
+
+            if time.time() - start > timeout:
+                break
+
+            time.sleep(0.1)
+
+        return False
+
     def test_hmp_access(self):
         # start service
         node = model.CNode(self.conf)
@@ -63,6 +77,7 @@ class test_infrasim_monitor(unittest.TestCase):
         else:
             ip = "0.0.0.0"
 
+        assert self.wait_port_up(ip, 9005)
         interface = self.conf["monitor"].get("interface",)
         payload = {
             "execute": "human-monitor-command",
@@ -94,6 +109,7 @@ class test_infrasim_monitor(unittest.TestCase):
         else:
             ip = "0.0.0.0"
 
+        assert self.wait_port_up(ip, 9005)
         interface = self.conf["monitor"].get("interface",)
         payload = {
             "execute": "query-status"
@@ -121,6 +137,7 @@ class test_infrasim_monitor(unittest.TestCase):
         else:
             ip = "0.0.0.0"
 
+        assert self.wait_port_up(ip, 9005)
         interface = self.conf["monitor"].get("interface",)
         # send the error command
         payload = {
@@ -150,6 +167,7 @@ class test_infrasim_monitor(unittest.TestCase):
         else:
             ip = "0.0.0.0"
 
+        assert self.wait_port_up(ip, 9005)
         interface = self.conf["monitor"].get("interface",)
         # send the error command
         payload = {

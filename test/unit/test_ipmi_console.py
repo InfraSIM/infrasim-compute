@@ -69,8 +69,7 @@ class test_ipmi_console_default_env(unittest.TestCase):
         node_info = {}
         fake_config = fixtures.FakeConfig()
         node_info = fake_config.get_node_info()
-        cls.bmc_conf = os.path.join(os.environ["HOME"], ".infrasim",
-                                    node_info["name"], "data", "vbmc.conf")
+        cls.bmc_conf = os.path.join(config.infrasim_home, node_info["name"], "data", "vbmc.conf")
 
         with open(cls.TMP_CONF_FILE, "w") as f:
             yaml.dump(node_info, f, default_flow_style=False)
@@ -123,8 +122,7 @@ class test_ipmi_console_customized_env(unittest.TestCase):
         node_info["bmc"]["ipmi_over_lan_port"] = 625
         node_info["ipmi_console_ssh"] = 9401
         node_info["ipmi_console_port"] = 9101
-        cls.bmc_conf = os.path.join(os.environ["HOME"], ".infrasim",
-                                    node_info["name"], "data", "vbmc.conf")
+        cls.bmc_conf = os.path.join(config.infrasim_home, node_info["name"], "data", "vbmc.conf")
 
         with open(cls.TMP_CONF_FILE, "w") as f:
             yaml.dump(node_info, f, default_flow_style=False)

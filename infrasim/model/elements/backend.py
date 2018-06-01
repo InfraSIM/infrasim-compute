@@ -50,11 +50,12 @@ class CBackendNetwork(CElement):
 
 
 class CBackendStorage(CElement):
-    def __init__(self, backend_storage_info):
+    def __init__(self, backend_storage_info, cdrom_connected=False):
         super(CBackendStorage, self).__init__()
         self.__backend_storage_info = backend_storage_info
         self.__controller_list = []
         self.__pci_topology_manager = None
+        self.__is_cdrom_connected = cdrom_connected
 
         # Global controller index managed by CBackendStorage
         self.__sata_controller_index = 0
@@ -78,7 +79,7 @@ class CBackendStorage(CElement):
         elif "nvme" in model:
             controller_obj = NVMeController(controller_info)
         elif "ahci" in model:
-            controller_obj = AHCIController(controller_info)
+            controller_obj = AHCIController(controller_info, self.__is_cdrom_connected)
         else:
             raise ArgsNotCorrect("[BackendStorage] Unsupported controller type: {}".
                                  format(model))

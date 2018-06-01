@@ -13,6 +13,8 @@ class CSerial(CElement):
         super(CSerial, self).__init__()
         self.__chardev = chardev
         self.__serial_info = serial_info
+        # 0 - SOL
+        # 3 - guest agent
         self.__index = None
 
     def precheck(self):
@@ -20,7 +22,7 @@ class CSerial(CElement):
             raise ValueError("Missing chardev for serial device.")
 
         if self.__index == 3 and (self.__chardev.get_id() != "guest-agent"):
-            raise ValueError("index 0 is reserved for guest agent.")
+            raise ValueError("index 3 is reserved for guest agent.")
 
     def init(self):
         # index 3 reserved for guest agent

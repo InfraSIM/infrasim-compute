@@ -18,3 +18,7 @@ class IDECdrom(IDEDrive):
 
     def init(self):
         super(IDEDrive, self).init()
+
+    def handle_parms(self):
+        super(IDECdrom, self).handle_parms()
+        print self.get_option()

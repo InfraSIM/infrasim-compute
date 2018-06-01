@@ -16,7 +16,7 @@ from test import fixtures
 from infrasim import helper
 from infrasim import model
 
-a_boot_image = "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
+a_boot_image = os.environ.get("TEST_IMAGE_PATH") or "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
 b_boot_image = "/home/infrasim/jenkins/data/ubuntu14.04.4_b.qcow2"
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)

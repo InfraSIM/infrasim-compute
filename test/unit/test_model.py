@@ -19,6 +19,7 @@ from test import fixtures
 from nose.tools import raises
 # from glob import *
 from glob import glob
+from infrasim.init import infrasim_init
 
 
 TMP_CONF_FILE = "/tmp/test.yml"
@@ -1699,6 +1700,14 @@ class socat_configuration(unittest.TestCase):
 
 
 class monitor_configuration(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        infrasim_init(skip_installation=True, force=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
 
     def test_default_monitor_in_qemu(self):
         with open(config.infrasim_default_config, "r") as f_yml:

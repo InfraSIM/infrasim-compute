@@ -232,7 +232,9 @@ class CCompute(Task, CElement):
                 pcie_topology_obj.set_fw_cfg_obj(fw_cfg_obj)
                 self.__element_list.append(fw_cfg_obj)
 
-        backend_storage_obj = CBackendStorage(self.__compute['storage_backend'])
+        cdrom_info = self.__compute.get("cdrom")
+        backend_storage_obj = CBackendStorage(self.__compute['storage_backend'],
+                                              (cdrom_info is not None))
         backend_storage_obj.logger = self.logger
         backend_storage_obj.owner = self
         if pci_topology_manager_obj:
@@ -274,7 +276,6 @@ class CCompute(Task, CElement):
             self.__element_list.append(self.__monitor)
 
         # create cdrom if exits
-        cdrom_info = self.__compute.get("cdrom")
         if cdrom_info:
             cdrom_obj = IDECdrom(cdrom_info)
             cdrom_obj.logger = self.logger
@@ -388,7 +389,8 @@ class CCompute(Task, CElement):
             chardev.handle_parms()
             self.add_option(chardev.get_option())
 
-            serial_obj = CSerial(chardev, {"index": 1})
+            # serial index 0 must be used for SOL
+            serial_obj = CSerial(chardev, {"index": 0})
             serial_obj.init()
             serial_obj.precheck()
             serial_obj.handle_parms()

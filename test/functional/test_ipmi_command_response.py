@@ -10,6 +10,7 @@ import re
 import time
 from infrasim import model
 from test import fixtures
+from infrasim import config
 
 
 """
@@ -166,7 +167,7 @@ class test_ipmicommand_response(unittest.TestCase):
             run_command(chassis_bootdev_pxe_cmd)
             time.sleep(3)
             boot = ""
-            path = os.environ['HOME'] + '/.infrasim/test/bootdev'
+            path = os.path.join(config.infrasim_home, "test/bootdev")
             with open(path) as f:
                 boot = f.readlines()
             boot = boot[0].strip()
@@ -182,7 +183,7 @@ class test_ipmicommand_response(unittest.TestCase):
             run_command(chassis_bootdev_disk_cmd)
             time.sleep(3)
             boot = ""
-            path = os.environ['HOME'] + '/.infrasim/test/bootdev'
+            path = os.path.join(config.infrasim_home, "test/bootdev")
             with open(path) as f:
                 boot = f.readlines()
             boot = boot[0].strip()
@@ -198,7 +199,7 @@ class test_ipmicommand_response(unittest.TestCase):
             run_command(chassis_bootdev_cdrom_cmd)
             time.sleep(3)
             boot = ""
-            path = os.environ['HOME'] + '/.infrasim/test/bootdev'
+            path = os.path.join(config.infrasim_home, "test/bootdev")
             with open(path) as f:
                 boot = f.readlines()
             boot = boot[0].strip()

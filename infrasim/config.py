@@ -30,7 +30,7 @@ infrasim_etc = os.path.join(get_infrasim_root(), "etc")
 infrasim_config_template = os.path.join(infrasim_template, "infrasim.yml")
 
 # This is the infrasim home directory, most data and configuration file will be put here
-infrasim_home = os.path.join(os.environ['HOME'], ".infrasim")
+infrasim_home = os.environ.get('INFRASIM_HOME') or os.path.join(os.environ['HOME'], ".infrasim")
 
 # This is the infrasim chassis map directory, every chassis node mapping is restored here
 infrasim_chassis_config_map = os.path.join(infrasim_home, ".chassis_map")
