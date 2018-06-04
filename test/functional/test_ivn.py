@@ -12,16 +12,19 @@ import tempfile
 import yaml
 import sys
 import shutil
+import time
+import paramiko
 from infrasim import run_command
 from test.fixtures import FakeConfig
 from infrasim.model import CNode
 from infrasim import sshclient
+from infrasim import helper
 from test import fixtures
 
 old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
-a_boot_image = os.environ.get('TEST_IMAGE_PATH') or "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
-b_boot_image = "/home/infrasim/jenkins/data/ubuntu14.04.4_b.qcow2"
+a_boot_image = os.environ.get('TEST_IMAGE_PATH') or "/home/infrasim/jenkins/data/ubuntu14.04.4_b.qcow2"
+b_boot_image = os.environ.get('TEST_IMAGE_PATH') or"/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
 conf = {}
 ivn_file = None
 fake_node1 = None
@@ -93,6 +96,7 @@ class test_ivn(unittest.TestCase):
         fake_node_obj.init()
         fake_node_obj.precheck()
         fake_node_obj.start()
+        fake_node_obj.wait_node_up(timeout=10)
         return fake_node_obj
 
     def node_config(self, node_name, ns_name, boot_image):
@@ -102,14 +106,28 @@ class test_ivn(unittest.TestCase):
         fake_node['namespace'] = ns_name
         fake_node['compute']['storage_backend'][0]["drives"][0]["file"] = boot_image
         fake_node["compute"]["networks"][0]["port_forward"] = [{"outside": 8022, "inside": 22, "protocal": "tcp"}]
+        fake_node["compute"]["networks"].append({"device": "e1000", "network_mode": "bridge", "network_name": "br0"})
         fake_node_up = self._start_node(fake_node)
         return fake_node_up
 
-    def client_ssh(self, ns_ip):
-        ssh = sshclient.SSH(host=ns_ip, username="root", password="root", port=8022)
+    def client_ssh(self, ns_ip,guest_ip):
+        ssh = sshclient.SSH(host=ns_ip, username="infrasim", password="infrasim", port=8022)
         ssh.wait_for_host_up()
-        status, output = ssh.exec_command("ls")
-        return output
+        status, output=ssh.exec_command("sudo ifconfig enp0s4 up")
+        time.sleep(1)
+        status, output=ssh.exec_command("sudo ifconfig enp0s4 %s"%(guest_ip))
+        print output
+        time.sleep(1)
+        status,output=ssh.exec_command("ifconfig")
+        print output
+        return ssh
+
+    def ping_peer(self,ssh,peer_ip):
+        status, output = ssh.exec_command("ping  %s  -c 5"%(peer_ip) )
+        time.sleep(1)
+        print output
+        self.assertIn("0% packet loss", output, "node connection passed!")
+        return
 
     def test_ns_create_delete(self):
         global ivn_file
@@ -127,15 +145,14 @@ class test_ivn(unittest.TestCase):
         assert reobj
         reobj = re.search(r'node0ns(\s?\(id:\s?\d+\))?', result)
         assert reobj
-
         fake_node1 = self.node_config('test0', 'node0ns', a_boot_image)
         fake_node2 = self.node_config('test1', 'node1ns', b_boot_image)
         self._verify_node_in_netns(fake_node1, "node0ns")
-        output_ssh = self.client_ssh('192.168.188.91')
-        self.assertNotEqual('', output_ssh, 'connection fail')
         self._verify_node_in_netns(fake_node2, "node1ns")
-        output_ssh = self.client_ssh('192.168.188.92')
-        self.assertNotEqual('', output_ssh, 'connection fail')
+        node1_ssh = self.client_ssh('192.168.188.91','192.168.1.12')
+        node2_ssh = self.client_ssh('192.168.188.92','192.168.1.13')
+        self.ping_peer(node1_ssh,'192.168.1.13')
+        self.ping_peer(node2_ssh,'192.168.1.12')
         test_ivn._stop_node(fake_node1)
         test_ivn._stop_node(fake_node2)
         fake_node1 = None

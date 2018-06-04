@@ -15,7 +15,7 @@ class FakeConfig(object):
                     "type": "Haswell"
                 },
                 "memory": {
-                    "size": 1024
+                    "size": 4096
                 },
                 "storage_backend": [
                     {
@@ -26,7 +26,7 @@ class FakeConfig(object):
                         "max_sge": 128,
                         "drives": [
                             {
-                                "size": 8
+                                "size": 16
                             }
                         ]
                     }
