@@ -7,18 +7,18 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import os
 from infrasim import ArgsNotCorrect
-from infrasim.dae import DAEProcessHelper
 from infrasim.model.core.element import CElement
 from infrasim.model.elements.network import CNetwork
-from infrasim.model.elements.storage import CBaseStorageController
 from infrasim.model.elements.storage_mega import MegaSASController
 from infrasim.model.elements.storage_lsi import LSISASController
 from infrasim.model.elements.drive_nvme import NVMeController
 from infrasim.model.elements.storage_ahci import AHCIController
 from infrasim.model.elements.chassisslot import CChassisSlot
+from infrasim.model.elements.storage_diskarray import DiskArrayController
 
 
 class CBackendNetwork(CElement):
+
     def __init__(self, network_info_list):
         super(CBackendNetwork, self).__init__()
         self.__backend_network_list = network_info_list
@@ -50,10 +50,12 @@ class CBackendNetwork(CElement):
 
 
 class CBackendStorage(CElement):
+
     def __init__(self, backend_storage_info, cdrom_connected=False):
         super(CBackendStorage, self).__init__()
         self.__backend_storage_info = backend_storage_info
         self.__controller_list = []
+        self.__diskarray = None
         self.__pci_topology_manager = None
         self.__is_cdrom_connected = cdrom_connected
 
@@ -80,6 +82,11 @@ class CBackendStorage(CElement):
             controller_obj = NVMeController(controller_info)
         elif "ahci" in model:
             controller_obj = AHCIController(controller_info, self.__is_cdrom_connected)
+        elif "disk_array" in model:
+            if self.__diskarray:
+                raise ArgsNotCorrect("[BackendStorage] Only 1 disk array object allowed")
+            controller_obj = DiskArrayController(controller_info)
+            self.__diskarray = controller_obj
         else:
             raise ArgsNotCorrect("[BackendStorage] Unsupported controller type: {}".
                                  format(model))
@@ -100,19 +107,17 @@ class CBackendStorage(CElement):
 
         if ws is None or not os.path.exists(ws):
             ws = ""
-
         return ws
 
     def init(self):
-        # parse disk array definition in advance.
-        dae_helper = DAEProcessHelper(self.__backend_storage_info,
-                                      self.__get_ws_name())
-
         for controller in self.__backend_storage_info:
             controller_obj = self.__create_controller(controller)
             if self.__pci_topology_manager:
                 controller_obj.set_pci_topology_mgr(self.__pci_topology_manager)
             self.__controller_list.append(controller_obj)
+
+        if self.__diskarray:
+            self.__diskarray.apply_device(self.__backend_storage_info)
 
         for controller_obj in self.__controller_list:
             if isinstance(controller_obj, AHCIController):
@@ -122,9 +127,6 @@ class CBackendStorage(CElement):
             else:
                 controller_obj.controller_index = self.__scsi_controller_index
             controller_obj.init()
-            # generate and save drives and traversal information.
-            if isinstance(controller_obj, CBaseStorageController):
-                dae_helper.create_dae_node(controller_obj.get_drvs_arg_option())
 
             if isinstance(controller_obj, AHCIController):
                 self.__sata_controller_index = controller_obj.controller_index + 1
