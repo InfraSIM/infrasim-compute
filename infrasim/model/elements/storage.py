@@ -80,17 +80,3 @@ class CBaseStorageController(CElement):
         # controller attributes if there are some
         # common attributes for all controllers
         # add them into self._attributes here.
-
-    def get_drvs_arg_option(self):
-        if len(self._drive_list) == 0:
-            return None
-        if self._controller_info.get('connectors', None) is None:
-            return None
-        # handle drive options
-        for drive_obj in self._drive_list:
-            drive_obj.handle_parms()
-        drv_args = []
-        for drive_obj in self._drive_list[:]:
-            drv_args.append(drive_obj.get_option())
-            self._drive_list.remove(drive_obj)
-        return {"drv_opt_list": drv_args, "controller_info": self._controller_info}

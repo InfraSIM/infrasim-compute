@@ -7,9 +7,12 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 
 import math
+from infrasim import helper
 from infrasim.model.elements.storage import CBaseStorageController
 from infrasim.model.elements.drive_scsi import SCSIDrive
 from infrasim.model.elements.ses import SESDevice
+from infrasim.model.elements.storage_diskarray import DiskArrayController
+import os
 
 
 class LSISASController(CBaseStorageController):
@@ -55,17 +58,26 @@ class LSISASController(CBaseStorageController):
         for ses_obj in self._ses_list:
             ses_obj.init()
 
-        # This attribute is not open to user assignment. It's set during the
-        # disk array topology processing. If user defines "dae_file" in yml,
-        # the value will be overwritten.
-        if self._controller_info.get("dae_file", None):
-            self.__dae_file = self._controller_info["dae_file"]
+        # prepare dae file if disk array connected.
+        if self._controller_info.get("hba_ports"):
+            ws = helper.get_ws_folder(self)
+            self.__dae_file = os.path.join(ws, "data", "diskarray{}.json".format(self.controller_index))
 
         # Update controller index, tell CBackendStorage what the controller index
         # should be for the next
         self.controller_index += (idx / self._max_drive_per_controller)
 
     def handle_parms(self):
+        drv_args = []
+        # handle drive options
+        if self.__dae_file:
+            for drive_obj in self._drive_list:
+                drive_obj.handle_parms()
+                # export options to json file
+                drv_args.append(drive_obj.get_option())
+
+            self._drive_list = []
+
         super(LSISASController, self).handle_parms()
 
         drive_nums = len(self._drive_list)
@@ -86,3 +98,6 @@ class LSISASController(CBaseStorageController):
                 self._attributes["dae_file"] = self.__dae_file
 
             self.add_option("{}".format(self._build_one_controller(self._model, **self._attributes)), 0)
+
+        if self.__dae_file:
+            DiskArrayController.export_json_data(self.__dae_file, drv_args, self._controller_info)
