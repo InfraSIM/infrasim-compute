@@ -292,9 +292,9 @@ class test_node_cli(unittest.TestCase):
         # install specific versions
         package_list = [{"name": "infrasim-qemu", "version": "2.10.1-ubuntu-xenial-1.0.251"},
                         {"name": "infrasim-openipmi", "version": "2.0.24-1.4.79ubuntu16.04.1"}]
-        pm = PackageManager(update_cache=True, progress=True)
+        pm = PackageManager(only_upgrade=False, force=True)
         for pkg in package_list:
-            assert pm.do_install(pkg.get('name'), version_str=pkg.get('version'), force=True)
+            pm.do_install(pkg.get('name'), version=pkg.get('version'))
 
         for pkg in package_list:
             rc, output = run_command('dpkg -s {} | grep \"^Version:\"'.format(pkg.get('name')))
@@ -306,7 +306,7 @@ class test_node_cli(unittest.TestCase):
         package_list = [{"name": "infrasim-qemu", "version": "latest"},
                         {"name": "infrasim-openipmi", "version": "latest"}]
         for pkg in package_list:
-            assert pm.do_install(pkg.get('name'), version_str=pkg.get('version'), force=True)
+            pm.do_install(pkg.get('name'), version=pkg.get('version'))
 
         for pkg in package_list:
             rc, output = run_command('dpkg -s {} | grep \"^Version:\"'.format(pkg.get('name')))
@@ -317,9 +317,8 @@ class test_node_cli(unittest.TestCase):
         # downgrade to specific versions
         package_list = [{"name": "infrasim-qemu", "version": "2.10.1-ubuntu-xenial-1.0.251"},
                         {"name": "infrasim-openipmi", "version": "2.0.24-1.4.79ubuntu16.04.1"}]
-        pm = PackageManager(update_cache=True, progress=True)
         for pkg in package_list:
-            assert pm.do_install(pkg.get('name'), version_str=pkg.get('version'), force=True)
+            pm.do_install(pkg.get('name'), version=pkg.get('version'))
 
         for pkg in package_list:
             rc, output = run_command('dpkg -s {} | grep \"^Version:\"'.format(pkg.get('name')))
@@ -329,7 +328,10 @@ class test_node_cli(unittest.TestCase):
 
         # uninstall the versions
         for pkg in package_list:
-            pm.do_uninstall(pkg.get('name'))
+            pm.do_remove(pkg.get('name'))
+
+        # update cache
+        pm.init()
 
         for pkg in package_list:
             self.assertRaises(CommandRunFailed, run_command,
@@ -338,9 +340,10 @@ class test_node_cli(unittest.TestCase):
 
         # install the packages again for the subsequent tests
         package_list = [{"name": "infrasim-qemu", "version": "latest"},
-                        {"name": "infrasim-openipmi", "version": "latest"}]
+                        {"name": "infrasim-openipmi", "version": "latest"},
+                        {"name": "infrasim-seabios", "version": "latest"}]
         for pkg in package_list:
-            assert pm.do_install(pkg.get('name'), version_str=pkg.get('version'), force=True)
+            pm.do_install(pkg.get('name'), version=pkg.get('version'))
 
         for pkg in package_list:
             rc, output = run_command('dpkg -s {} | grep \"^Version:\"'.format(pkg.get('name')))

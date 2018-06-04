@@ -23,6 +23,7 @@ from infrasim.model.elements.storage_ahci import AHCIController
 from infrasim.model.elements.drive import CBaseDrive
 from infrasim.model.elements.drive_scsi import SCSIDrive
 from infrasim.model.elements.drive_ide import IDEDrive
+from infrasim.model.elements.cdrom import IDECdrom
 from infrasim.model.elements.drive_nvme import NVMeController
 from infrasim.model.elements.ses import SESDevice
 from infrasim.model.elements.backend import CBackendNetwork
@@ -38,6 +39,8 @@ from infrasim.model.elements.fw_cfg import CPCIEFwcfg
 from infrasim.model.elements.qemu_monitor import CQemuMonitor
 from infrasim.model.elements.machine import CMachine
 from infrasim.model.elements.pci_passthrough import CPCIEPassthrough
+from infrasim.model.elements.guest_agent import GuestAgent
+from infrasim.model.elements.serial import CSerial
 
 from infrasim.model.tasks.compute import CCompute
 from infrasim.model.tasks.bmc import CBMC
@@ -57,6 +60,7 @@ __all__ = ["CNode",
            "AHCIController",
            "SCSIDrive",
            "IDEDrive",
+           "IDECdrom",
            "NVMeController",
            "SESDevice",
            "CNetwork",
@@ -78,4 +82,6 @@ __all__ = ["CNode",
            "CMachine",
            "CChassisDaemon",
            "CChassis",
-           "CPCIEPassthrough"]
+           "CPCIEPassthrough",
+           "GuestAgent",
+           "CSerial"]

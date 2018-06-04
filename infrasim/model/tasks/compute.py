@@ -27,6 +27,9 @@ from infrasim.model.elements.pci_topo import CPCITopologyManager
 from infrasim.model.elements.pcie_topology import CPCIETopology
 from infrasim.model.elements.qemu_monitor import CQemuMonitor
 from infrasim.model.elements.pci_passthrough import CPCIEPassthrough
+from infrasim.model.elements.cdrom import IDECdrom
+from infrasim.model.elements.guest_agent import GuestAgent
+from infrasim.model.elements.serial import CSerial
 
 
 class CCompute(Task, CElement):
@@ -46,13 +49,11 @@ class CCompute(Task, CElement):
         self.__boot_splash_name = None
         self.__boot_splash_time = None
         self.__qemu_bin = "qemu-system-x86_64"
-        self.__cdrom_file = None
         self.__vendor_type = None
         # remember cpu object
         self.__cpu_obj = None
         self.__numactl_info = False
         self.__numactl_mode = None
-        self.__cdrom_file = None
         self.__display = None
 
         # Node wise attributes
@@ -171,8 +172,6 @@ class CCompute(Task, CElement):
         else:
             self.__boot_order = "ncd"
 
-        self.__cdrom_file = self.__compute.get('cdrom')
-
         self.__numactl_info = self.__compute.get("numa_control")
         if self.__numactl_info and os.path.exists("/usr/bin/numactl"):
             self.__numactl_mode = self.__numactl_info.get("mode", "auto")
@@ -233,7 +232,9 @@ class CCompute(Task, CElement):
                 pcie_topology_obj.set_fw_cfg_obj(fw_cfg_obj)
                 self.__element_list.append(fw_cfg_obj)
 
-        backend_storage_obj = CBackendStorage(self.__compute['storage_backend'])
+        cdrom_info = self.__compute.get("cdrom")
+        backend_storage_obj = CBackendStorage(self.__compute['storage_backend'],
+                                              (cdrom_info is not None))
         backend_storage_obj.logger = self.logger
         backend_storage_obj.owner = self
         if pci_topology_manager_obj:
@@ -273,6 +274,21 @@ class CCompute(Task, CElement):
             self.__monitor.set_workspace(self.get_workspace())
             self.__monitor.logger = self.logger
             self.__element_list.append(self.__monitor)
+
+        # create cdrom if exits
+        if cdrom_info:
+            cdrom_obj = IDECdrom(cdrom_info)
+            cdrom_obj.logger = self.logger
+            cdrom_obj.index = 0
+            cdrom_obj.owner = cdrom_obj
+            cdrom_obj.set_bus(0)
+            cdrom_obj.set_scsi_id(0)
+            self.__element_list.append(cdrom_obj)
+
+        # create channel for guest agent
+        has_guest_agent = self.__compute.get('guest-agent')
+        if has_guest_agent or has_guest_agent == 'on':
+            self.__element_list.append(GuestAgent(self.get_workspace()))
 
         for ppi in self.__compute.get("pcie-passthrough", []):
             ppi_obj = CPCIEPassthrough(ppi)
@@ -360,9 +376,6 @@ class CCompute(Task, CElement):
         tmp = ","
         self.add_option("-boot {}".format(tmp.join(boot_param)))
 
-        if self.__cdrom_file:
-            self.add_option("-cdrom {}".format(self.__cdrom_file))
-
         if self.__socket_serial and self.__sol_enabled:
             chardev = CCharDev({
                 "backend": "socket",
@@ -372,10 +385,16 @@ class CCompute(Task, CElement):
             chardev.logger = self.logger
             chardev.set_id("serial0")
             chardev.init()
+            chardev.precheck()
             chardev.handle_parms()
-
             self.add_option(chardev.get_option())
-            self.add_option("-device isa-serial,chardev={}".format(chardev.get_id()))
+
+            # serial index 0 must be used for SOL
+            serial_obj = CSerial(chardev, {"index": 0})
+            serial_obj.init()
+            serial_obj.precheck()
+            serial_obj.handle_parms()
+            self.add_option(serial_obj.get_option())
 
         self.add_option("-uuid {}".format(str(uuid.uuid4())))
 

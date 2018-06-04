@@ -22,6 +22,7 @@ from infrasim import helper
 from infrasim import InfraSimError
 from infrasim.helper import UnixSocket
 from test import fixtures
+from infrasim import config
 
 PS_QEMU = "ps ax | grep qemu"
 PS_IPMI = "ps ax | grep ipmi"
@@ -342,8 +343,7 @@ class test_connection(unittest.TestCase):
     def setUp(self):
         fake_config = fixtures.FakeConfig()
         self.conf = fake_config.get_node_info()
-        self.bmc_conf = os.path.join(os.environ["HOME"], ".infrasim",
-                                     "test", "etc", "vbmc.conf")
+        self.bmc_conf = os.path.join(config.infrasim_home, "test", "etc", "vbmc.conf")
         self.old_path = os.environ.get("PATH")
         os.environ["PATH"] = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), self.old_path)
 
@@ -358,7 +358,7 @@ class test_connection(unittest.TestCase):
         os.environ["PATH"] = self.old_path
 
     def test_set_sol_device(self):
-        temp_sol_device = "{}/.infrasim/pty_test".format(os.environ['HOME'])
+        temp_sol_device = os.path.join(config.infrasim_home, "pty_test")
         self.conf["sol_device"] = temp_sol_device
         self.conf["sol_enable"] = True
 
@@ -408,7 +408,7 @@ class test_connection(unittest.TestCase):
         assert "port=9102" in str_result
 
     def test_set_serial_socket(self):
-        self.conf["sol"] = True
+        self.conf["sol_enable"] = True
         self.conf["serial_socket"] = "/tmp/test_infrasim_set_serial_socket"
 
         node = model.CNode(self.conf)
@@ -419,7 +419,7 @@ class test_connection(unittest.TestCase):
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
         assert "-chardev socket,path=/tmp/test_infrasim_set_serial_socket," \
-               "id=serial0,reconnect=10" in str_result
+               "id=serial0,nowait,reconnect=10" in str_result
         assert "-device isa-serial,chardev=serial0" in str_result
 
         str_result = run_command(PS_SOCAT, True,
@@ -438,13 +438,13 @@ class test_connection(unittest.TestCase):
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
         assert "qemu-system-x86_64" in str_result
-        assert "-smbios file={}/.infrasim/test/data/dell_c6320_smbios.bin".\
-            format(os.environ["HOME"]) in str_result
+        assert "-smbios file={}/test/data/dell_c6320_smbios.bin".\
+            format(config.infrasim_home) in str_result
 
         str_result = run_command(PS_IPMI, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
-        assert "-f {}/.infrasim/test/data/dell_c6320.emu".\
-            format(os.environ["HOME"]) in str_result
+        assert "-f {}/test/data/dell_c6320.emu".\
+            format(config.infrasim_home) in str_result
 
 
 class test_racadm_configuration_change(unittest.TestCase):
@@ -667,12 +667,27 @@ class test_infrasim_monitor_configuration_change(unittest.TestCase):
         self.conf = None
         os.environ["PATH"] = self.old_path
 
+    def wait_port_up(self, addr, port, timeout=10):
+        start = time.time()
+        while True:
+            if helper.check_if_port_in_use(addr, port):
+                return True
+
+            if time.time() - start > timeout:
+                break
+
+            time.sleep(0.1)
+
+        return False
+
     def test_default_config(self):
         # Start service
         node = model.CNode(self.conf)
         node.init()
         node.precheck()
         node.start()
+
+        assert self.wait_port_up("0.0.0.0", 9005)
 
         # Check process
         str_result = run_command(PS_MONITOR, True,
@@ -707,6 +722,8 @@ class test_infrasim_monitor_configuration_change(unittest.TestCase):
             pass
         else:
             assert False
+
+        assert self.wait_port_up("0.0.0.0", 9006)
 
         # Connect with correct port
         rsp = requests.get("http://localhost:9006/admin")

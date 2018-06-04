@@ -101,7 +101,7 @@ class CCharDev(CElement):
         if self.__is_server:
             chardev_option_list.append("server")
 
-        if self.__wait is False:
+        if self.__wait is False or self.__wait == "off":
             chardev_option_list.append("nowait")
 
         if self.__reconnect is not None:

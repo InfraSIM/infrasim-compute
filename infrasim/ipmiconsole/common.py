@@ -102,7 +102,7 @@ def init_env(instance):
                 format(instance))
 
     # Get runtime vbmc.conf
-    vbmc_conf_path = os.path.join(os.environ["HOME"], ".infrasim", instance, "etc", "vbmc.conf")
+    vbmc_conf_path = os.path.join(config.infrasim_home, instance, "etc", "vbmc.conf")
     if not os.path.exists(vbmc_conf_path):
         msg = "{} vBMC configuration is not defined at {}".format(instance, vbmc_conf_path)
         logger.error(msg)
@@ -112,7 +112,7 @@ def init_env(instance):
         logger.info(msg)
 
     # Get runtime infrasim.yml
-    infrasim_yml_path = os.path.join(os.environ["HOME"], ".infrasim", instance, "etc", "infrasim.yml")
+    infrasim_yml_path = os.path.join(config.infrasim_home, instance, "etc", "infrasim.yml")
     if not os.path.exists(infrasim_yml_path):
         msg = "{} infrasim instance is not defined at {}".format(instance, infrasim_yml_path)
         logger.error(msg)

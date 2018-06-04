@@ -129,7 +129,7 @@ def get_environment():
 
 
 def infrasim_init(node_type="dell_r730", skip_installation=True, force=False,
-                  target_home=None, config_file=None, entry=None):
+                  config_file=None, entry=None):
     if check_existing_workspace():
         if not force:
             raise WorkspaceExisting("There is node workspace existing.\n"
