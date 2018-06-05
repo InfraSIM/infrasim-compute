@@ -66,7 +66,7 @@ def start_qemu(conf_file=config.infrasim_default_config):
         workspace = os.path.join(config.infrasim_home, node_name)
         if not os.path.isdir(workspace):
             os.mkdir(workspace)
-        path_log = "/var/log/infrasim/{}".format(node_name)
+        path_log = os.path.join(config.infrasim_log_dir, node_name)
         compute.logger = infrasim_log.get_logger(LoggerType.model.value, node_name)
         if not os.path.isdir(path_log):
             os.mkdir(path_log)
@@ -78,7 +78,7 @@ def start_qemu(conf_file=config.infrasim_default_config):
         # Set attributes
         compute.enable_sol(sol_enabled)
         compute.set_task_name("{}-node".format(node_name))
-        compute.set_log_path("/var/log/infrasim/{}/qemu.log".format(node_name))
+        compute.set_log_path(os.path.join(path_log, "qemu.log"))
         compute.set_workspace(workspace)
         compute.set_type(conf["type"])
 
@@ -128,7 +128,7 @@ def stop_qemu(conf_file=config.infrasim_default_config):
         # Set attributes
         compute.logger = infrasim_log.get_logger(LoggerType.model.value, node_name)
         compute.set_task_name("{}-node".format(node_name))
-        compute.set_log_path("/var/log/infrasim/{}/qemu.log".format(node_name))
+        compute.set_log_path(os.path.join(config.infrasim_log_dir, node_name, "qemu.log"))
         compute.set_workspace(os.path.join(config.infrasim_home, node_name))
         compute.set_type(conf["type"])
 

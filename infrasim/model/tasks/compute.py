@@ -30,6 +30,7 @@ from infrasim.model.elements.pci_passthrough import CPCIEPassthrough
 from infrasim.model.elements.cdrom import IDECdrom
 from infrasim.model.elements.guest_agent import GuestAgent
 from infrasim.model.elements.serial import CSerial
+from infrasim.model.elements.trace import QTrace
 
 
 class CCompute(Task, CElement):
@@ -289,6 +290,11 @@ class CCompute(Task, CElement):
         has_guest_agent = self.__compute.get('guest-agent')
         if has_guest_agent or has_guest_agent == 'on':
             self.__element_list.append(GuestAgent(self.get_workspace()))
+
+        # add debug option
+        trace_info = self.__compute.get("trace")
+        if trace_info:
+            self.__element_list.append(QTrace(trace_info, self.get_workspace()))
 
         for ppi in self.__compute.get("pcie-passthrough", []):
             ppi_obj = CPCIEPassthrough(ppi)

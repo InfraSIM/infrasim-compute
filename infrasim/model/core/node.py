@@ -120,8 +120,7 @@ class CNode(object):
         bmc_obj.set_priority(1)
         bmc_obj.set_task_name("{}-bmc".format(self.__node_name))
         bmc_obj.enable_sol(self.__sol_enabled)
-        bmc_obj.set_log_path("/var/log/infrasim/{}/openipmi.log".
-                             format(self.__node_name))
+        bmc_obj.set_log_path(os.path.join(config.infrasim_log_dir, self.__node_name, "openipmi.log"))
         bmc_obj.set_node_name(self.__node['name'])
         self.__tasks_list.append(bmc_obj)
 
@@ -132,8 +131,7 @@ class CNode(object):
         compute_obj.enable_sol(self.__sol_enabled)
         compute_obj.set_priority(2)
         compute_obj.set_task_name("{}-node".format(self.__node_name))
-        compute_obj.set_log_path("/var/log/infrasim/{}/qemu.log".
-                                 format(self.__node_name))
+        compute_obj.set_log_path(os.path.join(config.infrasim_log_dir, self.__node_name, "qemu.log"))
         self.__tasks_list.append(compute_obj)
 
         if "type" in self.__node and "dell" in self.__node["type"]:
@@ -143,8 +141,7 @@ class CNode(object):
             racadm_obj.set_priority(3)
             racadm_obj.set_node_name(self.__node_name)
             racadm_obj.set_task_name("{}-racadm".format(self.__node_name))
-            racadm_obj.set_log_path("/var/log/infrasim/{}/racadm.log".
-                                    format(self.__node_name))
+            racadm_obj.set_log_path(os.path.join(config.infrasim_log_dir, self.__node_name, "racadm.log"))
             self.__tasks_list.append(racadm_obj)
 
         # Set interface
@@ -199,8 +196,7 @@ class CNode(object):
             monitor_obj.set_priority(4)
             monitor_obj.set_node_name(self.__node_name)
             monitor_obj.set_task_name("{}-monitor".format(self.__node_name))
-            monitor_obj.set_log_path("/var/log/infrasim/{}/monitor.log".
-                                     format(self.__node_name))
+            monitor_obj.set_log_path(os.path.join(config.infrasim_log_dir, self.__node_name, "monitor.log"))
             self.__tasks_list.append(monitor_obj)
 
         self.workspace = Workspace(self.__node)
