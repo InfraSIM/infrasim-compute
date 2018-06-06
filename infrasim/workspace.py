@@ -1,7 +1,7 @@
 import os
 import yaml
 import shutil
-import config
+from infrasim import config
 import subprocess
 from yaml_loader import YAMLLoader
 from . import has_option, InfraSimError
@@ -87,7 +87,7 @@ class Workspace(object):
             os.mkdir(self._workspace)
 
         # II. Create log folder
-        path_log = "/var/log/infrasim/{}".format(self._workspace_name)
+        path_log = os.path.join(config.infrasim_log_dir, self._workspace_name)
         if not os.path.exists(path_log):
             os.mkdir(path_log)
 
@@ -199,7 +199,7 @@ class ChassisWorkspace(Workspace):
             os.mkdir(self._workspace)
 
         # II. Create log folder
-        path_log = "/var/log/infrasim/{}".format(self._workspace_name)
+        path_log = os.path.join(config.infrasim_log_dir, self._workspace_name)
         if not os.path.exists(path_log):
             os.mkdir(path_log)
 

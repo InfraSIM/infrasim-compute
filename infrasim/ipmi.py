@@ -42,8 +42,7 @@ def start_ipmi(conf_file=config.infrasim_default_config):
         bmc = CBMC(conf.get('bmc', {}))
         node_name = conf["name"] if "name" in conf else "node-0"
         bmc.set_task_name("{}-bmc".format(node_name))
-        bmc.set_log_path("/var/log/infrasim/{}/openipmi.log".
-                         format(node_name))
+        bmc.set_log_path(os.path.join(config.infrasim_log_dir, node_name, "openipmi.log"))
         bmc.set_type(conf["type"])
         bmc.enable_sol(False)
         bmc.set_workspace(node.workspace.get_workspace())

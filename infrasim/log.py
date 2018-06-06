@@ -4,8 +4,9 @@ import os
 from enum import Enum
 import gzip
 import shutil
+from infrasim import config
 
-infrasim_logdir = "/var/log/infrasim"
+infrasim_logdir = config.infrasim_log_dir
 EXCEPT_LEVEL_NUM = 35
 
 
