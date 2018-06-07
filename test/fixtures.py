@@ -1,7 +1,7 @@
 import os
 from infrasim import helper
 image = os.environ.get("TEST_IMAGE_PATH") or "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
-a_boot_image = os.environ.get("TEST_IMAGE_PATH") or "/home/infrasim/jenkins/data/ubuntu16.04_a.qcow2"
+a_boot_image = os.environ.get("TEST_IMAGE_PATH") or "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
 b_boot_image = "/home/infrasim/jenkins/data/ubuntu16.04_b.qcow2"
 
 class FakeConfig(object):
