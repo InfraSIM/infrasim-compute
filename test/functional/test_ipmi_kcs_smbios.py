@@ -39,7 +39,7 @@ Test SMBIOS data
 """
 
 
-test_img_file = "/tmp/kcs.img"
+test_img_file = "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
 conf = {}
 tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
@@ -47,15 +47,6 @@ new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
 
 def setup_module():
-    test_img_file = "/tmp/kcs.img"
-    DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
-    MD5_KCS_IMG = "986e5e63e8231a307babfbe9c81ca210"
-    try:
-        helper.fetch_image(DOWNLOAD_URL, MD5_KCS_IMG, test_img_file)
-    except InfraSimError, e:
-        print e.value
-        assert False
-
     os.environ["PATH"] = new_path
 
 
@@ -217,14 +208,16 @@ def verify_smbios_data(expect_mfg, expect_product_name):
     assert expect_mfg in lines
     assert expect_product_name in lines
 
-
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_quanta_d51(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         start_node(node_type="quanta_d51")
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         stop_node()
 
@@ -250,14 +243,16 @@ class test_quanta_d51(unittest.TestCase):
         verify_smbios_data(expect_mfg="Manufacturer: Quanta Computer Inc",
                            expect_product_name="Product Name: D51B-2U (dual 10G LoM)")
 
-
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_quanta_t41(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         start_node(node_type="quanta_t41")
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         stop_node()
 
@@ -283,14 +278,16 @@ class test_quanta_t41(unittest.TestCase):
         verify_smbios_data(expect_mfg="Manufacturer: Quanta Computer Inc",
                            expect_product_name="Product Name: QuantaPlex T41S-2U")
 
-
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_s2600kp(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         start_node(node_type="s2600kp")
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         stop_node()
 
@@ -317,13 +314,16 @@ class test_s2600kp(unittest.TestCase):
                            expect_product_name="Product Name: S2600KP")
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_s2600tp(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         start_node(node_type="s2600tp")
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         stop_node()
 
@@ -350,13 +350,16 @@ class test_s2600tp(unittest.TestCase):
                            expect_product_name="Product Name: S2600TP")
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_s2600wtt(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         start_node(node_type="s2600wtt")
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         stop_node()
 
@@ -383,13 +386,16 @@ class test_s2600wtt(unittest.TestCase):
                            expect_product_name="Product Name: S2600WTT")
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_dell_c6320(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         start_node(node_type="dell_c6320")
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         stop_node()
 
@@ -416,13 +422,16 @@ class test_dell_c6320(unittest.TestCase):
                            expect_product_name="Product Name: PowerEdge C6320")
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_dell_r630(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         start_node(node_type="dell_r630")
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         stop_node()
 
@@ -450,13 +459,16 @@ class test_dell_r630(unittest.TestCase):
                            expect_product_name="Product Name: PowerEdge R630")
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_dell_r730(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         start_node(node_type="dell_r730")
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         stop_node()
 

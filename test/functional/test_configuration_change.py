@@ -31,6 +31,7 @@ PS_RACADM = "ps ax | grep racadmsim"
 PS_MONITOR = "ps ax | grep monitor"
 
 TMP_CONF_FILE = "/tmp/test.yml"
+test_img_file = "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
 
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
@@ -154,14 +155,6 @@ class test_compute_configuration_change(unittest.TestCase):
         assert "format=qcow2" in qemu_cmdline
 
     def test_qemu_boot_from_disk_img(self):
-        MD5_IMG = "986e5e63e8231a307babfbe9c81ca210"
-        DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
-        test_img_file = "/tmp/kcs.img"
-        try:
-            helper.fetch_image(DOWNLOAD_URL, MD5_IMG, test_img_file)
-        except InfraSimError, e:
-            print e.value
-            assert False
 
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",
@@ -427,6 +420,7 @@ class test_connection(unittest.TestCase):
         assert "unix-listen:/tmp/test_infrasim_set_serial_socket," \
                "fork" in str_result
 
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def test_set_node_type(self):
         self.conf["type"] = "dell_c6320"
 
@@ -446,7 +440,7 @@ class test_connection(unittest.TestCase):
         assert "-f {}/test/data/dell_c6320.emu".\
             format(config.infrasim_home) in str_result
 
-
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_racadm_configuration_change(unittest.TestCase):
 
     ssh = paramiko.SSHClient()

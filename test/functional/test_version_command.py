@@ -8,6 +8,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import unittest
 import re
+import os
 from infrasim import version
 
 
@@ -17,12 +18,15 @@ matches the correct format
 """
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_version_command(unittest.TestCase):
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         pass
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         pass
 

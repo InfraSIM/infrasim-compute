@@ -89,7 +89,7 @@ class test_boot_order(unittest.TestCase):
                 break
         assert boot_order is True
 
-
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_boot_splash_time(unittest.TestCase):
 
     def setUp(self):

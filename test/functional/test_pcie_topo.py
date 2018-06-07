@@ -18,7 +18,7 @@ import json
 """
 Test inquiry/mode sense data injection of scsi drive
 """
-test_img_file = "/tmp/kcs.img"
+test_img_file = "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
 conf = {}
 tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
@@ -27,15 +27,6 @@ ssh = None
 
 
 def setup_module():
-    test_img_file = "/tmp/kcs.img"
-    DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
-    MD5_KCS_IMG = "986e5e63e8231a307babfbe9c81ca210"
-    try:
-        helper.fetch_image(DOWNLOAD_URL, MD5_KCS_IMG, test_img_file)
-    except InfraSimError as e:
-        print e.value
-        assert False
-
     os.environ["PATH"] = new_path
 
 
@@ -110,8 +101,7 @@ def start_node(node_type):
         "bus": "downstream2",
         "device": "e1000",
         "mac": "52:54:be:b9:77:dc",
-        "network_mode": "nat",
-        "network_name": "dummy0"
+        "network_mode": "bridge",
     }]
     conf["compute"]["pcie_topology"] = {
       "root_port": [
@@ -270,8 +260,8 @@ class test_pcie_topo(unittest.TestCase):
         # check pcie topology
         pcie_topo_list = run_cmd("lspci")
         rootport_num = pcie_topo_list.count('Root Port')
-        upstream_num = pcie_topo_list.count('8232')
-        downstream_num = pcie_topo_list.count('8233')
+        upstream_num = pcie_topo_list.count('Upstream')
+        downstream_num = pcie_topo_list.count('Downstream')
         if rootport_num != len(conf["compute"]["pcie_topology"]["root_port"]):
             self.assertIn("Root port number doesn't match!")
         switch_list = conf["compute"]["pcie_topology"]["switch"]
@@ -286,7 +276,7 @@ class test_pcie_topo(unittest.TestCase):
     def test_pcie_upstream_bus(self):
         # check pcie number
         pcie_topo_list = run_cmd("lspci").split('\n')
-        upstream_bus_list = [x.split(" ")[0].split(":")[0] for x in pcie_topo_list if '8232' in x]
+        upstream_bus_list = [x.split(" ")[0].split(":")[0] for x in pcie_topo_list if 'Upstream' in x]
         upstream_bus_list.sort()
         sec_bus_list = []
         for root in conf["compute"]["pcie_topology"]["root_port"]:

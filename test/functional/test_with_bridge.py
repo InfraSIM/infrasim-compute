@@ -87,6 +87,7 @@ def set_port_forward_try_ssh(node):
     time.sleep(5)
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_node_with_bridge(unittest.TestCase):
 
     def setUp(self):
@@ -126,6 +127,7 @@ class test_node_with_bridge(unittest.TestCase):
                "mac=00:11:22:33:44:55" in rsp
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_mac_persist_on_bridge(unittest.TestCase):
     fake_config = fixtures.FakeConfig()
     conf = fake_config.get_node_info()
@@ -208,6 +210,7 @@ class test_mac_persist_on_bridge(unittest.TestCase):
         assert sorted(macs_former) == sorted(macs_latter)
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_bmc_interface_with_bridge(unittest.TestCase):
 
     @classmethod

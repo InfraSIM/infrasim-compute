@@ -75,7 +75,7 @@ class NvmeConfig(object):
                                 "model": "SATADOM",
                                 "serial": "20160518AA851134100",
                                 "file": os.environ.get(
-                                    'TEST_IMAGE_PATH') or "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
+                                    'TEST_IMAGE_PATH') or "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
                             }
                         ]
                     },

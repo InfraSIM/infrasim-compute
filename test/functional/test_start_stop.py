@@ -24,7 +24,6 @@ def setup_module():
 def teardown_module():
     os.environ["PATH"] = old_path
 
-
 def check_node_start_workspace(node_name):
 
     conf = Workspace.get_node_info_in_workspace(node_name)
@@ -85,7 +84,6 @@ def check_node_start_workspace(node_name):
     assert os.path.exists(node_socat) is True
     assert os.path.exists(node_ipmi) is True
     assert os.path.exists(node_qemu) is True
-
 
 def check_node_stop_workspace(node_name):
 
@@ -150,10 +148,11 @@ def check_node_stop_workspace(node_name):
     assert os.path.exists(node_ipmi) is False
     assert os.path.exists(node_qemu) is False
 
-
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_control_by_lib(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         fake_config = fixtures.FakeConfig()
         cls.conf = fake_config.get_node_info()
@@ -190,6 +189,7 @@ class test_control_by_lib(unittest.TestCase):
         os.system("infrasim config add test /tmp/test.yml")
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         node = model.CNode(cls.conf)
         node.init()
@@ -249,7 +249,7 @@ class test_control_by_lib(unittest.TestCase):
         self.assertFalse(os.path.exists("/proc/{}".format(pid_ipmi)))
         self.assertFalse(os.path.exists("/proc/{}".format(pid_qemu)))
 
-
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_control_by_cli(unittest.TestCase):
 
     node_name = "test"
@@ -354,7 +354,7 @@ class test_control_by_cli(unittest.TestCase):
         self.assertFalse(os.path.exists("/proc/{}".format(pid_ipmi)))
         self.assertFalse(os.path.exists("/proc/{}".format(pid_qemu)))
 
-
+@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
 class test_start_stop_stress(unittest.TestCase):
     def test_start_stop_stress(self):
 
