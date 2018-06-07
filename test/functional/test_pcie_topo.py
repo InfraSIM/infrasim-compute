@@ -18,7 +18,6 @@ import json
 """
 Test inquiry/mode sense data injection of scsi drive
 """
-test_img_file = "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
 conf = {}
 tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
@@ -82,7 +81,7 @@ def start_node(node_type):
             "drives": [
                 {
                     "size": 8,
-                    "file": test_img_file
+                    "file": fixtures.image
                 }
             ]}, {
             "bus": "downstream4",
@@ -97,11 +96,6 @@ def start_node(node_type):
         "mac": "52:54:be:b9:77:dd",
         "network_mode": "nat",
         "network_name": "dummy0"
-    }, {
-        "bus": "downstream2",
-        "device": "e1000",
-        "mac": "52:54:be:b9:77:dc",
-        "network_mode": "bridge",
     }]
     conf["compute"]["pcie_topology"] = {
       "root_port": [

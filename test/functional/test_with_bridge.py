@@ -215,12 +215,7 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        try:
-            helper.fetch_image(
-                "https://github.com/InfraSIM/test/raw/master/image/kcs.img",
-                "986e5e63e8231a307babfbe9c81ca210", "/tmp/kcs.img")
-        except InfraSimError, e:
-            print e.value
+        pass
 
     def setUp(self):
         fake_config = fixtures.FakeConfig()
@@ -228,7 +223,7 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",
             "max_drive_per_controller": 6,
-            "drives": [{"file": "/tmp/kcs.img"}]
+            "drives": [{"file": fixtures.image}]
         }]
         node = model.CNode(self.conf)
         node.init()

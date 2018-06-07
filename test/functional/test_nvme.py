@@ -15,8 +15,6 @@ from test import fixtures
 
 old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
-image = os.environ.get('TEST_IMAGE_PATH') or "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
-
 conf = {}
 
 
@@ -27,7 +25,9 @@ def setup_module():
 def teardown_module():
     os.environ['PATH'] = old_path
 
-
+@unittest.skipIf(not os.path.exists(fixtures.image),
+                "Skip this test! No ubuntu image found in folder '/home/infrasim/jenkins/data'.\
+Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tools/tree/master/packer'!")
 class test_nvme(unittest.TestCase):
 
     @staticmethod
@@ -54,9 +54,6 @@ class test_nvme(unittest.TestCase):
         time.sleep(5)
 
     @classmethod
-    @unittest.skipIf(not os.path.exists(image),
-                     "Skip this test! No ubuntu image found in folder '/home/infrasim/jenkins/data'.\
-Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tools/tree/master/packer'!")
     def setUpClass(cls):
         cls.start_node()
 
@@ -98,9 +95,6 @@ Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tool
 
     def test_nvme_disk_count(self):
         global conf
-        if not os.path.exists(image):
-            self.skipTest("Skip this test! No ubuntu image found in folder '/home/infrasim/jenkins/data'.\
-Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tools/tree/master/packer'!")
         nvme_list = self.get_nvme_disks()
         nvme_config_list = []
         for drive in conf["compute"]["storage_backend"]:

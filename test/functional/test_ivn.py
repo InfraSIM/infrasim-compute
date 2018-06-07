@@ -20,8 +20,6 @@ from test import fixtures
 
 old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
-a_boot_image = os.environ.get('TEST_IMAGE_PATH') or "/home/infrasim/jenkins/data/ubuntu16.04_a.qcow2"
-b_boot_image = "/home/infrasim/jenkins/data/ubuntu16.04_b.qcow2"
 conf = {}
 ivn_file = None
 fake_node1 = None
@@ -47,10 +45,10 @@ def saved_config_file():
 def setup_module():
     global ivn_file
     os.environ['PATH'] = new_path
-    if os.path.exists(a_boot_image) is False:
-        raise Exception("Not found image {}".format(a_boot_image))
-    if os.path.exists(b_boot_image) is False:
-        shutil.copy(a_boot_image, b_boot_image)
+    if os.path.exists(fixtures.a_boot_image) is False:
+        raise Exception("Not found image {}".format(fixtures.a_boot_image))
+    if os.path.exists(fixtures.b_boot_image) is False:
+        shutil.copy(fixtures.a_boot_image, fixtures.b_boot_image)
     ivn_file = saved_config_file()
 
 
@@ -85,7 +83,6 @@ class test_ivn(unittest.TestCase):
     def _verify_node_in_netns(self, node_obj, netns):
         for task in node_obj.get_task_list():
             pid = task.get_task_pid()
-            print pid
             _, output = run_command("ip netns identify {}".format(pid))
             self.assertIn(netns, output, "node is not in namespace {}".format(netns))
 
@@ -128,8 +125,8 @@ class test_ivn(unittest.TestCase):
         assert reobj
         reobj = re.search(r'node0ns(\s?\(id:\s?\d+\))?', result)
         assert reobj
-        fake_node1 = self.node_config('test0', 'node0ns', a_boot_image)
-        fake_node2 = self.node_config('test1', 'node1ns', b_boot_image)
+        fake_node1 = self.node_config('test0', 'node0ns', fixtures.a_boot_image)
+        fake_node2 = self.node_config('test1', 'node1ns', fixtures.b_boot_image)
         self._verify_node_in_netns(fake_node1, "node0ns")
         output_ssh = self.client_ssh('192.168.188.91')
         self.assertNotEqual('', output_ssh, 'connection fail')

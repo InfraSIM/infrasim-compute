@@ -31,8 +31,6 @@ PS_RACADM = "ps ax | grep racadmsim"
 PS_MONITOR = "ps ax | grep monitor"
 
 TMP_CONF_FILE = "/tmp/test.yml"
-test_img_file = "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
-
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
     child = subprocess.Popen(cmd, shell=shell,
@@ -159,7 +157,7 @@ class test_compute_configuration_change(unittest.TestCase):
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",
             "max_drive_per_controller": 6,
-            "drives": [{"size": 8, "file": test_img_file}]
+            "drives": [{"size": 8, "file": fixtures.image}]
         }]
         # with open(TMP_CONF_FILE, "w") as yaml_file:
         #    yaml.dump(self.conf, yaml_file, default_flow_style=False)

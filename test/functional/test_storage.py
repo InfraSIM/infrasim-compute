@@ -199,9 +199,7 @@ class test_megasas_controller_with_two_drives(unittest.TestCase):
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
                                                                 {
-                                                                    'file': '{}'.format(
-                                                                        os.environ.get('TEST_IMAGE_PATH') or
-                                                                        test_img_file),
+                                                                    'file': fixtures.image,
                                                                     'bootindex': 1,
                                                                     'use_msi': 'true',
                                                                     'size': 8
@@ -274,9 +272,7 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
                                                                 {
-                                                                    'file': '{}'.format(
-                                                                        os.environ.get('TEST_IMAGE_PATH') or
-                                                                        test_img_file),
+                                                                    'file': fixtures.image,
                                                                     'bootindex': 1,
                                                                     'use_msi': 'true',
                                                                     'size': 8
@@ -560,9 +556,7 @@ class test_megasas_controller_with_six_drives(unittest.TestCase):
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
                                                                 {
-                                                                    'file': '{}'.format(
-                                                                        os.environ.get('TEST_IMAGE_PATH') or
-                                                                        test_img_file),
+                                                                    'file': fixtures.image,
                                                                     'bootindex': 1,
                                                                     'use_msi': 'true',
                                                                     'size': 8
@@ -644,9 +638,7 @@ class test_lsi_controller_with_six_drives(unittest.TestCase):
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
                                                                 {
-                                                                    'file': '{}'.format(
-                                                                        os.environ.get('TEST_IMAGE_PATH') or
-                                                                        test_img_file),
+                                                                    'file': fixtures.image,
                                                                     'bootindex': 1,
                                                                     'use_msi': 'true',
                                                                     'size': 8
@@ -722,8 +714,7 @@ class test_three_storage_controllers(unittest.TestCase):
         drives.append({'size': 8, 'file': "{}/sde.img".format(image_path)})
         drives.append({'size': 16, 'file': "{}/sdf.img".format(image_path)})
         self.conf['compute']['storage_backend'][0]['drives'].extend(drives)
-        self.conf['compute']['storage_backend'][0]['drives'][0]['file'] = \
-            os.environ.get('TEST_IMAGE_PATH') or test_img_file
+        self.conf['compute']['storage_backend'][0]['drives'][0]['file'] = fixtures.image
 
         controllers = []
         controllers.append({
@@ -833,8 +824,7 @@ class test_four_storage_controllers(unittest.TestCase):
         drives.append({'size': 8, 'file': "{}/sde.img".format(image_path)})
         drives.append({'size': 16, 'file': "{}/sdf.img".format(image_path)})
         self.conf['compute']['storage_backend'][0]['drives'].extend(drives)
-        self.conf['compute']['storage_backend'][0]['drives'][0]['file'] = \
-            os.environ.get('TEST_IMAGE_PATH') or test_img_file
+        self.conf['compute']['storage_backend'][0]['drives'][0]['file'] = fixtures.image
 
         controllers = []
         controllers.append({
@@ -991,7 +981,7 @@ class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
             "max_cmds": 1024,
             "max_sge": 128,
             "max_drive_per_controller": 6,
-            "drives": [{"size": 8, "bootindex": 1, "file": os.environ.get('TEST_IMAGE_PATH') or test_img_file},
+            "drives": [{"size": 8, "bootindex": 1, "file": fixtures.image},
                        {"size": 16, "file": "{}/sdb.img".format(image_path)}]}
         print self.conf
 
@@ -1058,7 +1048,7 @@ class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
         self.conf['compute']['storage_backend'].extend(controllers)
 
         drives = []
-        drives.append({'size': 8, 'bootindex': 1, 'file': os.environ.get('TEST_IMAGE_PATH') or test_img_file})
+        drives.append({'size': 8, 'bootindex': 1, 'file': fixtures.image})
         drives.append({'size': 16, 'file': "{}/sdd.img".format(image_path)})
         self.conf['compute']['storage_backend'][1]['drives'].extend(drives)
 
@@ -1134,7 +1124,7 @@ class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
         self.conf['compute']['storage_backend'][1]['drives'].extend(drives)
         drives1 = []
         drives1.append({'size': 8, 'file': "{}/sdf.img".format(image_path)})
-        drives1.append({'size': 16, 'bootindex': 1, 'file': os.environ.get('TEST_IMAGE_PATH') or test_img_file})
+        drives1.append({'size': 16, 'bootindex': 1, 'file': fixtures.image})
         self.conf['compute']['storage_backend'][2]['drives'].extend(drives1)
         print self.conf
         with open('/tmp/test.yml', 'w') as outfile:

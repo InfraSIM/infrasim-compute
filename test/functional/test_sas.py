@@ -16,7 +16,6 @@ from test import fixtures
 Test inquiry/mode sense data injection of scsi drive
 """
 file_prefix = os.path.dirname(os.path.realpath(__file__))
-test_img_file = os.environ.get('TEST_IMAGE_PATH') or "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
 test_drive_array_image = "/tmp/test_drv{}.img"
 test_drive_directly_image = "/tmp/empty_scsi.img"
 conf = {}
@@ -66,7 +65,7 @@ def start_node_enclosure():
             "drives": [
                 {
                     "size": 8,
-                    "file": test_img_file
+                    "file": fixtures.image
                 }
             ]
         },
@@ -284,7 +283,7 @@ def start_node_directly():
             "drives": [
                 {
                     "size": 8,
-                    "file": test_img_file
+                    "file": fixtures.image
                 }
             ]
         },

@@ -39,7 +39,6 @@ Test SMBIOS data
 """
 
 
-test_img_file = "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
 conf = {}
 tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
@@ -67,7 +66,7 @@ def start_node(node_type):
     conf["compute"]["storage_backend"] = [{
         "type": "ahci",
         "max_drive_per_controller": 6,
-        "drives": [{"size": 8, "file": test_img_file}]
+        "drives": [{"size": 8, "file": fixtures.image}]
     }]
 
     with open(tmp_conf_file, "w") as yaml_file:
@@ -453,8 +452,8 @@ class test_dell_r630(unittest.TestCase):
     def test_qemu_local_user(self):
         verify_qemu_local_user(expect="ADMINISTRATOR")
 
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def test_smbios_data(self):
-        self.skipTest("\033[93mDell R630 Manufacturer and Product Name is not ready yet.\033[0m")
         verify_smbios_data(expect_mfg="Manufacturer: Dell Inc",
                            expect_product_name="Product Name: PowerEdge R630")
 
