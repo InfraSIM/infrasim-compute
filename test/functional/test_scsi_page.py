@@ -61,7 +61,7 @@ def start_node(node_type):
             "drives": [
                 {
                     "size": 8,
-                    "file": fixture.image
+                    "file": fixtures.image
                 }
             ]
         },
