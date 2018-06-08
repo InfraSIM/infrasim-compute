@@ -75,7 +75,7 @@ class test_node_ports(unittest.TestCase):
         node2.terminate_workspace()
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_node_ports_no_conflict(unittest.TestCase):
 
     def setUp(self):
@@ -162,7 +162,7 @@ class test_node_ports_no_conflict(unittest.TestCase):
             assert "test1" in racadm_result and "test2" in racadm_result
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_start_node_with_conflict_port(unittest.TestCase):
 
     @classmethod

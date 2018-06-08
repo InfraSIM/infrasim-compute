@@ -19,7 +19,6 @@ import json
 import requests
 from infrasim import model
 from infrasim import helper
-from infrasim import InfraSimError
 from infrasim.helper import UnixSocket
 from test import fixtures
 from infrasim import config
@@ -31,6 +30,7 @@ PS_RACADM = "ps ax | grep racadmsim"
 PS_MONITOR = "ps ax | grep monitor"
 
 TMP_CONF_FILE = "/tmp/test.yml"
+
 
 def run_command(cmd="", shell=True, stdout=None, stderr=None):
     child = subprocess.Popen(cmd, shell=shell,
@@ -438,7 +438,8 @@ class test_connection(unittest.TestCase):
         assert "-f {}/test/data/dell_c6320.emu".\
             format(config.infrasim_home) in str_result
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_racadm_configuration_change(unittest.TestCase):
 
     ssh = paramiko.SSHClient()

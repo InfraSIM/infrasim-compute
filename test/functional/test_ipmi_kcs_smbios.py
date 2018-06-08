@@ -9,7 +9,6 @@ import time
 import yaml
 from infrasim import model
 from infrasim import helper
-from infrasim import InfraSimError
 import paramiko
 from test import fixtures
 
@@ -207,7 +206,8 @@ def verify_smbios_data(expect_mfg, expect_product_name):
     assert expect_mfg in lines
     assert expect_product_name in lines
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_quanta_d51(unittest.TestCase):
 
     @classmethod
@@ -242,7 +242,8 @@ class test_quanta_d51(unittest.TestCase):
         verify_smbios_data(expect_mfg="Manufacturer: Quanta Computer Inc",
                            expect_product_name="Product Name: D51B-2U (dual 10G LoM)")
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_quanta_t41(unittest.TestCase):
 
     @classmethod
@@ -277,7 +278,8 @@ class test_quanta_t41(unittest.TestCase):
         verify_smbios_data(expect_mfg="Manufacturer: Quanta Computer Inc",
                            expect_product_name="Product Name: QuantaPlex T41S-2U")
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_s2600kp(unittest.TestCase):
 
     @classmethod
@@ -313,7 +315,7 @@ class test_s2600kp(unittest.TestCase):
                            expect_product_name="Product Name: S2600KP")
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_s2600tp(unittest.TestCase):
 
     @classmethod
@@ -349,7 +351,7 @@ class test_s2600tp(unittest.TestCase):
                            expect_product_name="Product Name: S2600TP")
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_s2600wtt(unittest.TestCase):
 
     @classmethod
@@ -385,7 +387,7 @@ class test_s2600wtt(unittest.TestCase):
                            expect_product_name="Product Name: S2600WTT")
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_dell_c6320(unittest.TestCase):
 
     @classmethod
@@ -421,7 +423,7 @@ class test_dell_c6320(unittest.TestCase):
                            expect_product_name="Product Name: PowerEdge C6320")
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_dell_r630(unittest.TestCase):
 
     @classmethod
@@ -458,7 +460,7 @@ class test_dell_r630(unittest.TestCase):
                            expect_product_name="Product Name: PowerEdge R630")
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_dell_r730(unittest.TestCase):
 
     @classmethod

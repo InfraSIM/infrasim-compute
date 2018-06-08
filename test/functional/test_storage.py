@@ -312,7 +312,7 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
         assert len(lsi_info.get('disks')) == 2
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
 
     drives7 = [{"size": 8, "file": "/tmp/sda.img"},
@@ -460,7 +460,7 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         assert "drive=sata3-0-2-0" in qemu_cmdline
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_ahci_controller_with_six_drives(unittest.TestCase):
 
     @classmethod
@@ -517,7 +517,7 @@ class test_ahci_controller_with_six_drives(unittest.TestCase):
         assert "format=qcow2" in qemu_cmdline
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_megasas_controller_with_six_drives(unittest.TestCase):
 
     @classmethod
@@ -599,7 +599,7 @@ class test_megasas_controller_with_six_drives(unittest.TestCase):
         assert len(megasas_info.get('disks')) == 6
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_lsi_controller_with_six_drives(unittest.TestCase):
 
     @classmethod
@@ -681,7 +681,7 @@ class test_lsi_controller_with_six_drives(unittest.TestCase):
         assert len(lsi_info.get('disks')) == 6
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_three_storage_controllers(unittest.TestCase):
 
     @classmethod
@@ -794,7 +794,7 @@ class test_three_storage_controllers(unittest.TestCase):
                 assert False
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_four_storage_controllers(unittest.TestCase):
 
     @classmethod
@@ -922,7 +922,7 @@ class test_four_storage_controllers(unittest.TestCase):
                 assert False
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
 
     @classmethod
@@ -996,7 +996,7 @@ class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
         set_port_forward_try_ssh(node)
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
 
     @classmethod
@@ -1069,7 +1069,7 @@ class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
         set_port_forward_try_ssh(node)
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
 
     @classmethod

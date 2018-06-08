@@ -67,7 +67,8 @@ def reset_console(channel, timeout=10):
             raise RuntimeError('ipmi-console reset expires {}s'.
                                format(timeout))
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_ipmi_console_start_stop(unittest.TestCase):
 
     def setUp(self):
@@ -275,7 +276,7 @@ class test_ipmi_console(unittest.TestCase):
         node.start()
 
         # Wait ipmi_sim sever coming up.
-        # FIXME: good way???
+        # FIXME
         print "Wait ipmi-console start in about 15s..."
         time.sleep(15)
 
@@ -474,7 +475,8 @@ class test_ipmi_console(unittest.TestCase):
 
         self.assertTrue("Cable SAS A0 : 0x0100" in str_output)
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_ipmi_console_config_change(unittest.TestCase):
 
     ssh = paramiko.SSHClient()

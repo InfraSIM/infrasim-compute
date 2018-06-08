@@ -10,7 +10,6 @@ import yaml
 import json
 from infrasim import model
 from infrasim import helper
-from infrasim import InfraSimError
 from infrasim.helper import UnixSocket
 import paramiko
 from test import fixtures

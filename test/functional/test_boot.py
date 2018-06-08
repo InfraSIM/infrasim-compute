@@ -4,12 +4,13 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
 import unittest
-from infrasim import model
-from test import fixtures
 import subprocess
 import time
 import re
 import os
+
+from test import fixtures
+from infrasim import model
 
 
 class test_boot_order(unittest.TestCase):
@@ -89,7 +90,8 @@ class test_boot_order(unittest.TestCase):
                 break
         assert boot_order is True
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_boot_splash_time(unittest.TestCase):
 
     def setUp(self):

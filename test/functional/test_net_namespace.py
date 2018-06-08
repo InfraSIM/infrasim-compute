@@ -8,7 +8,7 @@ from nose.tools import assert_raises
 from infrasim import ArgsNotCorrect, CommandRunFailed
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_net_namespace(unittest.TestCase):
     dummy_intf_name = "eth0"
 

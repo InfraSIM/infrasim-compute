@@ -61,7 +61,7 @@ def get_qemu_pid():
     return pid
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'),"SKIP Test for PR Triggered Tests")
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_ipmi_command_chassis_control(unittest.TestCase):
     def setUp(self):
         self.node_info = {}

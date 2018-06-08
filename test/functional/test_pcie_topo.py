@@ -8,7 +8,6 @@ import os
 import time
 from infrasim import model
 from infrasim import helper
-from infrasim import InfraSimError
 import paramiko
 from test import fixtures
 from infrasim.helper import UnixSocket

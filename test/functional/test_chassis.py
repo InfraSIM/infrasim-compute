@@ -7,24 +7,15 @@ import os
 import shutil
 import subprocess
 import unittest
-import paramiko
-import yaml
 import sys
 import tempfile
 
 from test import fixtures
+import yaml
+import paramiko
 from infrasim import helper
 from infrasim import model
 
-a_boot_image = os.environ.get("TEST_IMAGE_PATH") or "/home/infrasim/jenkins/data/ubuntu16.04_a.qcow2"
-b_boot_image = "/home/infrasim/jenkins/data/ubuntu16.04_b.qcow2"
-old_path = os.environ.get("PATH")
-new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
-ssh = None
-conf = {}
-chassis = None
-nodes_ip = ["192.168.188.91", "192.168.188.92"]
-ivn_cfg_file = None
 
 try:
     from ivn.core import Topology
@@ -33,6 +24,15 @@ except ImportError as e:
     print path_ivn
     sys.path.append(path_ivn)
     from ivn.core import Topology
+
+
+old_path = os.environ.get("PATH")
+new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
+ssh = None
+conf = {}
+chassis = None
+nodes_ip = ["192.168.188.91", "192.168.188.92"]
+ivn_cfg_file = None
 
 
 def setup_module():

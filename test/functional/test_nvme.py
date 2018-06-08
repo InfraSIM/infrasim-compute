@@ -25,6 +25,7 @@ def setup_module():
 def teardown_module():
     os.environ['PATH'] = old_path
 
+
 @unittest.skipIf(not os.path.exists(fixtures.image),
                 "Skip this test! No ubuntu image found in folder '/home/infrasim/jenkins/data'.\
 Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tools/tree/master/packer'!")
