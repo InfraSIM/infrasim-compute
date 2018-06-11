@@ -29,7 +29,7 @@ tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
-test_img_file = "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
+test_img_file = "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
 
 drive2 = [{"size": 8, "file": "/tmp/sda.img"},
           {"size": 16, "file": "/tmp/sdb.img"}]
@@ -199,9 +199,7 @@ class test_megasas_controller_with_two_drives(unittest.TestCase):
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
                                                                 {
-                                                                    'file': '{}'.format(
-                                                                        os.environ.get('TEST_IMAGE_PATH') or
-                                                                        test_img_file),
+                                                                    'file': fixtures.image,
                                                                     'bootindex': 1,
                                                                     'use_msi': 'true',
                                                                     'size': 8
@@ -274,9 +272,7 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
                                                                 {
-                                                                    'file': '{}'.format(
-                                                                        os.environ.get('TEST_IMAGE_PATH') or
-                                                                        test_img_file),
+                                                                    'file': fixtures.image,
                                                                     'bootindex': 1,
                                                                     'use_msi': 'true',
                                                                     'size': 8
@@ -316,6 +312,7 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
         assert len(lsi_info.get('disks')) == 2
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
 
     drives7 = [{"size": 8, "file": "/tmp/sda.img"},
@@ -327,11 +324,13 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
                {"size": 8, "file": "/tmp/sdg.img"}]
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUp(cls):
         fake_config = fixtures.FakeConfig()
         cls.conf = fake_config.get_node_info()
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDown(cls):
         node = model.CNode(cls.conf)
         node.init()
@@ -461,14 +460,17 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
         assert "drive=sata3-0-2-0" in qemu_cmdline
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_ahci_controller_with_six_drives(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUp(cls):
         fake_config = fixtures.FakeConfig()
         cls.conf = fake_config.get_node_info()
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDown(cls):
         node = model.CNode(cls.conf)
         node.init()
@@ -515,14 +517,17 @@ class test_ahci_controller_with_six_drives(unittest.TestCase):
         assert "format=qcow2" in qemu_cmdline
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_megasas_controller_with_six_drives(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUp(cls):
         fake_config = fixtures.FakeConfig()
         cls.conf = fake_config.get_node_info()
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDown(cls):
         node = model.CNode(cls.conf)
         node.init()
@@ -551,9 +556,7 @@ class test_megasas_controller_with_six_drives(unittest.TestCase):
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
                                                                 {
-                                                                    'file': '{}'.format(
-                                                                        os.environ.get('TEST_IMAGE_PATH') or
-                                                                        test_img_file),
+                                                                    'file': fixtures.image,
                                                                     'bootindex': 1,
                                                                     'use_msi': 'true',
                                                                     'size': 8
@@ -596,14 +599,17 @@ class test_megasas_controller_with_six_drives(unittest.TestCase):
         assert len(megasas_info.get('disks')) == 6
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_lsi_controller_with_six_drives(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUp(cls):
         fake_config = fixtures.FakeConfig()
         cls.conf = fake_config.get_node_info()
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDown(cls):
         node = model.CNode(cls.conf)
         node.init()
@@ -632,9 +638,7 @@ class test_lsi_controller_with_six_drives(unittest.TestCase):
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
                                                                 {
-                                                                    'file': '{}'.format(
-                                                                        os.environ.get('TEST_IMAGE_PATH') or
-                                                                        test_img_file),
+                                                                    'file': fixtures.image,
                                                                     'bootindex': 1,
                                                                     'use_msi': 'true',
                                                                     'size': 8
@@ -677,14 +681,17 @@ class test_lsi_controller_with_six_drives(unittest.TestCase):
         assert len(lsi_info.get('disks')) == 6
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_three_storage_controllers(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUp(cls):
         fake_config = fixtures.FakeConfig()
         cls.conf = fake_config.get_node_info()
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDown(cls):
         node = model.CNode(cls.conf)
         node.init()
@@ -707,8 +714,7 @@ class test_three_storage_controllers(unittest.TestCase):
         drives.append({'size': 8, 'file': "{}/sde.img".format(image_path)})
         drives.append({'size': 16, 'file': "{}/sdf.img".format(image_path)})
         self.conf['compute']['storage_backend'][0]['drives'].extend(drives)
-        self.conf['compute']['storage_backend'][0]['drives'][0]['file'] = \
-            os.environ.get('TEST_IMAGE_PATH') or test_img_file
+        self.conf['compute']['storage_backend'][0]['drives'][0]['file'] = fixtures.image
 
         controllers = []
         controllers.append({
@@ -788,6 +794,7 @@ class test_three_storage_controllers(unittest.TestCase):
                 assert False
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_four_storage_controllers(unittest.TestCase):
 
     @classmethod
@@ -817,8 +824,7 @@ class test_four_storage_controllers(unittest.TestCase):
         drives.append({'size': 8, 'file': "{}/sde.img".format(image_path)})
         drives.append({'size': 16, 'file': "{}/sdf.img".format(image_path)})
         self.conf['compute']['storage_backend'][0]['drives'].extend(drives)
-        self.conf['compute']['storage_backend'][0]['drives'][0]['file'] = \
-            os.environ.get('TEST_IMAGE_PATH') or test_img_file
+        self.conf['compute']['storage_backend'][0]['drives'][0]['file'] = fixtures.image
 
         controllers = []
         controllers.append({
@@ -916,6 +922,7 @@ class test_four_storage_controllers(unittest.TestCase):
                 assert False
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
 
     @classmethod
@@ -974,7 +981,7 @@ class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
             "max_cmds": 1024,
             "max_sge": 128,
             "max_drive_per_controller": 6,
-            "drives": [{"size": 8, "bootindex": 1, "file": os.environ.get('TEST_IMAGE_PATH') or test_img_file},
+            "drives": [{"size": 8, "bootindex": 1, "file": fixtures.image},
                        {"size": 16, "file": "{}/sdb.img".format(image_path)}]}
         print self.conf
 
@@ -989,6 +996,7 @@ class test_qemu_boot_from_disk_img_at_1st_controller(unittest.TestCase):
         set_port_forward_try_ssh(node)
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
 
     @classmethod
@@ -1040,7 +1048,7 @@ class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
         self.conf['compute']['storage_backend'].extend(controllers)
 
         drives = []
-        drives.append({'size': 8, 'bootindex': 1, 'file': os.environ.get('TEST_IMAGE_PATH') or test_img_file})
+        drives.append({'size': 8, 'bootindex': 1, 'file': fixtures.image})
         drives.append({'size': 16, 'file': "{}/sdd.img".format(image_path)})
         self.conf['compute']['storage_backend'][1]['drives'].extend(drives)
 
@@ -1061,6 +1069,7 @@ class test_qemu_boot_from_disk_img_at_2nd_controller(unittest.TestCase):
         set_port_forward_try_ssh(node)
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
 
     @classmethod
@@ -1115,7 +1124,7 @@ class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
         self.conf['compute']['storage_backend'][1]['drives'].extend(drives)
         drives1 = []
         drives1.append({'size': 8, 'file': "{}/sdf.img".format(image_path)})
-        drives1.append({'size': 16, 'bootindex': 1, 'file': os.environ.get('TEST_IMAGE_PATH') or test_img_file})
+        drives1.append({'size': 16, 'bootindex': 1, 'file': fixtures.image})
         self.conf['compute']['storage_backend'][2]['drives'].extend(drives1)
         print self.conf
         with open('/tmp/test.yml', 'w') as outfile:

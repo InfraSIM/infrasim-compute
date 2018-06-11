@@ -135,6 +135,7 @@ class test_kcs_io(unittest.TestCase):
             return (-1, cmd_result[1])
         return (0, cmd_result[0])
 
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def test_file_existance_after_node_restart(self):
         global conf
         # Write disk
@@ -215,6 +216,7 @@ class test_kcs_io(unittest.TestCase):
         ssh.close()
         assert 'source.bin' not in lines
 
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def test_copy_file_across_drives(self):
         # ssh = helper.prepare_ssh()
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)

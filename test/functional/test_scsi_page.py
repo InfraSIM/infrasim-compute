@@ -10,7 +10,6 @@ import yaml
 import json
 from infrasim import model
 from infrasim import helper
-from infrasim import InfraSimError
 from infrasim.helper import UnixSocket
 import paramiko
 from test import fixtures
@@ -20,7 +19,6 @@ from test import fixtures
 Test inquiry/mode sense data injection of scsi drive
 """
 file_prefix = os.path.dirname(os.path.realpath(__file__))
-test_img_file = "/tmp/kcs.img"
 test_drive_image = "/tmp/empty_scsi.img"
 page_file = file_prefix + "/fake_page.bin"
 conf = {}
@@ -31,15 +29,6 @@ ssh = None
 
 
 def setup_module():
-    test_img_file = "/tmp/kcs.img"
-    DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
-    MD5_KCS_IMG = "986e5e63e8231a307babfbe9c81ca210"
-    try:
-        helper.fetch_image(DOWNLOAD_URL, MD5_KCS_IMG, test_img_file)
-    except InfraSimError, e:
-        print e.value
-        assert False
-
     os.environ["PATH"] = new_path
 
 
@@ -71,7 +60,7 @@ def start_node(node_type):
             "drives": [
                 {
                     "size": 8,
-                    "file": test_img_file
+                    "file": fixtures.image
                 }
             ]
         },

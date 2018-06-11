@@ -5,11 +5,6 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 """
 import unittest
 import os
-import time
-import re
-import tempfile
-import subprocess
-import socket
 import json
 from infrasim import model
 from infrasim import helper

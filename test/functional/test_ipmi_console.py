@@ -68,6 +68,7 @@ def reset_console(channel, timeout=10):
                                format(timeout))
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_ipmi_console_start_stop(unittest.TestCase):
 
     def setUp(self):
@@ -275,7 +276,7 @@ class test_ipmi_console(unittest.TestCase):
         node.start()
 
         # Wait ipmi_sim sever coming up.
-        # FIXME: good way???
+        # FIXME
         print "Wait ipmi-console start in about 15s..."
         time.sleep(15)
 
@@ -475,6 +476,7 @@ class test_ipmi_console(unittest.TestCase):
         self.assertTrue("Cable SAS A0 : 0x0100" in str_output)
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_ipmi_console_config_change(unittest.TestCase):
 
     ssh = paramiko.SSHClient()
@@ -484,6 +486,7 @@ class test_ipmi_console_config_change(unittest.TestCase):
     bmc_conf = ""
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         node_info = {}
         fake_config = fixtures.FakeConfig()
@@ -517,6 +520,7 @@ class test_ipmi_console_config_change(unittest.TestCase):
         time.sleep(20)
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
 
         with open(cls.TMP_CONF_FILE, "r") as yml_file:

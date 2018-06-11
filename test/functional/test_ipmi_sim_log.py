@@ -17,6 +17,7 @@ log_path = os.path.join(infrasim_logdir, 'test/ipmi_sim.log')
 ipmi_fru_list = "ipmitool -H 127.0.0.1 -U admin -P admin fru list"
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_ipmi_sim_full_log(unittest.TestCase):
     def setUp(self):
         self.node_info = {}
@@ -52,6 +53,7 @@ class test_ipmi_sim_full_log(unittest.TestCase):
             assert False
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_ipmi_sim_error_log_only(unittest.TestCase):
     def setUp(self):
         self.node_info = {}

@@ -7,24 +7,15 @@ import os
 import shutil
 import subprocess
 import unittest
-import paramiko
-import yaml
 import sys
 import tempfile
 
 from test import fixtures
+import yaml
+import paramiko
 from infrasim import helper
 from infrasim import model
 
-a_boot_image = os.environ.get("TEST_IMAGE_PATH") or "/home/infrasim/jenkins/data/ubuntu14.04.4.qcow2"
-b_boot_image = "/home/infrasim/jenkins/data/ubuntu14.04.4_b.qcow2"
-old_path = os.environ.get("PATH")
-new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
-ssh = None
-conf = {}
-chassis = None
-nodes_ip = ["192.168.188.91", "192.168.188.92"]
-ivn_cfg_file = None
 
 try:
     from ivn.core import Topology
@@ -35,13 +26,22 @@ except ImportError as e:
     from ivn.core import Topology
 
 
+old_path = os.environ.get("PATH")
+new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
+ssh = None
+conf = {}
+chassis = None
+nodes_ip = ["192.168.188.91", "192.168.188.92"]
+ivn_cfg_file = None
+
+
 def setup_module():
     global ivn_cfg_file
     os.environ["PATH"] = new_path
-    if os.path.exists(a_boot_image) is False:
-        raise Exception("Not found image {}".format(a_boot_image))
-    if os.path.exists(b_boot_image) is False:
-        shutil.copy(a_boot_image, b_boot_image)
+    if os.path.exists(fixtures.a_boot_image) is False:
+        raise Exception("Not found image {}".format(fixtures.a_boot_image))
+    if os.path.exists(fixtures.b_boot_image) is False:
+        shutil.copy(fixtures.a_boot_image, fixtures.b_boot_image)
     with open("/tmp/trace_items", "w") as fo:
         fo.write("comm_log\n")
         fo.write("comm_failed\n")
@@ -89,11 +89,11 @@ def start_chassis():
     node0_log = "/tmp/qemu_node0.log"
     node1_log = "/tmp/qemu_node1.log"
     compute_0 = conf["nodes"][0]["compute"]
-    compute_0["storage_backend"][0]["drives"][0]["file"] = a_boot_image
+    compute_0["storage_backend"][0]["drives"][0]["file"] = fixtures.a_boot_image
     compute_0["extra_option"] = "-D {} -trace events=/tmp/trace_items".format(node0_log)
 
     compute_1 = conf["nodes"][1]["compute"]
-    compute_1["storage_backend"][0]["drives"][0]["file"] = b_boot_image
+    compute_1["storage_backend"][0]["drives"][0]["file"] = fixtures.b_boot_image
     compute_1["extra_option"] = "-D {} -trace events=/tmp/trace_items".format(node1_log)
 
     if os.path.exists(node0_log):

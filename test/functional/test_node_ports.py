@@ -75,6 +75,7 @@ class test_node_ports(unittest.TestCase):
         node2.terminate_workspace()
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_node_ports_no_conflict(unittest.TestCase):
 
     def setUp(self):
@@ -161,9 +162,11 @@ class test_node_ports_no_conflict(unittest.TestCase):
             assert "test1" in racadm_result and "test2" in racadm_result
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_start_node_with_conflict_port(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         os.environ["PATH"] = new_path
         fake_config = fixtures.FakeConfig()
@@ -178,6 +181,7 @@ class test_start_node_with_conflict_port(unittest.TestCase):
         time.sleep(2)
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         node = model.CNode(cls.node_info)
         node.init()

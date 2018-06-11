@@ -19,7 +19,6 @@ import json
 import requests
 from infrasim import model
 from infrasim import helper
-from infrasim import InfraSimError
 from infrasim.helper import UnixSocket
 from test import fixtures
 from infrasim import config
@@ -154,19 +153,11 @@ class test_compute_configuration_change(unittest.TestCase):
         assert "format=qcow2" in qemu_cmdline
 
     def test_qemu_boot_from_disk_img(self):
-        MD5_IMG = "986e5e63e8231a307babfbe9c81ca210"
-        DOWNLOAD_URL = "https://github.com/InfraSIM/test/raw/master/image/kcs.img"
-        test_img_file = "/tmp/kcs.img"
-        try:
-            helper.fetch_image(DOWNLOAD_URL, MD5_IMG, test_img_file)
-        except InfraSimError, e:
-            print e.value
-            assert False
 
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",
             "max_drive_per_controller": 6,
-            "drives": [{"size": 8, "file": test_img_file}]
+            "drives": [{"size": 8, "file": fixtures.image}]
         }]
         # with open(TMP_CONF_FILE, "w") as yaml_file:
         #    yaml.dump(self.conf, yaml_file, default_flow_style=False)
@@ -427,6 +418,7 @@ class test_connection(unittest.TestCase):
         assert "unix-listen:/tmp/test_infrasim_set_serial_socket," \
                "fork" in str_result
 
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def test_set_node_type(self):
         self.conf["type"] = "dell_c6320"
 
@@ -447,6 +439,7 @@ class test_connection(unittest.TestCase):
             format(config.infrasim_home) in str_result
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_racadm_configuration_change(unittest.TestCase):
 
     ssh = paramiko.SSHClient()

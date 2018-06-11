@@ -11,7 +11,7 @@ import time
 import paramiko
 from test import fixtures
 from infrasim import run_command
-from infrasim import CommandRunFailed, InfraSimError
+from infrasim import CommandRunFailed
 from infrasim import model
 from infrasim import helper
 
@@ -87,6 +87,7 @@ def set_port_forward_try_ssh(node):
     time.sleep(5)
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_node_with_bridge(unittest.TestCase):
 
     def setUp(self):
@@ -126,6 +127,7 @@ class test_node_with_bridge(unittest.TestCase):
                "mac=00:11:22:33:44:55" in rsp
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_mac_persist_on_bridge(unittest.TestCase):
     fake_config = fixtures.FakeConfig()
     conf = fake_config.get_node_info()
@@ -208,16 +210,12 @@ class test_mac_persist_on_bridge(unittest.TestCase):
         assert sorted(macs_former) == sorted(macs_latter)
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_bmc_interface_with_bridge(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        try:
-            helper.fetch_image(
-                "https://github.com/InfraSIM/test/raw/master/image/kcs.img",
-                "986e5e63e8231a307babfbe9c81ca210", "/tmp/kcs.img")
-        except InfraSimError, e:
-            print e.value
+        pass
 
     def setUp(self):
         fake_config = fixtures.FakeConfig()
@@ -225,7 +223,7 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
         self.conf["compute"]["storage_backend"] = [{
             "type": "ahci",
             "max_drive_per_controller": 6,
-            "drives": [{"file": "/tmp/kcs.img"}]
+            "drives": [{"file": fixtures.image}]
         }]
         node = model.CNode(self.conf)
         node.init()

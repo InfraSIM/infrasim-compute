@@ -31,6 +31,7 @@ def run_command(cmd="", shell=True, stdout=None, stderr=None):
     return 0, cmd_result[0]
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_infrasim_monitor(unittest.TestCase):
 
     def setUp(self):

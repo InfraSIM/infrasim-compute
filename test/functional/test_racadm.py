@@ -44,6 +44,7 @@ def read_buffer(channel):
     return str_output
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_racadm_robust(unittest.TestCase):
 
     ssh = paramiko.SSHClient()
