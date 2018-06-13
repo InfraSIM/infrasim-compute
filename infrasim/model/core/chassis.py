@@ -183,9 +183,20 @@ class CChassis(object):
 
     def __process_sas_drv_data(self, drv):
         # universal data for SAS drv
+        # len_status_error =  sizeof(SCSIStatusError)
+        # typedef struct SCSIStatusError
+        # {
+        #     ErrorType error_type; //BUSY CHECK_CONDITION ABORT ACA
+        #     uint32_t count;
+        #     SCSISense sense;
+        #     uint64_t l_lbas[1024][2];
+        # }SCSIStatusError;
+
+        len_status_error = 1 + 4 + 3 + 1024 * 8 * 2 + 8
         data = {
             "serial": drv["serial"],
             "log_page": '\0' * 2048,
+            "status_error": '\0' * len_status_error,
             "mode_page": '\0' * 2048
         }
         if drv.get("user_data"):
@@ -203,9 +214,19 @@ class CChassis(object):
         # len_error_log_page = sizeof(NvmeErrorLog) * (n->elpe + 1) +
         # sizeof(num_errors) + sizeof(error_count) + sizeof(elp_index) + pad_byte
         len_error_log_page = 64 * (elpe + 1) + 4
+        # len_status_error = sizeof(StatusError)
+        # typedef struct StatusError {
+        #     StatusField status_field;
+        #     uint32_t count;
+        #     Opcode opcode;
+        #     uint32_t nsid;
+        #     uint64_t lbas[1024][2];
+        # } StatusError;
+        len_status_error = 4 + 4 + 1 + 4 + 1024 * 8 * 2 + 3
         data = {
             "serial": drv["serial"].encode(),
             "feature": '\0' * len_feature,
+            "status_error": '\0' * len_status_error,
             "elpes": '\0' * len_error_log_page
         }
         if drv.get("user_data"):
