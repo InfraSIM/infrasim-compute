@@ -18,7 +18,7 @@ class FakeConfig(object):
                     "type": "Haswell"
                 },
                 "memory": {
-                    "size": 1024
+                    "size": 4096
                 },
                 "storage_backend": [
                     {
@@ -29,7 +29,7 @@ class FakeConfig(object):
                         "max_sge": 128,
                         "drives": [
                             {
-                                "size": 8
+                                "size": 16
                             }
                         ]
                     }
@@ -39,6 +39,7 @@ class FakeConfig(object):
                         "network_mode": "nat",
                         "device": "e1000",
                         "network_name": "dummy0"
+
                     }
                 ]
             },
@@ -114,6 +115,7 @@ class NvmeConfig(object):
                         "network_mode": "nat",
                         "device": "e1000",
                         "network_name": "dummy0"
+
                     }
                 ]
             },
@@ -292,7 +294,7 @@ class IvnConfig(object):
                         "type": "static",
                         "netmask": "255.255.255.0",
                         "bridge_ports": "ns0-einf0",
-                        "address": "192.168.188.91"
+                        "address": "192.168.125.91"
                     }
                 ],
                 "interfaces": [
@@ -311,7 +313,7 @@ class IvnConfig(object):
                     "vint0",
                     "vint1"
                 ],
-                "address": "192.168.188.90"
+                "address": "192.168.125.90"
             },
             "node1ns": {
                 "bridges": [
@@ -320,7 +322,7 @@ class IvnConfig(object):
                         "type": "static",
                         "netmask": "255.255.255.0",
                         "bridge_ports": "ns1-einf0",
-                        "address": "192.168.188.92"
+                        "address": "192.168.125.92"
                     }
                 ],
                 "interfaces": [
@@ -334,10 +336,10 @@ class IvnConfig(object):
             },
             "portforward": {
                 "rules": [
-                    "192.168.188.91 5901 15901",
-                    "192.168.188.92 5901 25901",
-                    "192.168.188.91 8022 18022",
-                    "192.168.188.92 8022 28022"
+                    "192.168.125.91 5901 15901",
+                    "192.168.125.92 5901 25901",
+                    "192.168.125.91 8022 18022",
+                    "192.168.125.92 8022 28022"
                 ],
                 "io_interfaces": [
                     "ens160",
