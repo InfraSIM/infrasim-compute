@@ -28,8 +28,10 @@ global a_iso
 global b_iso
 a_boot_image = cloud_img.gen_qemuimg("mytest0.img")
 b_boot_image = cloud_img.gen_qemuimg("mytest1.img")
-a_iso = cloud_img.geniso("my-seed0.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283e", "00:60:16:93:b9:1d", "192.168.188.211", "192.168.188.1", "00:60:16:93:b9:2a")
-b_iso = cloud_img.geniso("my-seed1.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283f", "00:60:16:93:b9:1a", "192.168.188.210", "192.168.188.1", "00:60:16:93:b9:2d")
+a_iso = cloud_img.geniso("my-seed0.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283e", "00:60:16:93:b9:1d", "192.168.188.211",
+                         "192.168.188.1", "00:60:16:93:b9:2a")
+b_iso = cloud_img.geniso("my-seed1.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283f", "00:60:16:93:b9:1a", "192.168.188.210",
+                         "192.168.188.1", "00:60:16:93:b9:2d")
 conf = {}
 ivn_file = None
 fake_node1 = None
@@ -55,7 +57,6 @@ def saved_config_file():
 def setup_module():
     global ivn_file
     os.environ['PATH'] = new_path
-    print "new_path"+str(new_path)
     if os.path.exists(a_boot_image) is False:
         raise Exception("Not found image {}".format(a_boot_image))
     if os.path.exists(fixtures.b_boot_image) is False:
@@ -112,13 +113,15 @@ class test_ivn(unittest.TestCase):
         if "test0" in node_name:
             fake_node['compute']['cdrom'] = {}
             fake_node['compute']['cdrom']['file'] = iso
-            fake_node["compute"]["networks"].append({"device": "e1000", "network_mode": "bridge", "network_name": "br0", "mac": "00:60:16:93:b9:1d"})
+            fake_node["compute"]["networks"].append({"device": "e1000", "network_mode": "bridge", "network_name": "br0",
+                                                     "mac": "00:60:16:93:b9:1d"})
             fake_node["compute"]["networks"][0]["port_forward"] = [{"outside": 8022, "inside": 22, "protocal": "tcp"}]
             fake_node["compute"]["networks"][0]["mac"] = "00:60:16:93:b9:2a"
         if "test1" in node_name:
             fake_node['compute']['cdrom'] = {}
             fake_node['compute']['cdrom']['file'] = iso
-            fake_node["compute"]["networks"].append({"device": "e1000", "network_mode": "bridge", "network_name": "br0", "mac": "00:60:16:93:b9:1a"})
+            fake_node["compute"]["networks"].append({"device": "e1000", "network_mode": "bridge", "network_name": "br0",
+                                                     "mac": "00:60:16:93:b9:1a"})
             fake_node["compute"]["networks"][0]["port_forward"] = [{"outside": 8022, "inside": 22, "protocal": "tcp"}]
             fake_node["compute"]["networks"][0]["mac"] = "00:60:16:93:b9:2d"
         print "fake_node"

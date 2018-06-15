@@ -10,21 +10,23 @@ import random
 from infrasim import run_command
 
 
-#def load_backing_file we can add load backing file from cloud image offical website later
+# def load_backing_file we can add load backing file from cloud image offical website later
 
 def gen_qemuimg(boot_img):
-    status, output = run_command("qemu-img create -f qcow2 -o backing_file=/home/infrasim/jenkins/data/ubuntu-16.04-server-cloudimg-amd64-120G.org.bak cloudimgs/{}".format(boot_img))
+    status, output = run_command("qemu-img create -f qcow2 -o backing_file=/home/infrasim/jenkins/data/"
+                                 "ubuntu-16.04-server-cloudimg-amd64-120G.org.bak cloudimgs/{}".format(boot_img))
     return str(os.getcwd() + "/cloudimgs/") + boot_img
 
 
 def geniso(myseed_name, instance_id, mac_addr, guest_ip, gate_way, mac1):
     create_network_config_file(mac_addr, guest_ip, gate_way, mac1)
-    #instance_id = id_generator(8)+"-"+ id_generator(4)+"-"+id_generator(4)+"-"+id_generator(4)+"-"+id_generator(12)
-    #instance_id = "305c9cc1-2f5a-4e76-b28e-ed8313fa283e"
+    # instance_id = id_generator(8)+"-"+ id_generator(4)+"-"+id_generator(4)+"-"+id_generator(4)+"-"+id_generator(12)
+    # instance_id = "305c9cc1-2f5a-4e76-b28e-ed8313fa283e"
     create_meta_data(instance_id)
     create_user_data()
-    status, output = run_command("genisoimage -output cloudimgs/{} -volid cidata -joliet -rock cloudimgs/user-data cloudimgs/meta-data cloudimgs/network-config".format(myseed_name))
-    return str(os.getcwd()+ "/cloudimgs/") + myseed_name
+    status, output = run_command("genisoimage -output cloudimgs/{} -volid cidata -joliet -rock "
+                                 "cloudimgs/user-data cloudimgs/meta-data cloudimgs/network-config".format(myseed_name))
+    return str(os.getcwd() + "/cloudimgs/") + myseed_name
 
 
 def clear_files():
