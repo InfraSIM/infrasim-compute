@@ -124,6 +124,7 @@ def stop_node():
     global s
     global conf
     global tmp_conf_file
+    s.close()
     node = model.CNode(conf)
     node.init()
     node.stop()
