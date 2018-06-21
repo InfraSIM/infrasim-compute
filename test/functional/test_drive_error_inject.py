@@ -124,10 +124,10 @@ class test_error_inject(unittest.TestCase):
             s.send(json.dumps(payload_error_inject))
             s.recv()
             status, output = ssh.exec_command("nvme read /dev/nvme0n1 -z 3008 -a 128")
-            self.assertNotIn("Success", output, "error of %s inject faile" % cmd_error_inject[2])
+            self.assertNotIn("Success", output, "error of %s inject failed" % cmd_error_inject[2])
 
             s.send(json.dumps(payload_nvmeclear))
             s.recv()
             status, output = ssh.exec_command("nvme read /dev/nvme0n1 -z 3008 -a 128")
-            self.assertIn("Success", output, "clear error faile")
+            self.assertIn("Success", output, "clear error failed")
         s.close()
