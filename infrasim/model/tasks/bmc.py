@@ -49,6 +49,7 @@ class CBMC(Task):
         self.__intf_no_ip = False
         self.__log_file = None
         self.__full_log = False
+        self.__shm_key = None
 
         # Be careful with updating this number, it could cause FRU index confliction
         # on particular platform, e.g. onr FRU of s2600wtt already occupied index 10
@@ -395,6 +396,9 @@ class CBMC(Task):
         else:
             raise ArgsNotCorrect("[BMC] Couldn't find vbmc.conf")
 
+        if 'shm_key' in self.__bmc:
+            self.__shm_key = self.__bmc['shm_key']
+
     def get_commandline(self):
         path = os.path.join(self.get_workspace(), "data")
         ipmi_cmd_str = "{0} -c {1} -f {2} -n -s {3} -l {4}" .\
@@ -403,6 +407,8 @@ class CBMC(Task):
                    self.__emu_file,
                    path,
                    self.__log_file)
+        if self.__shm_key:
+            ipmi_cmd_str += " -m {}".format(self.__shm_key)
         if self.__full_log:
             ipmi_cmd_str += " -a"
 

@@ -142,6 +142,7 @@ class ChassisConfig(object):
             "nodes": [
                 {
                     "namespace": "node0ns",
+                    "bmc": {},
                     "compute": {
                         "memory": {
                             "size": 2048
@@ -190,6 +191,7 @@ class ChassisConfig(object):
                 },
                 {
                     "namespace": "node1ns",
+                    "bmc": {},
                     "compute": {
                         "memory": {
                             "size": 2048

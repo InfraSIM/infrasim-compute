@@ -298,3 +298,4 @@ class CChassis(object):
         # set sharemeory id for sub node.
         for node in self.__chassis.get("nodes"):
             node["compute"]["communicate"] = {"shm_key": "share_mem_{}".format(self.__chassis_name)}
+            node["bmc"]["shm_key"] = "share_mem_{}".format(self.__chassis_name)
