@@ -10,16 +10,28 @@ import os
 import subprocess
 import tempfile
 import yaml
-import sys
 import shutil
+import sys
 from infrasim import run_command
 from test.fixtures import FakeConfig
 from infrasim.model import CNode
 from infrasim import sshclient
+from infrasim import cloud_img
 from test import fixtures
 
 old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
+status, output = run_command("mkdir cloudimgs")
+global a_boot_image
+global b_boot_image
+global a_iso
+global b_iso
+a_boot_image = cloud_img.gen_qemuimg("mytest0.img")
+b_boot_image = cloud_img.gen_qemuimg("mytest1.img")
+a_iso = cloud_img.geniso("my-seed0.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283e", "00:60:16:93:b9:1d", "192.168.188.211",
+                         "192.168.188.1", "00:60:16:93:b9:2a")
+b_iso = cloud_img.geniso("my-seed1.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283f", "00:60:16:93:b9:1a", "192.168.188.210",
+                         "192.168.188.1", "00:60:16:93:b9:2d")
 conf = {}
 ivn_file = None
 fake_node1 = None
@@ -45,10 +57,10 @@ def saved_config_file():
 def setup_module():
     global ivn_file
     os.environ['PATH'] = new_path
-    if os.path.exists(fixtures.a_boot_image) is False:
-        raise Exception("Not found image {}".format(fixtures.a_boot_image))
+    if os.path.exists(a_boot_image) is False:
+        raise Exception("Not found image {}".format(a_boot_image))
     if os.path.exists(fixtures.b_boot_image) is False:
-        shutil.copy(fixtures.a_boot_image, fixtures.b_boot_image)
+        shutil.copy(a_boot_image, b_boot_image)
     ivn_file = saved_config_file()
 
 
@@ -61,7 +73,6 @@ def teardown_module():
 
 
 class test_ivn(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         pass
@@ -93,21 +104,42 @@ class test_ivn(unittest.TestCase):
         fake_node_obj.start()
         return fake_node_obj
 
-    def node_config(self, node_name, ns_name, boot_image):
+    def start_node_with_config(self, node_name, ns_name, boot_image, iso):
         fake_node = None
         fake_node = copy.deepcopy(FakeConfig().get_node_info())
         fake_node['name'] = node_name
         fake_node['namespace'] = ns_name
         fake_node['compute']['storage_backend'][0]["drives"][0]["file"] = boot_image
-        fake_node["compute"]["networks"][0]["port_forward"] = [{"outside": 8022, "inside": 22, "protocal": "tcp"}]
+        if "test0" in node_name:
+            fake_node['compute']['cdrom'] = {}
+            fake_node['compute']['cdrom']['file'] = iso
+            fake_node["compute"]["networks"].append({"device": "e1000", "network_mode": "bridge", "network_name": "br0",
+                                                     "mac": "00:60:16:93:b9:1d"})
+            fake_node["compute"]["networks"][0]["port_forward"] = [{"outside": 8022, "inside": 22, "protocal": "tcp"}]
+            fake_node["compute"]["networks"][0]["mac"] = "00:60:16:93:b9:2a"
+        if "test1" in node_name:
+            fake_node['compute']['cdrom'] = {}
+            fake_node['compute']['cdrom']['file'] = iso
+            fake_node["compute"]["networks"].append({"device": "e1000", "network_mode": "bridge", "network_name": "br0",
+                                                     "mac": "00:60:16:93:b9:1a"})
+            fake_node["compute"]["networks"][0]["port_forward"] = [{"outside": 8022, "inside": 22, "protocal": "tcp"}]
+            fake_node["compute"]["networks"][0]["mac"] = "00:60:16:93:b9:2d"
+        print "fake_node"
+        print fake_node
         fake_node_up = self._start_node(fake_node)
         return fake_node_up
 
     def client_ssh(self, ns_ip):
-        ssh = sshclient.SSH(host=ns_ip, username="root", password="root", port=8022)
-        ssh.wait_for_host_up()
-        status, output = ssh.exec_command("ls")
-        return output
+        ssh = sshclient.SSH(host=ns_ip, username="ubuntu", password="password")
+        ssh.wait_for_host_up(300)
+        status, output = ssh.exec_command("ifconfig")
+        return ssh
+
+    def ping_peer(self, ssh, peer_ip):
+        status, output = ssh.exec_command("ping -I eth0 %s  -c 5" % peer_ip)
+        print output
+        self.assertIn("0% packet loss", output, "node connection passed!")
+        return
 
     def test_ns_create_delete(self):
         global ivn_file
@@ -125,16 +157,17 @@ class test_ivn(unittest.TestCase):
         assert reobj
         reobj = re.search(r'node0ns(\s?\(id:\s?\d+\))?', result)
         assert reobj
-        fake_node1 = self.node_config('test0', 'node0ns', fixtures.a_boot_image)
-        fake_node2 = self.node_config('test1', 'node1ns', fixtures.b_boot_image)
+        fake_node1 = self.start_node_with_config('test0', 'node0ns', a_boot_image, a_iso)
+        fake_node2 = self.start_node_with_config('test1', 'node1ns', b_boot_image, b_iso)
         self._verify_node_in_netns(fake_node1, "node0ns")
-        output_ssh = self.client_ssh('192.168.188.91')
-        self.assertNotEqual('', output_ssh, 'connection fail')
         self._verify_node_in_netns(fake_node2, "node1ns")
-        output_ssh = self.client_ssh('192.168.188.92')
-        self.assertNotEqual('', output_ssh, 'connection fail')
+        node1_ssh = self.client_ssh('192.168.188.211')
+        node2_ssh = self.client_ssh('192.168.188.210')
+        self.ping_peer(node1_ssh, '192.168.188.210')
+        self.ping_peer(node2_ssh, '192.168.188.211')
         test_ivn._stop_node(fake_node1)
         test_ivn._stop_node(fake_node2)
+        cloud_img.clear_files()
         fake_node1 = None
         fake_node2 = None
         topo.delete()

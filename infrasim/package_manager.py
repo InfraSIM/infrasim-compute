@@ -377,7 +377,7 @@ def install_all_packages(force=True, entry=None):
     pm = PackageManager(only_upgrade=False, force=force, source_list_entry=entry)
     # install offical packages
     # don't have to install the depencies for each installation
-    for pkg_name in ("socat", "ipmitool", "libssl-dev", "libffi-dev", "libyaml-dev", "libaio-dev"):
+    for pkg_name in ("socat", "ipmitool", "libssl-dev", "libffi-dev", "libyaml-dev", "libaio-dev", "genisoimage"):
         pm.do_install(pkg_name)
 
     # install infrasim packages
