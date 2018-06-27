@@ -16,7 +16,8 @@ from infrasim import run_command
 # def load_backing_file we can add load backing file from cloud image offical website later
 
 def gen_qemuimg(boot_img_path, boot_img):
-    status, output = run_command("qemu-img create -f qcow2 -o backing_file={} cloudimgs/{}".format(boot_img_path, boot_img))
+    status, output = run_command("qemu-img create -f qcow2 -o backing_file={} cloudimgs/{}".format(boot_img_path,
+                                                                                                   boot_img))
     return str(os.getcwd() + "/cloudimgs/") + boot_img
 
 
