@@ -26,9 +26,7 @@ status, output = run_command("mkdir cloudimgs")
 
 
 def create_new_networkconfig(mac_addr, guest_ip, gate_way, mac1):
-    new_network = None
     new_network = copy.deepcopy(CloudNetworkConfig().get_network_info())
-    print new_network
     new_network["config"][0]["mac_address"] = mac1
     new_network["config"][1]["mac_address"] = mac_addr
     new_network["config"][1]["subnets"][0]["address"] = guest_ip
@@ -119,7 +117,6 @@ class test_ivn(unittest.TestCase):
         return fake_node_obj
 
     def start_node_with_config(self, node_name, ns_name, boot_image, iso):
-        fake_node = None
         fake_node = copy.deepcopy(FakeConfig().get_node_info())
         fake_node['name'] = node_name
         fake_node['namespace'] = ns_name
@@ -149,7 +146,7 @@ class test_ivn(unittest.TestCase):
     def ping_peer(self, ssh, peer_ip):
         status, output = ssh.exec_command("ping -I eth0 %s  -c 5" % peer_ip)
         print output
-        self.assertIn("0% packet loss", output, "node connection failed!")
+        self.assertNotIn("100% packet loss", output, "node connection failed!")
         return
 
     def test_ns_create_delete(self):
