@@ -23,6 +23,10 @@ from test import fixtures
 old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
 status, output = run_command("mkdir cloudimgs")
+node0_mac0 = "00:60:16:93:b9:1d"
+node0_mac1 = "00:60:16:93:b9:2a"
+node1_mac0 = "00:60:16:93:b9:1a"
+node1_mac1 = "00:60:16:93:b9:2d"
 
 
 def create_new_networkconfig(mac_addr, guest_ip, gate_way, mac1):
@@ -35,8 +39,8 @@ def create_new_networkconfig(mac_addr, guest_ip, gate_way, mac1):
     return new_network
 
 
-newnetwork0 = create_new_networkconfig("00:60:16:93:b9:1d", "192.168.188.211", "192.168.188.1", "00:60:16:93:b9:2a")
-newnetwork1 = create_new_networkconfig("00:60:16:93:b9:1a", "192.168.188.210", "192.168.188.1", "00:60:16:93:b9:2d")
+newnetwork0 = create_new_networkconfig(node0_mac0, "192.168.188.211", "192.168.188.1", node0_mac1)
+newnetwork1 = create_new_networkconfig(node1_mac0, "192.168.188.210", "192.168.188.1", node1_mac1)
 
 a_boot_image = cloud_img.gen_qemuimg("/home/infrasim/jenkins/data/ubuntu-16.04-server-cloudimg-amd64-120G.org.bak",
                                      "mytest0.img")
@@ -125,16 +129,16 @@ class test_ivn(unittest.TestCase):
             fake_node['compute']['cdrom'] = {}
             fake_node['compute']['cdrom']['file'] = iso
             fake_node["compute"]["networks"].append({"device": "e1000", "network_mode": "bridge", "network_name": "br0",
-                                                     "mac": "00:60:16:93:b9:1d"})
+                                                     "mac": node0_mac0})
             fake_node["compute"]["networks"][0]["port_forward"] = [{"outside": 8022, "inside": 22, "protocal": "tcp"}]
-            fake_node["compute"]["networks"][0]["mac"] = "00:60:16:93:b9:2a"
+            fake_node["compute"]["networks"][0]["mac"] = node0_mac1
         if "test1" in node_name:
             fake_node['compute']['cdrom'] = {}
             fake_node['compute']['cdrom']['file'] = iso
             fake_node["compute"]["networks"].append({"device": "e1000", "network_mode": "bridge", "network_name": "br0",
-                                                     "mac": "00:60:16:93:b9:1a"})
+                                                     "mac": node1_mac0})
             fake_node["compute"]["networks"][0]["port_forward"] = [{"outside": 8022, "inside": 22, "protocal": "tcp"}]
-            fake_node["compute"]["networks"][0]["mac"] = "00:60:16:93:b9:2d"
+            fake_node["compute"]["networks"][0]["mac"] = node1_mac1
         fake_node_up = self._start_node(fake_node)
         return fake_node_up
 
