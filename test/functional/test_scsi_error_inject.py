@@ -23,10 +23,8 @@ tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
-
 def setup_module():
     os.environ["PATH"] = new_path
-
 
 def teardown_module():
     global conf
@@ -139,13 +137,16 @@ def stop_node():
 class test_scsi_error_inject(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         start_node(node_type="quanta_d51")
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         stop_node()
 
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests"
     def test_log_page_error_inject(self):
         log_page_meter = [
             ["life_used", 50, None, None, "0x11", "Percentage used endurance indicator: 0%"],
@@ -170,6 +171,7 @@ class test_scsi_error_inject(unittest.TestCase):
             status, output = ssh.exec_command("sudo sg_logs /dev/sg1 -p %s" % error_meter[4])
             self.assertIn(error_meter[5], output, "error inject faile")
 
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests"
     def test_defect_data_inject(self):
         defect_data_cmd = {
             "execute": "set-drive-defect",
@@ -184,6 +186,7 @@ class test_scsi_error_inject(unittest.TestCase):
         status, output = ssh.exec_command("sudo sginfo /dev/sg1 -d")
         self.assertIn("10 entries (80 bytes)", output, "defect data inject faile")
 
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests"
     def test_status_code_error_inject(self):
         status_code_error = {
             "execute": "scsi-status-code-error-inject",
