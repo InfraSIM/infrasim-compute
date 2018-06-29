@@ -135,7 +135,6 @@ def stop_node():
     # remove the empty image for test.
     os.remove(test_drive_image)
 
-
 @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_scsi_error_inject(unittest.TestCase):
 
@@ -189,7 +188,10 @@ class test_scsi_error_inject(unittest.TestCase):
         status, output = ssh.exec_command("sudo sginfo /dev/sg1 -d")
         self.assertIn("10 entries (80 bytes)", output, "defect data inject faile")
 
+<<<<<<< 5cd61d009ac6c79b64e08bbb9d663ae693f0a5d8
     @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
+=======
+>>>>>>> SKIP Test for PR Triggered Tests
     def test_status_code_error_inject(self):
         status_code_error = {
             "execute": "scsi-status-code-error-inject",
