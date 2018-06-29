@@ -23,8 +23,10 @@ tmp_conf_file = "/tmp/test.yml"
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 
+
 def setup_module():
     os.environ["PATH"] = new_path
+
 
 def teardown_module():
     global conf
@@ -132,6 +134,7 @@ def stop_node():
         os.unlink(tmp_conf_file)
     # remove the empty image for test.
     os.remove(test_drive_image)
+
 
 @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_scsi_error_inject(unittest.TestCase):
