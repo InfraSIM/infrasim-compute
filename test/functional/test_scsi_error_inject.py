@@ -135,7 +135,7 @@ def stop_node():
     # remove the empty image for test.
     os.remove(test_drive_image)
 
-
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_scsi_error_inject(unittest.TestCase):
 
     @classmethod
