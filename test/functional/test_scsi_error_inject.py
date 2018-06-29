@@ -183,7 +183,7 @@ class test_scsi_error_inject(unittest.TestCase):
         s.recv()
         status, output = ssh.exec_command("sudo sginfo /dev/sg1 -d")
         self.assertIn("10 entries (80 bytes)", output, "defect data inject faile")
-
+    @unittest.skip
     def test_status_code_error_inject(self):
         status_code_error = {
             "execute": "scsi-status-code-error-inject",
