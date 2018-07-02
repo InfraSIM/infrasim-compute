@@ -7,22 +7,23 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import os
 import string
 import random
+import yaml
+from collections import OrderedDict
+import test.fixtures as fixtures
 from infrasim import run_command
 
 
 # def load_backing_file we can add load backing file from cloud image offical website later
 
-def gen_qemuimg(boot_img):
-    status, output = run_command("qemu-img create -f qcow2 -o backing_file=/home/infrasim/jenkins/data/"
-                                 "ubuntu-16.04-server-cloudimg-amd64-120G.org.bak cloudimgs/{}".format(boot_img))
+def gen_qemuimg(boot_img_path, boot_img):
+    status, output = run_command("qemu-img create -f qcow2 -o backing_file={} cloudimgs/{}".format(boot_img_path,
+                                                                                                   boot_img))
     return str(os.getcwd() + "/cloudimgs/") + boot_img
 
 
-def geniso(myseed_name, instance_id, mac_addr, guest_ip, gate_way, mac1):
-    create_network_config_file(mac_addr, guest_ip, gate_way, mac1)
-    # instance_id = id_generator(8)+"-"+ id_generator(4)+"-"+id_generator(4)+"-"+id_generator(4)+"-"+id_generator(12)
-    # instance_id = "305c9cc1-2f5a-4e76-b28e-ed8313fa283e"
+def geniso(myseed_name, instance_id, networkconfig):
     create_meta_data(instance_id)
+    create_network_config_file(networkconfig)
     create_user_data()
     status, output = run_command("genisoimage -output cloudimgs/{} -volid cidata -joliet -rock "
                                  "cloudimgs/user-data cloudimgs/meta-data cloudimgs/network-config".format(myseed_name))
@@ -38,31 +39,43 @@ def id_generator(size):
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(size))
 
 
-def create_network_config_file(mac_addr, guest_ip, gate_way, mac1):
+def generate_script_content(networkconfig):
+    yaml.add_representer(fixtures.FlowList, lambda dumper, data: dumper.represent_sequence(u'tag:yaml.org,2002:seq',
+                                                                                           data, flow_style=True))
+    yaml.add_representer(OrderedDict, lambda dumper, data: dumper.represent_mapping(u'tag:yaml.org,2002:map',
+                                                                                    data.items()))
+
+    network_config_yaml = yaml.dump(networkconfig, default_flow_style=False)
+    return network_config_yaml
+
+
+def create_network_config_file(networkconfig):
+    """
+    sample network config:
+        version: 1
+        config:
+        - type: physical
+          name: enp0s3
+          mac_address: 00:60:16:93:b9:2a
+          subnets:
+          - type: dhcp
+        - type: physical
+          name: eth0
+          mac_address: 00:60:16:93:b9:1d
+          subnets:
+          - type: static
+            address: 192.168.188.12
+            netmask: 255.255.255.0
+            routes:
+            - network: 0.0.0.0
+              netmask: 0.0.0.0
+              gateway: 192.168.188.1
+        - type: nameserver
+          address: [192.168.188.1, 8.8.8.8, 8.8.4.4]
+          search: [example.com, foo.biz, bar.info]
+    """
     script_name = str(os.getcwd()) + "/cloudimgs/network-config"
-    script_content = '''---
-version: 1
-config:
-- type: physical
-  name: enp0s3
-  mac_address: {}
-  subnets:
-  - type: dhcp
-- type: physical
-  name: eth0
-  mac_address: {}
-  subnets:
-  - type: static
-    address: {}
-    netmask: 255.255.255.0
-    routes:
-    - network: 0.0.0.0
-      netmask: 0.0.0.0
-      gateway: 192.168.188.1
-- type: nameserver
-  address: [{}, 8.8.8.8, 8.8.4.4]
-  search: [example.com, foo.biz, bar.info]
-'''.format(mac1, mac_addr, guest_ip, gate_way)
+    script_content = generate_script_content(networkconfig)
     status, output = run_command("echo \"{}\" > {}".format(script_content, script_name))
     return script_name
 

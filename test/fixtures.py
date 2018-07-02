@@ -1,5 +1,6 @@
 import os
 from infrasim import helper
+from collections import OrderedDict
 image = os.environ.get("TEST_IMAGE_PATH") or "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
 a_boot_image = os.environ.get("TEST_IMAGE_PATH") or "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
 b_boot_image = "/home/infrasim/jenkins/data/ubuntu16.04_b.qcow2"
@@ -349,4 +350,52 @@ class IvnConfig(object):
         }
 
     def get_ivn_info(self):
+        return self.__info
+
+
+class FlowList(list):
+    pass
+
+
+class CloudNetworkConfig(object):
+    def __init__(self):
+        self.__info = OrderedDict([
+            ("version", 1),
+            ("config", [
+                OrderedDict([
+                    ("type", "physical"),
+                    ("name", "enp0s3"),
+                    ("mac_address", {}),
+                    ("subnets", [
+                        {"type": "dhcp"}
+                    ])
+                ]),
+                OrderedDict([
+                    ("type", "physical"),
+                    ("name", "eth0"),
+                    ("mac_address", {}),
+                    ("subnets", [
+                        OrderedDict([
+                            ("type", "static"),
+                            ("address", {}),
+                            ("netmask", "255.255.255.0"),
+                            ("routes", [
+                                OrderedDict([
+                                    ("network", "0.0.0.0"),
+                                    ("netmask", "0.0.0.0"),
+                                    ("gateway", {})
+                                ])
+                            ]
+                            )
+                        ]
+                        )])]),
+                OrderedDict([
+                    ("type", "nameserver"),
+                    ("address", FlowList([{}, "8.8.8.8", "8.8.4.4"])),
+                    ("search", FlowList(["example.com", "foo.biz", "bar.info"]))
+                ])
+            ])
+        ])
+
+    def get_network_info(self):
         return self.__info

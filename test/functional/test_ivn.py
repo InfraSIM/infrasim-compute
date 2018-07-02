@@ -14,6 +14,7 @@ import shutil
 import sys
 from infrasim import run_command
 from test.fixtures import FakeConfig
+from test.fixtures import CloudNetworkConfig
 from infrasim.model import CNode
 from infrasim import sshclient
 from infrasim import cloud_img
@@ -22,16 +23,31 @@ from test import fixtures
 old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
 status, output = run_command("mkdir cloudimgs")
-global a_boot_image
-global b_boot_image
-global a_iso
-global b_iso
-a_boot_image = cloud_img.gen_qemuimg("mytest0.img")
-b_boot_image = cloud_img.gen_qemuimg("mytest1.img")
-a_iso = cloud_img.geniso("my-seed0.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283e", "00:60:16:93:b9:1d", "192.168.188.211",
-                         "192.168.188.1", "00:60:16:93:b9:2a")
-b_iso = cloud_img.geniso("my-seed1.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283f", "00:60:16:93:b9:1a", "192.168.188.210",
-                         "192.168.188.1", "00:60:16:93:b9:2d")
+node0_mac0 = "00:60:16:93:b9:1d"
+node0_mac1 = "00:60:16:93:b9:2a"
+node1_mac0 = "00:60:16:93:b9:1a"
+node1_mac1 = "00:60:16:93:b9:2d"
+
+
+def create_new_networkconfig(mac_addr, guest_ip, gate_way, mac1):
+    new_network = copy.deepcopy(CloudNetworkConfig().get_network_info())
+    new_network["config"][0]["mac_address"] = mac1
+    new_network["config"][1]["mac_address"] = mac_addr
+    new_network["config"][1]["subnets"][0]["address"] = guest_ip
+    new_network["config"][1]["subnets"][0]["routes"][0]["gateway"] = gate_way
+    new_network["config"][2]["address"][0] = gate_way
+    return new_network
+
+
+newnetwork0 = create_new_networkconfig(node0_mac0, "192.168.188.211", "192.168.188.1", node0_mac1)
+newnetwork1 = create_new_networkconfig(node1_mac0, "192.168.188.210", "192.168.188.1", node1_mac1)
+
+a_boot_image = cloud_img.gen_qemuimg("/home/infrasim/jenkins/data/ubuntu-16.04-server-cloudimg-amd64-120G.org.bak",
+                                     "mytest0.img")
+b_boot_image = cloud_img.gen_qemuimg("/home/infrasim/jenkins/data/ubuntu-16.04-server-cloudimg-amd64-120G.org.bak",
+                                     "mytest1.img")
+a_iso = cloud_img.geniso("my-seed0.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283e", newnetwork0)
+b_iso = cloud_img.geniso("my-seed1.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283f", newnetwork1)
 conf = {}
 ivn_file = None
 fake_node1 = None
@@ -105,7 +121,6 @@ class test_ivn(unittest.TestCase):
         return fake_node_obj
 
     def start_node_with_config(self, node_name, ns_name, boot_image, iso):
-        fake_node = None
         fake_node = copy.deepcopy(FakeConfig().get_node_info())
         fake_node['name'] = node_name
         fake_node['namespace'] = ns_name
@@ -114,31 +129,28 @@ class test_ivn(unittest.TestCase):
             fake_node['compute']['cdrom'] = {}
             fake_node['compute']['cdrom']['file'] = iso
             fake_node["compute"]["networks"].append({"device": "e1000", "network_mode": "bridge", "network_name": "br0",
-                                                     "mac": "00:60:16:93:b9:1d"})
+                                                     "mac": node0_mac0})
             fake_node["compute"]["networks"][0]["port_forward"] = [{"outside": 8022, "inside": 22, "protocal": "tcp"}]
-            fake_node["compute"]["networks"][0]["mac"] = "00:60:16:93:b9:2a"
+            fake_node["compute"]["networks"][0]["mac"] = node0_mac1
         if "test1" in node_name:
             fake_node['compute']['cdrom'] = {}
             fake_node['compute']['cdrom']['file'] = iso
             fake_node["compute"]["networks"].append({"device": "e1000", "network_mode": "bridge", "network_name": "br0",
-                                                     "mac": "00:60:16:93:b9:1a"})
+                                                     "mac": node1_mac0})
             fake_node["compute"]["networks"][0]["port_forward"] = [{"outside": 8022, "inside": 22, "protocal": "tcp"}]
-            fake_node["compute"]["networks"][0]["mac"] = "00:60:16:93:b9:2d"
-        print "fake_node"
-        print fake_node
+            fake_node["compute"]["networks"][0]["mac"] = node1_mac1
         fake_node_up = self._start_node(fake_node)
         return fake_node_up
 
     def client_ssh(self, ns_ip):
         ssh = sshclient.SSH(host=ns_ip, username="ubuntu", password="password")
         ssh.wait_for_host_up(300)
-        status, output = ssh.exec_command("ifconfig")
         return ssh
 
     def ping_peer(self, ssh, peer_ip):
         status, output = ssh.exec_command("ping -I eth0 %s  -c 5" % peer_ip)
         print output
-        self.assertIn("0% packet loss", output, "node connection passed!")
+        self.assertNotIn("100% packet loss", output, "node connection failed!")
         return
 
     def test_ns_create_delete(self):
