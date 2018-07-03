@@ -179,15 +179,14 @@ class test_drive_insert(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
-        time.sleep(3)
+        node.wait_node_up(3)
         helper.port_forward(node)
-        time.sleep(3)
+        node.wait_node_up(3)
         path = os.path.join(node.workspace.get_workspace(), ".monitor")
 
     @staticmethod
     def stop_node():
         global conf
-        global node
         node = model.CNode(conf)
         node.init()
         node.stop()
@@ -211,9 +210,9 @@ class test_drive_insert(unittest.TestCase):
         s.recv()
 
         # 1.1: remove drive
-        print("------------Remove NVME device------------")
         status, stdout = ssh.exec_command('nvme list')
-        print(stdout)
+        self.assertIn('0400001C6BB4', stdout, "Failed: didn't find dev-nvme-1")
+
         payload_enable_qmp = {
             "execute": "qmp_capabilities"
         }
@@ -227,13 +226,11 @@ class test_drive_insert(unittest.TestCase):
                 }
         }
         s.send(json.dumps(payload_drive_remove))
-        lines = s.recv()
-        print(lines)
         s.close()
         # around 10s is necessary for refresh the device list
         time.sleep(10)
         status, stdout = ssh.exec_command('nvme list')
-        self.assertNotIn('0400001C6BB4', stdout, "NVME drive remove fail")
+        self.assertNotIn('0400001C6BB4', stdout, "NVME drive remove failed")
 
     def test_step2_nvmedrive_insert(self):
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
@@ -242,7 +239,7 @@ class test_drive_insert(unittest.TestCase):
         s.connect()
         s.recv()
         status, stdout = ssh.exec_command('nvme list')
-        print(stdout)
+        self.assertNotIn('SSD00000001', stdout, "Failed: SN is duplicate")
 
         # 2.1: insert known NVME drive
         payload_enable_qmp = {
@@ -251,7 +248,6 @@ class test_drive_insert(unittest.TestCase):
         s.send(json.dumps(payload_enable_qmp))
         s.recv()
 
-        print("------------Insert NVME device------------")
         payload_drive_insert = {
                 "execute": "human-monitor-command",
                 "arguments": {
@@ -263,19 +259,14 @@ class test_drive_insert(unittest.TestCase):
                 }
         }
         s.send(json.dumps(payload_drive_insert))
-        lines = s.recv()
-        print(lines)
         time.sleep(5)
         status, stdout = ssh.exec_command('nvme list')
-        print(stdout)
-        self.assertIn('SSD00000001', stdout, "NVME drive insert fail")
+        self.assertIn('SSD00000001', stdout, "NVME drive insert failed")
 
         # 2.2: IO test, nvme1n1, SSD00000001
         status, stdout = ssh.exec_command(
             'sudo fio -filename=/dev/nvme1n1  -direct=1 -iodepth 1 -thread \
              -rw=write -ioengine=psync -bs=4k -size=10M -numjobs=10 \
              -runtime=100 -do_verify=1 -group_reporting -name=mytest')
-        time.sleep(5)
-        self.assertNotIn('error', stdout, "New NVME drive r/w test fail")
-        print(stdout)
+        self.assertNotIn('error', stdout, "New NVME drive r/w test failed")
         s.close()
