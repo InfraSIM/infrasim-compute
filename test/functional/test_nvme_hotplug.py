@@ -53,11 +53,7 @@ class test_drive_insert(unittest.TestCase):
             },
             {
                 "cmb_size_mb": 1,
-                "drives": [
-                    {
-                        "size": 8
-                    }
-                ],
+                "size": 16,
                 "lba_index": 0,
                 "namespaces": 2,
                 "serial": "0400001C1FFA",
@@ -68,11 +64,7 @@ class test_drive_insert(unittest.TestCase):
             },
             {
                 "cmb_size_mb": 1,
-                "drives": [
-                    {
-                        "size": 8
-                    }
-                ],
+                "size": 16,
                 "lba_index": 0,
                 "namespaces": 3,
                 "bus": "downstream3",
@@ -179,9 +171,7 @@ class test_drive_insert(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
-        node.wait_node_up(3)
         helper.port_forward(node)
-        node.wait_node_up(3)
         path = os.path.join(node.workspace.get_workspace(), ".monitor")
 
     @staticmethod
