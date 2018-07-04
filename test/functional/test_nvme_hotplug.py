@@ -195,7 +195,7 @@ class test_drive_insert(unittest.TestCase):
 
     def test_step1_nvmedrive_remove(self):
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.wait_for_host_up() is True
         s = UnixSocket(path)
         s.connect()
         s.recv()
@@ -225,7 +225,7 @@ class test_drive_insert(unittest.TestCase):
 
     def test_step2_nvmedrive_insert(self):
         ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        ssh.connect()
+        assert ssh.wait_for_host_up() is True
         s = UnixSocket(path)
         s.connect()
         s.recv()
