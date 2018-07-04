@@ -67,7 +67,9 @@ class CPCIETopology(CElement):
 
         parent = filter(lambda el: el.id == component.bus, collection)
 
-        if parent is None or len(parent) != 1:
+        if len(parent) == 0:
+            return False
+        if len(parent) > 1:
             raise ArgsNotCorrect("parent bus is wrong")
 
         return self.__is_vmd_owned(parent[0], collection)
