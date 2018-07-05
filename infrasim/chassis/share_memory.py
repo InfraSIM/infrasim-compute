@@ -20,7 +20,7 @@ class CShareMemory:
         if self.handle_file is not None:
             raise Exception()
         flags = posix_ipc.O_CREAT  # posix_ipc.O_CREX
-        self.handle_memory = posix_ipc.SharedMemory(key_name, flags, mode=0644, size=size)
+        self.handle_memory = posix_ipc.SharedMemory(key_name, flags, mode=0o644, size=size)
         self.handle_file = mmap.mmap(self.handle_memory.fd, self.handle_memory.size)
         return self.handle_file
 
@@ -30,7 +30,7 @@ class CShareMemory:
         if self.handle_file is not None:
             raise Exception()
         flags = 0  # open it
-        self.handle_memory = posix_ipc.SharedMemory(key_name, flags, mode=0644)
+        self.handle_memory = posix_ipc.SharedMemory(key_name, flags, mode=0o644)
         self.handle_file = mmap.mmap(self.handle_memory.fd, self.handle_memory.size)
         return self.handle_file
 
@@ -40,6 +40,7 @@ class CShareMemory:
         if self.handle_file is None:
             raise Exception()
         self.handle_file.close()
+        self.handle_memory.unlink()
         self.handle_memory.close_fd()
 
     def write(self, position, src):
