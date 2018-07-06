@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import yaml
 import sys
+from infrasim import run_command
 from test.fixtures import FakeConfig
 from infrasim.model import CNode
 from infrasim import sshclient
@@ -36,7 +37,6 @@ cmd_prefix1 = [
     'sudo ipmitool -t 0x1e lan print',
     'sudo ipmitool -t 0x1e sensor list',
     'sudo ipmitool -t 0x1e sel list',
-    'ipmitool -t 0x1e -U admin -P admin -H 192.168.188.91 chassis bootdev pxe',
     'ipmitool -t 0x1e -U admin -P admin -H 192.168.188.91 power off',
     'ipmitool -t 0x1e -U admin -P admin -H 192.168.188.91 power on',
     'ipmitool -t 0x1e -U admin -P admin -H 192.168.188.91 power reset'
@@ -213,17 +213,17 @@ class test_bmc_communication(unittest.TestCase):
         """
         node1_ssh = self.client_ssh('192.168.188.92')
         os.system(cmd_prefix1[4])
-        os.system(cmd_prefix1[5])
-        result_net = subprocess.check_output(["netstat", "-an4p"])
-        self.assertNotIn("192.168.188.92", result_net, "peer_bmc can not power off")
+        PS_QEMU = "ps ax | grep qemu"
+        qemu_result = run_command(PS_QEMU, True,
+                                 subprocess.PIPE, subprocess.PIPE)[1]
+        self.assertNotIn("test1", qemu_result, "peer_bmc can not power off")
 
-        os.system(cmd_prefix1[6])
+        os.system(cmd_prefix1[5])
         node1_ssh = self.client_ssh('192.168.188.92')
         status, result = node1_ssh.exec_command('ls')
         assert result
 
-        os.system(cmd_prefix1[4])
-        os.system(cmd_prefix1[7])
+        os.system(cmd_prefix1[6])
         node1_ssh = self.client_ssh('192.168.188.92')
         status, result = node1_ssh.exec_command('ls')
         assert result
