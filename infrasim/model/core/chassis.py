@@ -4,6 +4,8 @@ import re
 import shutil
 import subprocess
 import yaml
+import codecs
+import json
 
 from infrasim import config
 from infrasim import InfraSimError
@@ -83,9 +85,15 @@ class CChassis(object):
 
     def start(self, *args):
         self.__process_chassis_device()
+
+        self._init_sub_node(*args)
+
+        self.__process_oem_data()
+        # save data to exchange file.
+        self.__dataset.save(self.__file_name)
+
         self.__daemon.init(self.workspace.get_workspace())
         self.__daemon.start()
-        self._init_sub_node(*args)
 
         self.__render_chassis_info()
         self.__update_node_cfg()
@@ -293,9 +301,42 @@ class CChassis(object):
         '''
         self.__process_chassis_data(self.__chassis.get("data"))
         self.__process_chassis_slots(self.__chassis.get("slots", []))
-        # save data to exchange file.
-        self.__dataset.save(self.__file_name)
+
         # set sharemeory id for sub node.
         for node in self.__chassis.get("nodes"):
             node["compute"]["communicate"] = {"shm_key": "share_mem_{}".format(self.__chassis_name)}
+            node["bmc"] = node.get("bmc", {})
             node["bmc"]["shm_key"] = "share_mem_{}".format(self.__chassis_name)
+
+    def __process_oem_data(self):
+        '''
+        process oem data json
+        VPD, Health data of NVME.
+        '''
+        def oem_string_2_binary(src):
+            return filter(lambda x: x != ' ', src).decode('hex')
+
+        # load oem_data.json of chassis
+        oem_data_file = os.path.join(self.workspace.get_workspace_data(), "oem_data.json")
+        if os.path.exists(oem_data_file):
+            # copy oem data to each sub nodes.
+            for node in self.__chassis.get("nodes"):
+                dst = os.path.join(config.infrasim_home, node["name"], "data")
+                if os.path.exists(dst):
+                    shutil.copy(oem_data_file, dst)
+            # load and parse oem data
+            with codecs.open(oem_data_file, 'r', 'utf-8') as f:
+                oem_data = json.load(f)
+            # fill share memory according to slot_x
+            nvme_data = oem_data.get("nvme")
+            if nvme_data:
+                # only process nvme
+                for slot in filter(lambda x: x.get("type") == "nvme", self.__chassis.get("slots", [])):
+                    for x in range(slot.get("repeat", 1)):
+                        slot_id = "slot_{}".format(slot["chassis_slot"] + x)
+                        data = nvme_data.get(slot_id)
+                        if data is None:
+                            # skip it, if there is no slot_x in oem data file
+                            continue
+                        self.__dataset[slot_id]["vpd"] = oem_string_2_binary(data["vpd"])
+                        self.__dataset[slot_id]["health"] = oem_string_2_binary(data["health_data"])

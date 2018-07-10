@@ -62,7 +62,7 @@ class Agent(object):
         """
         length = self.__get_section(title)
         if length >= len(data):
-            self.__file.write(data.encode())
+            self.__file.write(data)
             return True
         else:
             return False

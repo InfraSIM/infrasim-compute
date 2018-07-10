@@ -25,6 +25,9 @@ class DataSet(object):
     def append(self, key, data):
         self.__sections[key] = data
 
+    def __getitem__(self, key):
+        return self.__sections[key]
+
     def __get_length(self, data):
         length_dict = {}
         _total_len = 4

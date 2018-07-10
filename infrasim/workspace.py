@@ -217,7 +217,11 @@ class ChassisWorkspace(Workspace):
         with open(yml_file, 'w') as fp:
             yaml.dump(self._info, fp, default_flow_style=False)
 
-        # V. Move emulation data
+        # V. Move emulation data from system folder
+        path_oem_file_src = os.path.join(config.infrasim_data, "oem_data.json")
+        path_oem_file_dst = os.path.join(data_path, "oem_data.json")
+        if os.path.exists(path_oem_file_src) and (os.path.exists(path_oem_file_dst) is False):
+            shutil.copy(path_oem_file_src, path_oem_file_dst)
 
         # VI. Create soft link to sub nodes.
         for node in self._info.get("nodes", []):

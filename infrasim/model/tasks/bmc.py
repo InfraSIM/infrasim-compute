@@ -145,7 +145,7 @@ class CBMC(Task):
                                  "it's set to {} now".
                                  format(self.__poweroff_wait))
 
-        if type(self.__poweroff_wait) is not int:
+        if not isinstance(self.__poweroff_wait, int):
             raise ArgsNotCorrect("[BMC] poweroff_wait is expected to be integer, "
                                  "it's set to {} now".
                                  format(self.__poweroff_wait))
@@ -155,7 +155,7 @@ class CBMC(Task):
                                  "it's set to {} now".
                                  format(self.__kill_wait))
 
-        if type(self.__kill_wait) is not int:
+        if not isinstance(self.__kill_wait, int):
             raise ArgsNotCorrect("[BMC] kill_wait is expected to be integer, "
                                  "it's set to {} now".
                                  format(self.__kill_wait))
@@ -165,7 +165,7 @@ class CBMC(Task):
                                  "to be >= 0, it's set to {} now".
                                  format(self.__port_iol))
 
-        if type(self.__port_iol) is not int:
+        if not isinstance(self.__port_iol, int):
             raise ArgsNotCorrect("[BMC] Port for IOL(IPMI over LAN) is expected "
                                  "to be integer, it's set to {} now".
                                  format(self.__port_iol))
@@ -175,7 +175,7 @@ class CBMC(Task):
                                  "it's set to {} now".
                                  format(self.__historyfru))
 
-        if type(self.__historyfru) is not int:
+        if not isinstance(self.__historyfru, int):
             raise ArgsNotCorrect("[BMC] History FRU is expected to be integer, "
                                  "it's set to {} now".
                                  format(self.__historyfru))
