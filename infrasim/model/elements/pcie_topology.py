@@ -10,6 +10,7 @@ from infrasim.model.core.element import CElement
 from pcie_rootport import CPCIERootport
 from pcie_upstream import CPCIEUpstream
 from pcie_downstream import CPCIEDownstream
+from pci_vmd import CPCIVMD
 from infrasim import ArgsNotCorrect
 
 
@@ -35,10 +36,10 @@ class CPCIETopology(CElement):
 
     def build_topo(self, component):
         list_tmp = []
+
         for component_tmp in self.__component_list:
             if component_tmp["bus"] == component["id"]:
                 list_tmp.append(component_tmp)
-
         if len(list_tmp):
             for component_tmp in list_tmp:
                 self.build_topo(component_tmp)
@@ -57,6 +58,22 @@ class CPCIETopology(CElement):
         if len(id_list) != len(set(id_list)):
             raise ArgsNotCorrect("PCIE device id duplicated")
 
+    def __is_vmd_owned(self, component, collection):
+
+        if component.device == "vmd":
+            return True
+        if component.bus == "pcie.0":
+            return False
+
+        parent = filter(lambda el: el.id == component.bus, collection)
+
+        if len(parent) == 0:
+            return False
+        if len(parent) > 1:
+            raise ArgsNotCorrect("parent bus is wrong")
+
+        return self.__is_vmd_owned(parent[0], collection)
+
     def precheck(self):
         if self.__pcie_topology is None:
             raise ArgsNotCorrect("pci topology is required.")
@@ -71,6 +88,10 @@ class CPCIETopology(CElement):
         for root_port in self.__pcie_topology['root_port']:
             root_port_obj = CPCIERootport(root_port)
             pcie_topo_obj_list.append(root_port_obj)
+
+        for vmd_element in self.__pcie_topology.get('vmd', []):
+            vmd_obj = CPCIVMD(vmd_element)
+            pcie_topo_obj_list.append(vmd_obj)
 
         if 'switch' in self.__pcie_topology:
             switch = self.__pcie_topology['switch']
@@ -87,6 +108,11 @@ class CPCIETopology(CElement):
         for pcie_obj in pcie_topo_obj_list:
             pcie_obj.precheck()
             pcie_obj.init()
+
+            # do not fix bus number behind vmd.
+            if self.__is_vmd_owned(pcie_obj, pcie_topo_obj_list):
+                pcie_obj.pcie_topo = None
+
             if self.__fw_cfg_obj and pcie_obj.pcie_topo:
                 self.__fw_cfg_obj.add_topo(pcie_obj.pcie_topo)
             pcie_obj.handle_parms()

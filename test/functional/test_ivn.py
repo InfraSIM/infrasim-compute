@@ -42,10 +42,8 @@ def create_new_networkconfig(mac_addr, guest_ip, gate_way, mac1):
 newnetwork0 = create_new_networkconfig(node0_mac0, "192.168.188.211", "192.168.188.1", node0_mac1)
 newnetwork1 = create_new_networkconfig(node1_mac0, "192.168.188.210", "192.168.188.1", node1_mac1)
 
-a_boot_image = cloud_img.gen_qemuimg("/home/infrasim/jenkins/data/ubuntu-16.04-server-cloudimg-amd64-120G.org.bak",
-                                     "mytest0.img")
-b_boot_image = cloud_img.gen_qemuimg("/home/infrasim/jenkins/data/ubuntu-16.04-server-cloudimg-amd64-120G.org.bak",
-                                     "mytest1.img")
+a_boot_image = cloud_img.gen_qemuimg(fixtures.cloud_img_ubuntu_16_04, "mytest0.img")
+b_boot_image = cloud_img.gen_qemuimg(fixtures.cloud_img_ubuntu_16_04, "mytest1.img")
 a_iso = cloud_img.geniso("my-seed0.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283e", newnetwork0)
 b_iso = cloud_img.geniso("my-seed1.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283f", newnetwork1)
 conf = {}
