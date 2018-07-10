@@ -72,10 +72,6 @@ def setup_module():
     os.environ['PATH'] = new_path
     ivn_file = saved_config_file()
 
-    global topo
-    topo = Topology(ivn_file)
-    topo.create()
-
 
 def teardown_module():
     global ivn_file
@@ -89,33 +85,12 @@ class test_bmc_communication(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        global fake_node0
-        global fake_node1
-        global emu_file_for_del0
-        global emu_file_for_del1
-        fake_node0_list = test_bmc_communication.node_cfg_up('test0', 'node0ns', fixtures.a_boot_image, "dell_r730")
-        fake_node0 = fake_node0_list[0]
-        emu_file_for_del0 = fake_node0_list[1]
-        fake_node1_list = test_bmc_communication.node_cfg_up('test1', 'node1ns', fixtures.b_boot_image, "quanta_d51")
-        fake_node1 = fake_node1_list[0]
-        emu_file_for_del1 = fake_node1_list[1]
+        pass
 
     @classmethod
     def tearDownClass(cls):
         global fake_node0
         global fake_node1
-        global topo
-        global emu_file_for_del0
-        global emu_file_for_del1
-        os.system("sed -i '$d' {}".format(emu_file_for_del0))
-        os.system("sed -i '$d' {}".format(emu_file_for_del0))
-        os.system("sed -i '$d' {}".format(emu_file_for_del1))
-        os.system("sed -i '$d' {}".format(emu_file_for_del1))
-        test_bmc_communication._stop_node(fake_node0)
-        test_bmc_communication._stop_node(fake_node1)
-        fake_node0 = None
-        fake_node1 = None
-        topo.delete()
         if fake_node0:
             test_bmc_communication._stop_node(fake_node0)
         if fake_node1:
@@ -126,32 +101,30 @@ class test_bmc_communication(unittest.TestCase):
         node_obj.stop()
         node_obj.terminate_workspace()
 
-    @staticmethod
-    def _start_node(node_info):
+    def _start_node(self, node_info):
         fake_node_obj = CNode(node_info)
         fake_node_obj.init()
         fake_node_obj.precheck()
         fake_node_obj.start()
         return fake_node_obj
 
-    @staticmethod
-    def node_cfg_up(node_name, ns_name, boot_image, node_type):
+    def node_cfg_up(self, node_name, ns_name, boot_image, node_type):
         global add_content0
         global add_content1
         global emu_file_for_del0
         global emu_file_for_del1
         fake_node = None
         fake_node = copy.deepcopy(FakeConfig().get_node_info())
+
         emu_dir = os.path.join(config.infrasim_data, node_type)
         emu_file = os.path.join(emu_dir, node_type + ".emu")
         if ns_name == "node0ns":
-            f = open(emu_file, "ab")
-            f.write("\n" + add_content0[0] + "\n" + add_content0[1])
-            f.close()
+            for i in add_content0:
+                os.system("echo {} >> {}".format(i, emu_file))
         if ns_name == "node1ns":
-            f = open(emu_file, "ab")
-            f.write("\n" + add_content1[0] + "\n" + add_content1[1])
-            f.close()
+            for i in add_content1:
+                os.system("echo {} >> {}".format(i, emu_file))
+
         fake_node['name'] = node_name
         fake_node['type'] = node_type
         fake_node['namespace'] = ns_name
@@ -173,7 +146,7 @@ class test_bmc_communication(unittest.TestCase):
             fake_node["bmc"]["peer-bmcs"][0]["addr"] = 0x1c
             fake_node["bmc"]["peer-bmcs"][0]["host"] = "192.168.188.91"
 
-        fake_node_up = test_bmc_communication._start_node(fake_node)
+        fake_node_up = self._start_node(fake_node)
         return fake_node_up, emu_file
 
     def client_ssh(self, ns_ip):
@@ -181,11 +154,24 @@ class test_bmc_communication(unittest.TestCase):
         ssh.wait_for_host_up()
         return ssh
 
-    def test_peer_bmc_fru(self):
+    def test_peer_bmc_communication(self):
         global cmd_prefix0
         global cmd_prefix1
+        global ivn_file
         global fake_node0
         global fake_node1
+        topo = Topology(ivn_file)
+        topo.create()
+        fake_node0_list = self.node_cfg_up('test0', 'node0ns', fixtures.a_boot_image, "dell_r730")
+        fake_node0 = fake_node0_list[0]
+        emu_file_for_del0 = fake_node0_list[1]
+        fake_node1_list = self.node_cfg_up('test1', 'node1ns', fixtures.b_boot_image, "quanta_d51")
+        fake_node1 = fake_node1_list[0]
+        emu_file_for_del1 = fake_node1_list[1]
+
+        """
+        Test peer_bmc fru print
+        """
         node0_ssh = self.client_ssh('192.168.188.91')
         status, result0 = node0_ssh.exec_command(cmd_prefix0[0])
         node0_ssh = self.client_ssh('192.168.188.91')
@@ -193,11 +179,9 @@ class test_bmc_communication(unittest.TestCase):
         self.assertIn("PowerEdge R730", result0, "peer_bmc can not Obtain fru")
         self.assertIn("Quanta Computer", result1, "peer_bmc can not Obtain fru")
 
-    def test_peer_bmc_lan(self):
-        global cmd_prefix0
-        global cmd_prefix1
-        global fake_node0
-        global fake_node1
+        """
+        Test peer_bmc lan print
+        """
         node0_ssh = self.client_ssh('192.168.188.91')
         status, result0 = node0_ssh.exec_command(cmd_prefix0[1])
         node0_ssh = self.client_ssh('192.168.188.91')
@@ -206,54 +190,51 @@ class test_bmc_communication(unittest.TestCase):
         self.assertIn("MAC Address", result1, "peer_bmc can not Obtain lan")
         self.assertNotEqual(result0, result1, "peer_bmc can not Obtain lan")
 
-    def test_peer_bmc_sensor(self):
-        global cmd_prefix0
-        global cmd_prefix1
-        global fake_node0
-        global fake_node1
+        """
+        Test peer_bmc sensor list
+        """
         node0_ssh = self.client_ssh('192.168.188.91')
         status, result0 = node0_ssh.exec_command(cmd_prefix0[2])
         node0_ssh = self.client_ssh('192.168.188.91')
         status, result1 = node0_ssh.exec_command(cmd_prefix1[2])
         self.assertNotEqual(result0, result1, "peer_bmc can not Obtain sensor")
 
-    def test_peer_bmc_sel(self):
-        global cmd_prefix0
-        global cmd_prefix1
-        global fake_node0
-        global fake_node1
+        """
+        Test peer_bmc sel list
+        """
         node0_ssh = self.client_ssh('192.168.188.91')
         status, result0 = node0_ssh.exec_command(cmd_prefix0[3])
         node0_ssh = self.client_ssh('192.168.188.91')
         status, result1 = node0_ssh.exec_command(cmd_prefix1[3])
         self.assertNotEqual(result0, result1, "peer_bmc can not Obtain sensor")
 
-    def test_peer_node_off(self):
-        global cmd_prefix0
-        global cmd_prefix1
-        global fake_node0
-        global fake_node1
+        """
+        Test peer_bmc off, on and cycle
+        """
+        node1_ssh = self.client_ssh('192.168.188.92')
         os.system(cmd_prefix1[4])
         PS_QEMU = "ps ax | grep qemu"
-        qemu_result = run_command(PS_QEMU, True, subprocess.PIPE, subprocess.PIPE)[1]
+        qemu_result = run_command(PS_QEMU, True,
+                                 subprocess.PIPE, subprocess.PIPE)[1]
         self.assertNotIn("test1", qemu_result, "peer_bmc can not power off")
 
-    def test_peer_node_on(self):
-        global cmd_prefix0
-        global cmd_prefix1
-        global fake_node0
-        global fake_node1
         os.system(cmd_prefix1[5])
         node1_ssh = self.client_ssh('192.168.188.92')
         status, result = node1_ssh.exec_command('ls')
         assert result
 
-    def test_peer_node_cycle(self):
-        global cmd_prefix0
-        global cmd_prefix1
-        global fake_node0
-        global fake_node1
         os.system(cmd_prefix1[6])
         node1_ssh = self.client_ssh('192.168.188.92')
         status, result = node1_ssh.exec_command('ls')
         assert result
+
+        os.system("sed -i '$d' {}".format(emu_file_for_del0))
+        os.system("sed -i '$d' {}".format(emu_file_for_del0))
+        os.system("sed -i '$d' {}".format(emu_file_for_del1))
+        os.system("sed -i '$d' {}".format(emu_file_for_del1))
+
+        test_bmc_communication._stop_node(fake_node0)
+        test_bmc_communication._stop_node(fake_node1)
+        fake_node0 = None
+        fake_node1 = None
+        topo.delete()
