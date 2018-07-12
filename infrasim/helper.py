@@ -338,15 +338,16 @@ def double_fork(func):
 
 
 def try_func(times, func, *args, **kwargs):
-    for i in range(times):
+    start = time.time()
+    while True:
         try:
             return func(*args, **kwargs)
         except Exception:
+            end = time.time()
+            if end - start > times:
+                break
             time.sleep(0.5)
-            continue
-    raise Exception(
-        "Tried {} times already, but still failed to run {}".format(
-            times, func))
+    return False
 
 
 def literal_string(s):
