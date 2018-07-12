@@ -346,6 +346,7 @@ def try_func(times, func, *args, **kwargs):
             end = time.time()
             if end - start > times:
                 break
+            time.sleep(0.5)
     return False
 
 
