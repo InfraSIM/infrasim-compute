@@ -33,10 +33,12 @@ class SSH(object):
             self.ssh.close()
 
     def connect(self, timeout=60):
+
         print("Connecting {username}@{host}:{port}"
                     .format(username=self.host_username,
                             host=self.host_ip,
                             port=self.host_port))
+        time.sleep(10)  # sleep 10s to try next ssh connection
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 

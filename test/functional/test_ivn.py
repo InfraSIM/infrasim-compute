@@ -20,13 +20,45 @@ from infrasim import sshclient
 from infrasim import cloud_img
 from test import fixtures
 
+try:
+    from ivn.core import Topology
+except ImportError as e:
+    path_ivn = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "ivn")
+    print path_ivn
+    sys.path.append(path_ivn)
+    from ivn.core import Topology
+
 old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
-status, output = run_command("mkdir cloudimgs")
 node0_mac0 = "00:60:16:93:b9:1d"
 node0_mac1 = "00:60:16:93:b9:2a"
 node1_mac0 = "00:60:16:93:b9:1a"
 node1_mac1 = "00:60:16:93:b9:2d"
+cloudimg_folder = "cloudimgs"
+
+conf = {}
+ivn_file = None
+fake_node1 = None
+fake_node2 = None
+
+
+def setup_module():
+    global ivn_file
+    os.environ['PATH'] = new_path
+    if os.path.isdir(cloudimg_folder):
+        shutil.rmtree(cloudimg_folder, ignore_errors=True)
+    if os.path.isfile(cloudimg_folder):
+        os.remove(cloudimg_folder)
+    os.mkdir(cloudimg_folder)
+    ivn_file = saved_config_file()
+
+
+def teardown_module():
+    global ivn_file
+    topo = Topology(ivn_file)
+    topo.delete()
+    os.unlink(ivn_file)
+    os.environ['PATH'] = old_path
 
 
 def create_new_networkconfig(mac_addr, guest_ip, gate_way, mac1):
@@ -39,51 +71,12 @@ def create_new_networkconfig(mac_addr, guest_ip, gate_way, mac1):
     return new_network
 
 
-newnetwork0 = create_new_networkconfig(node0_mac0, "192.168.188.211", "192.168.188.1", node0_mac1)
-newnetwork1 = create_new_networkconfig(node1_mac0, "192.168.188.210", "192.168.188.1", node1_mac1)
-
-a_boot_image = cloud_img.gen_qemuimg(fixtures.cloud_img_ubuntu_16_04, "mytest0.img")
-b_boot_image = cloud_img.gen_qemuimg(fixtures.cloud_img_ubuntu_16_04, "mytest1.img")
-a_iso = cloud_img.geniso("my-seed0.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283e", newnetwork0)
-b_iso = cloud_img.geniso("my-seed1.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283f", newnetwork1)
-conf = {}
-ivn_file = None
-fake_node1 = None
-fake_node2 = None
-
-try:
-    from ivn.core import Topology
-except ImportError as e:
-    path_ivn = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "ivn")
-    print path_ivn
-    sys.path.append(path_ivn)
-    from ivn.core import Topology
-
-
 def saved_config_file():
     ivn_cfg = fixtures.IvnConfig()
     fi = tempfile.NamedTemporaryFile(delete=False)
     yaml.safe_dump(ivn_cfg.get_ivn_info(), fi, default_flow_style=False)
     fi.close()
     return fi.name
-
-
-def setup_module():
-    global ivn_file
-    os.environ['PATH'] = new_path
-    if os.path.exists(a_boot_image) is False:
-        raise Exception("Not found image {}".format(a_boot_image))
-    if os.path.exists(fixtures.b_boot_image) is False:
-        shutil.copy(a_boot_image, b_boot_image)
-    ivn_file = saved_config_file()
-
-
-def teardown_module():
-    global ivn_file
-    topo = Topology(ivn_file)
-    topo.delete()
-    os.unlink(ivn_file)
-    os.environ['PATH'] = old_path
 
 
 class test_ivn(unittest.TestCase):
@@ -167,6 +160,16 @@ class test_ivn(unittest.TestCase):
         assert reobj
         reobj = re.search(r'node0ns(\s?\(id:\s?\d+\))?', result)
         assert reobj
+
+        a_boot_image = cloud_img.gen_qemuimg(fixtures.cloud_img_ubuntu_16_04, "mytest0.img")
+        b_boot_image = cloud_img.gen_qemuimg(fixtures.cloud_img_ubuntu_16_04, "mytest1.img")
+
+        newnetwork0 = create_new_networkconfig(node0_mac0, "192.168.188.211", "192.168.188.1", node0_mac1)
+        newnetwork1 = create_new_networkconfig(node1_mac0, "192.168.188.210", "192.168.188.1", node1_mac1)
+
+        a_iso = cloud_img.geniso("my-seed0.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283e", newnetwork0)
+        b_iso = cloud_img.geniso("my-seed1.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283f", newnetwork1)
+
         fake_node1 = self.start_node_with_config('test0', 'node0ns', a_boot_image, a_iso)
         fake_node2 = self.start_node_with_config('test1', 'node1ns', b_boot_image, b_iso)
         self._verify_node_in_netns(fake_node1, "node0ns")
