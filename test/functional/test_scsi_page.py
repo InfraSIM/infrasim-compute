@@ -13,6 +13,7 @@ from infrasim import helper
 from infrasim.helper import UnixSocket
 import paramiko
 from test import fixtures
+import re
 
 
 """
@@ -176,16 +177,32 @@ def run_cmd(cmd):
 
 class test_scsi_drive_pages(unittest.TestCase):
 
+    drv_page = ""
+    drv_nopage = ""
+
     @classmethod
     def setUpClass(cls):
         start_node(node_type="quanta_d51")
+
+        # look for correct drv name according to wwn.
+        def find_dev_name(index, lines):
+            wwn = conf["compute"]["storage_backend"][1]["drives"][index]["wwn"].lower()
+            s = re.search(r'disk\s+{}\s+(.*)'.format(wwn), lines)
+            return s.group(1) if s else None
+
+        lines = run_cmd("lsscsi -w")
+        cls.drv_page = find_dev_name(0, lines)
+        cls.drv_nopage = find_dev_name(1, lines)
+
+        assert cls.drv_page
+        assert cls.drv_nopage
 
     @classmethod
     def tearDownClass(cls):
         stop_node()
 
     def test_inq_page_0_extra(self):
-        lines = run_cmd("sg_inq /dev/sda --page=0")
+        lines = run_cmd("sg_inq {} --page=0".format(test_scsi_drive_pages.drv_page))
         print("\n")
         print(lines)
         assert "0x87" in lines
@@ -194,7 +211,7 @@ class test_scsi_drive_pages(unittest.TestCase):
         assert "0xc2" in lines
 
     def test_inq_page_0_no_page_file(self):
-        lines = run_cmd("sg_inq /dev/sdb --page=0")
+        lines = run_cmd("sg_inq {} --page=0".format(test_scsi_drive_pages.drv_nopage))
         print("\n")
         print(lines)
         assert "0x87" not in lines
@@ -203,13 +220,13 @@ class test_scsi_drive_pages(unittest.TestCase):
         assert "0xc2" not in lines
 
     def test_inq_page_c2(self):
-        lines = run_cmd("sg_inq /dev/sda --page=0xc2 -H")
+        lines = run_cmd("sg_inq {} --page=0xc2 -H".format(test_scsi_drive_pages.drv_page))
         print("\n")
         print(lines)
         assert "00 c2 00 02 3c 3c" in lines
 
     def test_mode_pages_with_extra(self):
-        lines = run_cmd("sg_modes /dev/sda -HH")
+        lines = run_cmd("sg_modes {} -HH".format(test_scsi_drive_pages.drv_page))
         print("\n")
         print(lines)
         assert "page_code=0x2" in lines
@@ -222,7 +239,7 @@ class test_scsi_drive_pages(unittest.TestCase):
         assert "page_code=0x8" in lines
 
     def test_mode_pages_origin(self):
-        lines = run_cmd("sg_modes /dev/sdb -HH")
+        lines = run_cmd("sg_modes {} -HH".format(test_scsi_drive_pages.drv_nopage))
         print("\n")
         print(lines)
         assert "page_code=0x2" not in lines

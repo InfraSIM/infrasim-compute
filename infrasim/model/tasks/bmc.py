@@ -49,6 +49,7 @@ class CBMC(Task):
         self.__intf_no_ip = False
         self.__log_file = None
         self.__full_log = False
+        self.__shm_key = None
 
         # Be careful with updating this number, it could cause FRU index confliction
         # on particular platform, e.g. onr FRU of s2600wtt already occupied index 10
@@ -144,7 +145,7 @@ class CBMC(Task):
                                  "it's set to {} now".
                                  format(self.__poweroff_wait))
 
-        if type(self.__poweroff_wait) is not int:
+        if not isinstance(self.__poweroff_wait, int):
             raise ArgsNotCorrect("[BMC] poweroff_wait is expected to be integer, "
                                  "it's set to {} now".
                                  format(self.__poweroff_wait))
@@ -154,7 +155,7 @@ class CBMC(Task):
                                  "it's set to {} now".
                                  format(self.__kill_wait))
 
-        if type(self.__kill_wait) is not int:
+        if not isinstance(self.__kill_wait, int):
             raise ArgsNotCorrect("[BMC] kill_wait is expected to be integer, "
                                  "it's set to {} now".
                                  format(self.__kill_wait))
@@ -164,7 +165,7 @@ class CBMC(Task):
                                  "to be >= 0, it's set to {} now".
                                  format(self.__port_iol))
 
-        if type(self.__port_iol) is not int:
+        if not isinstance(self.__port_iol, int):
             raise ArgsNotCorrect("[BMC] Port for IOL(IPMI over LAN) is expected "
                                  "to be integer, it's set to {} now".
                                  format(self.__port_iol))
@@ -174,7 +175,7 @@ class CBMC(Task):
                                  "it's set to {} now".
                                  format(self.__historyfru))
 
-        if type(self.__historyfru) is not int:
+        if not isinstance(self.__historyfru, int):
             raise ArgsNotCorrect("[BMC] History FRU is expected to be integer, "
                                  "it's set to {} now".
                                  format(self.__historyfru))
@@ -395,6 +396,9 @@ class CBMC(Task):
         else:
             raise ArgsNotCorrect("[BMC] Couldn't find vbmc.conf")
 
+        if 'shm_key' in self.__bmc:
+            self.__shm_key = self.__bmc['shm_key']
+
     def get_commandline(self):
         path = os.path.join(self.get_workspace(), "data")
         ipmi_cmd_str = "{0} -c {1} -f {2} -n -s {3} -l {4}" .\
@@ -403,6 +407,8 @@ class CBMC(Task):
                    self.__emu_file,
                    path,
                    self.__log_file)
+        if self.__shm_key:
+            ipmi_cmd_str += " -m {}".format(self.__shm_key)
         if self.__full_log:
             ipmi_cmd_str += " -a"
 

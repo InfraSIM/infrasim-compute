@@ -14,7 +14,7 @@ class CPCIEPort(CElement):
     def __init__(self, port_info):
         super(CPCIEPort, self).__init__()
         self.__port_info = port_info
-        self.__device = None
+        self.device = None
         self.__chassis = None
         self.__slot = None
         self.__addr = None
@@ -49,7 +49,7 @@ class CPCIEPort(CElement):
 
     def init(self):
         self.logger.info("port start ")
-        self.__device = self.__port_info.get('device')
+        self.device = self.__port_info.get('device')
         self.id = self.__port_info.get('id')
         self.bus = self.__port_info.get('bus')
         self.__chassis = self.__port_info.get('chassis')
@@ -66,11 +66,11 @@ class CPCIEPort(CElement):
 
     def handle_parms(self):
         self.__port_option = " -device {},id={},bus={},chassis={},slot={}".format(
-                                                           self.__device,
-                                                           self.id,
-                                                           self.bus,
-                                                           self.__chassis,
-                                                           self.__slot)
+            self.device,
+            self.id,
+            self.bus,
+            self.__chassis,
+            self.__slot)
         if self.__addr:
             self.__port_option = ','.join([self.__port_option,
                                            'addr={}'.format(self.__addr)])
