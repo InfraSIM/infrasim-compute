@@ -107,6 +107,7 @@ class DiskArrayController(CElement):
                     stop -= 1
                     result.extend(range(start, stop, -1))
         else:
+            self.logger.warning("[Warning] Using default slot-phy-map for expander {0}".format(expander["wwn"]))
             result = range(_Const.DEFAULT_EXP_START_PHY, expander["phy_count"])
         expander["phy_map"] = result
         self._expanders.append(expander)
@@ -236,8 +237,9 @@ class DiskArrayController(CElement):
                         drv["file"] = format_value(drv["file"], index)
                     drv["atta_phy_id"] = phy
                     exp["drives"].append(drv)
-                    self.__append_link(exp, phy, self.__get_link(phy, 1, drv["port_wwn"], side,
-                                                                 _Const.END_DEVICE, drv["wwn"]))
+                    drv_link = self.__get_link(phy, 1, drv["port_wwn"], side, _Const.END_DEVICE, drv["wwn"])
+                    drv_link["atta_slot_id"] = drv["slot_number"]
+                    self.__append_link(exp, phy, drv_link)
 
     def __reformat_links(self):
         # reformat "links" field of expander.
