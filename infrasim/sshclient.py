@@ -34,10 +34,6 @@ class SSH(object):
 
     def connect(self, timeout=60):
 
-        print("Connecting {username}@{host}:{port}"
-                    .format(username=self.host_username,
-                            host=self.host_ip,
-                            port=self.host_port))
         time.sleep(10)  # sleep 10s to try next ssh connection
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -45,6 +41,10 @@ class SSH(object):
         return self.reconnect(timeout)
 
     def wait_for_host_up(self, timeout=120):
+        print("Connecting to SSH server: {username}@{host}:{port}"
+                    .format(username=self.host_username,
+                            host=self.host_ip,
+                            port=self.host_port))
         start = time.time()
         while True:
             if self.connect():
@@ -52,6 +52,10 @@ class SSH(object):
             end = time.time()
             if end - start > timeout:
                 return False
+        print("Connected to SSH server: {username}@{host}:{port}"
+              .format(username=self.host_username,
+                      host=self.host_ip,
+                      port=self.host_port))
         return True
 
     def reconnect(self, timeout=60):
