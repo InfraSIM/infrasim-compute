@@ -15,7 +15,6 @@ import re
 import env
 import traceback
 from infrasim import config
-from infrasim import run_command
 from infrasim.workspace import Workspace
 from infrasim import helper
 from infrasim import log
@@ -87,9 +86,8 @@ def init_env(instance):
             "Warning: there is no node {} workspace. "
             "Please start node {} first.".format(instance, instance))
 
-    PS_QEMU = "ps ax | grep qemu"
-    qemu_result = run_command(PS_QEMU, True, subprocess.PIPE, subprocess.PIPE)[1]
-    if instance in qemu_result:
+    if os.path.exists("{}/{}/.{}-bmc.pid".format(
+                    config.infrasim_home, instance, instance)):
         try:
             with open("{}/{}/.{}-bmc.pid".format(
                     config.infrasim_home, instance, instance), "r") as f:
