@@ -9,19 +9,19 @@ import subprocess
 import unittest
 import sys
 import tempfile
-
+import stat
 from test import fixtures
 import yaml
 import paramiko
 from infrasim import helper
 from infrasim import model
+from infrasim import config
 
 
 try:
     from ivn.core import Topology
 except ImportError as e:
     path_ivn = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "ivn")
-    print path_ivn
     sys.path.append(path_ivn)
     from ivn.core import Topology
 
@@ -38,6 +38,11 @@ ivn_cfg_file = None
 def setup_module():
     global ivn_cfg_file
     os.environ["PATH"] = new_path
+
+    oem_file_path = os.path.join(config.infrasim_data, "oem_data.json")
+    url = 'https://raw.eos2git.cec.lab.emc.com/InfraSIM/infrasim-appliance/master/data/warnado_ex/oem_data.json'
+    load_data(oem_file_path, url)
+
     if os.path.exists(fixtures.a_boot_image) is False:
         raise Exception("Not found image {}".format(fixtures.a_boot_image))
     if os.path.exists(fixtures.b_boot_image) is False:
@@ -64,6 +69,20 @@ def teardown_module():
     topo = Topology(ivn_cfg_file)
     topo.delete()
     os.unlink(ivn_cfg_file)
+
+
+def load_data(file_path, url):
+    HEAD_auth = 'Authorization: token bb685a1c4419367d1e045731b4766983545f4b1d'
+    # Custom media types are used in the API to let consumers choose the format of the data they wish to receive.
+    HEAD_accept = 'Accept: application/vnd.github.v4.raw'
+    try:
+        os.system("curl -H '{auth}' -H '{accept}' -k -L {url} -o {path}".format(auth=HEAD_auth,
+                                                                                accept=HEAD_accept,
+                                                                                url=url,
+                                                                                path=file_path))
+        os.chmod(file_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+    except OSError:
+        assert False
 
 
 def saved_config_file():
@@ -187,3 +206,17 @@ class test_chassis(unittest.TestCase):
         self.assertEqual(n0_1, n1_1, "Orignal value mismatch.")
         self.assertEqual(n0_2, n1_2, "New value mismatch.")
         self.assertNotEqual(n0_1, n0_2, "Failed to change value.")
+
+    def test_nvme_vpd(self):
+        for ip in nodes_ip:
+            cmd = ["ipmitool", "-I", "lanplus", "-U", "admin", "-P", "admin", "-H", ip,
+                   "raw", "0x30", "0xE1", "0x11", "0x00", "0x00", "0x4c"]
+            result = subprocess.check_output(cmd)
+            self.assertIn('4c 02 08', result, "can not obtain vpd")
+
+    def test_nvme_health_data(self):
+        for ip in nodes_ip:
+            cmd = ["ipmitool", "-I", "lanplus", "-U", "admin", "-P", "admin", "-H", ip,
+                   "raw", "0x30", "0xE3", "0x11"]
+            result = subprocess.check_output(cmd)
+            self.assertIn('30 1f 21', result, "can not obtain health data")
