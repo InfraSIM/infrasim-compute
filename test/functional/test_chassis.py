@@ -9,14 +9,13 @@ import subprocess
 import unittest
 import sys
 import tempfile
-import stat
 from test import fixtures
 import yaml
 import paramiko
+import json
 from infrasim import helper
 from infrasim import model
-from infrasim import config
-
+from infrasim.workspace import ChassisWorkspace
 
 try:
     from ivn.core import Topology
@@ -33,16 +32,28 @@ conf = {}
 chassis = None
 nodes_ip = ["192.168.188.91", "192.168.188.92"]
 ivn_cfg_file = None
+data_file = {
+        "nvme": {
+            "slot_17": {
+                "vpd": "02 08 01 f8 11 30 30 30 30 30 30 30 30 ff ff ff ff ff ff 00 00 \
+                        00 00 00 00 46 6c 61 73 68 74 65 63 20 4e 56 2d 30 32 30 30 38 \
+                        20 38 47 42 20 32 2e 35 00 00 00 00 00 00 00 00 00 00 00 00 00 \
+                        00 00 07 04 00 00 0a 00 00 19 00 00 4d 00 a0 00 51 00 a5 00 00 \
+                        00 f8 11 01 00 ce 80 08 08 30 30 30 30 30 30 30 30 30 30 30 30 \
+                        30 30 30 30 30 30 30 30 00 76 00 a8 02 ff ff ff ff ff ff ff ff \
+                        ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff \
+                        20 38 47 42 20 32 2e 35 00 00 00 00 00 00 00 00 00 00 00 00 00 \
+                        02 08 01 f8 11 30 30 30 30 30 30 30 30 30 30 00 00 00 00 00 00 \
+                        ff 38 47 42 20 32 2e 35 ff",
+                "health_data": "30 1f 21 00 01 00 02 03"
+            }
+        }
+}
 
 
 def setup_module():
     global ivn_cfg_file
     os.environ["PATH"] = new_path
-
-    oem_file_path = os.path.join(config.infrasim_data, "oem_data.json")
-    url = 'https://raw.eos2git.cec.lab.emc.com/InfraSIM/infrasim-appliance/master/data/warnado_ex/oem_data.json'
-    load_data(oem_file_path, url)
-
     if os.path.exists(fixtures.a_boot_image) is False:
         raise Exception("Not found image {}".format(fixtures.a_boot_image))
     if os.path.exists(fixtures.b_boot_image) is False:
@@ -71,20 +82,6 @@ def teardown_module():
     os.unlink(ivn_cfg_file)
 
 
-def load_data(file_path, url):
-    HEAD_auth = 'Authorization: token bb685a1c4419367d1e045731b4766983545f4b1d'
-    # Custom media types are used in the API to let consumers choose the format of the data they wish to receive.
-    HEAD_accept = 'Accept: application/vnd.github.v4.raw'
-    try:
-        os.system("curl -H '{auth}' -H '{accept}' -k -L {url} -o {path}".format(auth=HEAD_auth,
-                                                                                accept=HEAD_accept,
-                                                                                url=url,
-                                                                                path=file_path))
-        os.chmod(file_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-    except OSError:
-        assert False
-
-
 def saved_config_file():
     ivn_cfg = fixtures.IvnConfig()
     fi = tempfile.NamedTemporaryFile(delete=False)
@@ -99,7 +96,7 @@ def start_chassis():
     """
     global conf
     global ssh
-
+    global chassis
     conf = fixtures.ChassisConfig().get_chassis_info()
     conf["data"]["pn"] = "What_ever_SN"
     conf["data"]["sn"] = "What_ever_SN"
@@ -120,10 +117,13 @@ def start_chassis():
     if os.path.exists(node1_log):
         os.remove(node1_log)
 
-    global chassis
     chassis = model.CChassis(conf["name"], conf)
     chassis.precheck()
     chassis.init()
+
+    data_file_dir = os.path.join(ChassisWorkspace(conf).get_workspace_data(), "oem_data.json")
+    with open(data_file_dir, "w") as f:
+        json.dump(data_file, f)
     chassis.start()
 
     ssh = helper.prepare_ssh("192.168.188.92", 8022)
