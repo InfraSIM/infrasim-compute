@@ -76,6 +76,8 @@ class test_ipmi_console_default_env(unittest.TestCase):
         node = CNode(node_info)
         node.init()
         node.precheck()
+        # comment next line since this test case doesn't need to start node actually.
+        # node.start()
 
     @classmethod
     def tearDownClass(cls):
@@ -124,6 +126,8 @@ class test_ipmi_console_customized_env(unittest.TestCase):
         node = CNode(node_info)
         node.init()
         node.precheck()
+        # comment next line since this test case doesn't need to start node actually.
+        # node.start()
 
     @classmethod
     def tearDownClass(cls):
