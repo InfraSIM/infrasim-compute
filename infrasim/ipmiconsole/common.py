@@ -85,18 +85,21 @@ def init_env(instance):
         raise IpmiError(
             "Warning: there is no node {} workspace. "
             "Please start node {} first.".format(instance, instance))
-    try:
-        with open("{}/{}/.{}-bmc.pid".format(
-                config.infrasim_home, instance, instance), "r") as f:
-            pid = f.readline().strip()
-            if not os.path.exists("/proc/{}".format(pid)):
-                raise Exception
-    except Exception:
-        logger.error("Warning: node {} has not started BMC. "
-                     "Please start node {} first.".format(instance, instance))
-        raise IpmiError(
-            "Warning: node {} has not started BMC. "
-            "Please start node {} first.".format(instance, instance))
+
+    if os.path.exists("{}/{}/.{}-bmc.pid".format(
+                    config.infrasim_home, instance, instance)):
+        try:
+            with open("{}/{}/.{}-bmc.pid".format(
+                    config.infrasim_home, instance, instance), "r") as f:
+                pid = f.readline().strip()
+                if not os.path.exists("/proc/{}".format(pid)):
+                    raise Exception
+        except Exception:
+            logger.error("Warning: node {} has not started BMC. "
+                         "Please start node {} first.".format(instance, instance))
+            raise IpmiError(
+                "Warning: node {} has not started BMC. "
+                "Please start node {} first.".format(instance, instance))
 
     logger.info("Init ipmi-console environment for infrasim instance: {}".
                 format(instance))
