@@ -11,6 +11,7 @@ from infrasim.model.core.element import CElement
 from infrasim.model.elements.network import CNetwork
 from infrasim.model.elements.storage_mega import MegaSASController
 from infrasim.model.elements.storage_lsi import LSISASController
+from infrasim.model.elements.storage_pmc import PMCSASController
 from infrasim.model.elements.drive_nvme import NVMeController
 from infrasim.model.elements.storage_ahci import AHCIController
 from infrasim.model.elements.chassisslot import CChassisSlot
@@ -78,6 +79,8 @@ class CBackendStorage(CElement):
             controller_obj = MegaSASController(controller_info)
         elif model.startswith("lsi"):
             controller_obj = LSISASController(controller_info)
+        elif model.startswith("pmc"):
+            controller_obj = PMCSASController(controller_info)
         elif "nvme" in model:
             controller_obj = NVMeController(controller_info)
         elif "ahci" in model:
