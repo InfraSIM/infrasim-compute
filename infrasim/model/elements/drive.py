@@ -19,6 +19,7 @@ class CBaseDrive(CElement):
     for the device option '-device ...', handle those options in the sub class according to the drive
     type, since different drives have the different attributes.
     '''
+
     def __init__(self):
         super(CBaseDrive, self).__init__()
         # protected
@@ -54,6 +55,8 @@ class CBaseDrive(CElement):
         # other option
         self.__size = None
 
+        self.__sector_size = None
+
     @property
     def index(self):
         return self.__index
@@ -68,6 +71,12 @@ class CBaseDrive(CElement):
 
         if self.__share_rw != "true" and self.__share_rw != "false":
             raise ArgsNotCorrect("[CBaseDrive] share-rw: {} is not a valid option [true/false]".format(self.__share_rw))
+
+        if self.__sector_size not in [None, 512, 520]:
+            raise ArgsNotCorrect("[CBaseDrive] sector_size only support 512, 520")
+
+        if self.__sector_size == 520 and self.__format != "raw":
+            raise ArgsNotCorrect("[CBaseDrive] sector_size 520 is not supported by other format other than 'raw'")
 
     @property
     def serial(self):
@@ -113,7 +122,7 @@ class CBaseDrive(CElement):
         self.__cluster_size = self._drive_info.get("cluster-size")
         self.__preallocation_mode = self._drive_info.get("preallocation")
         self.__discard = self._drive_info.get("discard")
-
+        self.__sector_size = self._drive_info.get("sector_size")
         self.__size = self._drive_info.get("size", 8)
 
         # assume the files starts with "/dev/" are block device
@@ -213,3 +222,7 @@ class CBaseDrive(CElement):
 
         if self.__share_rw:
             self._dev_attrs["share-rw"] = self.__share_rw
+
+        if self.__sector_size == 520:
+            self._dev_attrs["logical_block_size"] = 520
+            self._dev_attrs["physical_block_size"] = 520
