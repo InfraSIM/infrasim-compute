@@ -72,11 +72,12 @@ class CBaseDrive(CElement):
         if self.__share_rw != "true" and self.__share_rw != "false":
             raise ArgsNotCorrect("[CBaseDrive] share-rw: {} is not a valid option [true/false]".format(self.__share_rw))
 
-        if self.__sector_size not in [None, 512, 520]:
-            raise ArgsNotCorrect("[CBaseDrive] sector_size only support 512, 520")
+        if self.__sector_size not in [None, 512, 520, 4160]:
+            raise ArgsNotCorrect("[CBaseDrive] sector_size only support 512, 520, 4160")
 
-        if self.__sector_size == 520 and self.__format != "raw":
-            raise ArgsNotCorrect("[CBaseDrive] sector_size 520 is not supported by other format other than 'raw'")
+        if self.__sector_size in [520, 4160] and self.__format != "raw":
+            raise ArgsNotCorrect("[CBaseDrive] sector_size {} is only supported 'raw' format"
+                                 .format(self.__sector_size))
 
     @property
     def serial(self):
@@ -223,6 +224,6 @@ class CBaseDrive(CElement):
         if self.__share_rw:
             self._dev_attrs["share-rw"] = self.__share_rw
 
-        if self.__sector_size == 520:
-            self._dev_attrs["logical_block_size"] = 520
-            self._dev_attrs["physical_block_size"] = 520
+        if self.__sector_size:
+            self._dev_attrs["logical_block_size"] = self.__sector_size
+            self._dev_attrs["physical_block_size"] = self.__sector_size
