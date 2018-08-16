@@ -38,6 +38,22 @@ class SMBios(object):
     };
     '''
     _fmt_entry = "4sBBBBHb5s5sBHIHBB"
+    '''
+    Entry Format 3.0. Ref to SMBios SPEC Ver:3.0.0, Chapter:5.2.2
+    struct SMBIOSEntryPoint {
+     char EntryPointString[5];    //This is '_SM3_'
+     uchar Checksum;              //This value summed with all the values of the table, should be 0 (overflow)
+     uchar Length;                //Length of the Entry Point Table. this is 0x18 in spec 3.0
+     uchar MajorVersion;          //Major Version of SMBIOS
+     uchar MinorVersion;          //Minor Version of SMBIOS
+     uchar docrev;                //docrev
+     uchar entry_point_rev;       //01h in spec 3.
+     uchar reserved;              //Address of the Table
+     ulong MaxSizeOfStructures;   //Max size of the table
+     uint64_t TableAddress;       //offset of all tables.
+    };
+    '''
+    _fmt3_entry = "5sBBBBBBBIQ"
     _fmt_header = "BBH"
     Id_Checksum = 1
     Id_MaxStructureSize = 5
@@ -57,9 +73,59 @@ class SMBios(object):
         self.__entry = None
         self.__type1_index = None
         self.__type3_index = None
+        self.save = None
         with open(src, "rb") as fin:
             self._buf = fin.read()
-            self.__decode()
+        if self.__decode() is False and self.__decode3() is False:
+            raise Exception("can't identify bios version")
+
+    def __decode3(self):
+        # unpack Entry Table
+        entry = struct.unpack_from(SMBios._fmt3_entry, self._buf, 0)
+        if not (entry[0] == "_SM3_" and entry[3] == 3):
+            return False
+        self.save = self.__save3
+        self.__entry = entry
+        # get offset from header['TableAddress'].
+        offset = entry[9]
+        while offset < len(self._buf):
+            header = struct.unpack_from(SMBios._fmt_header, self._buf, offset)
+            start = offset
+            offset += header[1]
+            while self._buf[offset] != '\0' or self._buf[offset + 1] != '\0':
+                offset += 1
+            offset += 2
+            structure = self._buf[start:offset]
+
+            if header[0] == SMBios.TYPE_SystemInformation:  # mark the system information structure.
+                self.__type1_index = len(self.__dict)
+            if header[0] == SMBios.TYPE_ChassisInformation:
+                self.__type3_index = len(self.__dict)
+            if header[0] == SMBios.TYPE_BaseboardInformation:
+                self.__type2_index = len(self.__dict)
+
+            self.__dict.append(structure)
+        return True
+
+    def __save3(self, dst):
+        # update "Structure table maximum size"
+        entry = list(self.__entry)
+        size = sum(map(lambda x: len(x), self.__dict))
+        entry[8] = size
+
+        # update checksum
+        entry[SMBios.Id_Checksum] = 0
+        entry[SMBios.Id_Checksum] = self.__get_checksum(struct.pack(SMBios._fmt3_entry, *entry))
+
+        # calculate pad between header and tables.
+        offset = entry[9]
+        pad = offset - struct.calcsize(SMBios._fmt3_entry)
+        # write file.
+        with open(dst, "wb") as fo:
+            fo.write(struct.pack(SMBios._fmt3_entry, *entry))
+            fo.write('\0' * pad)
+            for item in self.__dict:
+                fo.write(item)
 
     def __decode(self):
         """
@@ -67,8 +133,10 @@ class SMBios(object):
         """
         # unpack Entry Table
         entry = struct.unpack_from(SMBios._fmt_entry, self._buf, 0)
+        if not (entry[0] == "_SM_" and entry[3] == 2):
+            return False
+        self.save = self.__save
         self.__entry = entry
-
         offset = struct.calcsize(SMBios._fmt_entry)
         for _ in range(0, entry[12]):
             header = struct.unpack_from(SMBios._fmt_header, self._buf, offset)
@@ -87,6 +155,7 @@ class SMBios(object):
                 self.__type2_index = len(self.__dict)
 
             self.__dict.append(structure)
+        return True
 
     def ModifyType1SystemInformation(self, sn):
         if self.__type1_index is None:
@@ -173,7 +242,7 @@ class SMBios(object):
         check_sum = sum(bytearray(buf))
         return (-check_sum) & 0xff
 
-    def save(self, dst):
+    def __save(self, dst):
         # check the MaxStructureSize in Entry.
         # update TableLength in Entry
         entry = list(self.__entry)
