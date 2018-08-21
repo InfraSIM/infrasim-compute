@@ -4,9 +4,10 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
 # -*- coding: utf-8 -*-
-
-
+import os
+from infrasim import helper
 from infrasim.model.core.element import CElement
+from infrasim.model.elements.storage_diskarray import DiskArrayController
 
 
 class CBaseStorageController(CElement):
@@ -60,8 +61,8 @@ class CBaseStorageController(CElement):
         return ",".join(controller_option_list)
 
     def handle_parms(self):
-        # drive_list IS empty when it connects a disk array.
-
+        # handle diskarry first.
+        self._handle_diskarray()
         # handle drive options
         for drive_obj in self._drive_list:
             drive_obj.handle_parms()
@@ -80,3 +81,19 @@ class CBaseStorageController(CElement):
         # controller attributes if there are some
         # common attributes for all controllers
         # add them into self._attributes here.
+
+    def _handle_diskarray(self):
+        sas_topo = self._controller_info.get("sas_topo")
+        if sas_topo:
+            drv_args = []
+            for drive_obj in self._drive_list:
+                drive_obj.handle_parms()
+                # export drv args to txt file
+                drv_args.append(drive_obj.get_option())
+
+            self._drive_list = []
+            drv_args_file = os.path.join(helper.get_ws_folder(self), "data",
+                                         "drv_args_{}.txt".format(self.controller_index))
+            DiskArrayController.export_drv_args(drv_args_file, drv_args)
+            self._attributes["drv_args"] = drv_args_file
+            self._attributes["sas_topo"] = sas_topo
