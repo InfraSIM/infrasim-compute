@@ -133,7 +133,7 @@ class SMBios(object):
         """
         # unpack Entry Table
         entry = struct.unpack_from(SMBios._fmt_entry, self._buf, 0)
-        if not (entry[0] == "_SM_" and entry[3] == 2):
+        if not (entry[0] == "_SM_"):
             return False
         self.save = self.__save
         self.__entry = entry
