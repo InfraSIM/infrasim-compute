@@ -17,6 +17,7 @@ from infrasim.log import infrasim_log
 from infrasim.model import CNode
 from infrasim.model.tasks.chassis_daemon import CChassisDaemon
 from infrasim.workspace import ChassisWorkspace
+from infrasim.model.elements.storage_diskarray import DiskArrayController
 
 
 class CChassis(object):
@@ -85,6 +86,7 @@ class CChassis(object):
 
     def start(self, *args):
         self.__process_chassis_device()
+        self.__process_disk_array()
 
         self._init_sub_node(*args)
 
@@ -340,3 +342,20 @@ class CChassis(object):
                             continue
                         self.__dataset[slot_id]["vpd"] = oem_string_2_binary(data["vpd"])
                         self.__dataset[slot_id]["health"] = oem_string_2_binary(data["health_data"])
+
+    def __process_disk_array(self):
+        ws = self.workspace.get_workspace_data()
+        diskarray = DiskArrayController(ws)
+        # set sharemeory id for sub node.
+        for node in self.__chassis.get("nodes", []):
+            storage = node["compute"].get("storage_backend")
+            diskarray.add_storage_chassis_backend(storage)
+
+        topo = diskarray.get_topo()
+        if topo:
+            for node in self.__chassis.get("nodes", []):
+                storage = node["compute"].get("storage_backend")
+                shmkey = node["compute"]["communicate"]
+                diskarray.set_topo_file(storage, shmkey)
+            self.__dataset.append("sas_topo", topo)
+            diskarray.export_drv_data()

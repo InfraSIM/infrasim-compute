@@ -7,6 +7,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import os
 from infrasim import ArgsNotCorrect
+from infrasim import helper
 from infrasim.model.core.element import CElement
 from infrasim.model.elements.network import CNetwork
 from infrasim.model.elements.storage_mega import MegaSASController
@@ -56,7 +57,6 @@ class CBackendStorage(CElement):
         super(CBackendStorage, self).__init__()
         self.__backend_storage_info = backend_storage_info
         self.__controller_list = []
-        self.__diskarray = None
         self.__pci_topology_manager = None
         self.__is_cdrom_connected = cdrom_connected
 
@@ -85,11 +85,6 @@ class CBackendStorage(CElement):
             controller_obj = NVMeController(controller_info)
         elif "ahci" in model:
             controller_obj = AHCIController(controller_info, self.__is_cdrom_connected)
-        elif "disk_array" in model:
-            if self.__diskarray:
-                raise ArgsNotCorrect("[BackendStorage] Only 1 disk array object allowed")
-            controller_obj = DiskArrayController(controller_info)
-            self.__diskarray = controller_obj
         else:
             raise ArgsNotCorrect("[BackendStorage] Unsupported controller type: {}".
                                  format(model))
@@ -99,28 +94,27 @@ class CBackendStorage(CElement):
         controller_obj.owner = self
         return controller_obj
 
-    def __get_ws_name(self):
-        parent = self.owner
-        while parent and not hasattr(parent, "get_workspace"):
-            parent = parent.owner
-
-        ws = None
-        if hasattr(parent, "get_workspace"):
-            ws = parent.get_workspace()
-
-        if ws is None or not os.path.exists(ws):
-            ws = ""
-        return ws
+    def __init_diskarray(self):
+        ws = os.path.join(helper.get_ws_folder(self), "data")
+        diskarray = DiskArrayController(ws)
+        diskarray.add_storage_backend(self.__backend_storage_info)
+        dae_topo = diskarray.get_topo()
+        if dae_topo is not None:
+            filename = os.path.join(ws, "sas_topo.bin")
+            with open(filename, "w") as f:
+                f.write(dae_topo)
+            diskarray.set_topo_file(self.__backend_storage_info, filename)
+            diskarray.export_drv_data()
+        diskarray.merge_drv_data(self.__backend_storage_info)
+        self.__backend_storage_info = filter(lambda x: x["type"] != "disk_array", self.__backend_storage_info)
 
     def init(self):
+        self.__init_diskarray()
         for controller in self.__backend_storage_info:
             controller_obj = self.__create_controller(controller)
             if self.__pci_topology_manager:
                 controller_obj.set_pci_topology_mgr(self.__pci_topology_manager)
             self.__controller_list.append(controller_obj)
-
-        if self.__diskarray:
-            self.__diskarray.apply_device(self.__backend_storage_info)
 
         for controller_obj in self.__controller_list:
             if isinstance(controller_obj, AHCIController):
@@ -141,7 +135,7 @@ class CBackendStorage(CElement):
     def handle_parms(self):
         # store chassis slot map to controller
         chassis_slot = CChassisSlot(self.__backend_storage_info,
-                                    self.__get_ws_name())
+                                    helper.get_ws_folder(self))
 
         for controller_obj in self.__controller_list:
             controller_obj.handle_parms()

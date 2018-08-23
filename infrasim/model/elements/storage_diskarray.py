@@ -6,6 +6,8 @@ Copyright @ 2018 EMC Corporation All Rights Reserved
 import json
 import copy
 import re
+import struct
+import os
 from infrasim.model.core.element import CElement
 from infrasim import ArgsNotCorrect
 
@@ -37,62 +39,121 @@ class DiskArrayController(CElement):
     A pseodu controller handles the disk array object.
     """
 
-    def __init__(self, diskarray):
-        """
-        step 1. collect all expanders
-        step 2. collect all links.
-        """
+    def __init__(self, ws):
         super(DiskArrayController, self).__init__()
         self._link = []
         self._expanders = []
         self._connections = []
+        self._ports = []
+        self._controllers = []
+        self._sas_all_drv = os.path.join(ws, "sas_all_drives.json")
+
+    def add_storage_chassis_backend(self, backend_info):
+        # called in chassis.init for each sub node.
+        backend = copy.deepcopy(backend_info)
+
+        # set flag in orignal disk array object when it belongs to chassis.
+        # so that it will not process again in node.start()
+        for diskarray_controller in filter(lambda x: x["type"] == "disk_array", backend_info):
+            diskarray_controller["sas_drives"] = self._sas_all_drv
+        # add cloned node since it will be modified.
+        self.add_storage_backend(backend)
+
+    def add_storage_backend(self, backend_info):
+        # called in node.init
+        diskarrays = filter(lambda x: x["type"] == "disk_array", backend_info)
+        if len(diskarrays) == 0:
+            return None
+        if len(diskarrays) > 1:
+            raise ArgsNotCorrect("[Disk Array] Only 1 Disk Array object Allowed")
+        diskarray_controller = diskarrays[0]
+        if diskarray_controller.get("sas_drives", None):
+            # if it is handled by chassis already, clear and quit.
+            self._expanders = []
+            return
+        diskarray_controller["sas_drives"] = self._sas_all_drv
+        self.__add_diskarray(diskarray_controller)
+
+        controllers = filter(lambda x: x.get("connectors") or x.get("external_connectors"), backend_info)
+        self._controllers.extend(controllers)
+        for controller in controllers:
+            self.__add_local_resource(controller)
+        return diskarray_controller
+
+    def __add_diskarray(self, diskarray):
+        """
+        step 1. collect all expanders
+        step 2. collect all links.
+        """
         # collect all resources
         for item in diskarray["disk_array"]:
             _raw_enclosure = item.get("enclosure")
             if _raw_enclosure:
                 __drvs = _raw_enclosure.get("drives", [])
-                for expander in _raw_enclosure.pop("expanders", []):
+                exps = _raw_enclosure.pop("expanders", [])
+                # set peer index
+                peer_exp_index = len(self._expanders)
+                if len(exps) == 2:
+                    for expander in exps:
+                        expander["peer_index"] = peer_exp_index + 1 - exps.index(expander)
+                else:
+                    for expander in exps:
+                        index = expander.get("peer_index", exps.index(expander))
+                        expander["peer_index"] = peer_exp_index + index
+
+                for expander in exps:
                     # copy drive section and put it under expander.
                     expander["name"] = "{}_{}".format(item["name"], expander["name"])
                     expander["drives"] = __drvs
-                    ses = expander.get("ses")
-                    if ses:
-                        ses["dae_type"] = _raw_enclosure["type"]
-
+                    expander.get("ses", {})["dae_type"] = _raw_enclosure["type"]
                     self.__add_expander(expander)
             # collect all links between enclosures.
             self._connections.extend(item.get("connections", []))
-        # store the whole entity of backend storage
-        self._backend_info = None
 
-    def apply_device(self, backend_info):
+    def __build_topology(self):
         """
         Collect all devices and build the connection net.
         """
-        for controller in backend_info:
-            self.__add_local_resource(controller)
-            self.__add_connection_of_hba(controller)
-
         self.__add_connection_of_link()
         self.__add_connection_of_ses()
         self.__add_connection_of_drv()
+        self.__allocate_scsi_id()
 
-        self.__reformat_links()
         """
         connection net is ready for traversal.
         1. Traversal connection net,
         2. Copy devices to controller.
-        3. Allocate scsi_id.
         """
-        for controller in backend_info:
-            if controller.get("connectors"):
-                self.__traversal_expanders(controller)
-                self.__update_scsi_id(controller)
-                self.__format(controller)
+        for controller in self._controllers:
+            self.__add_connection_of_hba(controller)
+            self.__traversal_expanders(controller)
+            self.__update_direct_scsi_id(controller)
+            self.__get_ses(controller)
+            self._ports.extend(controller["hba_ports"])
+        self.__fill_empty_link()
+
+    def get_topo(self):
+        if len(self._expanders) == 0:
+            # no expanders or chassis handled it.
+            return None
+        self.__build_topology()
+        topo = {
+            "expanders": self._expanders,
+            "hba_ports": self._ports,
+        }
+        packer = TopoBin()
+        content = packer.pack_topo(topo)
+        return content
 
     def __add_expander(self, expander):
-        expander["links"] = {}
-        expander["visit"] = False
+
+        phy_count = expander["phy_count"]
+        ses = expander.get("ses")
+        if ses:
+            phy_count += 1
+        expander["links"] = [None] * phy_count
+        expander["phy_count"] = phy_count
+
         phy_map = expander.pop("phy_map", None)
         if phy_map:
             result = []
@@ -112,10 +173,18 @@ class DiskArrayController(CElement):
         expander["phy_map"] = result
         self._expanders.append(expander)
 
-    def __append_link(self, exp, phy, link):
-        if exp["links"].get(phy):
-            raise ArgsNotCorrect("Exp {} phy {} conflict".format(exp["wwn"], phy))
-        exp["links"][phy] = link
+    def __update_link(self, exp, phy, num, atta_phy, atta_type, atta_wwn, atta_name=0, atta_slot_id=0):
+        if atta_name == 0:
+            atta_name = atta_wwn
+        for temp in range(0, num):
+            local_phy = phy + temp
+            if exp["links"][local_phy] is not None:
+                raise ArgsNotCorrect("Exp {} phy {} is not empty. {}".format(exp["name"], local_phy,
+                                                                             exp["links"][local_phy]))
+            exp["links"][local_phy] = {"phy": local_phy, "num": num - temp,
+                                       "atta_wwn": atta_wwn, "atta_type": atta_type,
+                                       "atta_dev_name": atta_name, "atta_phy": atta_phy + temp,
+                                       "atta_scsi_id": 0, "atta_slot_id": atta_slot_id}
 
     def __add_connection_of_link(self):
         """
@@ -136,22 +205,20 @@ class DiskArrayController(CElement):
             exp_a = __find_expander_by_link(peer_a)
             exp_b = __find_expander_by_link(peer_b)
 
-            self.__append_link(exp_a, peer_a["phy"], self.__get_link(peer_a["phy"], peer_a["number"],
-                                                                     exp_b["wwn"], peer_b["phy"],
-                                                                     _Const.EXP_DEVICE))
-            self.__append_link(exp_b, peer_b["phy"], self.__get_link(peer_b["phy"], peer_b["number"],
-                                                                     exp_a["wwn"], peer_a["phy"],
-                                                                     _Const.EXP_DEVICE))
+            self.__update_link(exp_a, peer_a["phy"], peer_a["number"], atta_type=_Const.EXP_DEVICE,
+                               atta_wwn=exp_b["wwn"], atta_phy=peer_b["phy"])
+            self.__update_link(exp_b, peer_b["phy"], peer_b["number"], atta_type=_Const.EXP_DEVICE,
+                               atta_wwn=exp_a["wwn"], atta_phy=peer_a["phy"])
 
     def __add_connection_of_ses(self):
         for expander in self._expanders:
             ses = expander.get("ses")
             if ses:
-                virtual_phy = expander["phy_count"]
+                virtual_phy = expander["phy_count"] - 1
                 ses["wwn"] = expander["wwn"] - 1
-                self.__append_link(expander, virtual_phy,
-                                   self.__get_link(virtual_phy, 1, ses["wwn"], 0, _Const.SES_DEVICE))
-                expander["phy_count"] = virtual_phy + 1
+                self.__update_link(expander, virtual_phy, 1, atta_type=_Const.SES_DEVICE,
+                                   atta_wwn=ses["wwn"], atta_name=ses["wwn"], atta_phy=0)
+
                 ses["side"] = expander["side"]
                 ses["port_wwn"] = ses["wwn"]
 
@@ -159,7 +226,7 @@ class DiskArrayController(CElement):
                     port = find(lambda p: p["id"] == name, expander["ports"])
                     if port is None:
                         return 0
-                    link = expander["links"].get(port["phy"], None)
+                    link = expander["links"][port["phy"]]
                     if link:
                         return link["atta_wwn"]
                     else:
@@ -184,27 +251,13 @@ class DiskArrayController(CElement):
                 ses["dae_type"] = ses.get("dae_type", 28)
             self.__add_expander(expander)
 
-    def __get_link(self, local_phy, number, atta_wwn, atta_phy, atta_type, atta_name=None):
-        """
-        :param number: amount of phys.
-        :param atta_wwn: wwn of attached device
-        :param atta_type: type of attached device
-        :param name: name for debug.
-        """
-
-        if atta_name is None:
-            atta_name = atta_wwn
-        return {"phy": local_phy, "num": number,
-                "atta_wwn": atta_wwn, "atta_type": atta_type,
-                "atta_dev_name": atta_name, "atta_phy": atta_phy}
-
     def __add_connection_of_drv(self):
         """
         add link to SAS drive
         """
         def format_value(src, value):
             """
-            parse format and plus initial value
+            parse format of img name and plus initial value
             """
             m = re.match(r"^(?P<pre>.+){(?P<initial>\d+)}(?P<post>.*)$", src)
             if m:
@@ -237,86 +290,93 @@ class DiskArrayController(CElement):
                         drv["file"] = format_value(drv["file"], index)
                     drv["atta_phy_id"] = phy
                     exp["drives"].append(drv)
-                    drv_link = self.__get_link(phy, 1, drv["port_wwn"], side, _Const.END_DEVICE, drv["wwn"])
-                    drv_link["atta_slot_id"] = drv["slot_number"]
-                    self.__append_link(exp, phy, drv_link)
 
-    def __reformat_links(self):
-        # reformat "links" field of expander.
-        # change to list from dict.
-        for exp in self._expanders:
-            exp["links"] = sorted(exp.pop("links").values(), key=lambda l: l["phy"])
+                    self.__update_link(exp, phy, 1, atta_type=_Const.END_DEVICE, atta_phy=side,
+                                       atta_wwn=drv["port_wwn"], atta_name=drv["wwn"], atta_slot_id=drv["slot_number"])
 
     def __traversal_expanders(self, controller):
         """
         traversal expander by link. Copy expander and drive.
         """
         controller.pop("external_connectors", None)
-        ports = controller.pop("connectors", [])
-        # first reset flag for all expanders in case not enter dead loop.
-        for exp in self._expanders:
-            exp["visit"] = False
+        ports = controller.get("connectors", [])
         hba = []
 
         def traversal(exps, wwn):
             exp = find(lambda exp: exp["wwn"] == wwn, self._expanders)
             if exp is None:
-                raise ArgsNotCorrect("Wrong connection to exp {}".format(wwn))
+                self.logger.warning("[Warning] Empty port {0}".format(wwn))
+                return
             if exp["visit"] is True:
                 return
             exp["visit"] = True
-            exps.append(copy.deepcopy(exp))
-            wwns = [link["atta_wwn"] for link in exp["links"] if link["atta_type"] == _Const.EXP_DEVICE]
-            for wwn in wwns:
-                traversal(exps, wwn)
+            exps.append(self._expanders.index(exp))
+            links = filter((lambda x: x is not None and x["atta_type"] == _Const.EXP_DEVICE), exp["links"])
+            for link in links:
+                traversal(exps, link["atta_wwn"])
 
         for port in ports:
             exps = []
+            # first reset flag for all expanders in case not enter dead loop.
+            for exp in self._expanders:
+                exp["visit"] = False
             traversal(exps, port["atta_wwn"])
+            # print(exps)
             hba_port = {
                 "expanders": exps,
                 "phy": port["phy"],
                 "phy_number": port["phy_number"],
-                "atta_type": _Const.EXP_DEVICE,
+                "atta_type": _Const.EXP_DEVICE if len(exps) > 0 else _Const.NON_DEVICE,
                 "atta_phy": port["atta_phy"],
                 "atta_wwn": port["atta_wwn"],
-                "wwn": port["wwn"]
+                "wwn": port["wwn"],
+                "name": controller["sas_address"]
 
             }
             # update physical port of ses object
-            physical_port_index = ports.index(port)
-            for exp in exps:
-                ses = exp.get("ses", {})
-                ses["physical_port"] = physical_port_index
+            # physical_port of ses is not used anymore.
+
             hba.append(hba_port)
 
         controller["hba_ports"] = hba
 
-    def __update_scsi_id(self, controller):
+    def __allocate_scsi_id(self):
         """
-        allocate scsi_id for all devices under this controller
+        allocate scsi_id for all devices
         """
-        hba_phys = set(range(controller.get("phy_count", 8)))
         # update scsi_id of non-direct drv
-        start_scsi_id = 0  # controller.get("phy_count", 8)
-        for port in controller.get("hba_ports", []):
-            phys = set(range(port["phy"], port["phy"] + port["phy_number"]))
-            if not phys <= hba_phys:
-                raise ArgsNotCorrect("HBA {} phy {} conflict".format(port["wwn"], phys))
-            hba_phys -= phys
-            for exp in port["expanders"]:
-                exp["start_scsi_id"] = start_scsi_id
-                for link in exp["links"]:
-                    link["atta_scsi_id"] = start_scsi_id + link["phy"]
-                    if link["atta_type"] == _Const.END_DEVICE:
-                        drv = find(lambda d: d["port_wwn"] == link["atta_wwn"], exp["drives"])
-                        drv["scsi-id"] = link["atta_scsi_id"]
-                    if link["atta_type"] == _Const.SES_DEVICE:
-                        ses = exp["ses"]
-                        ses["scsi-id"] = link["atta_scsi_id"]
-                start_scsi_id = start_scsi_id + exp["phy_count"]
+        start_scsi_id = 32
+        for exp in self._expanders:
+            exp["start_scsi_id"] = start_scsi_id
+            for link in filter((lambda x: x is not None), exp["links"]):
+                link["atta_scsi_id"] = start_scsi_id + link["phy"]
+                if link["atta_type"] == _Const.END_DEVICE:
+                    drv = find(lambda d: d["port_wwn"] == link["atta_wwn"], exp["drives"])
+                    drv["scsi-id"] = link["atta_scsi_id"]
+                if link["atta_type"] == _Const.SES_DEVICE:
+                    ses = exp["ses"]
+                    ses["scsi-id"] = link["atta_scsi_id"]
+            start_scsi_id = start_scsi_id + exp["phy_count"]
 
+    def __fill_empty_link(self):
+        for exp in self._expanders:
+            links = exp["links"]
+            for index in range(0, exp["phy_count"]):
+                if links[index] is None:
+                    links[index] = {
+                        "phy": index,
+                        "num": 0,
+                        "atta_type": _Const.NON_DEVICE,
+                        "atta_phy": 0,
+                        "atta_slot_id": 0,
+                        "atta_scsi_id": exp["start_scsi_id"] + index,
+                        "atta_wwn": 0,
+                        "atta_dev_name": 0
+                    }
+
+    def __update_direct_scsi_id(self, controller):
         # update scsi_id of direct attached drv
+        hba_phys = range(0, controller.get("phys", 32))
         direct_drvs = controller.get("drives", [])
         for drv in direct_drvs:
             if drv.get("atta_phy"):
@@ -334,25 +394,15 @@ class DiskArrayController(CElement):
             drv["port_wwn"] = drv["wwn"] + 1
             drv["target_wwn"] = drv["wwn"] + 2
 
-    def __format(self, controller):
-        """
-        copy drives and seses to controller.
-        """
-        drv = controller.pop("drives", [])
+    def __get_ses(self, controller):
         seses = []
         for port in controller.get("hba_ports", []):
-            for exp in port["expanders"]:
-                exp.pop("ports", None)
-                exp.pop("visit", None)
-                exp.pop("side", None)
-                exp.pop("phy_map", None)
-                exp["exp_wwn"] = exp.pop("wwn")
-                drv.extend(exp.pop("drives", []))
-                ses = exp.pop("ses", None)
+            for index in port["expanders"]:
+                exp = self._expanders[index]
+                ses = exp.get("ses", None)
                 if ses:
                     seses.append(ses)
 
-        controller["drives"] = drv
         controller["seses"] = seses
 
     def __add_connection_of_hba(self, controller):
@@ -362,6 +412,12 @@ class DiskArrayController(CElement):
 
         def add_connector(port):
             # get the full name of expander
+            # check empty port.
+            if port.get("connected") is False:
+                port["atta_wwn"] = 0
+                port["atta_phy"] = 0
+                port["phy_number"] = port.get("phy_number", 4)
+                return
             full_name = ""
             if port.get("atta_enclosure"):
                 full_name = "{}_".format(port["atta_enclosure"])
@@ -376,9 +432,9 @@ class DiskArrayController(CElement):
                 raise ArgsNotCorrect("No expander port {1} in {0} ".format(full_name, port["atta_port"]))
             # get the phy id of found port
             local_phy = exp_port["phy"]
-            self.__append_link(exp, local_phy, self.__get_link(local_phy, exp_port["number"],
-                                                               port["wwn"], port["phy"],
-                                                               _Const.HBA_DEVICE))
+            self.__update_link(exp, local_phy, exp_port["number"], atta_type=_Const.HBA_DEVICE,
+                               atta_phy=port["phy"], atta_wwn=port["wwn"])
+
             port["atta_wwn"] = exp["wwn"]
             port["atta_phy"] = local_phy
             port["phy_number"] = exp_port["number"]
@@ -391,36 +447,207 @@ class DiskArrayController(CElement):
             for port in controller.get("external_connectors", []):
                 add_connector(port)
 
+    def set_topo_file(self, storage_backend_info, filename):
+        for x in storage_backend_info:
+            if x.get("connectors"):
+                x["sas_topo"] = filename
+
+    def export_drv_data(self):
+        output = {}
+        for controller in self._controllers:
+            drv_list = []
+            for port in controller["hba_ports"]:
+                for exp_id in port["expanders"]:
+                    expander = self._expanders[exp_id]
+                    drv_list.extend(expander["drives"])
+            output[controller["sas_address"]] = drv_list
+
+        with open(self._sas_all_drv, "w") as f:
+            f.write(json.dumps(output, indent=2))
+
+    def merge_drv_data(self, backend_storage_info):
+        # find the file contains all drv in disk array.
+        dae = filter(lambda x: x["type"] == "disk_array", backend_storage_info)
+        if len(dae) == 0:
+            return
+        drv_list_file = dae[0]["sas_drives"]
+        # load drv information
+        with open(drv_list_file, "r") as f:
+            drv_list = json.load(f)
+        # merge drive information to sas controller.
+        for controller in backend_storage_info:
+            sas_address = controller.get("sas_address", "0")
+            sas_address = "{}".format(sas_address)
+            if drv_list.get(sas_address):
+                drives = controller.get("drives", [])
+                drives.extend(drv_list[sas_address])
+                controller["drives"] = drives
+
     @staticmethod
-    def export_json_data(filename, drv_option_lists, controller):
-        drv_args = []
-        for item in drv_option_lists:
-            m = re.match("-drive (.*) -device (.*)", item)
-            if m:
-                drv_args.append({"drive": m.group(1), "device": m.group(2)})
-        _o = {"drives": drv_args, "hba": controller.pop('hba_ports', [])}
-
+    def export_drv_args(filename, drv_option_lists):
         with open(filename, "w") as f:
-            json.dump(_o, f, indent=2)
-        controller.pop("drives")
+            f.write("count={}".format(len(drv_option_lists)))
+            for opt in drv_option_lists:
+                m = re.match("(?P<drv>-drive \S*) (?P<dev>-device \S*)", opt)
+                f.write("\n{}\n{}\n".format(m.group("drv"), m.group("dev")))
 
-    def set_pci_topology_mgr(self, _):
-        pass
 
-    def init(self):
+class TopoBin():
+    """
+    typedef struct _Link
+    {
+       uint8_t phy_count;
+       uint8_t atta_type;
+       uint8_t atta_phy;
+       uint8_t atta_slot_id;
+       uint16_t atta_scsi_id;
+       uint64_t atta_wwn;
+       uint64_t atta_devname;
+    }Link;
+    """
+    LinkFmt = "<BBBBBxHQQ"
+
+    """
+    typedef struct _exp
+    {
+       uint8_t phy_count;
+       uint8_t side;
+       uint16_t start_scsi_id;
+       uint32_t peer_side;
+       uint64_t wwn;
+    } Exp;
+    """
+    ExpFmt = "<BBHlQ"
+    """
+    typedef struct _hba_port
+    {
+       uint8_t phy;
+       uint8_t phy_count;
+       uint8_t atta_type;
+       uint8_t atta_phy;
+       uint32_t expander_list_offset;
+       uint64_t name
+       uint64_t wwn;
+       uint64_t atta_wwn;
+    }HBA_port;
+    """
+    PortFmt = "<BBBBIQQQ"
+    """
+    typedef struct _hba_expander_list
+    {
+       uint32_t nr_expanders;
+       uint32_t exp_offset[nr_expanders];
+    }hba_expander_list;
+    """
+
+    def __init__(self):
+        # port=32,exp=16,link=24
+        assert(struct.calcsize(TopoBin.PortFmt) == 32)
+        assert(struct.calcsize(TopoBin.ExpFmt) == 16)
+        assert(struct.calcsize(TopoBin.LinkFmt) == 24)
+
+    def __pack_port(self, port):
+        return struct.pack(TopoBin.PortFmt,
+                           port["phy"],
+                           port["phy_number"],
+                           port["atta_type"],
+                           port["atta_phy"],
+                           port["exp_list_offset"],
+                           port["name"],
+                           port["wwn"],
+                           port["atta_wwn"])
+
+    def __pack_exps_list(self, exps_list, max_number):
+        result = []
+        amount = len(exps_list)
+        # print(exps_list)
+        result.append(struct.pack("H", amount))
+        for exp_id in exps_list:
+            result.append(struct.pack("H", exp_id))
+        pad = max_number - len(exps_list)
+        result.append('\0\0' * pad)
+        return "".join(result)
+
+    def __update_peer_expander(self, all_expanders):
+        '''
+        translate peer index to position offset.
+        '''
+        offset = 0
+        for exp in all_expanders:
+            exp["offset"] = offset
+            offset += struct.calcsize(TopoBin.ExpFmt) + exp["phy_count"] * struct.calcsize(TopoBin.LinkFmt)
+        for exp in all_expanders:
+            peer_index = exp["peer_index"]
+            exp["peer_offset"] = all_expanders[peer_index]["offset"] - exp["offset"]
+
+    def __pack_expander(self, exp):
+        assert(exp["phy_count"] == len(exp["links"]))
+        e = struct.pack(TopoBin.ExpFmt,
+                        exp["phy_count"],
+                        0,
+                        exp["start_scsi_id"],
+                        exp["peer_offset"],
+                        exp["wwn"])
+        result = [e]
+        for link in exp["links"]:
+            result.append(struct.pack(TopoBin.LinkFmt,
+                                      link["phy"],
+                                      link["num"],
+                                      link["atta_type"],
+                                      link["atta_phy"],
+                                      link["atta_slot_id"],
+                                      link["atta_scsi_id"],
+                                      link["atta_wwn"],
+                                      link["atta_dev_name"]))
+        return "".join(result)
+
+    def pack_topo(self, topo):
         """
-        No more initialization needed.
+        pack a dictionary to binary stream
         """
-        pass
+        result = []
+        ports = []
+        port_path = []
+        exp_amount = len(topo["expanders"])
+        offset = 0
+        self.__update_peer_expander(topo["expanders"])
+        for port in topo["hba_ports"]:
+            # print("port {}".format(port["phy"]))
+            # setup offset for expander list.
+            port["exp_list_offset"] = offset
+            # pack port.
+            ports.append(self.__pack_port(port))
+            # get list of connected expander
+            exps_list = port["expanders"]
+            # pack expanders under port for reference.
+            port_path.append(self.__pack_exps_list(exps_list, exp_amount))
+            offset += 1 + exp_amount  # pkus 1 for len field.
 
-    def precheck(self):
-        pass
+        # for safety, pad space of id list to 64bits
+        pad = offset % 4
+        if pad:
+            port_path.append("\0\0" * pad)
+            offset += 4 - pad
 
-    def handle_parms(self):
-        pass
+        # generate header
+        # tag, nr_ports, nr_total_exps, 2 pads
+        header_fmt = "<HHHH"
+        header = struct.pack(header_fmt, 0x1234, len(topo["hba_ports"]),
+                             len(topo["expanders"]), offset)
+        # pack all expanders.
+        all_exps = []
+        for exp in topo["expanders"]:
+            all_exps.append(self.__pack_expander(exp))
 
-    def add_option(self, opt, _):
-        pass
+        # form binary strucure.
+        result.append(header)
+        result.extend(ports)
+        result.extend(port_path)
+        result.extend(all_exps)
+        return "".join(result)
 
-    def get_option(self):
+    def unpack_topo(self, src):
+        """
+        unpack binary stream to dictionary.
+        """
         pass
