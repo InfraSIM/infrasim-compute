@@ -455,11 +455,15 @@ class DiskArrayController(CElement):
     def export_drv_data(self):
         output = {}
         for controller in self._controllers:
+            exp_ids = []
             drv_list = []
             for port in controller["hba_ports"]:
                 for exp_id in port["expanders"]:
+                    if exp_id in exp_ids:
+                        continue
                     expander = self._expanders[exp_id]
                     drv_list.extend(expander["drives"])
+                    exp_ids.append(exp_id)
             output[controller["sas_address"]] = drv_list
 
         with open(self._sas_all_drv, "w") as f:
