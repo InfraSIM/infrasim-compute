@@ -628,10 +628,10 @@ class TopoBin():
             offset += 1 + exp_amount  # pkus 1 for len field.
 
         # for safety, pad space of id list to 64bits
-        pad = offset % 4
+        pad = (offset + 3) / 4 * 4
         if pad:
             port_path.append("\0\0" * pad)
-            offset += 4 - pad
+            offset += pad
 
         # generate header
         # tag, nr_ports, nr_total_exps, 2 pads
