@@ -15,7 +15,6 @@ from test import fixtures
 import unittest
 import yaml
 import shutil
-import time
 import os
 
 ch = Command_Handler()
@@ -77,10 +76,8 @@ class test_ipmi_console_default_env(unittest.TestCase):
         node = CNode(node_info)
         node.init()
         node.precheck()
-        node.start()
-
-        # Wait ipmi_sim start.
-        time.sleep(2)
+        # comment next line since this test case doesn't need to start node actually.
+        # node.start()
 
     @classmethod
     def tearDownClass(cls):
@@ -90,7 +87,6 @@ class test_ipmi_console_default_env(unittest.TestCase):
 
         node = CNode(node_info)
         node.init()
-        node.stop()
 
         if os.path.exists(cls.TMP_CONF_FILE):
             os.unlink(cls.TMP_CONF_FILE)
@@ -130,10 +126,8 @@ class test_ipmi_console_customized_env(unittest.TestCase):
         node = CNode(node_info)
         node.init()
         node.precheck()
-        node.start()
-
-        # Wait ipmi_sim start.
-        time.sleep(2)
+        # comment next line since this test case doesn't need to start node actually.
+        # node.start()
 
     @classmethod
     def tearDownClass(cls):
@@ -143,7 +137,6 @@ class test_ipmi_console_customized_env(unittest.TestCase):
 
         node = CNode(node_info)
         node.init()
-        node.stop()
 
         if os.path.exists(cls.TMP_CONF_FILE):
             os.unlink(cls.TMP_CONF_FILE)

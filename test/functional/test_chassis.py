@@ -9,19 +9,18 @@ import subprocess
 import unittest
 import sys
 import tempfile
-
 from test import fixtures
 import yaml
 import paramiko
+import json
 from infrasim import helper
 from infrasim import model
-
+from infrasim.workspace import ChassisWorkspace
 
 try:
     from ivn.core import Topology
 except ImportError as e:
     path_ivn = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "ivn")
-    print path_ivn
     sys.path.append(path_ivn)
     from ivn.core import Topology
 
@@ -33,6 +32,23 @@ conf = {}
 chassis = None
 nodes_ip = ["192.168.188.91", "192.168.188.92"]
 ivn_cfg_file = None
+data_file = {
+        "nvme": {
+            "slot_17": {
+                "vpd": "02 08 01 f8 11 30 30 30 30 30 30 30 30 ff ff ff ff ff ff 00 00 \
+                        00 00 00 00 46 6c 61 73 68 74 65 63 20 4e 56 2d 30 32 30 30 38 \
+                        20 38 47 42 20 32 2e 35 00 00 00 00 00 00 00 00 00 00 00 00 00 \
+                        00 00 07 04 00 00 0a 00 00 19 00 00 4d 00 a0 00 51 00 a5 00 00 \
+                        00 f8 11 01 00 ce 80 08 08 30 30 30 30 30 30 30 30 30 30 30 30 \
+                        30 30 30 30 30 30 30 30 00 76 00 a8 02 ff ff ff ff ff ff ff ff \
+                        ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff \
+                        20 38 47 42 20 32 2e 35 00 00 00 00 00 00 00 00 00 00 00 00 00 \
+                        02 08 01 f8 11 30 30 30 30 30 30 30 30 30 30 00 00 00 00 00 00 \
+                        ff 38 47 42 20 32 2e 35 ff",
+                "health_data": "30 1f 21 00 01 00 02 03"
+            }
+        }
+}
 
 
 def setup_module():
@@ -80,7 +96,7 @@ def start_chassis():
     """
     global conf
     global ssh
-
+    global chassis
     conf = fixtures.ChassisConfig().get_chassis_info()
     conf["data"]["pn"] = "What_ever_SN"
     conf["data"]["sn"] = "What_ever_SN"
@@ -101,10 +117,13 @@ def start_chassis():
     if os.path.exists(node1_log):
         os.remove(node1_log)
 
-    global chassis
     chassis = model.CChassis(conf["name"], conf)
     chassis.precheck()
     chassis.init()
+
+    data_file_dir = os.path.join(ChassisWorkspace(conf).get_workspace_data(), "oem_data.json")
+    with open(data_file_dir, "w") as f:
+        json.dump(data_file, f)
     chassis.start()
 
     ssh = helper.prepare_ssh("192.168.188.92", 8022)
@@ -187,3 +206,17 @@ class test_chassis(unittest.TestCase):
         self.assertEqual(n0_1, n1_1, "Orignal value mismatch.")
         self.assertEqual(n0_2, n1_2, "New value mismatch.")
         self.assertNotEqual(n0_1, n0_2, "Failed to change value.")
+
+    def test_nvme_vpd(self):
+        for ip in nodes_ip:
+            cmd = ["ipmitool", "-I", "lanplus", "-U", "admin", "-P", "admin", "-H", ip,
+                   "raw", "0x30", "0xE1", "0x11", "0x00", "0x00", "0x4c"]
+            result = subprocess.check_output(cmd)
+            self.assertIn('4c 02 08', result, "can not obtain vpd")
+
+    def test_nvme_health_data(self):
+        for ip in nodes_ip:
+            cmd = ["ipmitool", "-I", "lanplus", "-U", "admin", "-P", "admin", "-H", ip,
+                   "raw", "0x30", "0xE3", "0x11"]
+            result = subprocess.check_output(cmd)
+            self.assertIn('30 1f 21', result, "can not obtain health data")

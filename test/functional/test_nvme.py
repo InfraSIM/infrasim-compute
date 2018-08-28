@@ -40,8 +40,12 @@ class test_nvme(unittest.TestCase):
         node.init()
         node.precheck()
         node.start()
-        time.sleep(10)
+        node.wait_node_up()
         helper.port_forward(node)
+
+        global ssh
+        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
+        assert ssh.wait_for_host_up() is True
 
     @staticmethod
     def stop_node():
@@ -65,8 +69,6 @@ class test_nvme(unittest.TestCase):
 
     def get_nvme_disks(self):
         # Return nvme , eg. ['/dev/nvme0n1', '/dev/nvme0n2']
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
         nvme_list = []
         status, output = ssh.exec_command("nvme list |grep \"/dev\" |awk '{print $1}'")
         nvme_list = [dev.strip(os.linesep) for dev in output.strip().split()]
@@ -74,8 +76,6 @@ class test_nvme(unittest.TestCase):
 
     def get_nvme_dev(self):
         # Return nvme drive device, eg. ['nvme0', 'nvme1']
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
         nvme_dev_list = []
         status, output = ssh.exec_command("ls /sys/class/nvme")
         nvme_dev_list = output.split()
@@ -83,8 +83,6 @@ class test_nvme(unittest.TestCase):
 
     def get_nvme_ns_list(self, nvme):
         # Return name space id list, eg. ['1', '2']
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
         status, output = ssh.exec_command("ls /sys/class/nvme/{} |grep {}".format(nvme, nvme))
         nsid_list = []
 
@@ -108,8 +106,6 @@ class test_nvme(unittest.TestCase):
         # script_name, eg. "/tmp/script_name.py"
         # pattern, eg. "0xff"
         # Return script path
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
         script_name = "/tmp/gen_{}.py".format(str(pattern))
         script_content = '''#!/usr/bin/env python
 import struct
@@ -121,15 +117,11 @@ with open('{}', 'wb') as f:
         return script_name
 
     def _run_gen_bin_script(self, bin_file_name, script_name):
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
         status, output = ssh.exec_command("python {}".format(script_name))
         return status
 
     def _clean_up(self):
         # Clean up temperary files
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
         status, output = ssh.exec_command("ls /tmp/")
         print "OUTPUT: {}".format(output)
         status, output = ssh.exec_command("rm /tmp/*")
@@ -137,8 +129,6 @@ with open('{}', 'wb') as f:
         return status
 
     def test_read_write_verify(self):
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
 
         pattern = 0xff
         bin_file_name = tempfile.mktemp(suffix=".bin", prefix="nvme-test-")
@@ -177,8 +167,6 @@ with open('{}', 'wb') as f:
     def test_id_ctrl(self):
         global conf
         nvme_list = self.get_nvme_disks()
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
         nvme_config_list = []
         nvme_id_ctrl_list = []
 
@@ -218,8 +206,6 @@ with open('{}', 'wb') as f:
         global conf
         nvme_list = self.get_nvme_disks()
 
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
         for dev in nvme_list:
             status, rsp = ssh.exec_command("nvme get-ns-id {}".format(dev))
             ns_id_get = rsp.split(":")[2]
@@ -230,8 +216,6 @@ with open('{}', 'wb') as f:
     def test_get_log(self):
         global conf
         nvme_dev_list = self.get_nvme_dev()
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
         # Now infrasim design only support log_id(1, 2, 3)
         log_id_max = 3
         for nvme in nvme_dev_list:
@@ -247,8 +231,6 @@ with open('{}', 'wb') as f:
     def test_smart_log(self):
         # To get MT devices list.
         nvme_model_list = []
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
         status, output = ssh.exec_command("nvme list |grep \"/dev\" |awk '{print $1,$3}'")
         nvme_model_list = output.split("\n")[:-1]
         mt_list = []
@@ -277,16 +259,12 @@ with open('{}', 'wb') as f:
 
     def test_error_log(self):
         nvme_disk_list = self.get_nvme_disks()
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
         for nvme in nvme_disk_list:
             status, output = ssh.exec_command("nvme error-log {}".format(nvme))
             assert re.search("Error Log Entries for device:{} entries:(\d+)".format(nvme.split("/")[2]), output)
 
     def test_write_zeroes(self):
         nvme_list = self.get_nvme_disks()
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
 
         pattern = 0xff
         bin_file_name = tempfile.mktemp(suffix=".bin", prefix="nvme-test-")
@@ -324,8 +302,6 @@ with open('{}', 'wb') as f:
 
     def test_identify_namespace(self):
         nvme_list = self.get_nvme_disks()
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
         for dev in nvme_list:
             status, rsp_id_ns = ssh.exec_command("nvme id-ns {}".format(dev))
             # Check identity keywords existance in command output
@@ -365,8 +341,7 @@ with open('{}', 'wb') as f:
     def test_get_set_arb_feature(self):
         # Test get and set arbitration feature.
         nvme_list = self.get_nvme_disks()
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
+
         # select [0-3]: current/default/saved/supported
         sel = 0
         # feature id 1: arbitration
@@ -400,8 +375,7 @@ with open('{}', 'wb') as f:
     def test_get_set_temp_feature(self):
         # Test get and set temparature feature.
         nvme_list = self.get_nvme_disks()
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
+
         # select [0-3]: current/default/saved/supported
         sel = 0
         # feature id 4: temparature
@@ -431,8 +405,6 @@ with open('{}', 'wb') as f:
     def test_flush(self):
         # Test flush command, it commit data/metadata associated with the specified namespace to volatile media.
         nvme_ctrls = self.get_nvme_dev()
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
         for nvme in nvme_ctrls:
             ns_list = self.get_nvme_ns_list(nvme)
             for ns in ns_list:
@@ -452,8 +424,6 @@ with open('{}', 'wb') as f:
         start_block = 0
         data_size = 4096
         block_count = 8
-        ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-        assert ssh.wait_for_host_up() is True
 
         pattern = 0xff
         bin_file_name = tempfile.mktemp(suffix=".bin", prefix="nvme-test-")
