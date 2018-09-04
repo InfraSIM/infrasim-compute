@@ -78,6 +78,7 @@ class test_error_inject(unittest.TestCase):
             cls.stop_node()
 
     def test_nvmeerror_inject(self):
+        raw_input("waiting")
         ssh = sshclient.SSH(host="127.0.0.1", username="root", password="root", port=2222)
         ssh.wait_for_host_up()
         s = UnixSocket(path)

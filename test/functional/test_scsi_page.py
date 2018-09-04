@@ -183,7 +183,6 @@ class test_scsi_drive_pages(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         start_node(node_type="quanta_d51")
-
         # look for correct drv name according to wwn.
         def find_dev_name(index, lines):
             wwn = conf["compute"]["storage_backend"][1]["drives"][index]["wwn"].lower()
@@ -196,12 +195,14 @@ class test_scsi_drive_pages(unittest.TestCase):
 
         assert cls.drv_page
         assert cls.drv_nopage
+        print cls.drv_page,cls.drv_nopage
 
     @classmethod
     def tearDownClass(cls):
         stop_node()
 
     def test_inq_page_0_extra(self):
+        raw_input("waiting")
         lines = run_cmd("sg_inq {} --page=0".format(test_scsi_drive_pages.drv_page))
         print("\n")
         print(lines)
