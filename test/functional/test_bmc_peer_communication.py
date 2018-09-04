@@ -155,7 +155,7 @@ class test_bmc_communication(unittest.TestCase):
         return fake_node_up
 
     def client_ssh(self, ns_ip):
-        ssh = sshclient.SSH(host=ns_ip, username="root", password="root", port=8022)
+        ssh = sshclient.SSH(host=ns_ip, username="infrasim", password="infrasim", port=8022)
         ssh.wait_for_host_up()
         return ssh
 

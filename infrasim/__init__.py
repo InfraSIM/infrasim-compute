@@ -30,6 +30,9 @@ def run_command(cmd="", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PI
             result = cmd
         logger.error(result)
         raise CommandRunFailed(result, cmd_result[0])
+    print "++++++++++++++++ run_command +++++++++++++++++++++++++"
+    print "cmd_result:",cmd_result
+    print "cmd_result[0]:",cmd_result[0]
     return 0, cmd_result[0]
 
 

@@ -687,8 +687,8 @@ def prepare_ssh(ip_addr="127.0.0.1", port=2222):
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     paramiko.util.log_to_file("filename.log")
     try_func(600, paramiko.SSHClient.connect, ssh,
-             ip_addr, port=port, username="root",
-             password="root", timeout=120)
+             ip_addr, port=port, username="infrasim",
+             password="infrasim", timeout=120)
     return ssh
 
 

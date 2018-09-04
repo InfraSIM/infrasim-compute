@@ -365,7 +365,7 @@ class test_disk_array_topo(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         stop_node()
-
+    @unittest.skip
     def test_sasi_disk_serial(self):
         # check the availability of drives and enclosures.
         drv_list = run_cmd("ls /dev/sd*").split("\n")
@@ -374,7 +374,7 @@ class test_disk_array_topo(unittest.TestCase):
             if "B29C" in rst:
                 self.assertIn("Unit serial number: ZABC", rst, "Serial Number not as expected:\n"
                               "{}".format(rst))
-
+    @unittest.skip
     def test_scsi_devices_availability(self):
         """
         Verify all devices can be found by OS.
@@ -408,11 +408,12 @@ class test_disk_array_topo(unittest.TestCase):
 
         for key, val in expect.iteritems():
             self.assertEqual(val, 1, "SCSI Device count error in sys: {0} count={1}".format(key, val))
-
+    #@unittest.skip
     def test_sas_chain(self):
         """
         Verify the connection between expanders
         """
+        raw_input("waiting")
         topology = {}
 
         def split_link(msg):
@@ -457,22 +458,29 @@ class test_disk_array_topo(unittest.TestCase):
                 verify(atta_wwn, atta_phy + index, wwn, phy + index)
 
         # prepare the list of expander's wwn
+        raw_input("waiting0")
         content = run_cmd("ls -1 /dev/bsg/expander-*")
+        raw_input("waiting1")
         exp_list = content.rstrip().split('\n')
+        raw_input("waiting2")
+        a=0
         for name in exp_list:
             content = run_cmd("sudo smp_discover {}".format(name))
             exp_child = split_link(content)
-
+            print exp_child
+            raw_input("waiting3")
             content = run_cmd("sudo smp_discover -M {}".format(name))
+            raw_input("waiting4")
             exp_wwn = content.rstrip()
 
             topology[exp_wwn] = {"name": name, "subs": exp_child}
 
         # verify connection between expanders.
         verify_link(wwn_exp0, 4, wwn_exp2, 0, 4)
+        raw_input("waiting5")
         verify_link(wwn_exp1, 4, wwn_exp3, 0, 4)
-
-
+        raw_input("waiting6")
+@unittest.skip
 class test_disk_directly(unittest.TestCase):
 
     @classmethod

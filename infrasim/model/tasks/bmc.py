@@ -411,5 +411,6 @@ class CBMC(Task):
             ipmi_cmd_str += " -m {}".format(self.__shm_key)
         if self.__full_log:
             ipmi_cmd_str += " -a"
-
+        print "++++++++++++++++ ipmi_cmd_str +++++++++++++"
+        print ipmi_cmd_str
         return ipmi_cmd_str
