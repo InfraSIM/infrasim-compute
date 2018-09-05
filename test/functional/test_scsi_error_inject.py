@@ -9,7 +9,6 @@ import yaml
 import json
 import re
 from infrasim import model
-from infrasim import helper
 from infrasim.helper import UnixSocket
 from infrasim import sshclient
 from test import fixtures
@@ -49,7 +48,13 @@ def start_node(node_type):
     fake_config = fixtures.FakeConfig()
     conf = fake_config.get_node_info()
     conf["type"] = node_type
-
+    conf["compute"]["networks"][0]["port_forward"] = [
+        {
+            "outside": 2222,
+            "inside": 22,
+            "protocal": "tcp"
+        }
+    ]
     conf["compute"]["storage_backend"] = [
         {
             "type": "ahci",
@@ -103,7 +108,6 @@ def start_node(node_type):
     node.init()
     node.precheck()
     node.start()
-    helper.port_forward(node)
     path = os.path.join(node.workspace.get_workspace(), ".monitor")
     s = UnixSocket(path)
     s.connect()
@@ -136,20 +140,16 @@ def stop_node():
     os.remove(test_drive_image)
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_scsi_error_inject(unittest.TestCase):
 
     @classmethod
-    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         start_node(node_type="quanta_d51")
 
     @classmethod
-    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         stop_node()
 
-    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def test_log_page_error_inject(self):
         log_page_meter = [
             ["life_used", 50, None, None, "0x11", "Percentage used endurance indicator: 0%"],
@@ -170,11 +170,16 @@ class test_scsi_error_inject(unittest.TestCase):
             log_page_error["arguments"]["parameter"] = error_meter[2]
             log_page_error["arguments"]["parameter_length"] = error_meter[3]
             s.send(json.dumps(log_page_error))
-            s.recv()
+            count = 1
+            while count < 2:
+                try:
+                    self.assertEqual(s.recv(), r"(\s)*{\"return\": {}}(\s)*")
+                except Exception:
+                    count = count + 1
+                    s.send(json.dumps(log_page_error))
             status, output = ssh.exec_command("sudo sg_logs /dev/sg1 -p %s" % error_meter[4])
             self.assertIn(error_meter[5], output, "error inject faile")
 
-    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def test_defect_data_inject(self):
         defect_data_cmd = {
             "execute": "set-drive-defect",
@@ -185,11 +190,16 @@ class test_scsi_error_inject(unittest.TestCase):
             }
         }
         s.send(json.dumps(defect_data_cmd))
-        s.recv()
+        count = 1
+        while count < 2:
+            try:
+                self.assertEqual(s.recv(), r"(\s)*{\"return\": {}}(\s)*")
+            except Exception:
+                count = count + 1
+                s.send(json.dumps(defect_data_cmd))
         status, output = ssh.exec_command("sudo sginfo /dev/sg1 -d")
         self.assertIn("10 entries (80 bytes)", output, "defect data inject faile")
 
-    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def test_status_code_error_inject(self):
         status_code_error = {
             "execute": "scsi-status-code-error-inject",
@@ -213,7 +223,13 @@ class test_scsi_error_inject(unittest.TestCase):
             if len(status_code_meters) == 4:
                 status_code_error["arguments"]["sense"] = status_code_meters[2]
             s.send(json.dumps(status_code_error))
-            s.recv()
+            count = 1
+            while count < 2:
+                try:
+                    self.assertEqual(s.recv(), r"(\s)*{\"return\": {}}(\s)*")
+                except Exception:
+                    count = count + 1
+                    s.send(json.dumps(status_code_error))
             status, output = ssh.exec_command("sudo sg_read if=/dev/sg1 count=512 bs=512")
             reobj = re.search(" ".join(status_code_meters[-1].split("-")), output, re.I)
             assert reobj
