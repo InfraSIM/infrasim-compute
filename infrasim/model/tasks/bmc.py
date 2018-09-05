@@ -103,6 +103,14 @@ class CBMC(Task):
             self.logger.exception("[BMC] Cannot find {}".format(self.__bin))
             raise CommandNotFound(self.__bin)
 
+        # check configuration file exists
+        if not os.path.isfile(self.__config_file):
+            raise ArgsNotCorrect("[BMC] Target config file doesn't exist: {}".
+                                 format(self.__config_file))
+
+        if not os.path.isfile(self.__emu_file):
+            raise ArgsNotCorrect("[BMC] Target emulation file doesn't exist: {}".
+                                 format(self.__emu_file))
         # check script exits
         if not os.path.exists(self.__lancontrol_script):
             raise ArgsNotCorrect("[BMC] Lan control script {} doesn\'t exist".
@@ -180,14 +188,6 @@ class CBMC(Task):
                                  "it's set to {} now".
                                  format(self.__historyfru))
 
-        # check configuration file exists
-        if not os.path.isfile(self.__emu_file):
-            raise ArgsNotCorrect("[BMC] Target emulation file doesn't exist: {}".
-                                 format(self.__emu_file))
-
-        if not os.path.isfile(self.__config_file):
-            raise ArgsNotCorrect("[BMC] Target config file doesn't exist: {}".
-                                 format(self.__config_file))
         self.__check_peer_bmc_info()
 
     def __check_peer_bmc_info(self):
@@ -387,12 +387,12 @@ class CBMC(Task):
             if os.path.exists(self.__config_file):
                 shutil.copy(self.__config_file,
                             os.path.join(self.get_workspace(), "etc/vbmc.conf"))
+        elif os.path.exists(os.path.join(self.get_workspace(), "etc/vbmc.conf")):
+            self.__config_file = os.path.join(self.get_workspace(), "etc/vbmc.conf")
         elif self.get_workspace() and not self.task_is_running():
             # render template
             self.__render_template()
             self.write_bmc_config(os.path.join(self.get_workspace(), "etc/vbmc.conf"))
-        elif os.path.exists(os.path.join(self.get_workspace(), "etc/vbmc.conf")):
-            self.__config_file = os.path.join(self.get_workspace(), "etc/vbmc.conf")
         else:
             raise ArgsNotCorrect("[BMC] Couldn't find vbmc.conf")
 
