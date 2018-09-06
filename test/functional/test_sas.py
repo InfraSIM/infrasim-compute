@@ -9,7 +9,7 @@ import shutil
 import re
 from infrasim import model
 from infrasim import helper
-import paramiko
+from infrasim import sshclient
 from test import fixtures
 
 """
@@ -262,7 +262,9 @@ def start_node_enclosure():
     node.precheck()
     node.start()
     helper.port_forward(node)
-    ssh = helper.prepare_ssh()
+    global ssh
+    ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
+    assert ssh.wait_for_host_up() is True
 
 
 def start_node_directly():
@@ -327,7 +329,9 @@ def start_node_directly():
     node.start()
 
     helper.port_forward(node)
-    ssh = helper.prepare_ssh()
+    global ssh
+    ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
+    assert ssh.wait_for_host_up() is True
 
 
 def stop_node():
@@ -342,18 +346,8 @@ def stop_node():
 
 
 def run_cmd(cmd):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    paramiko.util.log_to_file("filename.log")
-    helper.try_func(600, paramiko.SSHClient.connect, ssh, "127.0.0.1",
-                    port=2222, username="root", password="root", timeout=120)
-
-    stdin, stdout, stderr = ssh.exec_command(cmd)
-    while not stdout.channel.exit_status_ready():
-        pass
-    lines = stdout.channel.recv(4096)
-    ssh.close()
-    return lines
+    status, output = ssh.exec_command(cmd)
+    return output
 
 
 class test_disk_array_topo(unittest.TestCase):
@@ -377,9 +371,7 @@ class test_disk_array_topo(unittest.TestCase):
 
     @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests, Known issue: IN-1619")
     def test_scsi_devices_availability(self):
-        """
-        Verify all devices can be found by OS.
-        """
+        # Verify all devices can be found by OS.
         rst = run_cmd("lspci")
         self.assertIn("Serial Attached SCSI controller: LSI Logic", rst, "SAS Controller not loaded!")
 
@@ -412,9 +404,7 @@ class test_disk_array_topo(unittest.TestCase):
 
     @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests, Known issue: IN-1619")
     def test_sas_chain(self):
-        """
-        Verify the connection between expanders
-        """
+        # Verify the connection between expanders
         topology = {}
 
         def split_link(msg):
@@ -460,12 +450,12 @@ class test_disk_array_topo(unittest.TestCase):
 
         # prepare the list of expander's wwn
         content = run_cmd("ls -1 /dev/bsg/expander-*")
-        exp_list = content.rstrip().split('\n')
+        exp_list = content.rstrip().split('\r\n')
         for name in exp_list:
-            content = run_cmd("sudo smp_discover {}".format(name))
+            content = run_cmd("sudo smp_discover {}\r".format(name))
             exp_child = split_link(content)
 
-            content = run_cmd("sudo smp_discover -M {}".format(name))
+            content = run_cmd("sudo smp_discover -M {}\r".format(name))
             exp_wwn = content.rstrip()
 
             topology[exp_wwn] = {"name": name, "subs": exp_child}
