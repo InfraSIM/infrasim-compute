@@ -492,7 +492,7 @@ class DiskArrayController(CElement):
         with open(filename, "w") as f:
             f.write("count={}".format(len(drv_option_lists)))
             for opt in drv_option_lists:
-                m = re.match("(?P<drv>-drive \S*) (?P<dev>-device \S*)", opt)
+                m = re.match("(?P<drv>-drive .*) (?P<dev>-device .*)", opt)
                 f.write("\n{}\n{}\n".format(m.group("drv"), m.group("dev")))
 
 
@@ -628,10 +628,10 @@ class TopoBin():
             offset += 1 + exp_amount  # pkus 1 for len field.
 
         # for safety, pad space of id list to 64bits
-        pad = offset % 4
+        pad = (offset + 3) / 4 * 4 - offset
         if pad:
             port_path.append("\0\0" * pad)
-            offset += 4 - pad
+            offset += pad
 
         # generate header
         # tag, nr_ports, nr_total_exps, 2 pads
