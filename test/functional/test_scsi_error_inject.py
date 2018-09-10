@@ -140,13 +140,16 @@ def stop_node():
     os.remove(test_drive_image)
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_scsi_error_inject(unittest.TestCase):
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def setUpClass(cls):
         start_node(node_type="quanta_d51")
 
     @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
     def tearDownClass(cls):
         stop_node()
 
