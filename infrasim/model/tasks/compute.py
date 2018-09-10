@@ -31,6 +31,7 @@ from infrasim.model.elements.cdrom import IDECdrom
 from infrasim.model.elements.guest_agent import GuestAgent
 from infrasim.model.elements.serial import CSerial
 from infrasim.model.elements.trace import QTrace
+from infrasim.model.elements.ntb import CNTB
 
 
 class CCompute(Task, CElement):
@@ -71,6 +72,7 @@ class CCompute(Task, CElement):
 
         self.__force_shutdown = None
         self.__shm_key = None
+        self.__ntb = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -199,6 +201,11 @@ class CCompute(Task, CElement):
         self.__force_shutdown = self.__compute.get("force_shutdown", True)
 
         self.__shm_key = self.__compute.get("communicate", {}).get("shm_key")
+
+        self.__ntb = self.__compute.get("ntb")
+        if self.__ntb is not None:
+            ntb_obj = CNTB(self.__ntb)
+            self.__element_list.append(ntb_obj)
 
         machine_obj = CMachine(self.__machine)
         machine_obj.logger = self.logger

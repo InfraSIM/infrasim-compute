@@ -8,7 +8,7 @@ import codecs
 import json
 
 from infrasim import config
-from infrasim import InfraSimError
+from infrasim import InfraSimError, ArgsNotCorrect
 from infrasim.chassis.dataset import DataSet
 from infrasim.chassis.emu_data import FruFile
 from infrasim.chassis.smbios import SMBios
@@ -86,6 +86,7 @@ class CChassis(object):
 
     def start(self, *args):
         self.__process_chassis_device()
+        self.__process_ntb_device()
         self.__process_disk_array()
 
         self._init_sub_node(*args)
@@ -358,3 +359,30 @@ class CChassis(object):
                 diskarray.set_topo_file(storage, "sas_topo")
             self.__dataset.append("sas_topo", topo)
             diskarray.export_drv_data()
+
+    def __process_ntb_device(self):
+        # get pair of node name and ntb info.
+        ntb_maps = []
+        for node in self.__chassis.get("nodes", []):
+            n = node["compute"].get("ntb")
+            if n:
+                ntb_maps.append({"name": node["name"], "ntb": n})
+        # update node name of peer ntb.
+        for item in ntb_maps:
+            peer_idx = item["ntb"].get("peer_id")
+            if peer_idx is None:
+                raise ArgsNotCorrect("Peer id of ntb ({}) can't be None".format(item["ntb"]["id"]))
+            peer_name = filter(lambda x: x["ntb"]["id"] == peer_idx, ntb_maps)
+            if len(peer_name) != 1:
+                raise ArgsNotCorrect("Peer id of ntb ({}) is not valid".format(peer_idx))
+            item["peer_node"] = peer_name[0]
+
+        # build cross link of ntb devices.
+        for item in ntb_maps:
+            ntb_info = item["ntb"]
+            # set local unix socket name for rx: infrasim_home/<name>/<ntb_id>
+            ntb_info["local"] = ntb_info.get("local",
+                                             os.path.join(config.infrasim_home, item["name"], ntb_info.get("id")))
+            # combine the peer unix socket name for tx: infrasim_home/<peer_name>/<peer_ntb_id>
+            ntb_info["peer_rx"] = ntb_info.get("peer_rx", os.path.join(config.infrasim_home, item["peer_node"]["name"],
+                                                                       item["peer_node"]["ntb"]["id"]))
