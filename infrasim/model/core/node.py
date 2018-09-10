@@ -112,6 +112,7 @@ class CNode(object):
             socat_obj.logger = self.__logger
             socat_obj.set_priority(0)
             socat_obj.set_task_name("{}-socat".format(self.__node_name))
+            socat_obj.set_node_name(self.__node['name'])
             self.__tasks_list.append(socat_obj)
 
         bmc_info = self.__node.get('bmc', {})
