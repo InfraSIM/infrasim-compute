@@ -59,6 +59,15 @@ class DiskArrayController(CElement):
         # add cloned node since it will be modified.
         self.add_storage_backend(backend)
 
+    def __check_duplicated_diskarray(self, diskarray):
+        # if any expander wwn existed in self._expanders, return true
+        for item in diskarray["disk_array"]:
+            encl = item.get("enclosure", {})
+            for exp in encl.get("expanders", []):
+                if len(filter(lambda x: x["wwn"] == exp["wwn"], self._expanders)) != 0:
+                    return True
+        return False
+
     def add_storage_backend(self, backend_info):
         # called in node.init
         diskarrays = filter(lambda x: x["type"] == "disk_array", backend_info)
@@ -71,8 +80,10 @@ class DiskArrayController(CElement):
             # if it is handled by chassis already, clear and quit.
             self._expanders = []
             return
-        diskarray_controller["sas_drives"] = self._sas_all_drv
-        self.__add_diskarray(diskarray_controller)
+
+        if self.__check_duplicated_diskarray(diskarray_controller) is False:
+            diskarray_controller["sas_drives"] = self._sas_all_drv
+            self.__add_diskarray(diskarray_controller)
 
         controllers = filter(lambda x: x.get("connectors") or x.get("external_connectors"), backend_info)
         self._controllers.extend(controllers)
@@ -464,7 +475,7 @@ class DiskArrayController(CElement):
                     expander = self._expanders[exp_id]
                     drv_list.extend(expander["drives"])
                     exp_ids.append(exp_id)
-            output[controller["sas_address"]] = drv_list
+            output[controller["sas_address"]] = {"drives": drv_list, "seses": controller["seses"]}
 
         with open(self._sas_all_drv, "w") as f:
             f.write(json.dumps(output, indent=2))
@@ -477,15 +488,16 @@ class DiskArrayController(CElement):
         drv_list_file = dae[0]["sas_drives"]
         # load drv information
         with open(drv_list_file, "r") as f:
-            drv_list = json.load(f)
+            element_list = json.load(f)
         # merge drive information to sas controller.
         for controller in backend_storage_info:
             sas_address = controller.get("sas_address", "0")
             sas_address = "{}".format(sas_address)
-            if drv_list.get(sas_address):
+            if element_list.get(sas_address):
                 drives = controller.get("drives", [])
-                drives.extend(drv_list[sas_address])
+                drives.extend(element_list[sas_address]["drives"])
                 controller["drives"] = drives
+                controller["seses"] = element_list[sas_address]["seses"]
 
     @staticmethod
     def export_drv_args(filename, drv_option_lists):
@@ -498,12 +510,24 @@ class DiskArrayController(CElement):
 
 class TopoBin():
     """
+    typedef struct _Header
+    {
+       uint16_t tag;
+       uint16_t nr_ports;
+       uint16_t nr_total_exps;
+       uint16_t offset;       // offset of expander structure, start from end of port structures.
+    }Header;
+    """
+    HeaderFmt = "<HHHH"
+    """
     typedef struct _Link
     {
-       uint8_t phy_count;
+       uint8_t phy;
+       uint8_t num;
        uint8_t atta_type;
        uint8_t atta_phy;
        uint8_t atta_slot_id;
+       uint8_t ___pad
        uint16_t atta_scsi_id;
        uint64_t atta_wwn;
        uint64_t atta_devname;
@@ -634,9 +658,7 @@ class TopoBin():
             offset += pad
 
         # generate header
-        # tag, nr_ports, nr_total_exps, 2 pads
-        header_fmt = "<HHHH"
-        header = struct.pack(header_fmt, 0x1234, len(topo["hba_ports"]),
+        header = struct.pack(TopoBin.HeaderFmt, 0x1234, len(topo["hba_ports"]),
                              len(topo["expanders"]), offset)
         # pack all expanders.
         all_exps = []
@@ -654,4 +676,49 @@ class TopoBin():
         """
         unpack binary stream to dictionary.
         """
-        pass
+        def to_dict(values, *names):
+            ret = {}
+            for name in names:
+                v = values[names.index(name)]
+                ret[name] = v if v < 0x50000 else "{}={}".format(hex(v), v)
+            return ret
+
+        ret = {}
+        header = to_dict(struct.unpack_from(TopoBin.HeaderFmt, src, 0), "tag", "nr_ports", "nr_total_exps", "offset")
+        hba_ports = []
+        expanders = []
+        offset = struct.calcsize(TopoBin.HeaderFmt)
+        for _ in range(0, header["nr_ports"]):
+            port = to_dict(struct.unpack_from(TopoBin.PortFmt, src, offset),
+                           "phy", "phy_count", "atta_type", "atta_phy", "expander_list_offset", "name", "wwn",
+                           "atta_wwn")
+
+            offset += struct.calcsize(TopoBin.PortFmt)
+            hba_ports.append(port)
+
+        exp_list_fmt = "<H" + "H" * header["nr_total_exps"]
+        for i in range(0, header["nr_ports"]):
+            explist = struct.unpack_from(exp_list_fmt, src, offset)
+            offset += struct.calcsize(exp_list_fmt)
+            hba_ports[i]["atta_expanders"] = {"count": explist[0], "ids": explist[1:explist[0] + 1]}
+
+        offset = struct.calcsize(TopoBin.HeaderFmt) + header["nr_ports"] * \
+            struct.calcsize(TopoBin.PortFmt) + header["offset"] * struct.calcsize('H')
+        for _ in range(0, header["nr_total_exps"]):
+            exp = to_dict(struct.unpack_from(TopoBin.ExpFmt, src, offset), "phy_count", "side", "start_scsi_id",
+                          "peer_side", "wwn")
+            expanders.append(exp)
+            offset += struct.calcsize(TopoBin.ExpFmt)
+            exp["link"] = []
+            for _ in range(0, exp["phy_count"]):
+                link = to_dict(struct.unpack_from(TopoBin.LinkFmt, src, offset),
+                               "phy", "num", "atta_type", "atta_phy", "atta_slot_id", "atta_scsi_id",
+                               "atta_wwn", "atta_dev_name")
+                offset += struct.calcsize(TopoBin.LinkFmt)
+                exp["link"].append(link)
+
+        ret["header"] = header
+        ret["ports"] = hba_ports
+        ret["expander"] = expanders
+
+        return ret

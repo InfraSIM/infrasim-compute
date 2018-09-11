@@ -355,7 +355,6 @@ class CChassis(object):
         if topo:
             for node in self.__chassis.get("nodes", []):
                 storage = node["compute"].get("storage_backend")
-                shmkey = node["compute"]["communicate"]
-                diskarray.set_topo_file(storage, shmkey)
+                diskarray.set_topo_file(storage, "sas_topo")
             self.__dataset.append("sas_topo", topo)
             diskarray.export_drv_data()

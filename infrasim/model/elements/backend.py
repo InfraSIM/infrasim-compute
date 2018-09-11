@@ -105,8 +105,17 @@ class CBackendStorage(CElement):
                 f.write(dae_topo)
             diskarray.set_topo_file(self.__backend_storage_info, filename)
             diskarray.export_drv_data()
+
         diskarray.merge_drv_data(self.__backend_storage_info)
         self.__backend_storage_info = filter(lambda x: x["type"] != "disk_array", self.__backend_storage_info)
+
+    def __clear_diskarray(self):
+        # clear drives and seses merged by diskarray.
+        for controller in self.__backend_storage_info:
+            sas_topo = controller.get("sas_topo")
+            if sas_topo:
+                controller.pop("drives", None)
+                controller.pop("seses", None)
 
     def init(self):
         self.__init_diskarray()
@@ -131,6 +140,7 @@ class CBackendStorage(CElement):
                 self.__nvme_controller_index = controller_obj.controller_index + 1
             else:
                 self.__scsi_controller_index = controller_obj.controller_index + 1
+        self.__clear_diskarray()
 
     def handle_parms(self):
         # store chassis slot map to controller
