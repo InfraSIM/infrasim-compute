@@ -378,9 +378,9 @@ class CBMC(Task):
         if self.__sol_device:
             pass
         elif self.get_workspace():
-            self.__sol_device = os.path.join(self.get_workspace(), ".pty0")
+            self.__sol_device = os.path.join(self.get_workspace(), ".pty0_{}".format(self.__node_name))
         else:
-            self.__sol_device = os.path.join(config.infrasim_etc, "pty0")
+            self.__sol_device = os.path.join(config.infrasim_etc, "pty0_{}".format(self.__node_name))
 
         if 'config_file' in self.__bmc:
             self.__config_file = self.__bmc['config_file']

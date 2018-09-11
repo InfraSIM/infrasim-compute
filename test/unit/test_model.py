@@ -1667,13 +1667,15 @@ class socat_configuration(unittest.TestCase):
         socat.stop_socat()
 
     def test_default_socat(self):
+        node_name = "default"
         socat_obj = model.CSocat()
 
+        socat_obj.set_node_name(node_name)
         socat_obj.init()
         socat_obj.precheck()
         cmd = socat_obj.get_commandline()
 
-        assert "pty,link={}/pty0,waitslave".format(config.infrasim_etc) in cmd
+        assert "pty,link={0}/pty0_{1},waitslave".format(config.infrasim_etc, node_name) in cmd
         assert "unix-listen:{}/serial,fork".format(config.infrasim_etc) in cmd
 
     def test_change_sol_device(self):

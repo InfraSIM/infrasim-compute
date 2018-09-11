@@ -22,12 +22,16 @@ class CSocat(Task):
         # Node wise attributes
         self.__socket_serial = ""
         self.__sol_device = ""
+        self.__node_name = None
 
     def set_socket_serial(self, o):
         self.__socket_serial = o
 
     def set_sol_device(self, device):
         self.__sol_device = device
+
+    def set_node_name(self, o):
+        self.__node_name = o
 
     def precheck(self):
 
@@ -49,9 +53,9 @@ class CSocat(Task):
         if self.__sol_device:
             pass
         elif self.get_workspace():
-            self.__sol_device = os.path.join(self.get_workspace(), ".pty0")
+            self.__sol_device = os.path.join(self.get_workspace(), ".pty0_{}".format(self.__node_name))
         else:
-            self.__sol_device = os.path.join(config.infrasim_etc, "pty0")
+            self.__sol_device = os.path.join(config.infrasim_etc, "pty0_{}".format(self.__node_name))
 
         if self.__socket_serial:
             pass
