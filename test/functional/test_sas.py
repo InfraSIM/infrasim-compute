@@ -9,8 +9,8 @@ import shutil
 import re
 from infrasim import model
 from infrasim import helper
-from infrasim import sshclient
 from test import fixtures
+import paramiko
 
 """
 Test inquiry/mode sense data injection of scsi drive
@@ -49,8 +49,7 @@ def teardown_module():
     shutil.rmtree("/tmp/topo", True)
 
 
-def start_node_enclosure():
-    global ssh
+def get_node_enclosure():
     global conf
     fake_config = fixtures.FakeConfig()
     conf = fake_config.get_node_info()
@@ -257,20 +256,11 @@ def start_node_enclosure():
         }
     ]
 
-    node = model.CNode(conf)
-    node.init()
-    node.precheck()
-    node.start()
-    helper.port_forward(node)
-    global ssh
-    ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-    assert ssh.wait_for_host_up() is True
+    return conf
 
 
-def start_node_directly():
+def get_node_directly():
     global conf
-    global tmp_conf_file
-    global ssh
     os.system("touch {0}".format(test_drive_directly_image))
     fake_config = fixtures.FakeConfig()
     conf = fake_config.get_node_info()
@@ -322,16 +312,30 @@ def start_node_directly():
             ]
         }
     ]
+    return conf
 
+
+def start_node(conf):
+    global ssh
     node = model.CNode(conf)
     node.init()
     node.precheck()
     node.start()
-
     helper.port_forward(node)
-    global ssh
-    ssh = sshclient.SSH("127.0.0.1", "root", "root", port=2222)
-    assert ssh.wait_for_host_up() is True
+
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    helper.try_func(600, paramiko.SSHClient.connect, ssh, "127.0.0.1",
+                    port=2222, username="root", password="root", timeout=120)
+
+
+def run_cmd(cmd):
+    _, stdout, _ = ssh.exec_command(cmd)
+    while not stdout.channel.exit_status_ready():
+        pass
+    lines = stdout.channel.recv(4096)
+
+    return lines
 
 
 def stop_node():
@@ -345,16 +349,11 @@ def stop_node():
     conf = None
 
 
-def run_cmd(cmd):
-    status, output = ssh.exec_command(cmd)
-    return output
-
-
 class test_disk_array_topo(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        start_node_enclosure()
+        start_node(get_node_enclosure())
 
     @classmethod
     def tearDownClass(cls):
@@ -449,16 +448,19 @@ class test_disk_array_topo(unittest.TestCase):
                 verify(atta_wwn, atta_phy + index, wwn, phy + index)
 
         # prepare the list of expander's wwn
-        content = run_cmd("ls -1 /dev/bsg/expander-*")
-        exp_list = content.rstrip().split('\r\n')
-        for name in exp_list:
-            content = run_cmd("sudo smp_discover {}\r".format(name))
-            exp_child = split_link(content)
 
-            content = run_cmd("sudo smp_discover -M {}\r".format(name))
-            exp_wwn = content.rstrip()
+        while len(topology) != 4:
+            content = run_cmd("ls -1 /dev/bsg/expander-*")
+            exp_list = content.rstrip().split('\n')
+            for name in exp_list:
+                content = run_cmd("smp_discover {}".format(name))
+                exp_child = split_link(content)
 
-            topology[exp_wwn] = {"name": name, "subs": exp_child}
+                content = run_cmd("smp_discover -M {}".format(name))
+                exp_wwn = content.rstrip()
+                if "aac entry not found" in exp_wwn:
+                    continue
+                topology[exp_wwn] = {"name": name, "subs": exp_child}
 
         # verify connection between expanders.
         verify_link(wwn_exp0, 4, wwn_exp2, 0, 4)
@@ -471,7 +473,7 @@ class test_disk_directly(unittest.TestCase):
     @classmethod
     @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests, Known issue: IN-1619")
     def setUpClass(cls):
-        start_node_directly()
+        start_node(get_node_directly())
 
     @classmethod
     @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests, Known issue: IN-1619")
