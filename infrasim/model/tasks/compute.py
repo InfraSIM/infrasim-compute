@@ -32,6 +32,7 @@ from infrasim.model.elements.guest_agent import GuestAgent
 from infrasim.model.elements.serial import CSerial
 from infrasim.model.elements.trace import QTrace
 from infrasim.model.elements.ntb import CNTB
+from infrasim.model.elements.dma_engine import CDMAEngine
 
 
 class CCompute(Task, CElement):
@@ -73,6 +74,7 @@ class CCompute(Task, CElement):
         self.__force_shutdown = None
         self.__shm_key = None
         self.__ntb = None
+        self.__dma_engine = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -202,11 +204,6 @@ class CCompute(Task, CElement):
 
         self.__shm_key = self.__compute.get("communicate", {}).get("shm_key")
 
-        self.__ntb = self.__compute.get("ntb")
-        if self.__ntb is not None:
-            ntb_obj = CNTB(self.__ntb)
-            self.__element_list.append(ntb_obj)
-
         machine_obj = CMachine(self.__machine)
         machine_obj.logger = self.logger
         self.__element_list.append(machine_obj)
@@ -253,6 +250,16 @@ class CCompute(Task, CElement):
         backend_network_obj = CBackendNetwork(self.__compute['networks'])
         backend_network_obj.logger = self.logger
         self.__element_list.append(backend_network_obj)
+
+        self.__ntb = self.__compute.get("ntb")
+        if self.__ntb is not None:
+            ntb_obj = CNTB(self.__ntb)
+            self.__element_list.append(ntb_obj)
+
+        self.__dma_engine = self.__compute.get("dma_engine")
+        if self.__dma_engine:
+            dma_engine_obj = CDMAEngine(self.__dma_engine)
+            self.__element_list.append(dma_engine_obj)
 
         if has_option(self.__compute, "ipmi"):
             ipmi_obj = CIPMI(self.__compute['ipmi'])
