@@ -237,6 +237,10 @@ class CCompute(Task, CElement):
                 pcie_topology_obj.set_fw_cfg_obj(fw_cfg_obj)
                 self.__element_list.append(fw_cfg_obj)
 
+        backend_network_obj = CBackendNetwork(self.__compute['networks'])
+        backend_network_obj.logger = self.logger
+        self.__element_list.append(backend_network_obj)
+
         cdrom_info = self.__compute.get("cdrom")
         backend_storage_obj = CBackendStorage(self.__compute['storage_backend'],
                                               (cdrom_info is not None))
@@ -246,10 +250,6 @@ class CCompute(Task, CElement):
             backend_storage_obj.set_pci_topology_mgr(pci_topology_manager_obj)
         backend_storage_obj.owner = self
         self.__element_list.append(backend_storage_obj)
-
-        backend_network_obj = CBackendNetwork(self.__compute['networks'])
-        backend_network_obj.logger = self.logger
-        self.__element_list.append(backend_network_obj)
 
         self.__ntb = self.__compute.get("ntb")
         if self.__ntb is not None:
