@@ -225,9 +225,6 @@ class test_bmc_interface_with_bridge(unittest.TestCase):
             "max_drive_per_controller": 6,
             "drives": [{"file": fixtures.image}]
         }]
-        node = model.CNode(self.conf)
-        node.init()
-        self.workspace = node.workspace.get_workspace()
 
     def tearDown(self):
         node = model.CNode(self.conf)
