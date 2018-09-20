@@ -33,9 +33,9 @@ chassis = None
 nodes_ip = ["192.168.188.91", "192.168.188.92"]
 ivn_cfg_file = None
 data_file = {
-        "nvme": {
-            "slot_17": {
-                "vpd": "02 08 01 f8 11 30 30 30 30 30 30 30 30 ff ff ff ff ff ff 00 00 \
+    "nvme": {
+        "slot_17": {
+            "vpd": "02 08 01 f8 11 30 30 30 30 30 30 30 30 ff ff ff ff ff ff 00 00 \
                         00 00 00 00 46 6c 61 73 68 74 65 63 20 4e 56 2d 30 32 30 30 38 \
                         20 38 47 42 20 32 2e 35 00 00 00 00 00 00 00 00 00 00 00 00 00 \
                         00 00 07 04 00 00 0a 00 00 19 00 00 4d 00 a0 00 51 00 a5 00 00 \
@@ -45,9 +45,9 @@ data_file = {
                         20 38 47 42 20 32 2e 35 00 00 00 00 00 00 00 00 00 00 00 00 00 \
                         02 08 01 f8 11 30 30 30 30 30 30 30 30 30 30 00 00 00 00 00 00 \
                         ff 38 47 42 20 32 2e 35 ff",
-                "health_data": "30 1f 21 00 01 00 02 03"
-            }
+            "health_data": "30 1f 21 00 01 00 02 03"
         }
+    }
 }
 
 
@@ -107,10 +107,22 @@ def start_chassis():
     compute_0 = conf["nodes"][0]["compute"]
     compute_0["storage_backend"][0]["drives"][0]["file"] = fixtures.a_boot_image
     compute_0["extra_option"] = "-D {} -trace events=/tmp/trace_items".format(node0_log)
+    compute_0["ntb"] = {"addr": 'a.0',
+                        "bus": "pcie.0",
+                        "bar1_exp": 15,
+                        "bar2_exp": 15,
+                        "id": "ntb0",
+                        "peer_id": "ntb1"}
 
     compute_1 = conf["nodes"][1]["compute"]
     compute_1["storage_backend"][0]["drives"][0]["file"] = fixtures.b_boot_image
     compute_1["extra_option"] = "-D {} -trace events=/tmp/trace_items".format(node1_log)
+    compute_1["ntb"] = {"addr": 'a.0',
+                        "bus": "pcie.0",
+                        "bar1_exp": 15,
+                        "bar2_exp": 15,
+                        "id": "ntb1",
+                        "peer_id": "ntb0"}
 
     if os.path.exists(node0_log):
         os.remove(node0_log)
@@ -220,3 +232,30 @@ class test_chassis(unittest.TestCase):
                    "raw", "0x30", "0xE3", "0x11"]
             result = subprocess.check_output(cmd)
             self.assertIn('30 1f 21', result, "can not obtain health data")
+
+    def test_ntb(self):
+        get_kernel_version = "uname -r"
+        load_tranport = 'modprobe ntb_transport transport_mtu=2048'
+        load_netdev = 'modprobe ntb_netdev'
+        set_ip = 'ifconfig eth0 {} up'
+
+        ver = run_cmd(get_kernel_version, nodes_ip[0])
+        print("Running Kernel Version is {}.".format(ver))
+        if int(ver.split('.')[1]) < 11:
+            print("Quit test since kernel version less than 4.11")
+            return
+
+        run_cmd(load_tranport, nodes_ip[0])
+        run_cmd(load_tranport, nodes_ip[1])
+
+        run_cmd(load_netdev, nodes_ip[0])
+        run_cmd(load_netdev, nodes_ip[1])
+
+        run_cmd(set_ip.format("192.168.1.1"), nodes_ip[0])
+        run_cmd(set_ip.format("192.168.1.2"), nodes_ip[1])
+
+        line_a = run_cmd("ping -c 5 192.168.1.2", nodes_ip[0])
+        line_b = run_cmd("ping -c 5 192.168.1.1", nodes_ip[1])
+
+        self.assertNotIn("100% packet loss", line_a, line_a)
+        self.assertNotIn("100% packet loss", line_b, line_b)
