@@ -71,7 +71,7 @@ def check_node_start_workspace(node_name):
         assert os.path.exists(disk_file) is True
 
     # Check serial device exist
-    serial_dev = os.path.join(node_root, ".pty0")
+    serial_dev = os.path.join(node_root, ".pty0_{}".format(node_name))
     assert os.path.exists(serial_dev) is True
 
     # Check unix socket file
