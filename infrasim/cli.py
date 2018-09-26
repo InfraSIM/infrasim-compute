@@ -376,12 +376,18 @@ class NodeCommands(object):
         node = model.CNode(node_info)
         try:
             self._node_preinit(node, ignore_check=True)
-            node.stop()
         except InfraSimError as e:
-            print e.value
+            print(e.value)
             logger_cmd.error("cmd res: {}".format(e.value))
-        node.terminate_workspace()
-        logger_cmd.info("cmd res: destroy node {} OK".format(node_name))
+        except Exception as e:
+            print(e)
+            logger_cmd.error("cmd res: {}".format(e))
+        try:
+            node.stop()
+            node.terminate_workspace()
+            logger_cmd.info("cmd res: destroy node {} OK".format(node_name))
+        except Exception as e:
+            print("You have to destroy node {} manually due to fatal error: {}".format(node_name, e))
 
     @node_workspace_exists
     @args("node_name", nargs='?', default="default", help="Specify node name to get information")
