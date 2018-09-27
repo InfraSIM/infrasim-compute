@@ -1,9 +1,9 @@
 import os
 from infrasim import helper
 from collections import OrderedDict
-image = os.environ.get("TEST_IMAGE_PATH") or "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
-a_boot_image = os.environ.get("TEST_IMAGE_PATH") or "/home/infrasim/jenkins/data/ubuntu16.04.qcow2"
-b_boot_image = "/home/infrasim/jenkins/data/ubuntu16.04_b.qcow2"
+image = os.environ.get("TEST_IMAGE_PATH") or "/home/infrasim/jenkins/data/ubuntu18.04.qcow2"
+a_boot_image = os.environ.get("TEST_IMAGE_PATH") or "/home/infrasim/jenkins/data/ubuntu18.04.qcow2"
+b_boot_image = "/home/infrasim/jenkins/data/ubuntu18.04_b.qcow2"
 
 cloud_img_ubuntu_16_04 = "/home/infrasim/jenkins/data/ubuntu-16.04-server-cloudimg-amd64-120G.org.bak"
 cloud_img_ubuntu_18_04 = "/home/infrasim/jenkins/data/ubuntu-18.04-lts-server-cloudimg-amd64.img"
