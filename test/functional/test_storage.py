@@ -100,7 +100,7 @@ def get_storage_list():
     assert status == 0
     print output
     for d in output.strip().split(os.linesep):
-        d_obj = re.search('\[(?P<bus>\d+):\d+:\d+:\d+\]\s+disk\s+(?P<device_name>\/dev\/sd\w+)\s+.*', d)
+        d_obj = re.search('\[(?P<bus>\d+):\d+:\d+:\d+\]\s+disk.*\s+(?P<device_name>\/dev\/sd\w+)\s+.*', d)
         if d_obj is None:
             continue
 
