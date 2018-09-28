@@ -6,7 +6,6 @@ a_boot_image = os.environ.get("TEST_IMAGE_PATH") or "/home/infrasim/jenkins/data
 b_boot_image = "/home/infrasim/jenkins/data/ubuntu18.04_b.qcow2"
 
 cloud_img_ubuntu_16_04 = "/home/infrasim/jenkins/data/ubuntu-16.04-server-cloudimg-amd64-120G.org.bak"
-cloud_img_ubuntu_18_04 = "/home/infrasim/jenkins/data/ubuntu-18.04-lts-server-cloudimg-amd64.img"
 
 
 class FakeConfig(object):
