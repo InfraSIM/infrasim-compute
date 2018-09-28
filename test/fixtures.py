@@ -46,7 +46,8 @@ class FakeConfig(object):
                     }
                 ]
             },
-            "monitor": {}
+            "monitor": {},
+            "force_shutdown": "false"
         }
 
     def get_node_info(self):
@@ -122,7 +123,8 @@ class NvmeConfig(object):
                     }
                 ]
             },
-            "sol_enable": "true"
+            "sol_enable": "true",
+            "force_shutdown": "false"
         }
 
     def get_node_info(self):
@@ -148,6 +150,7 @@ class ChassisConfig(object):
                 {
                     "namespace": "node0ns",
                     "bmc": {},
+                    "force_shutdown": "false",
                     "compute": {
                         "memory": {
                             "size": 2048
@@ -197,6 +200,7 @@ class ChassisConfig(object):
                 {
                     "namespace": "node1ns",
                     "bmc": {},
+                    "force_shutdown": "false",
                     "compute": {
                         "memory": {
                             "size": 2048
