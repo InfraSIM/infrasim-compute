@@ -187,8 +187,8 @@ class test_scsi_drive_pages(unittest.TestCase):
         # look for correct drv name according to wwn.
         def find_dev_name(index, lines):
             wwn = conf["compute"]["storage_backend"][1]["drives"][index]["wwn"].lower()
-            s = re.search(r'disk\s+{}\s+(.*)'.format(wwn), lines)
-            return s.group(1) if s else None
+            s = re.search(r'disk\s+(.*){}\s+(.*)'.format(wwn), lines)
+            return s.group(2) if s else None
 
         lines = run_cmd("lsscsi -w")
         cls.drv_page = find_dev_name(0, lines)

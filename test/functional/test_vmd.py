@@ -6,47 +6,27 @@ Copyright @ 2018 EMC Corporation All Rights Reserved
 import unittest
 import os
 import re
-import copy
 import paramiko
 from infrasim import model
 from infrasim import helper
-from infrasim import cloud_img
 from test import fixtures
-from test.fixtures import CloudNetworkConfig
-import shutil
 
 conf = None
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
 ssh = None
 vmd_bar2_size_GB = 8
-boot_image = None
-key_iso = None
-mac_addr = "52:54:be:b9:77:dd"
-cloudimg_folder = "cloudimgs"
 
 
 def setup_module():
     global boot_image
     global key_iso
     os.environ["PATH"] = new_path
-    if os.path.isdir(cloudimg_folder):
-        shutil.rmtree(cloudimg_folder, ignore_errors=True)
-    if os.path.isfile(cloudimg_folder):
-        os.remove(cloudimg_folder)
-
-    os.mkdir(cloudimg_folder)
-    boot_image = cloud_img.gen_qemuimg(fixtures.cloud_img_ubuntu_18_04, "mytest0.img")
-    newnetwork0 = copy.deepcopy(CloudNetworkConfig().get_network_info())
-    newnetwork0["config"][0]["mac_address"] = mac_addr
-    newnetwork0["config"] = [newnetwork0["config"][0]]
-    key_iso = cloud_img.geniso("my-seed0.iso", "305c9cc1-2f5a-4e76-b28e-ed8313fa283e", newnetwork0)
 
 
 def teardown_module():
     global boot_image
     stop_node()
-    shutil.rmtree(cloudimg_folder, ignore_errors=True)
     os.environ["PATH"] = old_path
 
 
@@ -60,7 +40,6 @@ def start_node():
     conf["compute"]["boot"] = {
         "boot_order": "c"
     }
-    conf["compute"]['cdrom'] = {'file': key_iso}
     conf["compute"]["storage_backend"] = [
         {
             "type": "ahci",
@@ -68,7 +47,7 @@ def start_node():
             "drives": [
                 {
                     "size": 8,
-                    "file": boot_image
+                    "file": fixtures.a_boot_image
                 }]
         },
         {
@@ -80,7 +59,6 @@ def start_node():
 
     conf["compute"]["networks"] = [{
         "device": "e1000",
-        "mac": mac_addr,
         "network_mode": "nat",
         "port_forward": [
             {
@@ -172,8 +150,7 @@ def run_cmd(cmd):
         paramiko.util.log_to_file("filename.log")
 
     helper.try_func(600, paramiko.SSHClient.connect, ssh, "127.0.0.1",
-                    port=2222, username="ubuntu", password="password", timeout=120)
-
+                    port=2222, username="root", password="root", timeout=120)
     _, stdout, _ = ssh.exec_command(cmd)
     while not stdout.channel.exit_status_ready():
         pass

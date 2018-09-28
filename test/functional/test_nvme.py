@@ -300,6 +300,7 @@ with open('{}', 'wb') as f:
             assert status == 0
         self._clean_up()
 
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests, refer to IN-1693")
     def test_identify_namespace(self):
         nvme_list = self.get_nvme_disks()
         for dev in nvme_list:
