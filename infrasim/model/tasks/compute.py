@@ -33,6 +33,9 @@ from infrasim.model.elements.serial import CSerial
 from infrasim.model.elements.trace import QTrace
 from infrasim.model.elements.ntb import CNTB
 from infrasim.model.elements.dma_engine import CDMAEngine
+from infrasim.model.elements.pci_pcu_cr0 import CPCIPCU_CR0
+from infrasim.model.elements.pci_pcu_cr5 import CPCIPCU_CR5
+from infrasim.model.elements.pci_imc import CPCIIMC
 
 
 class CCompute(Task, CElement):
@@ -216,6 +219,18 @@ class CCompute(Task, CElement):
         memory_obj = CMemory(self.__compute['memory'])
         memory_obj.logger = self.logger
         self.__element_list.append(memory_obj)
+
+        for imc_element in self.__compute.get("imc", []):
+            imc_obj = CPCIIMC(imc_element)
+            self.__element_list.append(imc_obj)
+
+        for pcu_cr0_element in self.__compute.get("pcu_cr0", []):
+            pcu_cr0_obj = CPCIPCU_CR0(pcu_cr0_element)
+            self.__element_list.append(pcu_cr0_obj)
+
+        for pcu_cr5_element in self.__compute.get("pcu_cr5", []):
+            pcu_cr5_obj = CPCIPCU_CR5(pcu_cr5_element)
+            self.__element_list.append(pcu_cr5_obj)
 
         # If PCI device wants to sit on one specific PCI bus, the bus should be
         # created first prior to using the bus, here we always create the PCI

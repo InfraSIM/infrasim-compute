@@ -25,7 +25,7 @@ class CPCIPCU_CR5(CElement):
 
     def precheck(self):
         if self.__pcu_info.get("bus") is None:
-            raise ArgsNotCorrect("pcu-cr5 bus is mandatory!")
+            raise ArgsNotCorrect("pcu-cr5's bus is mandatory!")
         if self.__pcu_info.get("id") is None:
             raise ArgsNotCorrect("pcu-cr5's id is mandatory!")
         if self.__pcu_info.get("spd_data_file") is None:

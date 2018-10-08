@@ -11,9 +11,6 @@ from pcie_rootport import CPCIERootport
 from pcie_upstream import CPCIEUpstream
 from pcie_downstream import CPCIEDownstream
 from pci_vmd import CPCIVMD
-from pci_imc import CPCIIMC
-from pci_pcu_cr0 import CPCIPCU_CR0
-from pci_pcu_cr5 import CPCIPCU_CR5
 from infrasim import ArgsNotCorrect
 
 
@@ -95,18 +92,6 @@ class CPCIETopology(CElement):
         for vmd_element in self.__pcie_topology.get('vmd', []):
             vmd_obj = CPCIVMD(vmd_element)
             pcie_topo_obj_list.append(vmd_obj)
-
-        for imc_element in self.__pcie_topology.get('imc', []):
-            imc_obj = CPCIIMC(imc_element)
-            pcie_topo_obj_list.append(imc_obj)
-
-        for pcu_cr0_element in self.__pcie_topology.get('pcu_cr0', []):
-            pcu_cr0_obj = CPCIPCU_CR0(pcu_cr0_element)
-            pcie_topo_obj_list.append(pcu_cr0_obj)
-
-        for pcu_cr5_element in self.__pcie_topology.get('pcu_cr5', []):
-            pcu_cr5_obj = CPCIPCU_CR5(pcu_cr5_element)
-            pcie_topo_obj_list.append(pcu_cr5_obj)
 
         if 'switch' in self.__pcie_topology:
             switch = self.__pcie_topology['switch']
