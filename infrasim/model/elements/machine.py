@@ -54,7 +54,7 @@ class CMachine(CElement):
         if self.__igd_passthru:
             machine_option = ','.join([machine_option, "igd-passthru={}".format(self.__igd_passthru)])
 
-        if self.__spid:
+        if self.__spid is not None:
             machine_option = ','.join([machine_option, "spid={}".format(self.__spid)])
 
         self.add_option(machine_option)
