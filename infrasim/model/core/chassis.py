@@ -72,6 +72,7 @@ class CChassis(object):
             node_name = node.get("name", "{}_node_{}".format(self.__chassis_name, nodes.index(node)))
             node["name"] = node_name
             node["type"] = self.__chassis["type"]
+            node["compute"].get("machine", {})["spid"] = nodes.index(node)
         self.workspace.init()
         self.__file_name = os.path.join(self.workspace.get_workspace_data(), "shm_data.bin")
         self.__daemon = CChassisDaemon(self.__chassis_name, self.__file_name)
@@ -173,6 +174,14 @@ class CChassis(object):
             if "pn" in key or "sn" in key:
                 buf[key] = "{}".format(data[key]).encode()
 
+        # setup gpio section
+        node_nr = len(self.__chassis.get("nodes", []))
+        # power status of all nodes: 1 byte per node.
+        buf["nodes_power"] = '\0' * node_nr
+        # heart_beat: 1 byte per node.
+        buf["heart_beat"] = '\0' * node_nr
+
+        # setup led seciton.
         buf["led"] = ' ' * data.get("led", 20)
 
         self.__dataset.append("chassis", buf)

@@ -19,6 +19,7 @@ class CMachine(CElement):
         self.__mem_merge = None
         self.__sata = None
         self.__igd_passthru = None
+        self.__spid = None
 
     def precheck(self):
         pass
@@ -34,6 +35,7 @@ class CMachine(CElement):
         self.__kernel_irqchip = self.__machine.get("kernel-irqchip", "off")
         self.__sata = self.__machine.get("sata", "false")
         self.__igd_passthru = self.__machine.get("igd-passthru")
+        self.__spid = self.__machine.get("spid")
 
     def handle_parms(self):
         machine_option = "-machine {},usb={},vmport={}".format(
@@ -51,5 +53,8 @@ class CMachine(CElement):
 
         if self.__igd_passthru:
             machine_option = ','.join([machine_option, "igd-passthru={}".format(self.__igd_passthru)])
+
+        if self.__spid is not None:
+            machine_option = ','.join([machine_option, "spid={}".format(self.__spid)])
 
         self.add_option(machine_option)
