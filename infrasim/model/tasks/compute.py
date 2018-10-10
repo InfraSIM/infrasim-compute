@@ -33,6 +33,8 @@ from infrasim.model.elements.serial import CSerial
 from infrasim.model.elements.trace import QTrace
 from infrasim.model.elements.ntb import CNTB
 from infrasim.model.elements.dma_engine import CDMAEngine
+from infrasim.model.elements.pci_pcu import CPCIPCU
+from infrasim.model.elements.pci_imc import CPCIIMC
 
 
 class CCompute(Task, CElement):
@@ -240,6 +242,14 @@ class CCompute(Task, CElement):
         backend_network_obj = CBackendNetwork(self.__compute['networks'])
         backend_network_obj.logger = self.logger
         self.__element_list.append(backend_network_obj)
+
+        for imc_element in self.__compute.get("imc", []):
+            imc_obj = CPCIIMC(imc_element)
+            self.__element_list.append(imc_obj)
+
+        for pcu_element in self.__compute.get("pcu", []):
+            pcu_obj = CPCIPCU(pcu_element)
+            self.__element_list.append(pcu_obj)
 
         cdrom_info = self.__compute.get("cdrom")
         backend_storage_obj = CBackendStorage(self.__compute['storage_backend'],
