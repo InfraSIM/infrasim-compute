@@ -75,14 +75,15 @@ def start_node(node_type):
     node.init()
     node.precheck()
     node.start()
+    node.wait_node_up()
     helper.port_forward(node)
 
+    global ssh
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     paramiko.util.log_to_file("filename.log")
     helper.try_func(600, paramiko.SSHClient.connect, ssh, "127.0.0.1",
-                    port=2222, username="root", password="root", timeout=120)
-    ssh.close()
+                    port=2222, username="root", password="root", timeout=300)
     time.sleep(5)
 
 
@@ -90,6 +91,7 @@ def stop_node():
     global conf
     global tmp_conf_file
 
+    ssh.close()
     node = model.CNode(conf)
     node.init()
     node.stop()
@@ -97,71 +99,46 @@ def stop_node():
     conf = {}
     if os.path.exists(tmp_conf_file):
         os.unlink(tmp_conf_file)
-
     time.sleep(5)
 
 
 def verify_qemu_local_fru(expect):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("ipmitool fru print")
     while not stdout.channel.exit_status_ready():
         pass
     lines = stdout.channel.recv(4096)
     print lines
-    ssh.close()
     assert expect in lines
 
 
 def verify_qemu_local_lan(expect):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("ipmitool lan print")
     while not stdout.channel.exit_status_ready():
         pass
     lines = stdout.channel.recv(2048)
     print lines
-    ssh.close()
     assert expect in lines
 
 
 def verify_qemu_local_sensor(expect):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("ipmitool sensor list")
     while not stdout.channel.exit_status_ready():
         pass
     lines = stdout.channel.recv(20480)
     print lines
-    ssh.close()
     assert expect in lines
 
 
 def verify_qemu_local_sdr(expect):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("ipmitool sdr list")
     while not stdout.channel.exit_status_ready():
         pass
     lines = stdout.channel.recv(20480)
     print lines
-    ssh.close()
     assert expect in lines
 
 
 def verify_qemu_local_sel(expect):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("ipmitool sel clear")
     while not stdout.channel.exit_status_ready():
         pass
@@ -171,37 +148,25 @@ def verify_qemu_local_sel(expect):
         pass
     lines = stdout.channel.recv(20480)
     print lines
-    ssh.close()
     assert expect in lines
 
 
 def verify_qemu_local_user(expect):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("ipmitool user list")
     while not stdout.channel.exit_status_ready():
         pass
     lines = stdout.channel.recv(2048)
     print lines
-    ssh.close()
     assert expect in lines
 
 
 def verify_smbios_data(expect_mfg, expect_product_name):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect("127.0.0.1", port=2222, username="root",
-                password="root", timeout=10, banner_timeout=300)
     stdin, stdout, stderr = ssh.exec_command("dmidecode -t1")
     while not stdout.channel.exit_status_ready():
         pass
 
     lines = stdout.channel.recv(2048)
     print lines
-
-    ssh.close()
 
     assert expect_mfg in lines
     assert expect_product_name in lines
