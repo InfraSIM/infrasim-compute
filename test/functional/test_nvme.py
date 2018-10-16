@@ -27,7 +27,7 @@ def teardown_module():
 
 
 @unittest.skipIf(not os.path.exists(fixtures.image),
-                "Skip this test! No ubuntu image found in folder '/home/infrasim/jenkins/data'.\
+                 "Skip this test! No ubuntu image found in folder '/home/infrasim/jenkins/data'.\
 Please build Qemu Ubuntu image follow guidance 'https://github.com/InfraSIM/tools/tree/master/packer'!")
 class test_nvme(unittest.TestCase):
 
@@ -199,7 +199,7 @@ with open('{}', 'wb') as f:
             for id_config in nvme_config_list:
                 if id_ctrl["sn"] == id_config["serial"]:
                     match_list.append(id_config["serial"])
-                    assert "MTC_{}GB".format(id_config["drives"][0]["size"]) == id_ctrl["mn"]
+                    assert "MTC_{}GB".format(id_config["size"]) == id_ctrl["mn"]
         assert len(match_list) == len(nvme_list)
 
     def test_get_ns_id(self):
@@ -300,9 +300,18 @@ with open('{}', 'wb') as f:
             assert status == 0
         self._clean_up()
 
-    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests, refer to IN-1693")
     def test_identify_namespace(self):
         nvme_list = self.get_nvme_disks()
+
+        # prepare block size.
+        block_size = [0, 0]
+        for idx in [0, 1]:
+            title = "nvme{}n".format(idx)
+            ns_count = len(filter(lambda x: title in x, nvme_list))
+            # 8G / 512 = total_blocks_nr.
+            ns_blk_count = 8 * 1024 * 1024 * 1024 / 512 / ns_count
+            block_size[idx] = "0x{:x}".format(ns_blk_count)
+
         for dev in nvme_list:
             status, rsp_id_ns = ssh.exec_command("nvme id-ns {}".format(dev))
             # Check identity keywords existance in command output
@@ -332,9 +341,14 @@ with open('{}', 'wb') as f:
                     assert robj.groupdict().get('key') in key_words
 
             # Check namespace logical block size in command output
+            # sg_[cmd] are not supported by NVMe in latest linux kernel.
+            """
             status, rsp_sg = ssh.exec_command("sg_readcap {}".format(dev))
             rsp_sg = re.search(r"blocks=(\d+)", rsp_sg)
             sg_block_size = hex(int(rsp_sg.group(1)))
+            """
+            # /dev/nvme<M>n<N>
+            sg_block_size = block_size[int(dev[9])]
 
             nsze = re.search(r"nsze\s*:\s*(0x\d+)", rsp_id_ns).group(1)
             assert sg_block_size == nsze

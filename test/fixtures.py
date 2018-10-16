@@ -88,11 +88,7 @@ class NvmeConfig(object):
                     },
                     {
                         "cmb_size_mb": 1,
-                        "drives": [
-                            {
-                                "size": 8
-                            }
-                        ],
+                        "size": 8,
                         "lba_index": 0,
                         "namespaces": 2,
                         "serial": "0400001C1FF9",
@@ -102,11 +98,7 @@ class NvmeConfig(object):
                     },
                     {
                         "cmb_size_mb": 1,
-                        "drives": [
-                            {
-                                "size": 8
-                            }
-                        ],
+                        "size": 8,
                         "lba_index": 0,
                         "namespaces": 3,
                         "serial": "0400001C6BB4",
