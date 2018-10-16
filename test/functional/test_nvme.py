@@ -199,7 +199,7 @@ with open('{}', 'wb') as f:
             for id_config in nvme_config_list:
                 if id_ctrl["sn"] == id_config["serial"]:
                     match_list.append(id_config["serial"])
-                    assert "MTC_{}GB".format(id_config["drives"][0]["size"]) == id_ctrl["mn"]
+                    assert "MTC_{}GB".format(id_config["size"]) == id_ctrl["mn"]
         assert len(match_list) == len(nvme_list)
 
     def test_get_ns_id(self):
