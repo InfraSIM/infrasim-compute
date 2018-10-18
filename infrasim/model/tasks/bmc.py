@@ -27,6 +27,7 @@ class CBMC(Task):
         super(CBMC, self).__init__()
 
         self.__bmc = bmc_info
+        self.__name = "vbmc"
         self.__address = None
         self.__channel = None
         self.__gem_enable = False
@@ -280,6 +281,7 @@ class CBMC(Task):
             bmc_conf = f.read()
         template = jinja2.Template(bmc_conf)
         bmc_conf = template.render(startcmd_script=self.__startcmd_script,
+                                   vbmc_name=self.__name,
                                    lan_channel=self.__channel,
                                    chassis_control_script=self.__chassiscontrol_script,
                                    lan_control_script=self.__lancontrol_script,
@@ -309,6 +311,7 @@ class CBMC(Task):
     def init(self):
         self.__address = self.__bmc.get('address', 0x20)
         self.__channel = self.__bmc.get('channel', 1)
+        self.__name = self.__bmc.get("name", "vbmc")
         self.__gem_enable = self.__bmc.get("gem_enable", False)
 
         if 'interface' in self.__bmc:

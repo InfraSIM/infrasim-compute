@@ -70,7 +70,7 @@ class CSocat(Task):
             os.remove(self.__socket_serial)
 
     def get_commandline(self):
-        socat_str = "{0} pty,link={1},waitslave " \
+        socat_str = "{0} pty,link={1},waitslave,unlink-close=0 " \
             "unix-listen:{2},fork".\
             format(self.__bin, self.__sol_device, self.__socket_serial)
 
