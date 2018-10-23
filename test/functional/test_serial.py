@@ -25,6 +25,7 @@ Test serial functions:
 
 class test_serial(unittest.TestCase):
     TMP_CONF_FILE = "/tmp/test.yml"
+    target_device = "/tmp/pty_serial"
 
     @classmethod
     def setUpClass(cls):
@@ -44,31 +45,26 @@ class test_serial(unittest.TestCase):
         if workspace and os.path.exists(workspace):
             shutil.rmtree(workspace)
 
+        if os.path.exists(self.target_device):
+            os.unlink(self.target_device)
+
         self.conf = None
 
     def test_socat_create_serial_device_file(self):
-        target_device = "/tmp/pty_serial"
-        if os.path.isfile(target_device) or os.path.islink(target_device):
-            os.unlink(target_device)
+        if os.path.isfile(self.target_device) or os.path.islink(self.target_device):
+            os.unlink(self.target_device)
 
         # Start socat and device shall be created
-        self.conf["sol_device"] = target_device
+        self.conf["sol_device"] = self.target_device
         with open(self.TMP_CONF_FILE, "w") as yaml_file:
             yaml.dump(self.conf, yaml_file, default_flow_style=False)
 
         socat.start_socat(conf_file=self.TMP_CONF_FILE)
 
-        if os.path.islink(target_device):
+        if os.path.islink(self.target_device):
             assert True
         else:
             assert False
-
-        # Remove socat and device shall be collected
-        socat.stop_socat()
-        if os.path.isfile(target_device) or os.path.islink(target_device):
-            assert False
-        else:
-            assert True
 
 
 class test_ipmi_sol(unittest.TestCase):
@@ -76,14 +72,24 @@ class test_ipmi_sol(unittest.TestCase):
     def setUp(self):
         fake_config = fixtures.FakeConfig()
         self.conf = fake_config.get_node_info()
+        self.sol_outfile = "/tmp/test_sol"
         node = model.CNode(self.conf)
         node.init()
         node.precheck()
         node.start()
         time.sleep(3)
 
+    def tearDown(self):
+        node = model.CNode(self.conf)
+        node.init()
+        node.stop()
+        node.terminate_workspace()
+        os.remove(self.sol_outfile)
+        self.conf = None
+
+    def activate_sol(self):
         # Start sol in a subprocess
-        self.fw = open('/tmp/test_sol', 'wb')
+        self.fw = open(self.sol_outfile, 'wb')
         self.p_sol = subprocess.Popen("ipmitool -I lanplus -U admin -P admin "
                                       "-H 127.0.0.1 sol activate",
                                       shell=True,
@@ -92,15 +98,8 @@ class test_ipmi_sol(unittest.TestCase):
                                       stderr=self.fw,
                                       bufsize=1)
 
-    def tearDown(self):
-        self.p_sol.stdin.write("~.")
+    def deactivate_sol(self):
         self.p_sol.kill()
-        node = model.CNode(self.conf)
-        node.init()
-        node.stop()
-        node.terminate_workspace()
-        os.remove("/tmp/test_sol")
-        self.conf = None
 
     def test_ipmi_sol(self):
         """
@@ -111,6 +110,8 @@ class test_ipmi_sol(unittest.TestCase):
 
         # Send ipmitool in shell within another sub process
         # and make sure it's sent correctly
+        self.activate_sol()
+
         p_power = subprocess.Popen("ipmitool -I lanplus -U admin -P admin "
                                    "-H 127.0.0.1 chassis power reset",
                                    shell=True,
@@ -123,8 +124,9 @@ class test_ipmi_sol(unittest.TestCase):
 
         # Check if sol session has get something
         time.sleep(10)
+        self.deactivate_sol()
         self.fw.close()
-        self.fr = open('/tmp/test_sol', 'r')
+        self.fr = open(self.sol_outfile, 'r')
         sol_out = self.fr.read()
         self.fr.close()
 
