@@ -62,6 +62,8 @@ def start_node(node_type):
     fake_config = fixtures.FakeConfig()
     conf = fake_config.get_node_info()
     conf["type"] = node_type
+    # Speed up booting by going to hdd directly
+    conf["compute"]["boot"]["boot_order"] = "c"
     conf["compute"]["storage_backend"] = [{
         "type": "ahci",
         "max_drive_per_controller": 6,
@@ -104,72 +106,77 @@ def stop_node():
 
 def verify_qemu_local_fru(expect):
     stdin, stdout, stderr = ssh.exec_command("ipmitool fru print")
-    while not stdout.channel.exit_status_ready():
-        pass
-    lines = stdout.channel.recv(4096)
-    print lines
+    lines = recv_ssh_channel(stdout.channel, 4096)
+
     assert expect in lines
 
 
 def verify_qemu_local_lan(expect):
     stdin, stdout, stderr = ssh.exec_command("ipmitool lan print")
-    while not stdout.channel.exit_status_ready():
-        pass
-    lines = stdout.channel.recv(2048)
-    print lines
+    lines = recv_ssh_channel(stdout.channel, 2048)
+
     assert expect in lines
 
 
 def verify_qemu_local_sensor(expect):
     stdin, stdout, stderr = ssh.exec_command("ipmitool sensor list")
-    while not stdout.channel.exit_status_ready():
-        pass
-    lines = stdout.channel.recv(20480)
-    print lines
+    lines = recv_ssh_channel(stdout.channel, 20480)
+
     assert expect in lines
 
 
 def verify_qemu_local_sdr(expect):
     stdin, stdout, stderr = ssh.exec_command("ipmitool sdr list")
-    while not stdout.channel.exit_status_ready():
-        pass
-    lines = stdout.channel.recv(20480)
-    print lines
+    lines = recv_ssh_channel(stdout.channel, 20480)
+
     assert expect in lines
 
 
 def verify_qemu_local_sel(expect):
     stdin, stdout, stderr = ssh.exec_command("ipmitool sel clear")
-    while not stdout.channel.exit_status_ready():
-        pass
-    lines = stdout.channel.recv(20480)
+    lines = recv_ssh_channel(stdout.channel, 20480)
+
     stdin, stdout, stderr = ssh.exec_command("ipmitool sel list")
-    while not stdout.channel.exit_status_ready():
-        pass
-    lines = stdout.channel.recv(20480)
-    print lines
+    lines = recv_ssh_channel(stdout.channel, 20480)
+
     assert expect in lines
 
 
 def verify_qemu_local_user(expect):
     stdin, stdout, stderr = ssh.exec_command("ipmitool user list")
-    while not stdout.channel.exit_status_ready():
-        pass
-    lines = stdout.channel.recv(2048)
-    print lines
+    lines = recv_ssh_channel(stdout.channel, 20480)
+
     assert expect in lines
 
 
 def verify_smbios_data(expect_mfg, expect_product_name):
     stdin, stdout, stderr = ssh.exec_command("dmidecode -t1")
-    while not stdout.channel.exit_status_ready():
-        pass
-
-    lines = stdout.channel.recv(2048)
-    print lines
+    lines = recv_ssh_channel(stdout.channel, 20480)
 
     assert expect_mfg in lines
     assert expect_product_name in lines
+
+
+def recv_ssh_channel(channel, max_buff_size):
+    # Make sure remote process succeeded
+    while not channel.exit_status_ready():
+        pass
+
+    # Assume Transport has enough buffer to hold receiving data
+    assert channel.recv_exit_status() == 0
+
+    while not channel.recv_ready():
+        pass
+
+    lines = ""
+    while True:
+        temp = channel.recv(max_buff_size)
+        if len(temp) == 0:
+            break
+        lines += temp
+    print lines
+
+    return lines
 
 
 @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")

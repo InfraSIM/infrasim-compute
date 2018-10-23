@@ -16,6 +16,9 @@ class FakeConfig(object):
             "type": "dell_r730",
             "compute": {
                 "kvm_enabled": helper.check_kvm_existence(),
+                "boot": {
+                    "boot_order": "ncd"
+                },
                 "cpu": {
                     "quantities": 2,
                     "type": "Haswell"
