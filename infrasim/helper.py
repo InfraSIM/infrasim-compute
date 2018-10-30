@@ -681,15 +681,24 @@ def port_forward(node):
     time.sleep(3)
 
 
-def prepare_ssh(ip_addr="127.0.0.1", port=2222):
+def prepare_ssh(ip_addr="127.0.0.1", port=2222, username="root", password="root"):
     # wait until system is ready for ssh.
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     paramiko.util.log_to_file("filename.log")
     try_func(600, paramiko.SSHClient.connect, ssh,
-             ip_addr, port=port, username="root",
-             password="root", timeout=120)
+             ip_addr, port=port, username=username,
+             password=password, timeout=120)
     return ssh
+
+
+def ssh_exec(ssh, cmd):
+    _, stdout, _ = ssh.exec_command(cmd)
+    return stdout.read()
+
+
+def ssh_close(ssh):
+    ssh.close()
 
 
 def fw_cfg_file_create(cfg_list, workspace):
