@@ -50,9 +50,8 @@ class CNTB(CElement):
         self.addr = self.__ntb_info.get("addr", "0.0")
         self.__bar1_exp = self.__ntb_info.get("bar1_exp", 0)
         self.__bar2_exp = self.__ntb_info.get("bar2_exp", 0)
-        self.__link_rx = self.__ntb_info.get("peer_rx")
-        self.__link_tx = self.__ntb_info.get("local")
-        self.__peer_memoryblock = self.__ntb_info.get("peer_memory")
+        self.__link_tx = self.__ntb_info.get("peer_rx")
+        self.__link_rx = self.__ntb_info.get("local")
 
     def handle_parms(self):
         args = {}
@@ -61,22 +60,12 @@ class CNTB(CElement):
         args["addr"] = self.addr
         args["region1size"] = self.__bar1_exp
         args["region2size"] = self.__bar2_exp
-
-        rx_id = "{}_rx".format(self.id)
-        tx_id = "{}_tx".format(self.id)
-        link_rx = "-chardev socket,path={},id={},server,nowait".format(self.__link_rx, rx_id)
-        link_tx = "-chardev socket,path={},id={},reconnect=10".format(self.__link_tx, tx_id)
-
-        args["link_rx"] = rx_id
-        args["link_tx"] = tx_id
-        if self.__peer_memoryblock:
-            args["peer_memory"] = self.__peer_memoryblock
+        args["link_rx"] = self.__link_rx
+        args["link_tx"] = self.__link_tx
 
         opt_list = []
         opt_list.append("-device skx_ntb")
         for k, v in args.items():
             opt_list.append("{}={}".format(k, v))
 
-        self.add_option(link_rx)
-        self.add_option(link_tx)
         self.add_option(",".join(opt_list))
