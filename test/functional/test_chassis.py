@@ -11,7 +11,6 @@ import sys
 import tempfile
 from test import fixtures
 import yaml
-import paramiko
 import json
 from infrasim import helper
 from infrasim import model
