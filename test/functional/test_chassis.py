@@ -11,7 +11,6 @@ import sys
 import tempfile
 from test import fixtures
 import yaml
-import paramiko
 import json
 from infrasim import helper
 from infrasim import model
@@ -27,7 +26,8 @@ except ImportError as e:
 
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
-ssh = None
+ssh1 = None
+ssh2 = None
 conf = {}
 chassis = None
 nodes_ip = ["192.168.188.91", "192.168.188.92"]
@@ -95,7 +95,8 @@ def start_chassis():
 
     """
     global conf
-    global ssh
+    global ssh1
+    global ssh2
     global chassis
     conf = fixtures.ChassisConfig().get_chassis_info()
     conf["data"]["pn"] = "What_ever_SN"
@@ -138,31 +139,27 @@ def start_chassis():
         json.dump(data_file, f)
     chassis.start()
 
-    ssh = helper.prepare_ssh("192.168.188.92", 8022)
+    ssh1 = helper.prepare_ssh(nodes_ip[0], 8022)
+    ssh2 = helper.prepare_ssh(nodes_ip[1], 8022)
 
 
 def stop_chassis():
     global conf
     global tmp_conf_file
     global chassis
+    ssh1.close()
+    ssh2.close()
     if chassis:
         chassis.destroy()
     conf = {}
 
 
-def run_cmd(cmd, ip, port=8022):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    # paramiko.util.log_to_file("filename.log")
-    helper.try_func(600, paramiko.SSHClient.connect, ssh, ip,
-                    port=port, username="root", password="root", timeout=120)
-
-    stdin, stdout, stderr = ssh.exec_command(cmd)
-    while not stdout.channel.exit_status_ready():
-        pass
-    lines = stdout.channel.recv(4096)
-    ssh.close()
-    return lines
+def run_cmd(cmd, ip):
+    if ip == nodes_ip[0]:
+        ssh = ssh1
+    else:
+        ssh = ssh2
+    return helper.ssh_exec(ssh, cmd)
 
 
 class test_chassis(unittest.TestCase):
@@ -200,7 +197,7 @@ class test_chassis(unittest.TestCase):
 
     def test_smbios_sn(self):
         for ip in nodes_ip:
-            result = run_cmd("dmidecode -t chassis", ip, 8022)
+            result = run_cmd("dmidecode -t chassis", ip)
             self.assertIn("Serial Number: {}".format(conf["data"]["sn"]),
                           result, "Chassis SN is not correct in {}".format(ip))
 
