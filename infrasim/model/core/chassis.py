@@ -370,28 +370,20 @@ class CChassis(object):
             diskarray.export_drv_data()
 
     def __process_ntb_device(self):
-        # get pair of node name and ntb info.
-        ntb_maps = []
+        # set local rx name.
+        ntb_items = []
         for node in self.__chassis.get("nodes", []):
-            n = node["compute"].get("ntb")
-            if n:
-                ntb_maps.append({"name": node["name"], "ntb": n})
-        # update node name of peer ntb.
-        for item in ntb_maps:
-            peer_idx = item["ntb"].get("peer_id")
+            for ntb_info in node["compute"].get("ntb", []):
+                if ntb_info.get("local") is None:
+                    rx_name = os.path.join(config.infrasim_home, node["name"], ".{}".format(ntb_info.get("id")))
+                    ntb_info["local"] = rx_name
+                ntb_items.append(ntb_info)
+        # update peer name
+        for ntb_info in ntb_items:
+            peer_idx = ntb_info.get("peer_id")
             if peer_idx is None:
-                raise ArgsNotCorrect("Peer id of ntb ({}) can't be None".format(item["ntb"]["id"]))
-            peer_name = filter(lambda x: x["ntb"]["id"] == peer_idx, ntb_maps)
-            if len(peer_name) != 1:
+                raise ArgsNotCorrect("Peer id of ntb ({}) can't be None".format(ntb_info["id"]))
+            peer_ntb = filter(lambda x: x["id"] == peer_idx, ntb_items)
+            if len(peer_ntb) != 1:
                 raise ArgsNotCorrect("Peer id of ntb ({}) is not valid".format(peer_idx))
-            item["peer_node"] = peer_name[0]
-
-        # build cross link of ntb devices.
-        for item in ntb_maps:
-            ntb_info = item["ntb"]
-            # set local unix socket name for rx: infrasim_home/<name>/<ntb_id>
-            ntb_info["local"] = ntb_info.get("local",
-                                             os.path.join(config.infrasim_home, item["name"], ntb_info.get("id")))
-            # combine the peer unix socket name for tx: infrasim_home/<peer_name>/<peer_ntb_id>
-            ntb_info["peer_rx"] = ntb_info.get("peer_rx", os.path.join(config.infrasim_home, item["peer_node"]["name"],
-                                                                       item["peer_node"]["ntb"]["id"]))
+            ntb_info["peer_rx"] = peer_ntb[0]["local"]

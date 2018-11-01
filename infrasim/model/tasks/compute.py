@@ -75,8 +75,6 @@ class CCompute(Task, CElement):
 
         self.__force_shutdown = None
         self.__shm_key = None
-        self.__ntb = None
-        self.__dma_engine = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -261,14 +259,12 @@ class CCompute(Task, CElement):
         backend_storage_obj.owner = self
         self.__element_list.append(backend_storage_obj)
 
-        self.__ntb = self.__compute.get("ntb")
-        if self.__ntb is not None:
-            ntb_obj = CNTB(self.__ntb)
+        for ntb in self.__compute.get("ntb", []):
+            ntb_obj = CNTB(ntb)
             self.__element_list.append(ntb_obj)
 
-        self.__dma_engine = self.__compute.get("dma_engine")
-        if self.__dma_engine:
-            dma_engine_obj = CDMAEngine(self.__dma_engine)
+        for dma_engine in self.__compute.get("dma_engine", []):
+            dma_engine_obj = CDMAEngine(dma_engine)
             self.__element_list.append(dma_engine_obj)
 
         if has_option(self.__compute, "ipmi"):

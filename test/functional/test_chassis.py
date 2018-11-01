@@ -108,22 +108,22 @@ def start_chassis():
     compute_0 = conf["nodes"][0]["compute"]
     compute_0["storage_backend"][0]["drives"][0]["file"] = fixtures.a_boot_image
     compute_0["extra_option"] = "-D {} -trace events=/tmp/trace_items".format(node0_log)
-    compute_0["ntb"] = {"addr": 'a.0',
-                        "bus": "pcie.0",
-                        "bar1_exp": 15,
-                        "bar2_exp": 15,
-                        "id": "ntb0",
-                        "peer_id": "ntb1"}
+    compute_0["ntb"] = [{"addr": 'a.0',
+                         "bus": "pcie.0",
+                         "bar1_exp": 15,
+                         "bar2_exp": 15,
+                         "id": "ntb0",
+                         "peer_id": "ntb1"}]
 
     compute_1 = conf["nodes"][1]["compute"]
     compute_1["storage_backend"][0]["drives"][0]["file"] = fixtures.b_boot_image
     compute_1["extra_option"] = "-D {} -trace events=/tmp/trace_items".format(node1_log)
-    compute_1["ntb"] = {"addr": 'a.0',
-                        "bus": "pcie.0",
-                        "bar1_exp": 15,
-                        "bar2_exp": 15,
-                        "id": "ntb1",
-                        "peer_id": "ntb0"}
+    compute_1["ntb"] = [{"addr": 'a.0',
+                         "bus": "pcie.0",
+                         "bar1_exp": 15,
+                         "bar2_exp": 15,
+                         "id": "ntb1",
+                         "peer_id": "ntb0"}]
 
     if os.path.exists(node0_log):
         os.remove(node0_log)
