@@ -36,7 +36,7 @@ class CPCIPCU(CElement):
     def handle_parms(self):
         args_cr0 = {}
         args_cr0["bus"] = self.bus
-        args_cr0["id"] = "pcu-cr0"
+        args_cr0["id"] = "pcu-cr0-{}".format(self.bus)
         args_cr0["addr"] = "1e.0"
         args_cr0["multifunction"] = "on"
         cr0_list = []
@@ -49,7 +49,7 @@ class CPCIPCU(CElement):
 
         args_cr5 = {}
         args_cr5["bus"] = self.bus
-        args_cr5["id"] = "pcu-cr5"
+        args_cr5["id"] = "pcu-cr5-{}".format(self.bus)
         args_cr5["addr"] = "1e.5"
         args_cr5["spd_data_file"] = self.spd_data_file
         cr5_list = []
