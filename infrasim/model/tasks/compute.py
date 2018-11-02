@@ -75,8 +75,7 @@ class CCompute(Task, CElement):
 
         self.__force_shutdown = None
         self.__shm_key = None
-        self.__ntb = None
-        self.__dma_engine = None
+        self.__extra_device = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -201,6 +200,7 @@ class CCompute(Task, CElement):
         self.__machine = self.__compute.get("machine")
 
         self.__extra_option = self.__compute.get("extra_option")
+        self.__extra_device = self.__compute.get("extra_device", "")
         self.__qemu_bin = self.__compute.get("qemu_bin", self.__qemu_bin)
         self.__force_shutdown = self.__compute.get("force_shutdown", True)
 
@@ -261,14 +261,12 @@ class CCompute(Task, CElement):
         backend_storage_obj.owner = self
         self.__element_list.append(backend_storage_obj)
 
-        self.__ntb = self.__compute.get("ntb")
-        if self.__ntb is not None:
-            ntb_obj = CNTB(self.__ntb)
+        for ntb in self.__compute.get("ntb", []):
+            ntb_obj = CNTB(ntb)
             self.__element_list.append(ntb_obj)
 
-        self.__dma_engine = self.__compute.get("dma_engine")
-        if self.__dma_engine:
-            dma_engine_obj = CDMAEngine(self.__dma_engine)
+        for dma_engine in self.__compute.get("dma_engine", []):
+            dma_engine_obj = CDMAEngine(dma_engine)
             self.__element_list.append(dma_engine_obj)
 
         if has_option(self.__compute, "ipmi"):
@@ -335,7 +333,7 @@ class CCompute(Task, CElement):
         for element_obj in self.__element_list:
             qemu_commandline = " ".join([qemu_commandline, element_obj.get_option()])
 
-        qemu_commandline = " ".join([self.__qemu_bin, self.get_option(), qemu_commandline])
+        qemu_commandline = " ".join([self.__qemu_bin, self.get_option(), qemu_commandline, self.__extra_device])
 
         # set cpu affinity
         if self.__numactl_mode == "auto":
