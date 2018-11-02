@@ -75,6 +75,7 @@ class CCompute(Task, CElement):
 
         self.__force_shutdown = None
         self.__shm_key = None
+        self.__extra_device = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -199,6 +200,7 @@ class CCompute(Task, CElement):
         self.__machine = self.__compute.get("machine")
 
         self.__extra_option = self.__compute.get("extra_option")
+        self.__extra_device = self.__compute.get("extra_device", "")
         self.__qemu_bin = self.__compute.get("qemu_bin", self.__qemu_bin)
         self.__force_shutdown = self.__compute.get("force_shutdown", True)
 
@@ -331,7 +333,7 @@ class CCompute(Task, CElement):
         for element_obj in self.__element_list:
             qemu_commandline = " ".join([qemu_commandline, element_obj.get_option()])
 
-        qemu_commandline = " ".join([self.__qemu_bin, self.get_option(), qemu_commandline])
+        qemu_commandline = " ".join([self.__qemu_bin, self.get_option(), qemu_commandline, self.__extra_device])
 
         # set cpu affinity
         if self.__numactl_mode == "auto":
