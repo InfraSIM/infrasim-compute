@@ -129,6 +129,10 @@ class CBMC(Task):
             raise ArgsNotCorrect("[BMC] workspace  {} doesn\'t exist".
                                  format(self.__workspace))
 
+        if self.__main_channel not in self.__channels:
+            raise ArgsNotCorrect("[BMC] main channel {} should be included in channels {}".
+                                 format(self.__main_channel, self.__channels))
+
         # check if self.__port_qemu_ipmi in use
         if helper.check_if_port_in_use("0.0.0.0", self.__port_qemu_ipmi):
             raise ArgsNotCorrect("[BMC] Port {} is already in use.".
@@ -198,15 +202,9 @@ class CBMC(Task):
                 if addr is None or (addr & 0x1) or addr >= 0xff:
                     raise ArgsNotCorrect("[BMC] {} is not a valid I2C address.".format(addr))
 
-                interface = pbi.get("interface")
-                if interface is None or (interface != "lan" and interface != "lanplus"):
-                    raise ArgsNotCorrect("[BMC] {} should be 'lan' or 'lanplus'.".format(interface))
-
-                if pbi.get("user") is None:
-                    raise ArgsNotCorrect("[BMC] user name is required.")
-
-                if pbi.get("password") is None:
-                    raise ArgsNotCorrect("[BMC] password is required.")
+                peer_port = pbi.get("port_ipmb")
+                if peer_port is None:
+                    raise ArgsNotCorrect("[BMC] peer ipmb port is not given.")
 
                 host_ip = pbi.get("host")
                 try:
@@ -282,7 +280,8 @@ class CBMC(Task):
         template = jinja2.Template(bmc_conf)
         bmc_conf = template.render(startcmd_script=self.__startcmd_script,
                                    vbmc_name=self.__name,
-                                   lan_channel=self.__channel,
+                                   lan_channels=self.__channels,
+                                   main_channel=self.__main_channel,
                                    chassis_control_script=self.__chassiscontrol_script,
                                    lan_control_script=self.__lancontrol_script,
                                    intf_not_exists=self.__intf_not_exists,
@@ -294,6 +293,7 @@ class CBMC(Task):
                                    port_qemu_ipmi=self.__port_qemu_ipmi,
                                    port_ipmi_console=self.__port_ipmi_console,
                                    port_iol=self.__port_iol,
+                                   port_ipmb=self.__port_ipmb,
                                    sol_device=self.__sol_device,
                                    poweroff_wait=self.__poweroff_wait,
                                    kill_wait=self.__kill_wait,
@@ -302,6 +302,7 @@ class CBMC(Task):
                                    sol_enabled=self.__sol_enabled,
                                    gem_enable=self.__gem_enable,
                                    workspace=self.__workspace,
+                                   vbmc_addr=self.__address,
                                    peers=self.__peer_bmc_info_list)
 
         with open(dst, "w") as f:
@@ -310,7 +311,8 @@ class CBMC(Task):
     @run_in_namespace
     def init(self):
         self.__address = self.__bmc.get('address', 0x20)
-        self.__channel = self.__bmc.get('channel', 1)
+        self.__main_channel = str(self.__bmc.get('main_channel', 1))
+        self.__channels = self.__bmc.get('channels', self.__main_channel).split(',')
         self.__name = self.__bmc.get("name", "vbmc")
         self.__gem_enable = self.__bmc.get("gem_enable", False)
 
@@ -362,6 +364,7 @@ class CBMC(Task):
         self.__port_iol = self.__bmc.get('ipmi_over_lan_port', 623)
         self.__historyfru = self.__bmc.get('historyfru', 99)
         self.__peer_bmc_info_list = self.__bmc.get("peer-bmcs")
+        self.__port_ipmb = self.__bmc.get('port_ipmb', 9009)
 
         if 'emu_file' in self.__bmc:
             self.__emu_file = self.__bmc['emu_file']
