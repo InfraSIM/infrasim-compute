@@ -140,6 +140,9 @@ def stop_node():
     os.remove(test_drive_image)
 
 
+sg_dev = None
+
+
 @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_scsi_error_inject(unittest.TestCase):
 
@@ -153,10 +156,20 @@ class test_scsi_error_inject(unittest.TestCase):
     def tearDownClass(cls):
         stop_node()
 
+    def setUp(self):
+        # look for the correct dev in guest os according to sn.
+        global sg_dev
+        if sg_dev is None:
+            for idx in [0, 1, 2]:
+                _, ret = ssh.exec_command("sg_inq /dev/sg{}".format(idx))
+                if "serial number: 12345678" in ret:
+                    sg_dev = "/dev/sg{}".format(idx)
+                    break
+
     def test_log_page_error_inject(self):
         log_page_meter = [
-            ["life_used", 50, None, None, "0x11", "Percentage used endurance indicator: 0%"],
-            ["erase_count", 70, 36862, 4, "0x31", "unknown parameter code = 0x8ffe"],
+            ["life_used", 50, 1, 4, "0x11", "Percentage used endurance indicator: 50 %"],
+            ["erase_count", 70, 0x8ffe, 4, "0x31", "8f fe"],
             ["temperature", 30, 0, 2, "0x0d", "Current temperature = 30"],
             ["temperature", 80, 1, 2, " 0x0d", "Reference temperature = 80"]
         ]
@@ -180,8 +193,8 @@ class test_scsi_error_inject(unittest.TestCase):
                 except Exception:
                     count = count + 1
                     s.send(json.dumps(log_page_error))
-            status, output = ssh.exec_command("sudo sg_logs /dev/sg1 -p %s" % error_meter[4])
-            self.assertIn(error_meter[5], output, "error inject faile")
+            _, output = ssh.exec_command("sudo sg_logs %s -p %s" % (sg_dev, error_meter[4]))
+            self.assertIn(error_meter[5], output, "error inject failed")
 
     def test_defect_data_inject(self):
         defect_data_cmd = {
@@ -200,8 +213,8 @@ class test_scsi_error_inject(unittest.TestCase):
             except Exception:
                 count = count + 1
                 s.send(json.dumps(defect_data_cmd))
-        status, output = ssh.exec_command("sudo sginfo /dev/sg1 -d")
-        self.assertIn("10 entries (80 bytes)", output, "defect data inject faile")
+        status, output = ssh.exec_command("sudo sginfo %s -d" % sg_dev)
+        self.assertIn("10 entries (80 bytes)", output, "defect data inject failed")
 
     def test_status_code_error_inject(self):
         status_code_error = {
@@ -233,6 +246,6 @@ class test_scsi_error_inject(unittest.TestCase):
                 except Exception:
                     count = count + 1
                     s.send(json.dumps(status_code_error))
-            status, output = ssh.exec_command("sudo sg_read if=/dev/sg1 count=512 bs=512")
+            status, output = ssh.exec_command("sudo sg_read if=%s count=512 bs=512" % sg_dev)
             reobj = re.search(" ".join(status_code_meters[-1].split("-")), output, re.I)
             assert reobj
