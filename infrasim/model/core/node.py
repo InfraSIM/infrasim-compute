@@ -89,6 +89,12 @@ class CNode(object):
 
         self.__netns = self.__node.get("namespace")
 
+        if 'uuid' in self.__node["compute"]:
+            uuid_num = self.__node["compute"].get("uuid")
+        else:
+            uuid_num = str(uuid.uuid4())
+        self.__node["compute"]["uuid"] = uuid_num
+
         # If user specify "network_mode" as "bridge" but without MAC
         # address, generate one for this network.
         for network in self.__node['compute']['networks']:
@@ -131,6 +137,7 @@ class CNode(object):
         compute_obj.set_asyncronous(asyncr)
         compute_obj.enable_sol(self.__sol_enabled)
         compute_obj.set_priority(2)
+        compute_obj.set_uuid(uuid_num)
         compute_obj.set_task_name("{}-node".format(self.__node_name))
         compute_obj.set_log_path(os.path.join(config.infrasim_log_dir, self.__node_name, "qemu.log"))
         self.__tasks_list.append(compute_obj)

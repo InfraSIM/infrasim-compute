@@ -1,4 +1,5 @@
 import os
+import uuid
 import jinja2
 import random
 import string
@@ -49,6 +50,9 @@ def init_infrasim_conf(node_type):
     mac = create_mac_address()
     networks.append({"nic": eth_nic, "mac": mac})
 
+    # Prepare default UUID
+    uuid_num = str(uuid.uuid4())
+
     # create_infrasim_directories
     if not os.path.exists(config.infrasim_home):
         os.mkdir(config.infrasim_home)
@@ -70,7 +74,8 @@ def init_infrasim_conf(node_type):
     with open(config.infrasim_config_template, "r") as f:
         infrasim_conf = f.read()
     template = jinja2.Template(infrasim_conf)
-    infrasim_conf = template.render(node_type=node_type, disks=disks, networks=networks, splash_path=splash_path)
+    infrasim_conf = template.render(node_type=node_type, disks=disks, networks=networks,
+                                    splash_path=splash_path, uuid=uuid_num)
     with open(config.infrasim_default_config, "w") as f:
         f.write(infrasim_conf)
 

@@ -7,7 +7,6 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import os
 import time
-import uuid
 
 from infrasim import CommandRunFailed, ArgsNotCorrect, CommandNotFound
 from infrasim import helper, config
@@ -76,6 +75,7 @@ class CCompute(Task, CElement):
         self.__force_shutdown = None
         self.__shm_key = None
         self.__extra_device = None
+        self.__uuid = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -97,6 +97,12 @@ class CCompute(Task, CElement):
 
     def get_smbios(self):
         return self.__smbios
+
+    def set_uuid(self, uuid):
+        self.__uuid = uuid
+
+    def get_uuid(self):
+        return self.__uuid
 
     @run_in_namespace
     def precheck(self):
@@ -205,6 +211,9 @@ class CCompute(Task, CElement):
         self.__force_shutdown = self.__compute.get("force_shutdown", True)
 
         self.__shm_key = self.__compute.get("communicate", {}).get("shm_key")
+
+        if "uuid" in self.__compute:
+            self.__uuid = self.__compute.get("uuid")
 
         machine_obj = CMachine(self.__machine)
         machine_obj.logger = self.logger
@@ -424,7 +433,7 @@ class CCompute(Task, CElement):
             serial_obj.handle_parms()
             self.add_option(serial_obj.get_option())
 
-        self.add_option("-uuid {}".format(str(uuid.uuid4())))
+        self.add_option("-uuid {}".format(self.__uuid))
 
         if self.__kernel and self.__initrd:
             self.add_option("-kernel {} -initrd {}".format(self.__kernel, self.__initrd))
