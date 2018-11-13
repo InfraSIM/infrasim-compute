@@ -10,7 +10,6 @@ import re
 from infrasim import model
 from infrasim import helper
 from test import fixtures
-import paramiko
 
 """
 Test inquiry/mode sense data injection of scsi drive
@@ -322,25 +321,17 @@ def start_node(conf):
     node.precheck()
     node.start()
     helper.port_forward(node)
-
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    helper.try_func(600, paramiko.SSHClient.connect, ssh, "127.0.0.1",
-                    port=2222, username="root", password="root", timeout=120)
+    ssh = helper.prepare_ssh("127.0.0.1", 2222, "root", "root")
 
 
 def run_cmd(cmd):
-    _, stdout, _ = ssh.exec_command(cmd)
-    while not stdout.channel.exit_status_ready():
-        pass
-    lines = stdout.channel.recv(4096)
-
-    return lines
+    return helper.ssh_exec(ssh, cmd)
 
 
 def stop_node():
     global conf
     fake_config = fixtures.FakeConfig()
+    helper.ssh_close(ssh)
     conf = fake_config.get_node_info()
     node = model.CNode(conf)
     node.init()
