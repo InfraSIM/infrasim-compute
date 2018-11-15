@@ -18,6 +18,7 @@ type: {{ node_type }}
 
 compute:
 
+    uuid: {{ uuid }}
     boot:
         splash: {{ splash_path }}
     cpu:
