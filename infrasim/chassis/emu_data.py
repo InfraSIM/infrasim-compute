@@ -7,6 +7,7 @@ Refer to Platform Management FRU Information Storage Definition V1.3
 '''
 import math
 import struct
+import re
 
 
 class FruCmd(object):
@@ -32,14 +33,26 @@ class FruCmd(object):
 
     def __str__(self):
         content = []
-        content.append("mc_add_fru_data 0x20 {} {} data".format(hex(self.type), hex(self.len)))
-        for position in range(0, len(self.data), 8):
-            content.append(" ".join("{:#04x}".format(x) for x in self.data[position:position + 8]))
+        if self.file:
+            # save data to  self.file
+            with open(self.file, "wb") as f:
+                f.write(self.file)
+            content.append("mc_add_fru_data 0x20 {} {} file 0 \"{}\"".format(hex(self.type), hex(self.len), self.file))
+        else:
+            content.append("mc_add_fru_data 0x20 {} {} data".format(hex(self.type), hex(self.len)))
+            for position in range(0, len(self.data), 8):
+                content.append(" ".join("{:#04x}".format(x) for x in self.data[position:position + 8]))
         return " \\\n".join(content) + "\n"
 
     def AppendLine(self, line):
         values = [int(x, 16) for x in line.rstrip("\\\n").split(" ")[:-1]]
         self.data.extend(values)
+
+    def LoadFromFile(self, file):
+        self.file = file
+        # load binary file.
+        with open(file, "rb") as f:
+            self.data = f.readlines()
 
     def Decode(self):
         """
@@ -151,17 +164,26 @@ class FruFile(object):
         is_processing_fru = False
         fru_cmd = None
         for line in lines:
+            match_file = re.search(r'mc_add_fru_data 0x20 0x00 0x[a-fA-F0-9]+ file 0 \"(.*)\"', line)
+            match_data = re.search(r'mc_add_fru_data 0x20 0x00 0x[a-fA-F0-9]+ data', line)
             if is_processing_fru:
                 fru_cmd.AppendLine(line)
                 if not line.endswith("\\\n"):
                     is_processing_fru = False
-            elif str.startswith(line, "mc_add_fru_data 0x20 0x00"):
+            elif match_data:
                 # Get the Fru 0 (Builtin FRU Device) Data
                 # Refer to Chapter 1, Chassis info should only be in baseboard.
                 is_processing_fru = True
                 fru_cmd = FruCmd()
                 fru_cmd.SetFruHeader(line)
                 data.append(fru_cmd)
+                self._fru0_cmd = fru_cmd
+            elif match_file:
+                fru0_file = match_file.group(1)
+                # Get the Fru 0 (Builtin FRU Device) file
+                fru_cmd = FruCmd()
+                fru_cmd.SetFruHeader(line)
+                fru_cmd.LoadFromFile(fru0_file)
                 self._fru0_cmd = fru_cmd
             else:
                 data.append(line)
