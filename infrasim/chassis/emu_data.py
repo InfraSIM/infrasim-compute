@@ -24,6 +24,7 @@ class FruCmd(object):
         self.type = 0
         self.len = 0
         self.data = []
+        self.file = None
         self._data_area = [None]
 
     def SetFruHeader(self, initial):
@@ -184,6 +185,7 @@ class FruFile(object):
                 fru_cmd = FruCmd()
                 fru_cmd.SetFruHeader(line)
                 fru_cmd.LoadFromFile(fru0_file)
+                data.append(fru_cmd)
                 self._fru0_cmd = fru_cmd
             else:
                 data.append(line)
