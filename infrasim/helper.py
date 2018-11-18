@@ -693,12 +693,13 @@ def prepare_ssh(ip_addr="127.0.0.1", port=2222, username="root", password="root"
 
 
 def ssh_exec(ssh, cmd):
-    _, stdout, _ = ssh.exec_command(cmd)
+    _, stdout, _ = ssh.exec_command(cmd, get_pty=True)
     return stdout.read()
 
 
 def ssh_close(ssh):
-    ssh.close()
+    if ssh:
+        ssh.close()
 
 
 def fw_cfg_file_create(cfg_list, workspace):
