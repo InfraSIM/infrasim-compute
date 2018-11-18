@@ -8,7 +8,6 @@ import os
 import json
 from infrasim import model
 from infrasim import helper
-from infrasim import sshclient
 from test import fixtures
 from infrasim.helper import UnixSocket
 
@@ -16,6 +15,7 @@ old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
 
 conf = {}
+ssh = None
 error_inject_list = [
     [4, 0, 'Data Transfer'],
     [5, 0, 'Power Loss'],
@@ -49,6 +49,7 @@ class test_error_inject(unittest.TestCase):
     def start_node():
         global conf
         global path
+        global ssh
         nvme_config = fixtures.NvmeConfig()
         conf = nvme_config.get_node_info()
         node = model.CNode(conf)
@@ -57,6 +58,7 @@ class test_error_inject(unittest.TestCase):
         node.start()
         helper.port_forward(node)
         path = os.path.join(node.workspace.get_workspace(), ".monitor")
+        ssh = helper.prepare_ssh("127.0.0.1")
 
     @staticmethod
     def stop_node():
@@ -67,6 +69,7 @@ class test_error_inject(unittest.TestCase):
         node.stop()
         node.terminate_workspace()
         conf = {}
+        helper.ssh_close(ssh)
 
     @classmethod
     def setUpClass(cls):
@@ -77,9 +80,22 @@ class test_error_inject(unittest.TestCase):
         if conf:
             cls.stop_node()
 
+    def get_nvme_dev(self, dev_sn):
+        # find correct dev id by sn
+        nvme_list = helper.ssh_exec(ssh, "nvme list -o json")
+        nvme_object = json.loads(nvme_list)
+        for nvme_dev in nvme_object["Devices"]:
+            if nvme_dev["SerialNumber"] == dev_sn:
+                return nvme_dev["DevicePath"]
+        return None
+
     def test_nvmeerror_inject(self):
-        ssh = sshclient.SSH(host="127.0.0.1", username="root", password="root", port=2222)
-        ssh.wait_for_host_up()
+        self.assertIsNotNone(ssh, "Can't connect node by ssh")
+        # "dev-nvme-0" is the first NVME dev.
+        dev_sn = conf["compute"]["storage_backend"][1]["serial"]
+        dev = self.get_nvme_dev(dev_sn)
+        self.assertIsNotNone(dev, "Can't found nvme device for sn {}".format(dev_sn))
+
         s = UnixSocket(path)
         s.connect()
         s.recv()
@@ -117,17 +133,18 @@ class test_error_inject(unittest.TestCase):
                 }
             }
         }
+        cmd = "nvme read {} -z 3008 -a 128".format(dev)
 
         for cmd_error_inject in error_inject_list:
             payload_error_inject['arguments']['status_field']['sc'] = cmd_error_inject[0]
             payload_error_inject['arguments']['status_field']['sct'] = cmd_error_inject[1]
             s.send(json.dumps(payload_error_inject))
             s.recv()
-            status, output = ssh.exec_command("nvme read /dev/nvme0n1 -z 3008 -a 128")
+            output = helper.ssh_exec(ssh, cmd)
             self.assertNotIn("Success", output, "error of %s inject failed" % cmd_error_inject[2])
-
             s.send(json.dumps(payload_nvmeclear))
             s.recv()
-            status, output = ssh.exec_command("nvme read /dev/nvme0n1 -z 3008 -a 128")
+            output = helper.ssh_exec(ssh, cmd)
             self.assertIn("Success", output, "clear error failed")
+
         s.close()
