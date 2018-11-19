@@ -118,19 +118,24 @@ do_set() {
             do_log "receive boot signal parm=$parm val=$val"
             case $val in
                 none)
-            do_log "bootdev set for none"
+                do_log "bootdev set for none"
+                bootorder="c"
                 ;;
                 pxe)
                 do_log "bootdev set for pxe"
+                bootorder="n"
                 ;;
                 default)
-            do_log "bootdev set for default disk"
+                do_log "bootdev set for default disk"
+                bootorder="c"
                 ;;
                 bios)
-            do_log "bootdev set for bios"
+                do_log "bootdev set for bios"
+                bootorder="c"
                 ;;
                 cdrom)
-            do_log "bootdev set for cdrom"
+                do_log "bootdev set for cdrom"
+                bootorder="d"
                 ;;
                 *)
                 do_log "Invalid boot value: $val"
@@ -138,6 +143,12 @@ do_set() {
                 ;;
             esac
             echo $val > {{bootdev}}
+            current_path=$(cd "$(dirname "$0")";pwd)
+            work_dir=${current_path%%.*}
+            node_name=${current_path%/*}
+            node_name=${node_name##*/}
+            boot_once=0
+            python {{setbootcmd}} $work_dir $node_name $bootorder $boot_once
             ;;
 		identify)
             force=$1
