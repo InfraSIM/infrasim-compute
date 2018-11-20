@@ -359,7 +359,6 @@ class test_disk_array_topo(unittest.TestCase):
                 self.assertIn("Unit serial number: ZABC", rst, "Serial Number not as expected:\n"
                               "{}".format(rst))
 
-    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests, Known issue: IN-1619")
     def test_scsi_devices_availability(self):
         # Verify all devices can be found by OS.
         rst = run_cmd("lspci")
@@ -392,7 +391,6 @@ class test_disk_array_topo(unittest.TestCase):
             for key, val in expect.iteritems():
                 self.assertEqual(val, 1, "SCSI Device count error in sys: {0} count={1}".format(key, val))
 
-    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests, Known issue: IN-1619")
     def test_sas_chain(self):
         # Verify the connection between expanders
         topology = {}
@@ -458,16 +456,13 @@ class test_disk_array_topo(unittest.TestCase):
         verify_link(wwn_exp1, 4, wwn_exp3, 0, 4)
 
 
-@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests, Known issue: IN-1619")
 class test_disk_directly(unittest.TestCase):
 
     @classmethod
-    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests, Known issue: IN-1619")
     def setUpClass(cls):
         start_node(get_node_directly())
 
     @classmethod
-    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests, Known issue: IN-1619")
     def tearDownClass(cls):
         stop_node()
 
