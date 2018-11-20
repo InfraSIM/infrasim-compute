@@ -693,7 +693,7 @@ def prepare_ssh(ip_addr="127.0.0.1", port=2222, username="root", password="root"
 
 
 def ssh_exec(ssh, cmd):
-    _, stdout, _ = ssh.exec_command(cmd, get_pty=True)
+    _, stdout, _ = ssh.exec_command(cmd)
     return stdout.read()
 
 
