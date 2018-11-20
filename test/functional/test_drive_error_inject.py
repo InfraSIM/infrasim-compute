@@ -133,7 +133,8 @@ class test_error_inject(unittest.TestCase):
                 }
             }
         }
-        cmd = "nvme read {} -z 3008 -a 128".format(dev)
+        # Redirect stderr to stdout since 'Success' is printed to stderr sometimes"
+        cmd = "nvme read {} -z 3008 -a 128 2>&1".format(dev)
 
         for cmd_error_inject in error_inject_list:
             payload_error_inject['arguments']['status_field']['sc'] = cmd_error_inject[0]
