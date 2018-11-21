@@ -7,6 +7,8 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import os
 import time
+import re
+import multiprocessing
 
 from infrasim import CommandRunFailed, ArgsNotCorrect, CommandNotFound
 from infrasim import helper, config
@@ -76,6 +78,10 @@ class CCompute(Task, CElement):
         self.__shm_key = None
         self.__extra_device = None
         self.__uuid = None
+
+        self.__bind_cpus = []
+        self.__bind_policy = None
+        self.__vcpu_thread_ids = []
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -154,6 +160,64 @@ class CCompute(Task, CElement):
         if self.__enable_kvm is not True and self.__enable_kvm is not False:
             raise ArgsNotCorrect("[Compute] KVM enabled is not a boolean: {}".
                                  format(self.__enable_kvm))
+
+        if self.__bind_cpus:
+            self.precheck_cpu_binding()
+
+    def precheck_cpu_binding(self):
+        # check bind cpu count not exceeds physical cpu count
+        if self.__bind_cpus and len(self.__bind_cpus) >= multiprocessing.cpu_count():
+            print("\033[93mWarning:\033[0m Number of cpus trying to bind is larger than"\
+                    " number of physical cpus, not binding...")
+            self.logger.warning("[Compute] number of bind cpus {} is larger"\
+                                "than number of physical cpus {}, not binding".
+                                format(self.__bind_cpus, multiprocessing.cpu_count()))
+            self.__bind_cpus = []
+
+        # check physical cpus are isolated
+        fd = open("/sys/devices/system/cpu/isolated", "r")
+        rst = fd.read()
+        fd.close()
+        cpu_list = self.get_cores(rst)
+        result = all(elem in cpu_list  for elem in self.__bind_cpus)
+        if not result:
+            print("\033[93mWarning:\033[0m some cpus in bind_cpus are not isolated,"\
+                                "please check your configuration")
+            print("\033[93mbind_cpus:\033[0m {}").format(self.__bind_cpus)
+            print("\033[93misolated cpus:\033[0m {}").format(cpu_list)
+            self.logger.warning("[Compute] some cpus in bind_cpus are not isolated,"\
+                                "please check your configuration")
+            self.__bind_cpus = []
+
+        # check binding cpus are in the same socket
+        fd = open("/proc/cpuinfo", "r")
+        lines = fd.readlines()
+        fd.close()
+        phy_id = 0
+        processor = 0
+        found = False
+        sockets = {}
+        for line in lines:
+            if not line.strip():
+                name, value = line.split(":", 1)
+                name = name.strip()
+                value = value.strip()
+                if name == "physical id":
+                    phy_id = value
+                if name == "processor":
+                    processor = value
+            else:
+                if phy_id not in sockets:
+                    sockets[phy_id] = []
+                sockets[phy_id].append(int(processor))
+        for value in sockets.itervalues():
+            if all(elem in value for elem in self.__bind_cpus):
+                found = True
+                break
+        if not found:
+            print("\033[93mWarning:\033[0m bind_cpus are not in the same socket, not binding...")
+            self.logger.warning("[Compute] bind_cpus are not in the same socket, not binding...")
+            self.__bind_cpus = []
 
     @run_in_namespace
     def init(self):
@@ -307,6 +371,10 @@ class CCompute(Task, CElement):
             self.__monitor.logger = self.logger
             self.__element_list.append(self.__monitor)
 
+        if self.__compute.get("cpu_pinning"):
+            self.__bind_cpus = self.get_cores(self.__compute["cpu_pinning"].get("bind_cpus", ""))
+            self.__bind_policy = self.__compute["cpu_pinning"].get("policy")
+
         # create cdrom if exits
         if cdrom_info:
             cdrom_obj = IDECdrom(cdrom_info)
@@ -444,6 +512,9 @@ class CCompute(Task, CElement):
         if self.__shm_key:
             self.add_option("-communicate shmkey={}".format(self.__shm_key))
 
+        if self.__bind_cpus:
+            self.add_option("-S")
+
         for element_obj in self.__element_list:
             element_obj.handle_parms()
 
@@ -470,3 +541,67 @@ class CCompute(Task, CElement):
             time.sleep(1)
         else:
             super(CCompute, self).terminate()
+
+    def get_cores(self, bind_cpus):
+        cores = []
+        if not bind_cpus:
+            return cores
+        cpu_lists = bind_cpus.split(",")
+        for cpu_list in cpu_lists:
+            if cpu_list.find('-') >= 0:
+                cpu_range = cpu_list.split('-')
+                cores.extend(list(range(int(cpu_range[0]), int(cpu_range[1])+1)))
+            else:
+                cores.append(int(cpu_list))
+        return cores
+
+    def get_thread_id(self):
+        # get vcpu process id
+        vcpu_thread_ids = []
+        payload = {
+            "execute": "human-monitor-command",
+            "arguments": {
+                "command-line":"info cpus"
+            }
+        }
+        self.__monitor.open()
+        self.__monitor.send(payload)
+        res = self.__monitor.recv().get("return")
+        self.__monitor.close()
+        for s in res.split('\n'):
+            vcpu_thread_id = re.search(r"thread_id=(\d+)", s)
+            if vcpu_thread_id:
+                vcpu_thread_ids.append(vcpu_thread_id.group(1))
+        return vcpu_thread_ids
+
+    def bind_cpus_one_one(self):
+        try:
+            self.__vcpu_thread_ids = self.get_thread_id()
+            i = 0
+            cmd = "taskset -pc {} {}".format(self.__bind_cpus[-1], self.get_task_pid())
+            run_command(cmd)
+            for cpu in self.__bind_cpus:
+                if i < len(self.__vcpu_thread_ids) - 1:
+                    cmd = "taskset -pc {} {}".format(cpu, self.__vcpu_thread_ids[i])
+                    run_command(cmd)
+                i = i + 1
+        except Exception as e:
+            self.logger.warning('[Compute] {}'.format(str(e)))
+
+        payload = {
+            "execute": "cont",
+        }
+        self.__monitor.open()
+        self.__monitor.send(payload)
+        self.__monitor.recv()
+        self.__monitor.close()
+        self.logger.info("[Compute] bind physical cpus {} to compute".format(self.__bind_cpus))
+
+    def bind_cpus_with_policy(self):
+        if not self.__bind_cpus:
+            return
+        if not self.__bind_policy:
+            self.bind_cpus_one_one()
+        # TODO: specific binding policy
+        else:
+            pass

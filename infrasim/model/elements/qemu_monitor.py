@@ -105,11 +105,13 @@ class CQemuMonitor(CElement):
             self.__monitor_handle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self.__monitor_handle.connect(self.__chardev.get_path())
 
+            self.recv()
             # enable qmp capabilities
             qmp_payload = {
                 "execute": "qmp_capabilities"
             }
             self.send(qmp_payload)
+            self.recv()
         else:
             raise ArgsNotCorrect("[Monitor] Monitor mode {} is unknown.".format(self.__mode))
         self.logger.info("[Monitor] monitor opened({}).".format(self.__monitor_handle))
@@ -121,6 +123,18 @@ class CQemuMonitor(CElement):
                 self.__monitor_handle.write(command)
             else:
                 self.__monitor_handle.send(json.dumps(command))
+
+    def recv(self):
+        if self.__mode == "control":
+            rsp = ""
+            while 1:
+                snip = self.__monitor_handle.recv(1024)
+                rsp += snip
+                if len(snip) < 1024:
+                    break
+            return json.loads(rsp)
+        else:
+            return self.__monitor_handle.read_eager()
 
     def close(self):
         if self.__monitor_handle:

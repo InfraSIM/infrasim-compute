@@ -140,6 +140,8 @@ class Task(object):
                     self.__print_task(self.get_task_pid(), self.__task_name, "running")
                     self.__logger.info("[ {:<6} ] {} is running".format(self.get_task_pid(),
                                                                         self.__task_name))
+                    if "node" in self.__task_name:
+                        self.bind_cpus_with_policy()
                 else:
                     self.__print_task('  -  ', self.__task_name, "not running", icolors.RED)
             return
