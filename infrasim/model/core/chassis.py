@@ -127,7 +127,9 @@ class CChassis(object):
         """
         update smbios and emulation data.
         """
-        data = self.__chassis["data"]
+        data = self.__chassis.get("data", None)
+        if not data:
+            return
         for node in self.__chassis.get("nodes"):
             ws = os.path.join(config.infrasim_home, node["name"])
             ws_data = os.path.join(ws, "data")

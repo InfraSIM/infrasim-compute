@@ -138,18 +138,20 @@ class test_bmc_communication(unittest.TestCase):
         fake_node["bmc"] = {}
         fake_node["bmc"]["peer-bmcs"] = [
             {
-                "interface": "lanplus",
-                "user": "admin",
-                "password": "admin"
+                "port_ipmb": 9009
             }
         ]
 
         if node_name == "test0":
+            fake_node["bmc"]["address"] = 0x1c
             fake_node["bmc"]["peer-bmcs"][0]["addr"] = 0x1e
             fake_node["bmc"]["peer-bmcs"][0]["host"] = "192.168.188.92"
+            fake_node["bmc"]["peer-bmcs"][0]["port_ipmb"] = 9009
         else:
+            fake_node["bmc"]["address"] = 0x1e
             fake_node["bmc"]["peer-bmcs"][0]["addr"] = 0x1c
             fake_node["bmc"]["peer-bmcs"][0]["host"] = "192.168.188.91"
+            fake_node["bmc"]["peer-bmcs"][0]["port_ipmb"] = 9009
 
         fake_node_up = test_bmc_communication._start_node(fake_node, node_name, node_type)
         return fake_node_up

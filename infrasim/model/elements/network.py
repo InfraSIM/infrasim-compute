@@ -26,6 +26,7 @@ class CNetwork(CElement):
         self.__index = 0
         self.__bus = None
         self.__addr = None
+        self.__model = None
         self.__multifunction = None
         self.__extra_options = None
 
@@ -69,6 +70,7 @@ class CNetwork(CElement):
         self.__multifunction = self.__network.get('multifunction')
         self.__port_forwards = self.__network.get('port_forward', [])
         self.__extra_options = self.__network.get('extra_option')
+        self.__model = self.__network.get("model")
 
     def handle_parms(self):
         if self.__network_mode == "bridge":
@@ -108,6 +110,10 @@ class CNetwork(CElement):
         if self.__multifunction:
             nic_option = ",".join(["{}".format(nic_option),
                                    "multifunction={}".format(self.__multifunction)])
+        if self.__model:
+            nic_option = ",".join(["{}".format(nic_option),
+                                   "model={}".format(self.__model)])
+
         if self.__extra_options:
             nic_option = ",".join(["{}".format(nic_option), self.__extra_options])
 
