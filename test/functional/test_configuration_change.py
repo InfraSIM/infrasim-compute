@@ -266,7 +266,7 @@ class test_bmc_configuration_change(unittest.TestCase):
 
     def test_set_bmc_lan_channel(self):
         self.conf["bmc"] = {}
-        self.conf["bmc"]["channel"] = 3
+        self.conf["bmc"]["main_channel"] = 3
 
         node = model.CNode(self.conf)
         node.init()
@@ -278,7 +278,7 @@ class test_bmc_configuration_change(unittest.TestCase):
 
         cmd = 'ipmitool -H 127.0.0.1 -U admin -P admin -I lanplus lan print {}'
 
-        assert run_command(cmd.format(self.conf["bmc"]["channel"]),
+        assert run_command(cmd.format(self.conf["bmc"]["main_channel"]),
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)[0] == 0
 
