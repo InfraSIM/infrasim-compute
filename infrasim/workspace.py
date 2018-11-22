@@ -64,6 +64,7 @@ class Workspace(object):
             script/                  # script folder
                 chassiscontrol
                 lancontrol
+                setbootcmd
                 startcmd
                 stopcmd
                 resetcmd

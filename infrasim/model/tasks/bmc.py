@@ -215,7 +215,7 @@ class CBMC(Task):
                     raise ArgsNotCorrect("[BMC] {} is not valid.({})".format(host_ip, e))
 
     def __render_template(self):
-        for target in ["startcmd", "stopcmd", "resetcmd"]:
+        for target in ["startcmd", "setbootcmd", "stopcmd", "resetcmd"]:
             if not has_option(self.__bmc, target):
                 src = os.path.join(config.infrasim_template, target)
                 dst = os.path.join(self.get_workspace(), "scripts", target)
@@ -241,6 +241,8 @@ class CBMC(Task):
                                         "scripts/stopcmd")
             path_resetcmd = os.path.join(self.get_workspace(),
                                          "scripts/resetcmd")
+            path_setbootcmd = os.path.join(self.get_workspace(),
+                                         "scripts/setbootcmd")
             path_bootdev = os.path.join(self.get_workspace(), "bootdev")
             path_qemu_pid = os.path.join(self.get_workspace(),
                                          ".{}-node.pid".format(self.__node_name))
@@ -253,6 +255,7 @@ class CBMC(Task):
             dst_text = template.render(startcmd=path_startcmd,
                                        stopcmd=path_stopcmd,
                                        resetcmd=path_resetcmd,
+                                       setbootcmd=path_setbootcmd,
                                        qemu_pid_file=path_qemu_pid,
                                        bootdev=path_bootdev)
             with open(dst, "w") as f:
