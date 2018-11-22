@@ -43,6 +43,7 @@ class CBMC(Task):
         self.__password = None
         self.__emu_file = None
         self.__config_file = ""
+        self.__nvram_file = None
         self.__bin = "ipmi_sim"
         self.__port_iol = None
         self.__ipmi_listen_range = "::"
@@ -112,7 +113,7 @@ class CBMC(Task):
         if not os.path.isfile(self.__emu_file):
             raise ArgsNotCorrect("[BMC] Target emulation file doesn't exist: {}".
                                  format(self.__emu_file))
-        # check script exits
+        # check script exists
         if not os.path.exists(self.__lancontrol_script):
             raise ArgsNotCorrect("[BMC] Lan control script {} doesn\'t exist".
                                  format(self.__lancontrol_script))
@@ -129,6 +130,7 @@ class CBMC(Task):
             raise ArgsNotCorrect("[BMC] workspace  {} doesn\'t exist".
                                  format(self.__workspace))
 
+        # check if main channel is included in all lan channels
         if self.__main_channel not in self.__channels:
             raise ArgsNotCorrect("[BMC] main channel {} should be included in channels {}".
                                  format(self.__main_channel, self.__channels))
@@ -401,6 +403,12 @@ class CBMC(Task):
             self.write_bmc_config(os.path.join(self.get_workspace(), "etc/vbmc.conf"))
         else:
             raise ArgsNotCorrect("[BMC] Couldn't find vbmc.conf")
+
+        if 'nvram_file' in self.__bmc:
+            self.__nvram_file = self.__bmc['nvram_file']
+            if os.path.exists(self.__nvram_file):
+                shutil.copy(self.__nvram_file,
+                            os.path.join(self.get_workspace(), "data/nvram.bin"))
 
         if 'shm_key' in self.__bmc:
             self.__shm_key = self.__bmc['shm_key']

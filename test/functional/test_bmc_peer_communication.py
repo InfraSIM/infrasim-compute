@@ -83,6 +83,7 @@ def teardown_module():
     os.environ['PATH'] = old_path
 
 
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_bmc_communication(unittest.TestCase):
 
     @classmethod
