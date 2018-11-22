@@ -130,10 +130,6 @@ class CBMC(Task):
             raise ArgsNotCorrect("[BMC] workspace  {} doesn\'t exist".
                                  format(self.__workspace))
 
-        # check nvram binary file exists if gem_enable
-        if self.__gem_enable and not os.path.isfile(os.path.join(self.get_workspace(), "data/nvram.bin")):
-            raise ArgsNotCorrect("[BMC] gem is enable but nvram doesn\'t exist")
-
         # check if main channel is included in all lan channels
         if self.__main_channel not in self.__channels:
             raise ArgsNotCorrect("[BMC] main channel {} should be included in channels {}".
