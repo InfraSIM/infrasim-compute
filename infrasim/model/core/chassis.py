@@ -101,6 +101,8 @@ class CChassis(object):
 
         self.__render_chassis_info()
         self.__update_node_cfg()
+
+        self.process_by_node_names("precheck", *args)
         self.process_by_node_names("start", *args)
 
     def stop(self, *args):

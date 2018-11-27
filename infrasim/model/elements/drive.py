@@ -7,6 +7,8 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 
 import os
+import json
+import math
 from infrasim import ArgsNotCorrect
 from infrasim import run_command
 from infrasim import config
@@ -78,6 +80,15 @@ class CBaseDrive(CElement):
         if self.__sector_size in [520, 4160] and self.__format != "raw":
             raise ArgsNotCorrect("[CBaseDrive] sector_size {} is only supported 'raw' format"
                                  .format(self.__sector_size))
+
+        if os.path.exists(self._drive_info.get("file", "")) and self._drive_info.get("size"):
+            cmd = "qemu-img info {} --output json".format(self._drive_info.get("file"))
+            img_size = json.loads(run_command(cmd)[1])["virtual-size"]
+            if img_size != math.ceil(self._drive_info.get("size") * 1024 * 1024 * 1024 / 512) * 512:
+                print "\033[93mWarning: Existing drive image size {}GB is " \
+                      "different from the size {}GB defined in yaml.\033[0m" \
+                      .format((img_size >> 30), self._drive_info.get("size"))
+            self.logger.warning("Existing drive image size is different from the size defined in yaml.")
 
     @property
     def serial(self):
