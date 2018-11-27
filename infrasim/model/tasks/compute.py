@@ -482,6 +482,6 @@ class CCompute(Task, CElement):
         else:
             super(CCompute, self).terminate()
 
-    def bind_cpus(self):
+    def post_run(self):
         if self.__cpu_binding_obj:
             self.__cpu_binding_obj.bind_cpus()

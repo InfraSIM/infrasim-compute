@@ -6,6 +6,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 # -*- coding: utf-8 -*-
 
 import re
+import copy
 import multiprocessing
 from infrasim import run_command, has_option
 from infrasim.model.core.element import CElement
@@ -18,6 +19,8 @@ class CCPUBinding(CElement):
     def __init__(self, cpu_binding):
         super(CCPUBinding, self).__init__()
         self.__cpu_binding = cpu_binding
+        # internal dict to store information after processed
+        self.__cpu_binding_info = copy.deepcopy(self.__cpu_binding)
         self.__bind_cpus = []
         self.__monitor = None
         self.__main_loop = None
@@ -30,20 +33,19 @@ class CCPUBinding(CElement):
         self.__vcpu = self.__cpu_binding.get("vcpu", {})
         # self.__io_thread = self.__cpu_binding.get("io_thread", {})
 
-        self.__cpu_binding["main_loop"]["cores"] = self.get_cores(self.__main_loop.get("cores"))
-        self.__cpu_binding["main_loop"]["threads"] = [-1]
-        self.__cpu_binding["main_loop"]["policy"] = self.__main_loop.get("policy", "mono")
+        self.__cpu_binding_info["main_loop"]["cores"] = self.get_cores(self.__main_loop.get("cores"))
+        self.__cpu_binding_info["main_loop"]["threads"] = [-1]
+        self.__cpu_binding_info["main_loop"]["policy"] = self.__main_loop.get("policy", "mono")
 
-        self.__cpu_binding["vcpu"]["cores"] = self.get_cores(self.__vcpu.get("cores"))
-        self.__cpu_binding["vcpu"]["threads"] = [-1] * self.vcpu_quantities
-        self.__cpu_binding["vcpu"]["policy"] = self.__vcpu.get("policy", "mono")
+        self.__cpu_binding_info["vcpu"]["cores"] = self.get_cores(self.__vcpu.get("cores"))
+        self.__cpu_binding_info["vcpu"]["threads"] = [-1] * self.vcpu_quantities
+        self.__cpu_binding_info["vcpu"]["policy"] = self.__vcpu.get("policy", "mono")
 
         # self.__cpu_binding["io_thread"]["cores"] = self.get_cores(self.__io_thread.get("cores"))
 
     def precheck(self):
-
         # precheck according to different policy
-        for key, value in self.__cpu_binding.items():
+        for key, value in self.__cpu_binding_info.items():
             self.precheck_policy(key, value["threads"], value["cores"], value.get("policy"))
 
         # check bind cpu count not exceeds physical cpu count
@@ -107,7 +109,7 @@ class CCPUBinding(CElement):
                       " not binding {}...".format(key))
                 self.logger.warning("[CCPUBinding] Number of binding cpus should be equal to number of threads,"
                                     " not binding {}...".format(key))
-                del self.__cpu_binding[key]
+                del self.__cpu_binding_info[key]
                 return
             self.__bind_cpus.extend(cores)
             # check if physical cpus are over used
@@ -117,7 +119,7 @@ class CCPUBinding(CElement):
                       " not align to the policy {}, not binding...".format(dup, key, policy))
                 self.logger.warning("[CCPUBinding] Physical cores {} in {} are assigned to multiple threads,"
                                     " not align to the policy {}, not binding...".format(dup, key, policy))
-                del self.__cpu_binding[key]
+                del self.__cpu_binding_info[key]
 
         else:
             print("\033[93mWarning:\033[0m Binding policy {} is not supported yet, not binding {}...".format(
@@ -210,12 +212,12 @@ class CCPUBinding(CElement):
     def bind_cpus(self):
         if not self.__bind_cpus:
             return
-        if has_option(self.__cpu_binding, "main_loop"):
-            self.__cpu_binding["main_loop"]["threads"] = [self.owner.get_task_pid()]
-        if has_option(self.__cpu_binding, "vcpu"):
-            self.__cpu_binding["vcpu"]["threads"] = self.get_thread_id()
+        if has_option(self.__cpu_binding_info, "main_loop"):
+            self.__cpu_binding_info["main_loop"]["threads"] = [self.owner.get_task_pid()]
+        if has_option(self.__cpu_binding_info, "vcpu"):
+            self.__cpu_binding_info["vcpu"]["threads"] = self.get_thread_id()
 
-        for _, value in self.__cpu_binding.items():
+        for _, value in self.__cpu_binding_info.items():
             self.bind_cpus_with_policy(value["threads"], value["cores"], value.get("policy"))
 
         self.run_vm()

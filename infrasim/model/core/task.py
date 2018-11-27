@@ -73,9 +73,6 @@ class Task(object):
     def set_log_path(self, log_path):
         self.__log_path = log_path
 
-    def bind_cpus_with_policy(self):
-        pass
-
     @property
     def logger(self):
         return self.__logger
@@ -143,7 +140,7 @@ class Task(object):
                     self.__print_task(self.get_task_pid(), self.__task_name, "running")
                     self.__logger.info("[ {:<6} ] {} is running".format(self.get_task_pid(),
                                                                         self.__task_name))
-                    self.bind_cpus()
+                    self.post_run()
                 else:
                     self.__print_task('  -  ', self.__task_name, "not running", icolors.RED)
             return
@@ -247,5 +244,5 @@ class Task(object):
 
         return proc.pid
 
-    def bind_cpus(self):
+    def post_run():
         pass
