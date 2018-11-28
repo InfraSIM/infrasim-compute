@@ -140,6 +140,7 @@ class Task(object):
                     self.__print_task(self.get_task_pid(), self.__task_name, "running")
                     self.__logger.info("[ {:<6} ] {} is running".format(self.get_task_pid(),
                                                                         self.__task_name))
+                    self.post_run()
                 else:
                     self.__print_task('  -  ', self.__task_name, "not running", icolors.RED)
             return
@@ -242,3 +243,6 @@ class Task(object):
             raise CommandRunFailed(command, errout)
 
         return proc.pid
+
+    def post_run():
+        pass

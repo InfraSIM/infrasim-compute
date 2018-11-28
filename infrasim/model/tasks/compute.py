@@ -34,6 +34,7 @@ from infrasim.model.elements.ntb import CNTB
 from infrasim.model.elements.dma_engine import CDMAEngine
 from infrasim.model.elements.pci_pcu import CPCIPCU
 from infrasim.model.elements.pci_imc import CPCIIMC
+from infrasim.model.elements.cpu_binding import CCPUBinding
 
 
 class CCompute(Task, CElement):
@@ -76,6 +77,8 @@ class CCompute(Task, CElement):
         self.__shm_key = None
         self.__extra_device = None
         self.__uuid = None
+
+        self.__cpu_binding_obj = None
 
     def enable_sol(self, enabled):
         self.__sol_enabled = enabled
@@ -307,6 +310,14 @@ class CCompute(Task, CElement):
             self.__monitor.logger = self.logger
             self.__element_list.append(self.__monitor)
 
+        if has_option(self.__compute, "cpu_binding"):
+            self.__cpu_binding_obj = CCPUBinding(self.__compute["cpu_binding"])
+            self.__cpu_binding_obj.monitor = self.__monitor
+            self.__cpu_binding_obj.logger = self.logger
+            self.__cpu_binding_obj.owner = self
+            self.__cpu_binding_obj.vcpu_quantities = self.__compute["cpu"].get("quantities", 0)
+            self.__element_list.append(self.__cpu_binding_obj)
+
         # create cdrom if exits
         if cdrom_info:
             cdrom_obj = IDECdrom(cdrom_info)
@@ -470,3 +481,7 @@ class CCompute(Task, CElement):
             time.sleep(1)
         else:
             super(CCompute, self).terminate()
+
+    def post_run(self):
+        if self.__cpu_binding_obj:
+            self.__cpu_binding_obj.bind_cpus()
