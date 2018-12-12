@@ -80,6 +80,10 @@ def teardown_module():
     topo = Topology(ivn_cfg_file)
     topo.delete()
     os.unlink(ivn_cfg_file)
+    if os.path.exists("/tmp/sas_0.img"):
+        os.unlink("/tmp/sas_0.img")
+    if os.path.exists("/tmp/disk-nvme-3.img"):
+        os.unlink("/tmp/disk-nvme-3.img")
 
 
 def saved_config_file():
@@ -256,3 +260,22 @@ class test_chassis(unittest.TestCase):
 
         self.assertNotIn("100% packet loss", line_a, line_a)
         self.assertNotIn("100% packet loss", line_b, line_b)
+
+    def test_scsi_write_to_disk(self):
+        global ssh1
+        global ssh2
+        drive_a = [x.split(" ")[-1] for x in helper.ssh_exec(ssh1, "lsscsi -g").strip().split("\n") if "B29C" in x]
+        # write special pattern to drive
+        data = "\\xff\\x01\\x02\\x03\\x04\\x05\\x06\\x07"
+        for _ in range(0, 504 / 8):
+            data = data + "\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00"
+        data = data + "\\x01\\x02\\x03\\x04\\x05\\x06\\x07\\xff"
+        # write 520 bytes to 2nd sector.
+        cmd = "echo -ne '{0}' | sg_dd of={1} bs=520 seek=1".format(data, drive_a[0])
+        helper.ssh_exec(ssh1, cmd)
+        drive_b = [x.split(" ")[-1] for x in helper.ssh_exec(ssh2, "lsscsi -g").strip().split("\n") if "B29C" in x]
+        cmd = "sg_dd if={} bs=520 count=3 | hd".format(drive_b[0])
+        lines = run_cmd(cmd, nodes_ip[1])
+
+        self.assertIn("00000200  00 00 00 00 00 00 00 00  ff 01 02 03 04 05 06 07", lines, "sector start error")
+        self.assertIn("00000400  00 00 00 00 00 00 00 00  01 02 03 04 05 06 07 ff", lines, "sector end error")

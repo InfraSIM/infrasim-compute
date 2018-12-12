@@ -267,7 +267,8 @@ class ChassisConfig(object):
                     "wwn": 5764824129059367281,
                     "rotation": 1,
                     "channel": 0,
-                    "size": 2
+                    "size": 2,
+                    "sector_size": 520
                 },
             ]
         }
