@@ -409,7 +409,8 @@ class CBMC(Task):
 
         if 'nvram_file' in self.__bmc:
             self.__nvram_file = self.__bmc['nvram_file']
-            if os.path.exists(self.__nvram_file):
+            path_nvram_file = os.path.join(self.get_workspace(), "data/nvram.bin")
+            if os.path.exists(self.__nvram_file) and not os.path.exists(path_nvram_file):
                 shutil.copy(self.__nvram_file,
                             os.path.join(self.get_workspace(), "data/nvram.bin"))
 
