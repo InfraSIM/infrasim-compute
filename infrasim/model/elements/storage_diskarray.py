@@ -248,7 +248,7 @@ class DiskArrayController(CElement):
                 ses["ep_atta_sas_addr"] = get_port_atta_wwn("ep") or get_port_atta_wwn(1)
                 ses["channel"] = 0
                 ses["lun"] = 0
-                ses["serial"] = ses["wwn"]
+                ses["serial"] = ses.get("serial") or ses.get("wwn")
                 ses["ses_buffer_file"] = ses.pop("buffer_data", "")
                 ses["physical_port"] = 0
 
