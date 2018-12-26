@@ -385,6 +385,8 @@ class CCompute(Task, CElement):
         if self.__enable_kvm:
             self.add_option("--enable-kvm")
 
+        self.add_option("-uuid {}".format(self.__uuid))
+
         if self.__smbios:
             self.add_option("-smbios file={}".format(self.__smbios))
 
@@ -443,8 +445,6 @@ class CCompute(Task, CElement):
             serial_obj.precheck()
             serial_obj.handle_parms()
             self.add_option(serial_obj.get_option())
-
-        self.add_option("-uuid {}".format(self.__uuid))
 
         if self.__kernel and self.__initrd:
             self.add_option("-kernel {} -initrd {}".format(self.__kernel, self.__initrd))
