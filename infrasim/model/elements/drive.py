@@ -88,7 +88,8 @@ class CBaseDrive(CElement):
                 print "\033[93mWarning: Existing drive image size {}GB is " \
                       "different from the size {}GB defined in yaml.\033[0m" \
                       .format((img_size >> 30), self._drive_info.get("size"))
-            self.logger.warning("Existing drive image size is different from the size defined in yaml.")
+                self.logger.warning("Existing drive image size %dGB is different from the size %dGB defined in yaml.",
+                                    (img_size >> 30), math.ceil(self._drive_info.get("size")))
 
     @property
     def serial(self):
