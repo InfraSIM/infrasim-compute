@@ -19,6 +19,7 @@ type: {{ node_type }}
 compute:
 
     uuid: {{ uuid }}
+    serial_number: {{ serial_number }}
     boot:
         splash: {{ splash_path }}
     cpu:

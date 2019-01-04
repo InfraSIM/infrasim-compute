@@ -35,6 +35,7 @@ from infrasim.model.elements.dma_engine import CDMAEngine
 from infrasim.model.elements.pci_pcu import CPCIPCU
 from infrasim.model.elements.pci_imc import CPCIIMC
 from infrasim.model.elements.cpu_binding import CCPUBinding
+from infrasim.chassis.smbios import SMBios
 
 
 class CCompute(Task, CElement):
@@ -77,6 +78,7 @@ class CCompute(Task, CElement):
         self.__shm_key = None
         self.__extra_device = None
         self.__uuid = None
+        self.__serial_number = None
 
         self.__cpu_binding_obj = None
 
@@ -106,6 +108,12 @@ class CCompute(Task, CElement):
 
     def get_uuid(self):
         return self.__uuid
+
+    def set_serial_number(self, sn):
+        self.__serial_number = sn
+
+    def get_serial_number(self):
+        return self.__serial_number
 
     @run_in_namespace
     def precheck(self):
@@ -175,6 +183,12 @@ class CCompute(Task, CElement):
         else:
             self.__smbios = os.path.join(config.infrasim_data,
                                          "{0}/{0}_smbios.bin".format(self.__vendor_type))
+
+        if 'serial_number' in self.__compute and os.path.exists(self.__smbios):
+            self.__serial_number = self.__compute['serial_number']
+            bios = SMBios(self.__smbios)
+            bios.ModifyType1SystemInformation(self.__serial_number)
+            bios.save(self.__smbios)
 
         self.__bios = self.__compute.get('bios')
         if 'boot' in self.__compute:

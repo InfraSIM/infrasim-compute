@@ -19,6 +19,7 @@ from .config import infrasim_default_config
 from infrasim.workspace import Workspace
 
 mac_base = "00:60:16:"
+pre_serial_number = "infrasim"
 logger_env = infrasim_log.get_logger(LoggerType.environment.value)
 
 
@@ -53,6 +54,9 @@ def init_infrasim_conf(node_type):
     # Prepare default UUID
     uuid_num = str(uuid.uuid4())
 
+    # Prepare default serial number
+    sn = pre_serial_number + ''.join(random.SystemRandom().choice(string.digits) for _ in range(3))
+
     # create_infrasim_directories
     if not os.path.exists(config.infrasim_home):
         os.mkdir(config.infrasim_home)
@@ -75,7 +79,7 @@ def init_infrasim_conf(node_type):
         infrasim_conf = f.read()
     template = jinja2.Template(infrasim_conf)
     infrasim_conf = template.render(node_type=node_type, disks=disks, networks=networks,
-                                    splash_path=splash_path, uuid=uuid_num)
+                                    splash_path=splash_path, uuid=uuid_num, serial_number=sn)
     with open(config.infrasim_default_config, "w") as f:
         f.write(infrasim_conf)
 
