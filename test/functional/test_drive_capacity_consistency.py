@@ -11,9 +11,11 @@ from infrasim import helper
 from test import fixtures
 from infrasim.helper import UnixSocket
 from infrasim import sshclient
+from infrasim.config import infrasim_home
 
 old_path = os.environ.get('PATH')
 new_path = '{}/bin:{}'.format(os.environ.get('PYTHONPATH'), old_path)
+drive_test_image = os.path.join(infrasim_home, "test_drive_capacity.img")
 conf = {}
 
 
@@ -60,7 +62,7 @@ def start_node():
                     "scsi-id": 1,
                     "slot_number": 0,
                     "sector_size": 520,
-                    "file": "/home/infrasim/.infrasim/test_drive_capacity.img"
+                    "file": drive_test_image
                  }
             ]
         }]
@@ -97,7 +99,8 @@ class test_drive_capacity_consistency_1st(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        os.system("sudo rm /home/infrasim/.infrasim/test_drive_capacity.img")
+        cmd = "sudo rm {}".format(drive_test_image)
+        os.system(cmd)
         if conf:
             stop_node()
 
@@ -107,8 +110,10 @@ class test_drive_capacity_consistency_1st(unittest.TestCase):
         s = UnixSocket(path)
         s.connect()
         s.recv()
+
         # 1. expect: yml img zise == host disk size
-        r = os.popen("qemu-img info /home/infrasim/.infrasim/test_drive_capacity.img")
+        cmd = "qemu-img info {}".format(drive_test_image)
+        r = os.popen(cmd)
         img_info = r.read()
         r.close()
         self.assertIn('virtual size: 1.0G', img_info, "Existing host drive image \
@@ -136,12 +141,14 @@ class test_drive_capacity_consistency_2nd(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        os.popen("sudo qemu-img resize -f raw /home/infrasim/.infrasim/test_drive_capacity.img 40G")
+        cmd = "sudo qemu-img resize -f raw {} 40G".format(drive_test_image)
+        os.popen(cmd)
         start_node()
 
     @classmethod
     def tearDownClass(cls):
-        os.system("sudo rm /home/infrasim/.infrasim/test_drive_capacity.img")
+        cmd = "sudo rm {}".format(drive_test_image)
+        os.system(cmd)
         if conf:
             stop_node()
 
