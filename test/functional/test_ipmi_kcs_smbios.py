@@ -161,9 +161,9 @@ def recv_ssh_channel(channel, max_buff_size):
     # Make sure remote process succeeded
     while not channel.exit_status_ready():
         pass
-
-    # Assume Transport has enough buffer to hold receiving data
-    assert channel.recv_exit_status() == 0
+    # dell_r740xd :ipmitool fru list return code=1 not error,but unknown header fru
+    if conf["type"] != "dell_r740xd":
+        assert channel.recv_exit_status() == 0
 
     while not channel.recv_ready():
         pass
@@ -433,6 +433,42 @@ class test_dell_r630(unittest.TestCase):
 
 
 @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
+class test_dell_r640(unittest.TestCase):
+
+    @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
+    def setUpClass(cls):
+        start_node(node_type="dell_r640")
+
+    @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
+    def tearDownClass(cls):
+        stop_node()
+
+    def test_qemu_local_fru(self):
+        verify_qemu_local_fru(expect="CNIVC007CT0227")
+
+    def test_qemu_local_lan(self):
+        verify_qemu_local_lan(expect="Auth Type")
+
+    def test_qemu_local_sensor(self):
+        verify_qemu_local_sensor(expect="Fan1")
+
+    def test_qemu_local_sdr(self):
+        verify_qemu_local_sdr(expect="Fan1")
+
+    def test_qemu_local_sel(self):
+        verify_qemu_local_sel(expect="Log area reset/cleared")
+
+    def test_qemu_local_user(self):
+        verify_qemu_local_user(expect="ADMINISTRATOR")
+
+    def test_smbios_data(self):
+        verify_smbios_data(expect_mfg="Manufacturer: Dell Inc",
+                            expect_product_name="Product Name: PowerEdge R640")
+
+
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
 class test_dell_r730(unittest.TestCase):
 
     @classmethod
@@ -499,3 +535,39 @@ class test_dell_r730xd(unittest.TestCase):
     def test_smbios_data(self):
         verify_smbios_data(expect_mfg="Manufacturer:",
                            expect_product_name="Product Name: R730 Base")
+
+
+@unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
+class test_dell_r740xd(unittest.TestCase):
+
+    @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
+    def setUpClass(cls):
+        start_node(node_type="dell_r740xd")
+
+    @classmethod
+    @unittest.skipIf(os.environ.get('SKIP_TESTS'), "SKIP Test for PR Triggered Tests")
+    def tearDownClass(cls):
+        stop_node()
+
+    def test_qemu_local_fru(self):
+        verify_qemu_local_fru(expect="CNIVC007B80015")
+
+    def test_qemu_local_lan(self):
+        verify_qemu_local_lan(expect="Auth Type")
+
+    def test_qemu_local_sensor(self):
+        verify_qemu_local_sensor(expect="Fan1  ")
+
+    def test_qemu_local_sdr(self):
+        verify_qemu_local_sdr(expect="Fan1  ")
+
+    def test_qemu_local_sel(self):
+        verify_qemu_local_sel(expect="Log area reset/cleared")
+
+    def test_qemu_local_user(self):
+        verify_qemu_local_user(expect="ADMINISTRATOR")
+
+    def test_smbios_data(self):
+        verify_smbios_data(expect_mfg="Manufacturer: Dell Inc.",
+                           expect_product_name="Product Name: PowerEdge R740xd")
