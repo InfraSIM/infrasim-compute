@@ -31,6 +31,10 @@ class qemu_functions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pass
+        # with open(config.infrasim_default_config, "r") as f_yml:
+        #     node_info = yaml.load(f_yml)
+        # cls.node = model.CNode(node_info)
+        # cls.node.init()
 
     @classmethod
     def tearDownClass(cls):
@@ -128,6 +132,7 @@ class qemu_functions(unittest.TestCase):
         compute_info = node_info["compute"]
         compute_info["boot"] = {"menu": "on"}
         compute = model.CCompute(compute_info)
+        compute.set_type(node_info["type"])
         compute.set_workspace(
             "{}/{}".format(config.infrasim_home, node_info["name"]))
         compute.init()
@@ -549,10 +554,10 @@ class qemu_functions(unittest.TestCase):
             compute_info = yaml.load(f_yml)["compute"]
 
         compute = model.CCompute(compute_info)
-        compute.set_type("s2600kp")
+        compute.set_type("s2600tp")
         compute.init()
         assert compute.get_smbios() == \
-            "{}/s2600kp/s2600kp_smbios.bin".format(config.infrasim_data)
+            "{}/s2600tp/s2600tp_smbios.bin".format(config.infrasim_data)
 
     def test_set_smbios_with_type_and_workspace(self):
         with open(config.infrasim_default_config, "r") as f_yml:
@@ -824,11 +829,13 @@ class qemu_functions(unittest.TestCase):
             self.skipTest("OS disable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
             node_info = yaml.load(f_yml)
+        print "node_info: ", node_info
         compute_info = node_info["compute"]
         compute_info["kvm_enabled"] = True
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
         compute = model.CCompute(compute_info)
         compute.set_workspace(workspace)
+        compute.set_type(node_info["type"])
         compute.init()
         compute.handle_parms()
         assert "--enable-kvm" in compute.get_commandline()
@@ -843,6 +850,7 @@ class qemu_functions(unittest.TestCase):
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
         compute = model.CCompute(compute_info)
         compute.set_workspace(workspace)
+        compute.set_type(node_info["type"])
         compute.init()
         compute.handle_parms()
         assert "--enable-kvm" not in compute.get_commandline()
@@ -857,6 +865,7 @@ class qemu_functions(unittest.TestCase):
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
         compute = model.CCompute(compute_info)
         compute.set_workspace(workspace)
+        compute.set_type(node_info["type"])
         compute.init()
         compute.handle_parms()
         assert "--enable-kvm" not in compute.get_commandline()
@@ -871,6 +880,7 @@ class qemu_functions(unittest.TestCase):
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
         compute = model.CCompute(compute_info)
         compute.set_workspace(workspace)
+        compute.set_type(node_info["type"])
         compute.init()
         compute.handle_parms()
         assert "--enable-kvm" not in compute.get_commandline()
@@ -885,6 +895,7 @@ class qemu_functions(unittest.TestCase):
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
         compute = model.CCompute(compute_info)
         compute.set_workspace(workspace)
+        compute.set_type(node_info["type"])
         compute.init()
         compute.handle_parms()
         assert "--enable-kvm" in compute.get_commandline()
@@ -899,6 +910,7 @@ class qemu_functions(unittest.TestCase):
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
         compute = model.CCompute(compute_info)
         compute.set_workspace(workspace)
+        compute.set_type(node_info["type"])
         compute.init()
         compute.handle_parms()
         assert "--enable-kvm" not in compute.get_commandline()

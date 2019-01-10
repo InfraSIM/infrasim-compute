@@ -9,6 +9,8 @@ import os
 import shutil
 import uuid
 import time
+import random
+import string
 
 from infrasim import ArgsNotCorrect
 from infrasim import config, helper
@@ -20,6 +22,8 @@ from infrasim.model.tasks.monitor import CMonitor
 from infrasim.model.tasks.racadm import CRacadm
 from infrasim.model.tasks.socat import CSocat
 from infrasim.workspace import Workspace
+
+pre_serial_number = "infrasim"
 
 
 class CNode(object):
@@ -95,6 +99,12 @@ class CNode(object):
             uuid_num = str(uuid.uuid4())
         self.__node["compute"]["uuid"] = uuid_num
 
+        if 'serial_number' in self.__node["compute"]:
+            serial_number = self.__node["compute"].get("serial_number")
+        else:
+            serial_number = pre_serial_number + ''.join(random.SystemRandom().choice(string.digits) for _ in range(3))
+        self.__node["compute"]["serial_number"] = serial_number
+
         # If user specify "network_mode" as "bridge" but without MAC
         # address, generate one for this network.
         for network in self.__node['compute']['networks']:
@@ -138,6 +148,7 @@ class CNode(object):
         compute_obj.enable_sol(self.__sol_enabled)
         compute_obj.set_priority(2)
         compute_obj.set_uuid(uuid_num)
+        compute_obj.set_serial_number(self.__node["compute"]["serial_number"])
         compute_obj.set_task_name("{}-node".format(self.__node_name))
         compute_obj.set_log_path(os.path.join(config.infrasim_log_dir, self.__node_name, "qemu.log"))
         self.__tasks_list.append(compute_obj)
