@@ -27,10 +27,6 @@ def teardown_module():
 
 
 def start_node():
-    """
-    create two drive for comparasion.
-    First drive has additional page, second doesn't
-    """
     global conf
     global ssh
 
