@@ -144,7 +144,7 @@ class CChassis(object):
                 return dst
             bios_file = get_file(node["compute"].get("smbios"), "{}_smbios.bin".format(node["type"]))
             bios = SMBios(bios_file)
-            bios.ModifyType3ChassisInformation(data["sn"])
+            bios.ModifyType3ChassisInformation({'sn': data["sn"]})
             # bios.ModifyType2BaseboardInformation("")
             bios.save(bios_file)
 
