@@ -213,6 +213,8 @@ class SMBios(object):
         string_offset = struct.calcsize(board_info_fmt) + info[12] * 2
         # split string content
         string_values = board_info[string_offset:].split('\0')
+        # Modify SN
+        info[6] = self.__update_string(string_values, info[6], info_map.get('sn'))
         # Modify string of Location in Chassis
         location_index = info[9]
         info[9] = self.__update_string(string_values, location_index, info_map.get('location'))
