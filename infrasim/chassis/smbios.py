@@ -325,47 +325,51 @@ class SMBios(object):
             # don't modify memory device array.
             return
 
-        fields = [
-            "type",
-            "length",
-            "handle",
-            "physical memory array handle",
-            "memory error information handle",
-            "total width",
-            "data width",
-            "size",
-            "form factor",
-            "device set",
-            "device locator",
-            "ban locator",
-            "memory type",
-            "type detail",
-            "speed",
-            "manufactuer",
-            "sn",
-            "asset tag",
-            "part number",
-            "attributes",
-            "extended size",
-            "configured memory clock speed",
-            "min volt",
-            "max volt",
-            "config volt"]
+        class mem_dev_struct(list):
+            fields = [
+                "type",
+                "length",
+                "handle",
+                "physical memory array handle",
+                "memory error information handle",
+                "total width",
+                "data width",
+                "size",
+                "form factor",
+                "device set",
+                "device locator",
+                "ban locator",
+                "memory type",
+                "type detail",
+                "speed",
+                "manufactuer",
+                "sn",
+                "asset tag",
+                "part number",
+                "attributes",
+                "extended size",
+                "configured memory clock speed",
+                "min volt",
+                "max volt",
+                "config volt"]
 
-        def I(t):
-            return fields.index(t)
+            def __setitem__(self, key, value):
+                super(mem_dev_struct, self).__setitem__(self.fields.index(key), value)
+
+            def __getitem__(self, key):
+                return super(mem_dev_struct, self).__getitem__(self.fields.index(key))
 
         dim_position_reg = re.compile(r'DIMM (\d+)')
 
         for idx in self.__type17_index_list:
             mem_info = self.__dict[idx]
-            info = list(struct.unpack_from(mem_info_fmt, mem_info))
+            info = mem_dev_struct(struct.unpack_from(mem_info_fmt, mem_info))
             offset = struct.calcsize(mem_info_fmt)
             string_values = mem_info[offset:].split('\0')
 
             # found memory device by device locator
             # since the memory device array is not ordered.
-            dev_locator = string_values[info[I("device locator") - 1]]
+            dev_locator = string_values[info["device locator"] - 1]
             m = dim_position_reg.match(dev_locator)
             if m:
                 position = int(m.group(1))
@@ -380,54 +384,54 @@ class SMBios(object):
 
             # modify memory device by dimm_info
             if dimm_info.get('size', 0) == 0:
-                info[I("total width")] = 0
-                info[I("data width")] = 0
-                info[I("size")] = 0
-                info[I("form factor")] = 2
-                info[I("device set")] = 0
-                info[I("device locator")] = 1
-                info[I("ban locator")] = 2
-                info[I("memory type")] = 2
-                info[I("type detail")] = 0
-                info[I("speed")] = 0
-                info[I("attributes")] = 0
-                info[I("extended size")] = 0
-                info[I("configured memory clock speed")] = 0
+                info["total width"] = 0
+                info["data width"] = 0
+                info["size"] = 0
+                info["form factor"] = 2
+                info["device set"] = 0
+                info["device locator"] = 1
+                info["ban locator"] = 2
+                info["memory type"] = 2
+                info["type detail"] = 0
+                info["speed"] = 0
+                info["attributes"] = 0
+                info["extended size"] = 0
+                info["configured memory clock speed"] = 0
 
-                info[I("manufactuer")] = self.__update_string(string_values, info[I("manufactuer")], "NO DIMM")
-                info[I("sn")] = self.__update_string(string_values, info[I("sn")], "NO DIMM")
-                info[I("asset tag")] = self.__update_string(string_values, info[I("asset tag")], "NO DIMM")
-                info[I("part number")] = self.__update_string(string_values, info[I("part number")], "NO DIMM")
+                info["manufactuer"] = self.__update_string(string_values, info["manufactuer"], "NO DIMM")
+                info["sn"] = self.__update_string(string_values, info["sn"], "NO DIMM")
+                info["asset tag"] = self.__update_string(string_values, info["asset tag"], "NO DIMM")
+                info["part number"] = self.__update_string(string_values, info["part number"], "NO DIMM")
             else:
-                info[I("total width")] = 72
-                info[I("data width")] = 64
+                info["total width"] = 72
+                info["data width"] = 64
                 size = dimm_info.get('size')
                 # according to spec,
                 # info['size'] & 0x8000 == 1, unit = KB.
                 # info['size'] & 0x8000 == 0, unit = MB.
                 if size < 1024 * 1024:
                     size = size / 1024
-                    info[I("size")] = 0x8000 + size
+                    info["size"] = 0x8000 + size
                 else:
                     size = size / 1024 / 1024
-                    info[I("size")] = size
-                info[I("form factor")] = 9
-                info[I("device set")] = 0
-                info[I("device locator")] = 1
-                info[I("ban locator")] = 2
-                info[I("memory type")] = 26
-                info[I("type detail")] = 128
-                info[I("speed")] = 2666
-                info[I("attributes")] = 2
-                info[I("extended size")] = 0
-                info[I("configured memory clock speed")] = 2666
-                info[I("manufactuer")] = self.__update_string(string_values, info[I("manufactuer")],
-                                                              dimm_info.get('manufactuer', 'Hynix'))
-                info[I("sn")] = self.__update_string(string_values, info[I("sn")], dimm_info.get('sn'))
-                info[I("asset tag")] = self.__update_string(string_values, info[I("asset tag")],
-                                                            dimm_info.get('asset_tag', string_values[0] + '_AssetTag'))
-                info[I("part number")] = self.__update_string(string_values, info[I("part number")],
-                                                              dimm_info.get('part_number', 'HMA82GR7AFR8N-VK'))
+                    info["size"] = size
+                info["form factor"] = 9
+                info["device set"] = 0
+                info["device locator"] = 1
+                info["ban locator"] = 2
+                info["memory type"] = 26
+                info["type detail"] = 128
+                info["speed"] = 2666
+                info["attributes"] = 2
+                info["extended size"] = 0
+                info["configured memory clock speed"] = 2666
+                info["manufactuer"] = self.__update_string(string_values, info["manufactuer"],
+                                                           dimm_info.get('manufactuer', 'Hynix'))
+                info["sn"] = self.__update_string(string_values, info["sn"], dimm_info.get('sn'))
+                info["asset tag"] = self.__update_string(string_values, info["asset tag"],
+                                                         dimm_info.get('asset_tag', string_values[0] + '_AssetTag'))
+                info["part number"] = self.__update_string(string_values, info["part number"],
+                                                           dimm_info.get('part_number', 'HMA82GR7AFR8N-VK'))
 
             # pack modified data and save it
             result = struct.pack(mem_info_fmt, *info)
