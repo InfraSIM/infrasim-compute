@@ -151,8 +151,9 @@ def infrasim_init(node_type="dell_r730", skip_installation=True, force=False,
 
     if not skip_installation:
         install_all_packages(force, entry)
-        config_library_link()
-        update_bridge_cfg()
+
+    config_library_link()
+    update_bridge_cfg()
 
     if config_file:
         if os.path.exists(config_file):

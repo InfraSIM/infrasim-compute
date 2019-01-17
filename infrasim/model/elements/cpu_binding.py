@@ -59,7 +59,7 @@ class CCPUBinding(CElement):
 
         # check physical cpus are isolated
         fd = open("/sys/devices/system/cpu/isolated", "r")
-        rst = fd.read()
+        rst = fd.read().strip(" \n")
         fd.close()
         cpu_list = self.get_cores(rst)
         result = all(elem in cpu_list for elem in self.__bind_cpus)
