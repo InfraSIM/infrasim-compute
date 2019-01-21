@@ -164,8 +164,9 @@ class SMBios(object):
         if value is None:
             return index
         if index <= 0:
-            string_values.append(value)
-            index = len(string_values)
+            index = len(string_values) - 2
+            string_values.insert(index, value)
+            index += 1
         else:
             string_values[index - 1] = value
         return index
@@ -186,7 +187,6 @@ class SMBios(object):
         offset = struct.calcsize(sys_info_fmt)
         # split content
         string_values = sys_info[offset:].split('\0')
-
         # modify SN string.
         info[6] = self.__update_string(string_values, info[6], info_map.get('sn'))
 
@@ -213,6 +213,7 @@ class SMBios(object):
         string_offset = struct.calcsize(board_info_fmt) + info[12] * 2
         # split string content
         string_values = board_info[string_offset:].split('\0')
+
         # Modify SN
         info[6] = self.__update_string(string_values, info[6], info_map.get('sn'))
         # Modify string of Location in Chassis
@@ -460,10 +461,8 @@ class SMBios(object):
         # update checksum
         entry[SMBios.Id_Checksum2] = 0
         entry[SMBios.Id_Checksum] = 0
-
-        entry[SMBios.Id_Checksum2] = self.__get_checksum(struct.pack(SMBios._fmt_entry, *entry)[0x10:0xf])
+        entry[SMBios.Id_Checksum2] = self.__get_checksum(struct.pack(SMBios._fmt_entry, *entry)[0x10:0x1f])
         entry[SMBios.Id_Checksum] = self.__get_checksum(struct.pack(SMBios._fmt_entry, *entry))
-
         # write file.
         with open(dst, "wb") as fo:
             fo.write(struct.pack(SMBios._fmt_entry, *entry))
