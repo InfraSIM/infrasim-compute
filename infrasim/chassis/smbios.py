@@ -5,6 +5,7 @@ Copyright @ 2018 Dell EMC Corporation All Rights Reserved
 '''
 import struct
 import re
+import uuid
 
 
 class SMBios(object):
@@ -191,8 +192,19 @@ class SMBios(object):
         info[6] = self.__update_string(string_values, info[6], info_map.get('sn'))
 
         # modify uuid
-        if 'uuid'in info_map and len(info_map['uuid']) == 16:
-            info[7] = info_map['uuid']
+        __uuid = info_map.get('uuid')
+        if __uuid:
+            __data = None
+            if isinstance(__uuid, str):
+                if len(__uuid) == 16:
+                    __data = __uuid
+                if len(__uuid) == 36:
+                    __uuid = uuid.UUID("{" + __uuid + "}")
+            if isinstance(__uuid, uuid.UUID):
+                __data = __uuid.bytes_le
+            if __data is None:
+                raise Exception("Unrecgnized uuid format in type1")
+            info[7] = __data
 
         # modify SKU number
         sku_index = info[9]
