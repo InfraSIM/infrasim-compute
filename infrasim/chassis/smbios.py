@@ -203,7 +203,7 @@ class SMBios(object):
             if isinstance(__uuid, uuid.UUID):
                 __data = __uuid.bytes_le
             if __data is None:
-                raise Exception("Unrecgnized uuid format in type1")
+                raise Exception("Unrecognized uuid format in type1")
             info[7] = __data
 
         # modify SKU number
