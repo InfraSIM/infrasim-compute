@@ -107,6 +107,12 @@ class SSH(object):
         return status, output
 
     def connected(self):
+        try:
+            self.ssh.exec_command('ls', timeout=5)
+            self.transport = self.ssh.get_transport()
+        except Exception as e:
+            print("connection lost :%s" % e)
+            self.transport = None
         return self.transport is not None
 
     def __fix_indata(self, indata):
