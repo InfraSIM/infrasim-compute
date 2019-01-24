@@ -153,11 +153,12 @@ class FruCmd(object):
         """
         if info is None:
             return
-        if self._data_area[FruCmd.CHASSIS_INFO_AREA] is None:
-            return
-        _data = self._data_area[FruCmd.CHASSIS_INFO_AREA]['data']
-        # decode table from byte 3
-        _ori_values = self.__decode_table(_data, 3)
+        if self._data_area[FruCmd.CHASSIS_INFO_AREA]:
+            _data = self._data_area[FruCmd.CHASSIS_INFO_AREA]['data']
+            # decode table from byte 3
+            _ori_values = self.__decode_table(_data, 3)
+        else:
+            _ori_values = [None, None]
 
         self.__change_str_value(_ori_values, 0, info.get('pn'))
         self.__change_str_value(_ori_values, 1, info.get('sn'))
@@ -293,9 +294,17 @@ class FruFile(object):
         '''
         change chassis info for all FRU contains chassis.
         '''
+        info = {"pn": pn, "sn": sn}
+        found = False
         for fru_cmd in self._fru_cmds:
             if fru_cmd.Decode() is True:
-                fru_cmd.ChangeChassisInfo({"pn": pn, "sn": sn})
+                fru_cmd.ChangeChassisInfo(info)
+                fru_cmd.UpdateData()
+                found = True
+        if found is False:
+            fru0_list = [x for x in self._fru_cmds if x.fru_id == 0]
+            for fru_cmd in fru0_list:
+                fru_cmd.ChangeChassisInfo(info)
                 fru_cmd.UpdateData()
 
     def ChangeFruInfo(self, info_dict):
