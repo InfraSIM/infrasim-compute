@@ -5,8 +5,6 @@ Copyright @ 2018 Dell EMC Corporation All Rights Reserved
 This file contains the function to modify Emulation data.
 Refer to Platform Management FRU Information Storage Definition V1.3
 '''
-import math
-import struct
 import re
 
 
@@ -21,49 +19,55 @@ class FruCmd(object):
     MULTIRECORD_AREA = 5
 
     def __init__(self):
-        self.type = 0
+        self.fru_id = 0
         self.len = 0
         self.data = []
-        self.file = None
-        self._data_area = [None]
+        self._data_area = [None, None]
 
     def SetFruHeader(self, initial):
         sec = initial.split(" ")
-        self.type = int(sec[2], 16)
+        self.fru_id = int(sec[2], 16)
         self.len = int(sec[3], 16)
 
     def __str__(self):
         content = []
+        '''
+        # remove following code in order not to pollute src binary file.
         if self.file:
-            # save data to  self.file
-            with open(self.file, "wb") as f:
-                f.write(self.file)
-            content.append("mc_add_fru_data 0x20 {} {} file 0 \"{}\"".format(hex(self.type), hex(self.len), self.file))
-        else:
-            content.append("mc_add_fru_data 0x20 {} {} data".format(hex(self.type), hex(self.len)))
-            for position in range(0, len(self.data), 8):
-                content.append(" ".join("{:#04x}".format(x) for x in self.data[position:position + 8]))
+            # save data to file
+            if self._changed:
+                with open(self.file, "wb") as f:
+                    f.write(''.join([chr(x) for x in self.data]))
+            content.append("mc_add_fru_data 0x20 {} {} file 0 \"{}\"".format(
+                hex(self.fru_id), hex(self.len), self.file))
+        '''
+        content.append("mc_add_fru_data 0x20 {} {} data".format(hex(self.fru_id), hex(self.len)))
+        for position in range(0, len(self.data), 8):
+            content.append(" ".join("{:#04x}".format(x) for x in self.data[position:position + 8]))
+
         return " \\\n".join(content) + "\n"
 
     def AppendLine(self, line):
         values = [int(x, 16) for x in line.rstrip("\\\n").split(" ")[:-1]]
         self.data.extend(values)
 
-    def LoadFromFile(self, file):
-        self.file = file
+    def LoadFromFile(self, src_file):
         # load binary file.
-        with open(file, "rb") as f:
-            self.data = f.readlines()
+        with open(src_file, "rb") as f:
+            _data = f.read()
+        self.data = [ord(x) for x in _data]
 
     def Decode(self):
         """
-        Decode the FRU0 and extract sub data areas.
+        Decode the FRU and extract sub data areas.
+        return True if this fru contains chassis info.
         """
-        if self.type == 0 and self.len == 0:
+        if self.fru_id == 0 and self.len == 0:
             return False
+
         if self.data[0] == 0x01:
             # decode Common Header. Refer to FRM spec, chapter 8
-            for index in range(FruCmd.INTERNAL_USE_AREA, FruCmd.MULTIRECORD_AREA):
+            for index in range(FruCmd.CHASSIS_INFO_AREA, FruCmd.MULTIRECORD_AREA):
                 offset = self.data[index] * 8
                 if offset != 0:
                     end = offset + self.data[offset + 1] * 8
@@ -75,14 +79,11 @@ class FruCmd(object):
             offset = self.data[FruCmd.MULTIRECORD_AREA] * 8
             if offset != 0:
                 end = offset
-                while (self.data[end + 1] & 0x80) == 0:
+                while (self.data[end + 1] & 0x80) == 0:  # End_of_list is Zero.
                     # get length of current record.
                     record_length = self.data[end + 2]
-                    if record_length == 0:
-                        raise Exception("Wrong format of multi-record")
-                    end += record_length
-                # plus length of current record.
-                end += 5
+                    # plus length of record header
+                    end += record_length + 5
                 self._data_area.append({"start": offset, "end": end, "data": self.data[offset:end]})
             else:
                 self._data_area.append(None)
@@ -90,6 +91,7 @@ class FruCmd(object):
             # Split Internal Use Area because it may not comply with the spec and doesn't has length.
             # Take start position of next area as its end postion.
             internal_start = self.data[FruCmd.INTERNAL_USE_AREA] * 8
+
             if internal_start > 0:
                 internal_stop = self.len
                 for area in self._data_area[FruCmd.CHASSIS_INFO_AREA:FruCmd.MULTIRECORD_AREA + 1]:
@@ -97,35 +99,125 @@ class FruCmd(object):
                         internal_stop = area["start"]
                 self._data_area[FruCmd.INTERNAL_USE_AREA] = {
                     "start": internal_start, "end": internal_stop, "data": self.data[internal_start:internal_stop]}
-            return True
+            # return True if this fru contains chassis info.
+            return self._data_area[FruCmd.CHASSIS_INFO_AREA] is not None
         return False
 
-    def ChangeChassisInfo(self, pn, sn):
+    def __decode_table(self, _data, _pos):
+        values = []
+        while _data[_pos] != 0xc1:  # 0xc1 means table end.
+            _len = _data[_pos] & 0x3f
+            values.append(_data[_pos: _pos + 1 + _len])
+            _pos = _pos + 1 + _len
+        return values
+
+    def __pad_bytes(self, _data, num=4):
+        _remain = len(_data) % num
+        if _remain:
+            _data.extend([0] * (num - _remain))
+
+    def __change_str_value(self, values, idx, value):
+        if value is None:
+            return
+        value = [ord(x) for x in value]
+        self.__pad_bytes(value)
+        if len(value) > 0x3c:
+            value = value[:0x3c]
+        # insert type/length field
+        value.insert(0, 0xc0 + len(value))
+        values[idx] = value
+
+    def __fill_table(self, result, values):
+        # compose data records
+        for record in values:
+            result.extend(record)
+        # add END flag
+        result.append(0xc1)
+
+        # add empty slot for checksum.
+        result.append(0)
+
+        # pad empty space.
+        self.__pad_bytes(result, 8)
+
+        # fill length.
+        result[1] = len(result) / 8
+
+        # update checksum.
+        result[-1] = (-sum(result)) & 0xff
+
+    def ChangeChassisInfo(self, info):
         """
-        Modify chassis information in Chassis Info Area of FRU 0
+        Modify chassis information in Chassis Info Area of FRU
         """
-        # Chassis Type is 0x01.
+        if info is None:
+            return
+        if self._data_area[FruCmd.CHASSIS_INFO_AREA]:
+            _data = self._data_area[FruCmd.CHASSIS_INFO_AREA]['data']
+            # decode table from byte 3
+            _ori_values = self.__decode_table(_data, 3)
+        else:
+            _ori_values = [None, None]
+
+        self.__change_str_value(_ori_values, 0, info.get('pn'))
+        self.__change_str_value(_ori_values, 1, info.get('sn'))
+
+        # Format Version = 0x01. Initial length = 0
         result = [0x01, 0x00]
         # Refer to SMBios spec Chap 7.4.1 System Enclosure or Chassis Types
         # Refer to EMC technical white paper in Dell Community, the Type is 0x17
         result.append(0x17)
-        # update PN
-        result.append(0xc0 + len(pn))
-        result.extend([struct.unpack("B", x)[0] for x in pn])
-        # update SN
-        result.append(0xc0 + len(sn))
-        result.extend([struct.unpack("B", x)[0] for x in sn])
-        # add END flag
-        result.append(0xc1)
-        # calculate total size
-        length = int(math.ceil(len(result) / 8.0) * 8)
-        result[1] = length / 8
-        # pad empty space.
-        result.extend([0] * (length - len(result)))
-        # update checksum.
-        result[length - 1] = (-sum(result)) & 0xff
+        self.__fill_table(result, _ori_values)
 
         self._data_area[FruCmd.CHASSIS_INFO_AREA] = {"start": 0, "end": 0, "data": result}
+
+    def ChangeBoardInfo(self, info):
+        """
+        Modify board information of FRU
+        """
+        if info is None:
+            return
+        if self._data_area[FruCmd.BOARD_INFO_AREA] is None:
+            return
+        _data = self._data_area[FruCmd.BOARD_INFO_AREA]['data']
+        # decode table from byte 6
+        _ori_values = self.__decode_table(_data, 6)
+
+        self.__change_str_value(_ori_values, 0, info.get('manufacturer'))
+        self.__change_str_value(_ori_values, 1, info.get('name'))
+        self.__change_str_value(_ori_values, 2, info.get('sn'))
+        self.__change_str_value(_ori_values, 3, info.get('pn'))
+
+        # Format Version = 0x01. Initial length = 0
+        result = _data[0:6]
+
+        self.__fill_table(result, _ori_values)
+        self._data_area[FruCmd.BOARD_INFO_AREA] = {"start": 0, "end": 0, "data": result}
+
+    def ChangeProductInfo(self, info):
+        """
+        Modify product information of FRU
+        """
+        if info is None:
+            return
+        if self._data_area[FruCmd.PRODUCT_INFO_AREA] is None:
+            return
+        _data = self._data_area[FruCmd.PRODUCT_INFO_AREA]['data']
+        # decode table from byte 3
+        _ori_values = self.__decode_table(_data, 3)
+
+        self.__change_str_value(_ori_values, 0, info.get('manufacturer'))
+        self.__change_str_value(_ori_values, 1, info.get('name'))
+        self.__change_str_value(_ori_values, 2, info.get('pn'))
+        self.__change_str_value(_ori_values, 3, info.get('version'))
+        self.__change_str_value(_ori_values, 4, info.get('sn'))
+
+        # Format Version = 0x01. Initial length = 0
+        result = _data[0:3]
+
+        self.__fill_table(result, _ori_values)
+
+        self._data_area[FruCmd.PRODUCT_INFO_AREA] = {"start": 0, "end": 0, "data": result}
 
     def UpdateData(self):
         # Adjust positon of all areas
@@ -142,7 +234,7 @@ class FruCmd(object):
                 start = end
         # ensure the length doesn't exceed.
         if len(self.data) > self.len:
-            del self.data[self.len:]
+            self.data = self.data[:self.len]
         # update checksum of Entry Point
         self.data[7] = (-sum(self.data[0:8]) & 0xff)
 
@@ -153,7 +245,7 @@ class FruFile(object):
     """
 
     def __init__(self, src_file):
-        self._fru0_cmd = None
+        self._fru_cmds = []
         self._data = self.__load(src_file)
 
     def __load(self, src_file):
@@ -164,39 +256,69 @@ class FruFile(object):
 
         is_processing_fru = False
         fru_cmd = None
+        file_re = re.compile(r'mc_add_fru_data 0x20 0x[a-fA-F0-9]+ 0x[a-fA-F0-9]+ file 0 \"(.*)\"')
+        data_re = re.compile(r'mc_add_fru_data 0x20 0x[a-fA-F0-9]+ 0x[a-fA-F0-9]+ data')
+
         for line in lines:
-            match_file = re.search(r'mc_add_fru_data 0x20 0x00 0x[a-fA-F0-9]+ file 0 \"(.*)\"', line)
-            match_data = re.search(r'mc_add_fru_data 0x20 0x00 0x[a-fA-F0-9]+ data', line)
             if is_processing_fru:
                 fru_cmd.AppendLine(line)
                 if not line.endswith("\\\n"):
                     is_processing_fru = False
-            elif match_data:
-                # Get the Fru 0 (Builtin FRU Device) Data
-                # Refer to Chapter 1, Chassis info should only be in baseboard.
-                is_processing_fru = True
-                fru_cmd = FruCmd()
-                fru_cmd.SetFruHeader(line)
-                data.append(fru_cmd)
-                self._fru0_cmd = fru_cmd
-            elif match_file:
-                fru0_file = match_file.group(1)
-                # Get the Fru 0 (Builtin FRU Device) file
-                fru_cmd = FruCmd()
-                fru_cmd.SetFruHeader(line)
-                fru_cmd.LoadFromFile(fru0_file)
-                data.append(fru_cmd)
-                self._fru0_cmd = fru_cmd
             else:
+                match_data = data_re.search(line)
+                if match_data:
+                    is_processing_fru = True
+                    fru_cmd = FruCmd()
+                    fru_cmd.SetFruHeader(line)
+                    data.append(fru_cmd)
+                    self._fru_cmds.append(fru_cmd)
+                    # next process txt line
+                    continue
+                match_file = file_re.search(line)
+                if match_file:
+                    fru_file = match_file.group(1)
+                    fru_cmd = FruCmd()
+                    fru_cmd.SetFruHeader(line)
+                    fru_cmd.LoadFromFile(fru_file)
+                    data.append(fru_cmd)
+                    self._fru_cmds.append(fru_cmd)
+                    continue
+                # add non-fru data.
                 data.append(line)
 
         return data
 
     def ChangeChassisInfo(self, pn, sn):
-        if self._fru0_cmd and self._fru0_cmd.Decode():
-            self._fru0_cmd.ChangeChassisInfo(pn, sn)
-            self._fru0_cmd.UpdateData()
-        # print(str(self._fru0_cmd))
+        '''
+        change chassis info for all FRU contains chassis.
+        '''
+        info = {"pn": pn, "sn": sn}
+        found = False
+        for fru_cmd in self._fru_cmds:
+            if fru_cmd.Decode() is True:
+                fru_cmd.ChangeChassisInfo(info)
+                fru_cmd.UpdateData()
+                found = True
+        if found is False:
+            fru0_list = [x for x in self._fru_cmds if x.fru_id == 0]
+            for fru_cmd in fru0_list:
+                fru_cmd.ChangeChassisInfo(info)
+                fru_cmd.UpdateData()
+
+    def ChangeFruInfo(self, info_dict):
+        '''
+        change fru data.
+        '''
+        for fru_id, fru_data in info_dict.items():
+            if isinstance(fru_id, str):
+                fru_id = int(fru_id)
+            for fru_cmd in self._fru_cmds:
+                if fru_cmd.fru_id == fru_id:
+                    fru_cmd.Decode()
+                    fru_cmd.ChangeChassisInfo(fru_data.get('chassis'))
+                    fru_cmd.ChangeBoardInfo(fru_data.get('board'))
+                    fru_cmd.ChangeProductInfo(fru_data.get('product'))
+                    fru_cmd.UpdateData()
 
     def Save(self, emu):
         with open(emu, "w") as fo:
