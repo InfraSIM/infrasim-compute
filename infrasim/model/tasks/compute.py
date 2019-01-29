@@ -187,7 +187,7 @@ class CCompute(Task, CElement):
         if 'serial_number' in self.__compute and os.path.exists(self.__smbios):
             self.__serial_number = self.__compute['serial_number']
             bios = SMBios(self.__smbios)
-            bios.ModifyType1SystemInformation(self.__serial_number)
+            bios.ModifyType1SystemInformation({'sn': self.__serial_number})
             bios.save(self.__smbios)
 
         self.__bios = self.__compute.get('bios')
