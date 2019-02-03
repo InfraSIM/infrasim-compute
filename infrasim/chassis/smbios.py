@@ -78,6 +78,7 @@ class SMBios(object):
         self.__dict = []
         self.__entry = None
         self.__type1_index = None
+        self.__type2_index = None
         self.__type3_index = None
         self.__type4_index_list = []
         self.__type16_index_list = []
@@ -85,8 +86,10 @@ class SMBios(object):
         self.save = None
         with open(src, "rb") as fin:
             self._buf = fin.read()
-        if self.__decode() is False and self.__decode3() is False:
-            raise Exception("can't identify bios version")
+        if self.__decode() is False:
+            if self.__decode3() is False:
+                if self.__decode_no_entry() is False:
+                    raise Exception("can't identify bios version")
 
     def __decode3(self):
         # unpack Entry Table
@@ -121,6 +124,19 @@ class SMBios(object):
             for item in self.__dict:
                 fo.write(item)
 
+    def __decode_no_entry(self):
+        # process special file without Entry Table
+        try:
+            offset = 0
+            while offset < len(self._buf):
+                offset = self.__decode_entry(offset)
+            self.save = self.__save
+            # setup default entry table.
+            self.__entry = ('_SM_', 62, 31, 2, 0, 1086, 0, '\x00\x00\x00\x00\x00', '_DMI_', 110, 6431, 32, 114, 48, 0)
+            return True
+        except Exception:
+            return False
+
     def __decode(self):
         """
         Decode the SMBIOSEntryPoint
@@ -129,6 +145,7 @@ class SMBios(object):
         entry = struct.unpack_from(SMBios._fmt_entry, self._buf, 0)
         if not (entry[0] == "_SM_"):
             return False
+
         self.save = self.__save
         self.__entry = entry
         offset = struct.calcsize(SMBios._fmt_entry)
@@ -161,6 +178,40 @@ class SMBios(object):
         self.__dict.append(structure)
         return offset
 
+    def __get_checksum(self, buf):
+        check_sum = sum(bytearray(buf))
+        return (-check_sum) & 0xff
+
+    def __save(self, dst):
+        # check the MaxStructureSize in Entry.
+        # update TableLength in Entry
+        entry = list(self.__entry)
+        size = 0
+        for item in self.__dict:
+            length = len(item)
+            if length > entry[SMBios.Id_MaxStructureSize]:
+                entry[SMBios.Id_MaxStructureSize] = length
+            size += length
+        entry[SMBios.Id_TotalLength] = size
+        entry[SMBios.Id_NumberOfStructures] = len(self.__dict)
+        # update checksum
+        entry[SMBios.Id_Checksum2] = 0
+        entry[SMBios.Id_Checksum] = 0
+        entry[SMBios.Id_Checksum2] = self.__get_checksum(struct.pack(SMBios._fmt_entry, *entry)[0x10:0x1f])
+        entry[SMBios.Id_Checksum] = self.__get_checksum(struct.pack(SMBios._fmt_entry, *entry))
+        # write file.
+        with open(dst, "wb") as fo:
+            fo.write(struct.pack(SMBios._fmt_entry, *entry))
+            for item in self.__dict:
+                fo.write(item)
+
+    def ModifyData(self, smbios_info):
+        self.ModifyType1SystemInformation(smbios_info.get("type1", None))
+        self.ModifyType2BaseboardInformation(smbios_info.get("type2", None))
+        self.ModifyType3ChassisInformation(smbios_info.get("type3", None))
+        self.ModifyType4ProcessorInformation(smbios_info.get("type4", None))
+        self.ModifyType17MemoryDevice(smbios_info.get("type17", None))
+
     def __update_string(self, string_values, index, value):
         if value is None:
             return index
@@ -177,7 +228,7 @@ class SMBios(object):
         support following fields,
         sn, uuid, and sku_number,
         '''
-        if self.__type1_index is None:
+        if self.__type1_index is None or info_map is None:
             return
         # Refer to Chapter 7.2
         sys_info_fmt = "BBHBBBB16sBBB"
@@ -216,7 +267,7 @@ class SMBios(object):
         self.__dict[self.__type1_index] = result
 
     def ModifyType2BaseboardInformation(self, info_map):
-        if self.__type2_index is None:
+        if self.__type2_index is None or info_map is None:
             return
         # Ref to SMBios SPEC Ver: 2.7.1, Chapter 7.3
         board_info_fmt = "=BBHBBBBBBBHBB"
@@ -244,7 +295,7 @@ class SMBios(object):
         support following fields,
         sn,
         '''
-        if self.__type3_index is None:
+        if self.__type3_index is None or info_map is None:
             return
         # Ref to SMBios SPEC Ver: 2.7.1, Chapter 7.4
         # '=' force byte alignemnt.
@@ -274,7 +325,7 @@ class SMBios(object):
         support following fields,
         sn, version, core number, speed, max speed, part number and asset tag.
         '''
-        if len(self.__type4_index_list) == 0:
+        if len(self.__type4_index_list) == 0 or cpu is None:
             return
         # Format of Processor Information (Type 4). Ref Chapter 7.5
         pro_info_fmt = '=BBHBBBBQBBHHHBBHHHBBBBBBHHHHH'
@@ -331,14 +382,15 @@ class SMBios(object):
         support following fields,
         sn, size, part number, manufactuer, asset tag, part number and number of dimm
         '''
+        if dimm is None:
+            # don't modify memory device array.
+            return
+
         self.CheckType16PhysicalMemoryArray(len(dimm))
         if len(self.__type4_index_list) == 0:
             raise Exception("Type 17 - Memory Device is missing")
 
         mem_info_fmt = '=BBHHHHHHBBBBBHHBBBBBIHHHH'
-        if dimm is None:
-            # don't modify memory device array.
-            return
 
         class mem_dev_struct(list):
             fields = [
@@ -453,30 +505,3 @@ class SMBios(object):
             result += '\0'.join(string_values)
 
             self.__dict[idx] = result
-
-    def __get_checksum(self, buf):
-        check_sum = sum(bytearray(buf))
-        return (-check_sum) & 0xff
-
-    def __save(self, dst):
-        # check the MaxStructureSize in Entry.
-        # update TableLength in Entry
-        entry = list(self.__entry)
-        size = 0
-        for item in self.__dict:
-            length = len(item)
-            if length > entry[SMBios.Id_MaxStructureSize]:
-                entry[SMBios.Id_MaxStructureSize] = length
-            size += length
-        entry[SMBios.Id_TotalLength] = size
-
-        # update checksum
-        entry[SMBios.Id_Checksum2] = 0
-        entry[SMBios.Id_Checksum] = 0
-        entry[SMBios.Id_Checksum2] = self.__get_checksum(struct.pack(SMBios._fmt_entry, *entry)[0x10:0x1f])
-        entry[SMBios.Id_Checksum] = self.__get_checksum(struct.pack(SMBios._fmt_entry, *entry))
-        # write file.
-        with open(dst, "wb") as fo:
-            fo.write(struct.pack(SMBios._fmt_entry, *entry))
-            for item in self.__dict:
-                fo.write(item)
