@@ -24,6 +24,13 @@ class FruCmd(object):
         self.data = []
         self._data_area = [None, None]
 
+        # flag indicates the FRU data has been modified.
+        self._changed = False
+        # file name point to external FRU file.
+        self._file = None
+        # Whether to merge external FRU file.
+        self.merge = False
+
     def SetFruHeader(self, initial):
         sec = initial.split(" ")
         self.fru_id = int(sec[2], 16)
@@ -31,19 +38,17 @@ class FruCmd(object):
 
     def __str__(self):
         content = []
-        '''
-        # remove following code in order not to pollute src binary file.
-        if self.file:
-            # save data to file
+        if self._file and not self.merge:
+            # save data to external file if it does changed.
             if self._changed:
-                with open(self.file, "wb") as f:
+                with open(self._file, "wb") as f:
                     f.write(''.join([chr(x) for x in self.data]))
             content.append("mc_add_fru_data 0x20 {} {} file 0 \"{}\"".format(
-                hex(self.fru_id), hex(self.len), self.file))
-        '''
-        content.append("mc_add_fru_data 0x20 {} {} data".format(hex(self.fru_id), hex(self.len)))
-        for position in range(0, len(self.data), 8):
-            content.append(" ".join("{:#04x}".format(x) for x in self.data[position:position + 8]))
+                hex(self.fru_id), hex(self.len), self._file))
+        else:
+            content.append("mc_add_fru_data 0x20 {} {} data".format(hex(self.fru_id), hex(self.len)))
+            for position in range(0, len(self.data), 8):
+                content.append(" ".join("{:#04x}".format(x) for x in self.data[position:position + 8]))
 
         return " \\\n".join(content) + "\n"
 
@@ -52,6 +57,7 @@ class FruCmd(object):
         self.data.extend(values)
 
     def LoadFromFile(self, src_file):
+        self._file = src_file
         # load binary file.
         with open(src_file, "rb") as f:
             _data = f.read()
@@ -170,6 +176,7 @@ class FruCmd(object):
         self.__fill_table(result, _ori_values)
 
         self._data_area[FruCmd.CHASSIS_INFO_AREA] = {"start": 0, "end": 0, "data": result}
+        self._changed = True
 
     def ChangeBoardInfo(self, info):
         """
@@ -193,6 +200,7 @@ class FruCmd(object):
 
         self.__fill_table(result, _ori_values)
         self._data_area[FruCmd.BOARD_INFO_AREA] = {"start": 0, "end": 0, "data": result}
+        self._changed = True
 
     def ChangeProductInfo(self, info):
         """
@@ -218,6 +226,7 @@ class FruCmd(object):
         self.__fill_table(result, _ori_values)
 
         self._data_area[FruCmd.PRODUCT_INFO_AREA] = {"start": 0, "end": 0, "data": result}
+        self._changed = True
 
     def UpdateData(self):
         # Adjust positon of all areas
@@ -292,6 +301,8 @@ class FruFile(object):
         '''
         change chassis info for all FRU contains chassis.
         '''
+        if pn is None and sn is None:
+            return
         info = {"pn": pn, "sn": sn}
         found = False
         for fru_cmd in self._fru_cmds:
@@ -309,18 +320,22 @@ class FruFile(object):
         '''
         change fru data.
         '''
-        for fru_id, fru_data in info_dict.items():
-            if isinstance(fru_id, str):
-                fru_id = int(fru_id)
-            for fru_cmd in self._fru_cmds:
-                if fru_cmd.fru_id == fru_id:
-                    fru_cmd.Decode()
-                    fru_cmd.ChangeChassisInfo(fru_data.get('chassis'))
-                    fru_cmd.ChangeBoardInfo(fru_data.get('board'))
-                    fru_cmd.ChangeProductInfo(fru_data.get('product'))
-                    fru_cmd.UpdateData()
+        key_re = re.compile(r"fru(\d+)")
+        for key, fru_data in info_dict.items():
+            m = key_re.match(key)
+            if m:
+                fru_id = int(m.group(1))
+                for fru_cmd in self._fru_cmds:
+                    if fru_cmd.fru_id == fru_id:
+                        fru_cmd.Decode()
+                        fru_cmd.ChangeChassisInfo(fru_data.get('chassis'))
+                        fru_cmd.ChangeBoardInfo(fru_data.get('board'))
+                        fru_cmd.ChangeProductInfo(fru_data.get('product'))
+                        fru_cmd.UpdateData()
 
-    def Save(self, emu):
+    def Save(self, emu, merge=False):
+        for f in self._fru_cmds:
+            f.merge = merge
         with open(emu, "w") as fo:
             for item in self._data:
                 fo.write(str(item))
