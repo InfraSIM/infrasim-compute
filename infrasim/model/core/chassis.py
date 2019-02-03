@@ -3,15 +3,13 @@ import os
 import re
 import shutil
 import subprocess
-import yaml
 import codecs
 import json
 
+from infrasim import set_option
 from infrasim import config
 from infrasim import InfraSimError, ArgsNotCorrect
 from infrasim.chassis.dataset import DataSet
-from infrasim.chassis.emu_data import FruFile
-from infrasim.chassis.smbios import SMBios
 from infrasim.helper import NumaCtl
 from infrasim.log import infrasim_log
 from infrasim.model import CNode
@@ -72,7 +70,7 @@ class CChassis(object):
             node_name = node.get("name", "{}_node_{}".format(self.__chassis_name, nodes.index(node)))
             node["name"] = node_name
             node["type"] = self.__chassis["type"]
-            node["compute"].get("machine", {})["spid"] = nodes.index(node)
+            set_option(node, "compute", "machine", "spid", nodes.index(node))
         self.workspace.init()
         self.__file_name = os.path.join(self.workspace.get_workspace_data(), "shm_data.bin")
         self.__daemon = CChassisDaemon(self.__chassis_name, self.__file_name)
@@ -89,6 +87,7 @@ class CChassis(object):
         self.__process_chassis_device()
         self.__process_ntb_device()
         self.__process_disk_array()
+        self.__render_chassis_info()
 
         self._init_sub_node(*args)
 
@@ -98,9 +97,6 @@ class CChassis(object):
 
         self.__daemon.init(self.workspace.get_workspace())
         self.__daemon.start()
-
-        self.__render_chassis_info()
-        self.__update_node_cfg()
 
         self.process_by_node_names("precheck", *args)
         self.process_by_node_names("start", *args)
@@ -132,42 +128,13 @@ class CChassis(object):
         data = self.__chassis.get("data", None)
         if not data:
             return
+
         for node in self.__chassis.get("nodes"):
-            ws = os.path.join(config.infrasim_home, node["name"])
-            ws_data = os.path.join(ws, "data")
-
-            def get_file(src, default_name):
-                if src is None:
-                    dst = os.path.join(ws_data, default_name)
-                else:
-                    dst = os.path.join(ws_data, os.path.basename(src))
-                return dst
-            bios_file = get_file(node["compute"].get("smbios"), "{}_smbios.bin".format(node["type"]))
-            bios = SMBios(bios_file)
-            bios.ModifyType3ChassisInformation({'sn': data["sn"]})
-            # bios.ModifyType2BaseboardInformation("")
-            bios.save(bios_file)
-
-            emu_file = get_file(node.get("bmc", {}).get("emu_file"), "{}.emu".format(node["type"]))
-            emu = FruFile(emu_file)
-            emu.ChangeChassisInfo(data["pn"], data["sn"])
-            emu.Save(emu_file)
-
-            node["compute"]["smbios"] = bios_file
-            bmc = node.get("bmc", {})
-            node["bmc"] = bmc
-            bmc["emu_file"] = emu_file
-
-    def __update_node_cfg(self):
-        """
-        refresh yml file of node
-        """
-        for node in self.__chassis.get("nodes"):
-            ws = os.path.join(config.infrasim_home, node["name"])
-            ws_etc = os.path.join(ws, "etc")
-            yml_file = os.path.join(ws_etc, "infrasim.yml")
-            with open(yml_file, 'w') as fp:
-                yaml.dump(node, fp, default_flow_style=False)
+            if 'pn' in data:
+                set_option(node, "bmc", "chassis_pn", data['pn'])
+            if 'sn' in data:
+                set_option(node, "bmc", "chassis_sn", data['sn'])
+                set_option(node, "compute", "smbios", "type3", "sn", data['sn'])
 
     def __process_chassis_data(self, data):
         if data is None:
@@ -320,9 +287,8 @@ class CChassis(object):
 
         # set sharemeory id for sub node.
         for node in self.__chassis.get("nodes"):
-            node["compute"]["communicate"] = {"shm_key": "share_mem_{}".format(self.__chassis_name)}
-            node["bmc"] = node.get("bmc", {})
-            node["bmc"]["shm_key"] = "share_mem_{}".format(self.__chassis_name)
+            set_option(node, "compute", "communicate", "shm_key", "share_mem_{}".format(self.__chassis_name))
+            set_option(node, "bmc", "shm_key", "share_mem_{}".format(self.__chassis_name))
 
     def __process_oem_data(self):
         '''
