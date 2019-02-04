@@ -547,7 +547,7 @@ class qemu_functions(unittest.TestCase):
         compute.set_workspace("{}/{}".format(config.infrasim_home,
                                              node_info['name']))
         compute.init()
-        assert compute.get_smbios() == "/tmp/test.smbios"
+        assert compute.get_smbios() == os.path.join(compute.get_workspace(), "data/None_smbios.bin")
 
     def test_set_smbios_without_workspace(self):
         with open(config.infrasim_default_config, "r") as f_yml:
