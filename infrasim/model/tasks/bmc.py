@@ -382,11 +382,12 @@ class CBMC(Task):
             self.__emu_file = os.path.join(config.infrasim_data,
                                            "{0}/{0}.emu".format(self.__vendor_type))
         # render FRU information.
-        emu_file = FruFile(self.__emu_file)
-        emu_file.ChangeFruInfo(self.__bmc)
-        # update chassis pn/sn automaticlly.
-        emu_file.ChangeChassisInfo(self.__bmc.get('chassis_pn'), self.__bmc.get('chassis_sn'))
-        emu_file.Save(self.__emu_file, self.__bmc.get('merge_fru', True))
+        if os.path.exists(self.__emu_file):
+            emu_file = FruFile(self.__emu_file)
+            emu_file.ChangeFruInfo(self.__bmc)
+            # update chassis pn/sn automaticlly.
+            emu_file.ChangeChassisInfo(self.__bmc.get('chassis_pn'), self.__bmc.get('chassis_sn'))
+            emu_file.Save(self.__emu_file, self.__bmc.get('merge_fru', True))
 
         if self.__node_name:
             self.__log_file = os.path.join(infrasim_logdir, self.__node_name, 'ipmi_sim.log')
