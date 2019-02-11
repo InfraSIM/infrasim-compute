@@ -124,7 +124,7 @@ class Workspace(object):
         src = dst = os.path.join(path_data_dst, "{0}_smbios.bin".format(node_type))
         if has_option(self._info, "compute", "smbios", "file"):
             src = self._info["compute"]["smbios"]["file"]
-        elif has_option(self._info, "compute", "smbios"):
+        elif has_option(self._info, "compute", "smbios") and isinstance(self._info["compute"]["smbios"], str):
             # compatible with previous version.
             src = self._info["compute"]["smbios"]
         elif not os.path.exists(dst):
