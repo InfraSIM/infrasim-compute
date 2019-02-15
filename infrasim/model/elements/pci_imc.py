@@ -37,6 +37,8 @@ class CPCIIMC(CElement):
         self.id = self.__imc_info["id"]
         self.bus = self.__imc_info["bus"]
         self.addr = self.__imc_info.get("addr")
+        self.imc_slot_topo = self.__imc_info.get("imc_slot_topo")
+        self.imc_cpu_index = self.__imc_info.get("imc_cpu_index")
 
     def handle_parms(self):
         args = {}
@@ -44,6 +46,8 @@ class CPCIIMC(CElement):
         args["bus"] = self.bus
         args["multifunction"] = "on"
         args["addr"] = self.addr
+        args["imc_slot_topo"] = self.imc_slot_topo
+        args["imc_cpu_index"] = self.imc_cpu_index
 
         opt_list = []
         opt_list.append("-device imc_m2mem")
