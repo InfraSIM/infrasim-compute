@@ -136,8 +136,7 @@ class qemu_functions(unittest.TestCase):
         compute.set_workspace(
             "{}/{}".format(config.infrasim_home, node_info["name"]))
         compute.init()
-
-        assert "menu=on" in compute.get_commandline()
+        assert "menu=on" in helper.get_full_qemu_cmd(compute.get_commandline())
 
     def test_set_ahci_storage_controller(self):
         backend_storage_info = [{
@@ -583,7 +582,7 @@ class qemu_functions(unittest.TestCase):
         compute.set_workspace(workspace)
         compute.init()
         compute.handle_parms()
-        assert "msg timestamp=on" in compute.get_commandline()
+        assert "msg timestamp=on" in helper.get_full_qemu_cmd(compute.get_commandline())
 
     def test_chardev_correct_backend(self):
         chardev_info = {
@@ -838,7 +837,7 @@ class qemu_functions(unittest.TestCase):
         compute.set_type(node_info["type"])
         compute.init()
         compute.handle_parms()
-        assert "--enable-kvm" in compute.get_commandline()
+        assert "--enable-kvm" in helper.get_full_qemu_cmd(compute.get_commandline())
 
     def test_kvm_enabled_yaml_true_env_false(self):
         if os.path.exists("/dev/kvm"):
@@ -853,7 +852,7 @@ class qemu_functions(unittest.TestCase):
         compute.set_type(node_info["type"])
         compute.init()
         compute.handle_parms()
-        assert "--enable-kvm" not in compute.get_commandline()
+        assert "--enable-kvm" not in helper.get_full_qemu_cmd(compute.get_commandline())
 
     def test_kvm_enabled_yaml_false_env_true(self):
         if not os.path.exists("/dev/kvm"):
@@ -868,7 +867,7 @@ class qemu_functions(unittest.TestCase):
         compute.set_type(node_info["type"])
         compute.init()
         compute.handle_parms()
-        assert "--enable-kvm" not in compute.get_commandline()
+        assert "--enable-kvm" not in helper.get_full_qemu_cmd(compute.get_commandline())
 
     def test_kvm_enabled_yaml_false_env_false(self):
         if os.path.exists("/dev/kvm"):
@@ -883,7 +882,7 @@ class qemu_functions(unittest.TestCase):
         compute.set_type(node_info["type"])
         compute.init()
         compute.handle_parms()
-        assert "--enable-kvm" not in compute.get_commandline()
+        assert "--enable-kvm" not in helper.get_full_qemu_cmd(compute.get_commandline())
 
     def test_kvm_enabled_yaml_not_defined_env_true(self):
         if not os.path.exists("/dev/kvm"):
@@ -898,7 +897,7 @@ class qemu_functions(unittest.TestCase):
         compute.set_type(node_info["type"])
         compute.init()
         compute.handle_parms()
-        assert "--enable-kvm" in compute.get_commandline()
+        assert "--enable-kvm" in helper.get_full_qemu_cmd(compute.get_commandline())
 
     def test_kvm_enabled_yaml_not_defined_env_false(self):
         if os.path.exists("/dev/kvm"):
@@ -913,7 +912,7 @@ class qemu_functions(unittest.TestCase):
         compute.set_type(node_info["type"])
         compute.init()
         compute.handle_parms()
-        assert "--enable-kvm" not in compute.get_commandline()
+        assert "--enable-kvm" not in helper.get_full_qemu_cmd(compute.get_commandline())
 
     def test_kvm_enabled_yaml_invalid_env_true(self):
         if not os.path.exists("/dev/kvm"):
@@ -1736,9 +1735,9 @@ class monitor_configuration(unittest.TestCase):
         for element in node.get_task_list():
             if isinstance(element, model.CCompute):
                 assert "-chardev socket,path={}/default/.monitor,"\
-                       "id=monitorchardev,server,nowait "\
+                       "id=monitorchardev,server,nowait\n"\
                        "-mon chardev=monitorchardev,mode=control".format(config.infrasim_home) \
-                    in element.get_commandline()
+                    in helper.get_full_qemu_cmd(element.get_commandline())
 
     def test_enable_monitor_in_qemu(self):
         with open(config.infrasim_default_config, "r") as f_yml:
@@ -1753,9 +1752,9 @@ class monitor_configuration(unittest.TestCase):
         for element in node.get_task_list():
             if isinstance(element, model.CCompute):
                 assert "-chardev socket,path={}/default/.monitor,"\
-                       "id=monitorchardev,server,nowait "\
+                       "id=monitorchardev,server,nowait\n"\
                        "-mon chardev=monitorchardev,mode=control".format(config.infrasim_home) \
-                       in element.get_commandline()
+                       in helper.get_full_qemu_cmd(element.get_commandline())
 
     def test_disable_monitor_in_qemu(self):
         with open(config.infrasim_default_config, "r") as f_yml:
@@ -1769,7 +1768,7 @@ class monitor_configuration(unittest.TestCase):
 
         for element in node.get_task_list():
             if isinstance(element, model.CCompute):
-                assert "-mon" not in element.get_commandline()
+                assert "-mon" not in helper.get_full_qemu_cmd(element.get_commandline())
 
     def test_invalid_monitor_in_qemu(self):
         with open(config.infrasim_default_config, "r") as f_yml:

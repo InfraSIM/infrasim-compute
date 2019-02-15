@@ -94,6 +94,8 @@ class test_compute_configuration_change(unittest.TestCase):
 
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
+        str_result = helper.get_full_qemu_cmd(str_result)
+
         assert "qemu-system-x86_64" in str_result
         assert "-smp 8" in str_result
 
@@ -109,6 +111,8 @@ class test_compute_configuration_change(unittest.TestCase):
 
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
+        str_result = helper.get_full_qemu_cmd(str_result)
+
         assert "qemu-system-x86_64" in str_result
         assert "-cpu IvyBridge" in str_result
 
@@ -124,6 +128,8 @@ class test_compute_configuration_change(unittest.TestCase):
 
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
+        str_result = helper.get_full_qemu_cmd(str_result)
+
         assert "qemu-system-x86_64" in str_result
         assert "-m 1536" in str_result
 
@@ -146,6 +152,7 @@ class test_compute_configuration_change(unittest.TestCase):
 
         qemu_pid = get_qemu_pid(node)
         qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+        qemu_cmdline = helper.get_full_qemu_cmd(qemu_cmdline)
 
         assert "qemu-system-x86_64" in qemu_cmdline
         assert "/tmp/sda.img" in qemu_cmdline
@@ -215,6 +222,7 @@ class test_compute_configuration_change(unittest.TestCase):
         # Check process option has nvme serial
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
+        str_result = helper.get_full_qemu_cmd(str_result)
         p = re.compile(r"-device nvme.*serial=(\w+)")
         m = p.search(str_result)
         assert m is not None
@@ -396,6 +404,7 @@ class test_connection(unittest.TestCase):
 
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
+        str_result = helper.get_full_qemu_cmd(str_result)
         assert "port=9102" in str_result
 
     def test_set_serial_socket(self):
@@ -409,6 +418,7 @@ class test_connection(unittest.TestCase):
 
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
+        str_result = helper.get_full_qemu_cmd(str_result)
         assert "-chardev socket,path=/tmp/test_infrasim_set_serial_socket," \
                "id=serial0,nowait,reconnect=10" in str_result
         assert "-device isa-serial,chardev=serial0" in str_result
@@ -429,6 +439,7 @@ class test_connection(unittest.TestCase):
 
         str_result = run_command(PS_QEMU, True,
                                  subprocess.PIPE, subprocess.PIPE)[1]
+        str_result = helper.get_full_qemu_cmd(str_result)
         assert "qemu-system-x86_64" in str_result
         assert "-smbios file={}/test/data/dell_c6320_smbios.bin".\
             format(config.infrasim_home) in str_result

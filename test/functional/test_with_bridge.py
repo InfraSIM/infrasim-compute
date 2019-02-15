@@ -120,6 +120,7 @@ class test_node_with_bridge(unittest.TestCase):
         node.start()
 
         ret, rsp = run_command(PS_QEMU)
+        rsp = helper.get_full_qemu_cmd(rsp)
         assert "qemu-system-x86_64" in rsp
         assert "-netdev bridge,id=netdev1,br={}," \
                "helper=".format(FAKE_BRIDGE) in rsp
@@ -161,6 +162,7 @@ class test_mac_persist_on_bridge(unittest.TestCase):
         """
         # Get qemu mac addresses
         qemu_rsp = run_command(cmd_ps_qemu)[1]
+        qemu_rsp = helper.get_full_qemu_cmd(qemu_rsp)
         macs_former = r.findall(qemu_rsp)
 
         run_command(cmd_power_off)
@@ -170,6 +172,7 @@ class test_mac_persist_on_bridge(unittest.TestCase):
 
         # Get qemu mac addresses
         qemu_rsp = run_command(cmd_ps_qemu)[1]
+        qemu_rsp = helper.get_full_qemu_cmd(qemu_rsp)
         macs_latter = r.findall(qemu_rsp)
 
         # Verify mac address list remains the same
@@ -181,6 +184,7 @@ class test_mac_persist_on_bridge(unittest.TestCase):
         """
         # Get qemu mac addresses
         qemu_rsp = run_command(cmd_ps_qemu)[1]
+        qemu_rsp = helper.get_full_qemu_cmd(qemu_rsp)
         macs_former = r.findall(qemu_rsp)
 
         run_command(cmd_power_cycle)
@@ -188,6 +192,7 @@ class test_mac_persist_on_bridge(unittest.TestCase):
         time.sleep(2.5)
         # Get qemu mac addresses
         qemu_rsp = run_command(cmd_ps_qemu)[1]
+        qemu_rsp = helper.get_full_qemu_cmd(qemu_rsp)
         macs_latter = r.findall(qemu_rsp)
         # Verify mac address list remains the same
         assert sorted(macs_former) == sorted(macs_latter)
@@ -198,12 +203,14 @@ class test_mac_persist_on_bridge(unittest.TestCase):
         """
         # Get qemu mac addresses
         qemu_rsp = run_command(cmd_ps_qemu)[1]
+        qemu_rsp = helper.get_full_qemu_cmd(qemu_rsp)
         macs_former = r.findall(qemu_rsp)
 
         run_command(cmd_power_reset)
 
         # Get qemu mac addresses
         qemu_rsp = run_command(cmd_ps_qemu)[1]
+        qemu_rsp = helper.get_full_qemu_cmd(qemu_rsp)
         macs_latter = r.findall(qemu_rsp)
 
         # Verify mac address list remains the same

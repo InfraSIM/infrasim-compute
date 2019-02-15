@@ -14,7 +14,7 @@ from infrasim import run_command
 from test.fixtures import FakeConfig
 from infrasim.model import CNode
 from infrasim import sshclient
-from infrasim import config
+from infrasim import config, helper
 from test import fixtures
 
 old_path = os.environ.get('PATH')
@@ -197,6 +197,8 @@ class test_bmc_communication(unittest.TestCase):
         os.system(cmd_prefix1[4])
         PS_QEMU = "ps ax | grep qemu"
         qemu_result = run_command(PS_QEMU, True, subprocess.PIPE, subprocess.PIPE)[1]
+        qemu_result = helper.get_full_qemu_cmd(qemu_result)
+
         self.assertNotIn("test1", qemu_result, "peer_bmc can not power off")
         """
         test peer bmc on
