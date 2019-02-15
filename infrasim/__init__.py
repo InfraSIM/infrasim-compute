@@ -79,11 +79,26 @@ def has_option(config, *args):
     return True
 
 
+def set_option(_dict, *args):
+    # add dict value by cuple recursively.
+    # create key if it is not exist.
+    if len(args) < 2:
+        raise ArgsNotCorrect("set_option() need at least 1 key:value")
+    if len(args) == 2:
+        _dict[args[0]] = args[1]
+    else:
+        k = args[0]
+        args = args[1:]
+        if k not in _dict or not isinstance(_dict[k], dict):
+            _dict[k] = {}
+        set_option(_dict[k], *args)
+
+
 class InfraSimError(Exception):
     def __init__(self, value):
         self.value = value
         logger.exception("{}, stack:\n{}".format(self.value,
-                         str(inspect.stack()[1:]).replace("), (", "),\n(")))
+                                                 str(inspect.stack()[1:]).replace("), (", "),\n(")))
 
     def __str__(self):
         return repr(self.value)

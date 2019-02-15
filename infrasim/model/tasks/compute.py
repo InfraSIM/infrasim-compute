@@ -10,7 +10,7 @@ import time
 
 from infrasim import CommandRunFailed, ArgsNotCorrect, CommandNotFound
 from infrasim import helper, config
-from infrasim import run_command, has_option
+from infrasim import run_command, has_option, set_option
 from infrasim.helper import run_in_namespace, NumaCtl
 from infrasim.model.core.element import CElement
 from infrasim.model.core.task import Task
@@ -173,21 +173,28 @@ class CCompute(Task, CElement):
         else:
             self.__enable_kvm = self.__compute.get('kvm_enabled', True)
 
-        if 'smbios' in self.__compute:
-            self.__smbios = self.__compute['smbios']
-        elif self.get_workspace():
-            self.__smbios = os.path.join(self.get_workspace(),
-                                         "data",
-                                         "{}_smbios.bin".
-                                         format(self.__vendor_type))
+        if self.get_workspace():
+            # this file copy is performed in workspace.init()
+            self.__smbios = os.path.join(self.get_workspace(), "data",
+                                         "{}_smbios.bin".format(self.__vendor_type))
         else:
-            self.__smbios = os.path.join(config.infrasim_data,
-                                         "{0}/{0}_smbios.bin".format(self.__vendor_type))
+            default = os.path.join(config.infrasim_data, "{0}/{0}_smbios.bin".format(self.__vendor_type))
+            if isinstance(self.__compute.get("smbios"), dict):
+                self.__smbios = self.__compute["smbios"].get("file", default)
+            else:
+                self.__smbios = self.__compute.get("smbios", default)
 
-        if 'serial_number' in self.__compute and os.path.exists(self.__smbios):
-            self.__serial_number = self.__compute['serial_number']
+        if os.path.exists(self.__smbios):
+            if 'serial_number' in self.__compute:
+                self.__serial_number = self.__compute['serial_number']
+                set_option(self.__compute, "smbios", "type1", "sn", self.__serial_number)
+            if 'uuid' in self.__compute:
+                set_option(self.__compute, "smbios", "type1", "uuid", self.__compute["uuid"])
+
             bios = SMBios(self.__smbios)
-            bios.ModifyType1SystemInformation({'sn': self.__serial_number})
+            # safe check for compatible with previous version.
+            if isinstance(self.__compute.get("smbios"), dict):
+                bios.ModifyData(self.__compute["smbios"])
             bios.save(self.__smbios)
 
         self.__bios = self.__compute.get('bios')

@@ -4,7 +4,7 @@ import shutil
 from infrasim import config
 import subprocess
 from yaml_loader import YAMLLoader
-from . import has_option, InfraSimError
+from . import has_option, InfraSimError, set_option
 
 
 class Workspace(object):
@@ -105,35 +105,37 @@ class Workspace(object):
         if not os.path.exists(etc_path):
             os.mkdir(etc_path)
 
-        # IV. Save infrasim.yml
-        yml_file = os.path.join(self._workspace, "etc/infrasim.yml")
-        with open(yml_file, 'w') as fp:
-            yaml.dump(self._info, fp, default_flow_style=False)
-
         node_type = self._info["type"]
-        # V. Move emulation data
+        # IV. Move emulation data
         # Update identifier accordingly
         path_data_dst = os.path.join(self._workspace, "data")
+        src = dst = os.path.join(path_data_dst, "{0}.emu".format(node_type))
         if has_option(self._info, "bmc", "emu_file"):
-            if os.path.dirname(self._info["bmc"]["emu_file"]) != path_data_dst:
-                shutil.copy(self._info["bmc"]["emu_file"], path_data_dst)
-        elif not os.path.exists(os.path.join(path_data_dst, "{0}.emu".format(node_type))):
-            path_emu_src = os.path.join(config.infrasim_data, "{0}/{0}.emu".format(node_type))
-            shutil.copy(path_emu_src, os.path.join(path_data_dst, "{}.emu".
-                                                   format(node_type)))
+            src = self._info["bmc"]["emu_file"]
+        elif not os.path.exists(dst):
+            src = os.path.join(config.infrasim_data, "{0}/{0}.emu".format(node_type))
 
-        # VI. Move bios.bin
-        if has_option(self._info, "compute", "smbios"):
-            if os.path.dirname(self._info["compute"]["smbios"]) != path_data_dst:
-                shutil.copy(self._info["compute"]["smbios"], path_data_dst)
-        elif not os.path.exists(os.path.join(path_data_dst, "{0}_smbios.bin".format(node_type))):
-            path_bios_src = os.path.join(config.infrasim_data,
-                                         "{0}/{0}_smbios.bin".format(node_type))
-            shutil.copy(path_bios_src, os.path.join(path_data_dst,
-                                                    "{}_smbios.bin".
-                                                    format(node_type)))
+        if os.path.dirname(src) != path_data_dst:
+            shutil.copy(src, dst)
 
-        # VII. Move OEM data and script
+        set_option(self._info, "bmc", "emu_file", dst)
+
+        # V. Move bios.bin
+        src = dst = os.path.join(path_data_dst, "{0}_smbios.bin".format(node_type))
+        if has_option(self._info, "compute", "smbios", "file"):
+            src = self._info["compute"]["smbios"]["file"]
+        elif has_option(self._info, "compute", "smbios") and isinstance(self._info["compute"]["smbios"], str):
+            # compatible with previous version.
+            src = self._info["compute"]["smbios"]
+        elif not os.path.exists(dst):
+            src = os.path.join(config.infrasim_data, "{0}/{0}_smbios.bin".format(node_type))
+
+        if os.path.dirname(src) != path_data_dst:
+            shutil.copy(src, dst)
+
+        set_option(self._info["compute"], "smbios", "file", dst)
+
+        # VI. Move OEM data and script
         path_oem_file_src = os.path.join(config.infrasim_data, "oem_data.json")
         path_oem_script_src = os.path.join(config.infrasim_scripts, "ipmi_exec.py")
         if os.path.exists(path_oem_file_src):
@@ -141,7 +143,10 @@ class Workspace(object):
         if os.path.exists(path_oem_script_src):
             shutil.copy(path_oem_script_src, os.path.join(script_path, "ipmi_exec.py"))
 
-        # Place holder to sync serial number
+        # VII. Save infrasim.yml
+        yml_file = os.path.join(self._workspace, "etc/infrasim.yml")
+        with open(yml_file, 'w') as fp:
+            yaml.dump(self._info, fp, default_flow_style=False)
 
     def terminate(self):
         """
