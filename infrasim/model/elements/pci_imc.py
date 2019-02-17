@@ -29,6 +29,12 @@ class CPCIIMC(CElement):
         if self.__imc_info.get("id",) is None:
             raise ArgsNotCorrect("imc id is mandatory!")
 
+        if self.__imc_info.get("imc_slot_topo",) is None:
+            raise ArgsNotCorrect("imc_slot_topo is mandatory, bit0-23 means logic dimm slot 0-23")
+
+        if self.__imc_info.get("imc_cpu_index",) is None:
+            raise ArgsNotCorrect("imc_cpu_index is mandatory!")
+
         addr = self.__imc_info.get("addr",)
         if ((addr) != "08.0") and ((addr) != "09.0"):
             raise ArgsNotCorrect("imc address must be 08.0 or 09.0")
