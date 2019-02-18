@@ -20,7 +20,9 @@ class CPCIIMC(CElement):
         self.bus = None
         self.id = None
         self.device = "imc_m2mem"
-        self.pcie_topo = None
+        self.addr = None
+        self.imc_slot_topo = None
+        self.imc_cpu_index = None
 
     def precheck(self):
         if self.__imc_info.get("bus") is None:
