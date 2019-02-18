@@ -112,7 +112,7 @@ class qemu_functions(unittest.TestCase):
         node.init()
         try:
             node.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "The 'menu' must be either 'on' or 'off'" in e.value
 
     def test_set_menu_unsupported_string_value(self):
@@ -123,7 +123,7 @@ class qemu_functions(unittest.TestCase):
         node.init()
         try:
             node.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "The 'menu' must be either 'on' or 'off'" in e.value
 
     def test_set_menu_legal_value(self):
@@ -258,8 +258,8 @@ class qemu_functions(unittest.TestCase):
             "type": "ahci",
             "max_drive_per_controller": 2,
             "drives": [{"size": 8, "file": "/tmp/sda.img"},
-                        {"size": 8, "file": "/tmp/sdb.img"},
-                        {"size": 8, "file": "/tmp/sdc.img"}]
+                       {"size": 8, "file": "/tmp/sdb.img"},
+                       {"size": 8, "file": "/tmp/sdc.img"}]
         }]
         storage = model.CBackendStorage(backend_storage_info)
         storage.init()
@@ -482,7 +482,7 @@ class qemu_functions(unittest.TestCase):
             storage.precheck()
             storage.handle_parms()
 
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "page file {0} doesnot exist".format(file_name) in e.value
         except Exception:
             assert False
@@ -695,7 +695,7 @@ class qemu_functions(unittest.TestCase):
         monitor.init()
         try:
             monitor.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Invalid monitor mode: fault" in e.value
 
     def test_monitor_fault_backend_in_control_mode(self):
@@ -709,7 +709,7 @@ class qemu_functions(unittest.TestCase):
         monitor.init()
         try:
             monitor.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Invalid monitor chardev backend: file" in e.value
 
     def test_monitor_fault_backend_in_readline_mode(self):
@@ -723,7 +723,7 @@ class qemu_functions(unittest.TestCase):
         monitor.init()
         try:
             monitor.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Invalid monitor chardev backend: file" in e.value
 
     def test_monitor_fault_server_in_control_mode(self):
@@ -737,7 +737,7 @@ class qemu_functions(unittest.TestCase):
         monitor.init()
         try:
             monitor.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Invalid monitor chardev server: ok" in e.value
 
     def test_monitor_fault_server_in_readline_mode(self):
@@ -751,7 +751,7 @@ class qemu_functions(unittest.TestCase):
         monitor.init()
         try:
             monitor.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Invalid monitor chardev server: ok" in e.value
 
     def test_monitor_fault_wait_in_control_mode(self):
@@ -765,7 +765,7 @@ class qemu_functions(unittest.TestCase):
         monitor.init()
         try:
             monitor.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Invalid monitor chardev wait: ok" in e.value
 
     def test_monitor_fault_wait_in_readline_mode(self):
@@ -779,7 +779,7 @@ class qemu_functions(unittest.TestCase):
         monitor.init()
         try:
             monitor.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Invalid monitor chardev wait: ok" in e.value
 
     def test_monitor_fault_host_in_readline_mode(self):
@@ -793,7 +793,7 @@ class qemu_functions(unittest.TestCase):
         monitor.init()
         try:
             monitor.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Invalid chardev host: localhost" in e.value
 
     def test_monitor_fault_port_in_readline_mode(self):
@@ -807,7 +807,7 @@ class qemu_functions(unittest.TestCase):
         monitor.init()
         try:
             monitor.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Port is not a valid integer: someport" in e.value
 
     def test_monitor_fault_path_in_control_mode(self):
@@ -821,7 +821,7 @@ class qemu_functions(unittest.TestCase):
         monitor.init()
         try:
             monitor.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Path folder doesn't exist: /fake/path" in e.value
 
     def test_kvm_enabled_yaml_true_env_true(self):
@@ -931,7 +931,7 @@ class qemu_functions(unittest.TestCase):
                                         "dell_r730/dell_r730_smbios.bin"))
         try:
             compute.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "KVM enabled is not a boolean" in e.value
 
     def test_pcie_topo_without_sec_bus(self):
@@ -1311,7 +1311,7 @@ class bmc_configuration(unittest.TestCase):
         bmc.write_bmc_config()
         try:
             bmc.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             print e.value
             assert False
         else:
@@ -1384,7 +1384,7 @@ class bmc_configuration(unittest.TestCase):
 
         try:
             bmc.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "poweroff_wait is expected to be >= 0," in str(e)
         else:
             assert False
@@ -1402,7 +1402,7 @@ class bmc_configuration(unittest.TestCase):
 
         try:
             bmc.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "poweroff_wait is expected to be integer," in str(e)
         else:
             assert False
@@ -1439,7 +1439,7 @@ class bmc_configuration(unittest.TestCase):
 
         try:
             bmc.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "History FRU is expected to be >= 0," in str(e)
         else:
             assert False
@@ -1457,7 +1457,7 @@ class bmc_configuration(unittest.TestCase):
 
         try:
             bmc.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "History FRU is expected to be integer," in str(e)
         else:
             assert False
@@ -1493,7 +1493,7 @@ class bmc_configuration(unittest.TestCase):
 
         try:
             bmc.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "kill_wait is expected to be >= 0," in str(e)
         else:
             assert False
@@ -1511,7 +1511,7 @@ class bmc_configuration(unittest.TestCase):
 
         try:
             bmc.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "kill_wait is expected to be integer," in str(e)
         else:
             assert False
@@ -1571,7 +1571,7 @@ class bmc_configuration(unittest.TestCase):
 
         try:
             bmc.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Target emulation file doesn't exist:" in str(e)
         else:
             assert False
@@ -1610,7 +1610,7 @@ class bmc_configuration(unittest.TestCase):
 
         try:
             bmc.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Target config file doesn't exist:" in str(e)
         else:
             assert False
@@ -1646,7 +1646,7 @@ class bmc_configuration(unittest.TestCase):
 
         try:
             bmc.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Port for IOL(IPMI over LAN) is expected to be >= 0," \
                    in str(e)
         else:
@@ -1665,7 +1665,7 @@ class bmc_configuration(unittest.TestCase):
 
         try:
             bmc.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Port for IOL(IPMI over LAN) is expected to be integer," \
                    in str(e)
         else:
@@ -1828,7 +1828,7 @@ class racadm_configuration(unittest.TestCase):
         racadm_obj.init()
         try:
             racadm_obj.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert ":22 is already in use" in str(e)
 
     def test_non_exist_interface(self):
@@ -1843,7 +1843,7 @@ class racadm_configuration(unittest.TestCase):
         racadm_obj.init()
         try:
             racadm_obj.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Specified racadm interface {} doesn\'t exist".\
                 format(fake_interface) in str(e)
 
@@ -1903,7 +1903,7 @@ class numa_configuration_1(unittest.TestCase):
     def test_no_enough_core_1(self):
         try:
             self.numactl.get_cpu_list(19)
-        except Exception, e:
+        except Exception as e:
             assert str(e) == "All sockets don't have enough processor to bind."
 
     def test_no_enough_core_2(self):
@@ -1917,7 +1917,7 @@ class numa_configuration_1(unittest.TestCase):
                                                  15, 35, 17, 37]
         try:
             self.numactl.get_cpu_list(4)
-        except Exception, e:
+        except Exception as e:
             assert str(e) == "All sockets don't have enough processor to bind."
 
 
@@ -1954,5 +1954,5 @@ class numa_configuration_2(unittest.TestCase):
     def test_no_enough_core_1(self):
         try:
             self.numactl.get_cpu_list(4)
-        except Exception, e:
+        except Exception as e:
             assert str(e) == "All sockets don't have enough processor to bind."

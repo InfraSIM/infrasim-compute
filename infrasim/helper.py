@@ -731,3 +731,13 @@ def get_ws_folder(element):
     if ws is None or not os.path.exists(ws):
         ws = ""
     return ws
+
+
+def get_full_qemu_cmd(cmd_line):
+    s = re.search(r"arg_file file=([\S]+)", cmd_line)
+    lines = ""
+    if s:
+        with open(s.group(1), "r") as f:
+            lines = f.read()
+
+    return cmd_line + " " + lines
