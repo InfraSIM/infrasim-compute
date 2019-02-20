@@ -85,11 +85,16 @@ class FruCmd(object):
             offset = self.data[FruCmd.MULTIRECORD_AREA] * 8
             if offset != 0:
                 end = offset
-                while (self.data[end + 1] & 0x80) == 0:  # End_of_list is Zero.
+                while True:
+                    # decode Record Header table according to Table 16-1 in spec.
+                    end_list = self.data[end + 1]
                     # get length of current record.
                     record_length = self.data[end + 2]
-                    # plus length of record header
+                    # plus length of record header to get start of next Record
                     end += record_length + 5
+
+                    if (end_list & 0x80) != 0:  # End_of_list is Zero.
+                        break
                 self._data_area.append({"start": offset, "end": end, "data": self.data[offset:end]})
             else:
                 self._data_area.append(None)
@@ -231,6 +236,7 @@ class FruCmd(object):
     def UpdateData(self):
         # Adjust positon of all areas
         start = 8
+        # calculate the position of FruCmd.INTERNAL_USE_AREA in the last, because it has no length field.
         for index in (FruCmd.CHASSIS_INFO_AREA, FruCmd.BOARD_INFO_AREA, FruCmd.PRODUCT_INFO_AREA,
                       FruCmd.MULTIRECORD_AREA, FruCmd.INTERNAL_USE_AREA):
             area = self._data_area[index]
