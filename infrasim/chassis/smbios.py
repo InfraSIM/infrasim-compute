@@ -4,7 +4,6 @@ Copyright @ 2018 Dell EMC Corporation All Rights Reserved
 *********************************************************
 '''
 import struct
-import re
 import uuid
 
 
@@ -205,6 +204,25 @@ class SMBios(object):
             for item in self.__dict:
                 fo.write(item)
 
+    def _unpack_table(self, fmt, src):
+        # unpack data. drop end of fmt if src is not long enough.
+        length = ord(src[1])
+        pad = 0
+        while struct.calcsize(fmt) > length:
+            fmt = fmt[:-1]
+            pad = pad + 1
+        result = list(struct.unpack_from(fmt, src))
+        result.extend([0] * pad)
+        strings = src[length:].split('\0')
+        return result, strings
+
+    def _pack_table(self, fmt, info, strings):
+        # pack data. drop end of src if fmt is smaller.
+        info[1] = struct.calcsize(fmt)
+        result = struct.pack(fmt, *info)
+        result += '\0'.join(strings)
+        return result
+
     def ModifyData(self, smbios_info):
         self.ModifyType1SystemInformation(smbios_info.get("type1", None))
         self.ModifyType2BaseboardInformation(smbios_info.get("type2", None))
@@ -235,10 +253,8 @@ class SMBios(object):
         # fetch the System Information Structure
         sys_info = self.__dict[self.__type1_index]
         # __decode header.
-        info = list(struct.unpack_from(sys_info_fmt, sys_info))
-        offset = struct.calcsize(sys_info_fmt)
-        # split content
-        string_values = sys_info[offset:].split('\0')
+        info, string_values = self._unpack_table(sys_info_fmt, sys_info)
+
         # modify SN string.
         info[6] = self.__update_string(string_values, info[6], info_map.get('sn'))
 
@@ -262,33 +278,25 @@ class SMBios(object):
         info[9] = self.__update_string(string_values, sku_index, info_map.get('sku_number'))
 
         # pack modified data and save it
-        result = struct.pack(sys_info_fmt, *info)
-        result += '\0'.join(string_values)
-        self.__dict[self.__type1_index] = result
+        self.__dict[self.__type1_index] = self._pack_table(sys_info_fmt, info, string_values)
 
     def ModifyType2BaseboardInformation(self, info_map):
         if self.__type2_index is None or info_map is None:
             return
-        # Ref to SMBios SPEC Ver: 2.7.1, Chapter 7.3
+        # Ref to SMBios SPEC Ver: 3.0.0, Chapter 7.3
+
         board_info_fmt = "=BBHBBBBBBBHBB"
         board_info = self.__dict[self.__type2_index]
-        info = list(struct.unpack_from(board_info_fmt, board_info))
-        string_offset = struct.calcsize(board_info_fmt) + info[12] * 2
-        # split string content
-        string_values = board_info[string_offset:].split('\0')
+        info, string_values = self._unpack_table(board_info_fmt, board_info)
 
         # Modify SN
         info[6] = self.__update_string(string_values, info[6], info_map.get('sn'))
         # Modify string of Location in Chassis
-        location_index = info[9]
-        info[9] = self.__update_string(string_values, location_index, info_map.get('location'))
+        info[9] = self.__update_string(string_values, info[9], info_map.get('location'))
+        # set default type
+        info[11] = 0x1 if info[11] == 0 else info[11]
 
-        # pack modified data and save it
-        result = struct.pack(board_info_fmt, *info)
-        result += board_info[struct.calcsize(board_info_fmt):string_offset]
-        result += '\0'.join(string_values)
-
-        self.__dict[self.__type2_index] = result
+        self.__dict[self.__type2_index] = self._pack_table(board_info_fmt, info, string_values)
 
     def ModifyType3ChassisInformation(self, info_map):
         '''
@@ -297,28 +305,24 @@ class SMBios(object):
         '''
         if self.__type3_index is None or info_map is None:
             return
-        # Ref to SMBios SPEC Ver: 2.7.1, Chapter 7.4
+        # Ref to SMBios SPEC Ver: 3.0.0, Chapter 7.4
         # '=' force byte alignemnt.
         chassis_info_fmt = "=BBHBBBBBBBBBIBBBB"
         # fetch the System Information Structure
         chassis_info = self.__dict[self.__type3_index]
         # decode header.
-        info = list(struct.unpack_from(chassis_info_fmt, chassis_info))
-        # skip Contained elements start at 0x15h.
-        offset = struct.calcsize(chassis_info_fmt) + info[15] * info[16] + 1
-        # split string content
-        string_values = chassis_info[offset:].split('\0')
+        info, string_values = self._unpack_table(chassis_info_fmt, chassis_info)
+        # check contained element count * size
+        if info[1] > struct.calcsize(chassis_info_fmt):
+            chassis_info_fmt = chassis_info_fmt + "{}s".format(info[1] - struct.calcsize(chassis_info_fmt))
+            info.append(chassis_info[struct.calcsize(chassis_info_fmt):info[1]])
 
         # modify SN string.
         sn_index = info[6]  # position number of SN.
         info[6] = self.__update_string(string_values, sn_index, info_map.get('sn'))
 
         # pack modified data and save it
-        result = struct.pack(chassis_info_fmt, *info)
-        result += chassis_info[struct.calcsize(chassis_info_fmt):offset]
-        result += '\0'.join(string_values)
-
-        self.__dict[self.__type3_index] = result
+        self.__dict[self.__type3_index] = self._pack_table(chassis_info_fmt, info, string_values)
 
     def ModifyType4ProcessorInformation(self, cpu):
         '''
@@ -331,9 +335,8 @@ class SMBios(object):
         pro_info_fmt = '=BBHBBBBQBBHHHBBHHHBBBBBBHHHHH'
         for idx in self.__type4_index_list:
             info = self.__dict[idx]
-            pro_info = list(struct.unpack_from(pro_info_fmt, info))
-            offset = struct.calcsize(pro_info_fmt)
-            string_values = info[offset:].split('\0')
+            # unpack table.
+            pro_info, string_values = self._unpack_table(pro_info_fmt, info)
 
             # pro_info[7] = 0 # process ID
             # update Processor Version
@@ -357,10 +360,8 @@ class SMBios(object):
             pro_info[27] = core_number  # Core Enabled 2
             pro_info[28] = core_number  # Thread Count 2
 
-            # pack modified data and save it
-            result = struct.pack(pro_info_fmt, *pro_info)
-            result += '\0'.join(string_values)
-            self.__dict[idx] = result
+            # pack the table
+            self.__dict[idx] = self._pack_table(pro_info_fmt, pro_info, string_values)
 
     def CheckType16PhysicalMemoryArray(self, total_count):
         if len(self.__type16_index_list) == 0:
@@ -369,7 +370,7 @@ class SMBios(object):
         count = 0
         for idx in self.__type16_index_list:
             raw = self.__dict[idx]
-            info = struct.unpack_from(fmt, raw)
+            info, _ = self._unpack_table(fmt, raw)
             # support there is 24 memory slots on board.
             # if not, Slot number in Type16 Physical Memory Array must be modified.
             # 8th field "Number of Memory Devices"
@@ -389,7 +390,7 @@ class SMBios(object):
         self.CheckType16PhysicalMemoryArray(len(dimm))
         if len(self.__type4_index_list) == 0:
             raise Exception("Type 17 - Memory Device is missing")
-
+        # Cha 7.18, Table 73
         mem_info_fmt = '=BBHHHHHHBBBBBHHBBBBBIHHHH'
 
         class mem_dev_struct(list):
@@ -421,58 +422,41 @@ class SMBios(object):
                 "config volt"]
 
             def __setitem__(self, key, value):
-                super(mem_dev_struct, self).__setitem__(self.fields.index(key), value)
+                if isinstance(key, str):
+                    key = self.fields.index(key)
+                super(mem_dev_struct, self).__setitem__(key, value)
 
             def __getitem__(self, key):
-                return super(mem_dev_struct, self).__getitem__(self.fields.index(key))
+                if isinstance(key, str):
+                    key = self.fields.index(key)
+                return super(mem_dev_struct, self).__getitem__(key)
 
-        dim_position_reg = re.compile(r'DIMM (\d+)')
-
+        all_targets = []
         for idx in self.__type17_index_list:
             mem_info = self.__dict[idx]
-            info = mem_dev_struct(struct.unpack_from(mem_info_fmt, mem_info))
-            offset = struct.calcsize(mem_info_fmt)
-            string_values = mem_info[offset:].split('\0')
-
+            info, string_values = self._unpack_table(mem_info_fmt, mem_info)
+            info = mem_dev_struct(info)
             # found memory device by device locator
-            # since the memory device array is not ordered.
             dev_locator = string_values[info["device locator"] - 1]
-            m = dim_position_reg.match(dev_locator)
-            if m:
-                position = int(m.group(1))
-            else:
-                raise Exception('Can not found positon of memory device {0}'.format(dev_locator))
-            # get expected dimm information.
-            if position < len(dimm):
-                dimm_info = dimm[position]
-            else:
-                # no dimm information.
-                dimm_info = {}
+            all_targets.append({"idx": idx, "locator": dev_locator, "info": info, "strings": string_values})
 
-            # modify memory device by dimm_info
-            if dimm_info.get('size', 0) == 0:
-                info["total width"] = 0
-                info["data width"] = 0
-                info["size"] = 0
-                info["form factor"] = 2
-                info["device set"] = 0
-                info["device locator"] = 1
-                info["ban locator"] = 2
-                info["memory type"] = 2
-                info["type detail"] = 0
-                info["speed"] = 0
-                info["attributes"] = 0
-                info["extended size"] = 0
-                info["configured memory clock speed"] = 0
+        for dimm_info in dimm:
+            locator = dimm_info.get("locator")
+            target = filter(lambda x: x["locator"] == locator, all_targets)
+            if len(target) == 0:
+                raise Exception("Expected memory locator {} not found in Type17 list".format(locator))
+            target[0]["expected"] = dimm_info
 
-                info["manufactuer"] = self.__update_string(string_values, info["manufactuer"], "NO DIMM")
-                info["sn"] = self.__update_string(string_values, info["sn"], "NO DIMM")
-                info["asset tag"] = self.__update_string(string_values, info["asset tag"], "NO DIMM")
-                info["part number"] = self.__update_string(string_values, info["part number"], "NO DIMM")
-            else:
+        for target in all_targets:
+            dimm_info = target.get("expected", {})
+            info = target["info"]
+            string_values = target["strings"]
+            size = dimm_info.get('size', 0)
+            if size:
+                # modify target memory device.
                 info["total width"] = 72
                 info["data width"] = 64
-                size = dimm_info.get('size')
+
                 # according to spec,
                 # info['size'] & 0x8000 == 1, unit = KB.
                 # info['size'] & 0x8000 == 0, unit = MB.
@@ -499,9 +483,26 @@ class SMBios(object):
                                                          dimm_info.get('asset_tag', string_values[0] + '_AssetTag'))
                 info["part number"] = self.__update_string(string_values, info["part number"],
                                                            dimm_info.get('part_number', 'HMA82GR7AFR8N-VK'))
+            else:
+                info["total width"] = 0
+                info["data width"] = 0
+                info["size"] = 0
+                info["form factor"] = 2
+                info["device set"] = 0
+                info["device locator"] = 1
+                info["ban locator"] = 2
+                info["memory type"] = 2
+                info["type detail"] = 0
+                info["speed"] = 0
+                info["attributes"] = 0
+                info["extended size"] = 0
+                info["configured memory clock speed"] = 0
 
+                info["manufactuer"] = self.__update_string(string_values, info["manufactuer"], "NO DIMM")
+                info["sn"] = self.__update_string(string_values, info["sn"], "NO DIMM")
+                info["asset tag"] = self.__update_string(string_values, info["asset tag"], "NO DIMM")
+                info["part number"] = self.__update_string(string_values, info["part number"], "NO DIMM")
+
+            idx = target["idx"]
             # pack modified data and save it
-            result = struct.pack(mem_info_fmt, *info)
-            result += '\0'.join(string_values)
-
-            self.__dict[idx] = result
+            self.__dict[idx] = self._pack_table(mem_info_fmt, info, string_values)
