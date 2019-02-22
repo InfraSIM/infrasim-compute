@@ -171,4 +171,4 @@ class test_link_status_error_inject(unittest.TestCase):
             sleep(1)
         else:
             print(output)
-            self.assertIn("NIC {} is not up again".format(nic_name))
+            self.fail("NIC {} is not up again".format(nic_name))
