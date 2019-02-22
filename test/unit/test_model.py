@@ -439,7 +439,7 @@ class qemu_functions(unittest.TestCase):
     def test_set_drive_page_file_exist(self):
         file_name = "/tmp/an_avaiable_page_file.bin"
         os.system("touch {0}".format(file_name))
-        ps = r"-device \S+page_file={0}[\s,]".format(file_name)
+        ps = r"-device \S+page_file={0}".format(file_name)
         p = re.compile(ps)
         backend_storage_info = [{
             "type": "megasas-gen2",
