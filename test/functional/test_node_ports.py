@@ -240,7 +240,7 @@ class test_start_node_with_conflict_port(unittest.TestCase):
             node2 = model.CNode(self.node_info_2)
             node2.init()
             node2.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Port 9002 is already in use." in e.value
             assert True
         else:
@@ -283,7 +283,7 @@ class test_start_node_with_conflict_port(unittest.TestCase):
             node2 = model.CNode(self.node_info_2)
             node2.init()
             node2.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "VNC port 5901 is already in use." in e.value
             assert True
         else:
@@ -328,7 +328,7 @@ class test_start_node_with_conflict_port(unittest.TestCase):
             node2 = model.CNode(self.node_info_2)
             node2.init()
             node2.precheck()
-        except ArgsNotCorrect, e:
+        except ArgsNotCorrect as e:
             assert "Port 9000 is already in use." in e.value
             assert True
         else:

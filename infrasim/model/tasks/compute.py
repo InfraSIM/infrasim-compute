@@ -370,11 +370,23 @@ class CCompute(Task, CElement):
         # handle params
         self.handle_parms()
 
-        qemu_commandline = ""
-        for element_obj in self.__element_list:
-            qemu_commandline = " ".join([qemu_commandline, element_obj.get_option()])
+        qemu_args = " ".join([obj.get_option() for obj in self.__element_list])
+        qemu_args = " ".join([self.get_option(), qemu_args, self.__extra_device])
 
-        qemu_commandline = " ".join([self.__qemu_bin, self.get_option(), qemu_commandline, self.__extra_device])
+        arg_path = os.path.join(self.get_workspace(), "data")
+        if os.path.isdir(arg_path):
+            arg_file = os.path.join(arg_path, "qemu_args.txt")
+        else:
+            # for some sepcial cases that workspace is not ready.
+            arg_file = os.path.join("/tmp/", "{}_args.txt".format(self.get_task_name()))
+
+        # put args to file.
+        with open(arg_file, "w") as f:
+            f.write(qemu_args.replace(" -", "\n-"))
+
+        qemu_commandline = " ".join([self.__qemu_bin,
+                                     "-name {}".format(self.get_task_name()),
+                                     "-arg_file file={}".format(arg_file)])
 
         # set cpu affinity
         if self.__numactl_mode == "auto":

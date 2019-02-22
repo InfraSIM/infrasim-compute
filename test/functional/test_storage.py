@@ -141,7 +141,7 @@ class test_ahci_controller_with_two_drives(unittest.TestCase):
             "max_sge": 128,
             "max_drive_per_controller": 6,
             "drives": drive2
-            }]
+        }]
         with open('/tmp/test.yml', 'w') as outfile:
             yaml.dump(self.conf, outfile, default_flow_style=False)
         os.system("infrasim config add test {}".format(tmp_conf_file))
@@ -157,6 +157,8 @@ class test_ahci_controller_with_two_drives(unittest.TestCase):
 
         qemu_pid = get_qemu_pid(node)
         qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+
+        qemu_cmdline = helper.get_full_qemu_cmd(qemu_cmdline)
 
         assert "qemu-system-x86_64" in qemu_cmdline
         assert "/tmp/sda.img" in qemu_cmdline
@@ -191,20 +193,20 @@ class test_megasas_controller_with_two_drives(unittest.TestCase):
             "max_sge": 128,
             "max_drive_per_controller": 6,
             "drives": drive2
-            }]
+        }]
 
         self.conf['compute']['storage_backend'].insert(0,
                                                        {
                                                            "type": "ahci",
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
-                                                                {
-                                                                    'file': fixtures.image,
-                                                                    'bootindex': 1,
-                                                                    'use_msi': 'true',
-                                                                    'size': 8
-                                                                }
-                                                            ]
+                                                               {
+                                                                   'file': fixtures.image,
+                                                                   'bootindex': 1,
+                                                                   'use_msi': 'true',
+                                                                   'size': 8
+                                                               }
+                                                           ]
                                                        })
         with open('/tmp/test.yml', 'w') as outfile:
             yaml.dump(self.conf, outfile, default_flow_style=False)
@@ -221,6 +223,7 @@ class test_megasas_controller_with_two_drives(unittest.TestCase):
 
         qemu_pid = get_qemu_pid(node)
         qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+        qemu_cmdline = helper.get_full_qemu_cmd(qemu_cmdline)
 
         assert "qemu-system-x86_64" in qemu_cmdline
         assert "/tmp/sda.img" in qemu_cmdline
@@ -264,20 +267,20 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
             "max_sge": 128,
             "max_drive_per_controller": 6,
             "drives": drive2
-            }]
+        }]
 
         self.conf['compute']['storage_backend'].insert(0,
                                                        {
                                                            "type": "ahci",
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
-                                                                {
-                                                                    'file': fixtures.image,
-                                                                    'bootindex': 1,
-                                                                    'use_msi': 'true',
-                                                                    'size': 8
-                                                                }
-                                                            ]
+                                                               {
+                                                                   'file': fixtures.image,
+                                                                   'bootindex': 1,
+                                                                   'use_msi': 'true',
+                                                                   'size': 8
+                                                               }
+                                                           ]
                                                        })
 
         with open('/tmp/test.yml', 'w') as outfile:
@@ -296,6 +299,7 @@ class test_lsi_controller_with_two_drives(unittest.TestCase):
 
         qemu_pid = get_qemu_pid(node)
         qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+        qemu_cmdline = helper.get_full_qemu_cmd(qemu_cmdline)
 
         assert "qemu-system-x86_64" in qemu_cmdline
         assert "/tmp/sda.img" in qemu_cmdline
@@ -351,7 +355,7 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
             "max_sge": 128,
             "max_drive_per_controller": 6,
             "drives": self.drives7
-            }]
+        }]
         with open('/tmp/test.yml', 'w') as outfile:
             yaml.dump(self.conf, outfile, default_flow_style=False)
         os.system("infrasim config add test {}".format(tmp_conf_file))
@@ -366,6 +370,7 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
 
         qemu_pid = get_qemu_pid(node)
         qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+        qemu_cmdline = helper.get_full_qemu_cmd(qemu_cmdline)
 
         assert "qemu-system-x86_64" in qemu_cmdline
         assert "/tmp/sda.img" in qemu_cmdline
@@ -390,7 +395,7 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
             "max_sge": 128,
             "max_drive_per_controller": 6,
             "drives": self.drives7
-            }]
+        }]
 
         controllers = []
         controllers.append({
@@ -435,6 +440,7 @@ class test_ahci_controller_with_more_than_six_drives(unittest.TestCase):
 
         qemu_pid = get_qemu_pid(node)
         qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+        qemu_cmdline = helper.get_full_qemu_cmd(qemu_cmdline)
 
         assert "qemu-system-x86_64" in qemu_cmdline
         assert "/tmp/sda.img" in qemu_cmdline
@@ -491,7 +497,7 @@ class test_ahci_controller_with_six_drives(unittest.TestCase):
             "max_sge": 128,
             "max_drive_per_controller": 6,
             "drives": drive6
-            }]
+        }]
         with open('/tmp/test.yml', 'w') as outfile:
             yaml.dump(self.conf, outfile, default_flow_style=False)
         os.system("infrasim config add test {}".format(tmp_conf_file))
@@ -506,6 +512,7 @@ class test_ahci_controller_with_six_drives(unittest.TestCase):
 
         qemu_pid = get_qemu_pid(node)
         qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+        qemu_cmdline = helper.get_full_qemu_cmd(qemu_cmdline)
 
         assert "qemu-system-x86_64" in qemu_cmdline
         assert "/tmp/sda.img" in qemu_cmdline
@@ -548,20 +555,20 @@ class test_megasas_controller_with_six_drives(unittest.TestCase):
             "max_sge": 128,
             "max_drive_per_controller": 6,
             "drives": drive6
-            }]
+        }]
 
         self.conf['compute']['storage_backend'].insert(0,
                                                        {
                                                            "type": "ahci",
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
-                                                                {
-                                                                    'file': fixtures.image,
-                                                                    'bootindex': 1,
-                                                                    'use_msi': 'true',
-                                                                    'size': 8
-                                                                }
-                                                            ]
+                                                               {
+                                                                   'file': fixtures.image,
+                                                                   'bootindex': 1,
+                                                                   'use_msi': 'true',
+                                                                   'size': 8
+                                                               }
+                                                           ]
                                                        })
 
         with open('/tmp/test.yml', 'w') as outfile:
@@ -579,6 +586,7 @@ class test_megasas_controller_with_six_drives(unittest.TestCase):
 
         qemu_pid = get_qemu_pid(node)
         qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+        qemu_cmdline = helper.get_full_qemu_cmd(qemu_cmdline)
 
         assert "qemu-system-x86_64" in qemu_cmdline
         assert "/tmp/sda.img" in qemu_cmdline
@@ -630,20 +638,20 @@ class test_lsi_controller_with_six_drives(unittest.TestCase):
             "max_sge": 128,
             "max_drive_per_controller": 6,
             "drives": drive6
-            }]
+        }]
 
         self.conf['compute']['storage_backend'].insert(0,
                                                        {
                                                            "type": "ahci",
                                                            "max_drive_per_controller": 6,
                                                            "drives": [
-                                                                {
-                                                                    'file': fixtures.image,
-                                                                    'bootindex': 1,
-                                                                    'use_msi': 'true',
-                                                                    'size': 8
-                                                                }
-                                                            ]
+                                                               {
+                                                                   'file': fixtures.image,
+                                                                   'bootindex': 1,
+                                                                   'use_msi': 'true',
+                                                                   'size': 8
+                                                               }
+                                                           ]
                                                        })
 
         with open('/tmp/test.yml', 'w') as outfile:
@@ -661,6 +669,7 @@ class test_lsi_controller_with_six_drives(unittest.TestCase):
 
         qemu_pid = get_qemu_pid(node)
         qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+        qemu_cmdline = helper.get_full_qemu_cmd(qemu_cmdline)
 
         assert "qemu-system-x86_64" in qemu_cmdline
         assert "/tmp/sda.img" in qemu_cmdline
@@ -724,7 +733,7 @@ class test_three_storage_controllers(unittest.TestCase):
             'max_sge': 128,
             'drives': [],
             'max_drive_per_controller': 6
-            })
+        })
         controllers.append({
             'type': 'lsi',
             'use_msi': 'true',
@@ -732,7 +741,7 @@ class test_three_storage_controllers(unittest.TestCase):
             'max_sge': 128,
             'drives': [],
             'max_drive_per_controller': 6
-            })
+        })
         self.conf['compute']['storage_backend'].extend(controllers)
 
         drives1 = []
@@ -776,6 +785,7 @@ class test_three_storage_controllers(unittest.TestCase):
 
         qemu_pid = get_qemu_pid(node)
         qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+        qemu_cmdline = helper.get_full_qemu_cmd(qemu_cmdline)
 
         os.system("ls {}/{}".format(config.infrasim_home, self.conf["name"]))
 
@@ -903,6 +913,7 @@ class test_four_storage_controllers(unittest.TestCase):
 
         qemu_pid = get_qemu_pid(node)
         qemu_cmdline = open("/proc/{}/cmdline".format(qemu_pid)).read().replace("\x00", " ")
+        qemu_cmdline = helper.get_full_qemu_cmd(qemu_cmdline)
 
         assert "qemu-system-x86_64" in qemu_cmdline
         assert "format=qcow2" in qemu_cmdline
@@ -1116,7 +1127,7 @@ class test_qemu_boot_from_disk_img_at_3rd_controller(unittest.TestCase):
             'max_sge': 128,
             'drives': [],
             'max_drive_per_controller': 6
-            })
+        })
         self.conf['compute']['storage_backend'].extend(controllers)
         drives = []
         drives.append({'size': 8, 'file': "{}/sdd.img".format(image_path)})

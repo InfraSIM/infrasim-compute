@@ -12,7 +12,7 @@ import yaml
 import re
 import time
 import infrasim.config as config
-from infrasim import run_command, CommandRunFailed
+from infrasim import run_command, CommandRunFailed, helper
 from test.fixtures import FakeConfig
 import infrasim.model as model
 from infrasim.workspace import Workspace
@@ -443,7 +443,7 @@ class test_config_cli_without_runtime_node(unittest.TestCase):
         self.assertEqual(output_ps_qemu[0], 0)
 
         assert "{}'s configuration mapping is updated".format(self.test_name) in output_update[1]
-        assert "dell_r730xd" in output_ps_qemu[1]
+        assert "dell_r730xd" in helper.get_full_qemu_cmd(output_ps_qemu[1])
 
     def test_delete_config_then_start_node(self):
         """
