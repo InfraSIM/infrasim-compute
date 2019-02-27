@@ -6,10 +6,10 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 # -*- coding: utf-8 -*-
 
 import os
-import yaml
-import config
-from . import run_command, logger, ArgsNotCorrect, CommandNotFound, CommandRunFailed, InfraSimError
+from infrasim import config
+from infrasim.helper import yaml_load
 from infrasim.model import CBMC, CNode
+from . import run_command, logger, ArgsNotCorrect, CommandNotFound, CommandRunFailed, InfraSimError
 
 
 def get_ipmi():
@@ -31,7 +31,7 @@ def status_ipmi():
 def start_ipmi(conf_file=config.infrasim_default_config):
     try:
         with open(conf_file, 'r') as f_yml:
-            conf = yaml.load(f_yml)
+            conf = yaml_load(f_yml)
 
         node = CNode(node_info=conf)
         if "name" in conf:

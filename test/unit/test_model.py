@@ -6,15 +6,16 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import os
 import unittest
-import yaml
 import re
 import shutil
 import struct
+import yaml
 from infrasim import ArgsNotCorrect
 from infrasim import model
 from infrasim import socat
 from infrasim import config
 from infrasim import helper
+from infrasim.helper import yaml_load
 from test import fixtures
 from nose.tools import raises
 # from glob import *
@@ -32,7 +33,7 @@ class qemu_functions(unittest.TestCase):
     def setUpClass(cls):
         pass
         # with open(config.infrasim_default_config, "r") as f_yml:
-        #     node_info = yaml.load(f_yml)
+        #     node_info = yaml_load(f_yml)
         # cls.node = model.CNode(node_info)
         # cls.node.init()
 
@@ -43,7 +44,7 @@ class qemu_functions(unittest.TestCase):
             os.unlink(img_file)
 
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         cls.node = model.CNode(node_info)
         cls.node.init()
         cls.node.terminate_workspace()
@@ -106,7 +107,7 @@ class qemu_functions(unittest.TestCase):
 
     def test_set_menu_unsupported_type_digit(self):
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         node_info["compute"]["boot"] = {"menu": 1}
         node = model.CNode(node_info)
         node.init()
@@ -117,7 +118,7 @@ class qemu_functions(unittest.TestCase):
 
     def test_set_menu_unsupported_string_value(self):
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         node_info["compute"]["boot"] = {"menu": "any_string"}
         node = model.CNode(node_info)
         node.init()
@@ -128,7 +129,7 @@ class qemu_functions(unittest.TestCase):
 
     def test_set_menu_legal_value(self):
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         compute_info = node_info["compute"]
         compute_info["boot"] = {"menu": "on"}
         compute = model.CCompute(compute_info)
@@ -537,7 +538,7 @@ class qemu_functions(unittest.TestCase):
 
     def test_set_smbios(self):
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         compute_info = node_info["compute"]
         compute_info["smbios"] = "/tmp/test.smbios"
 
@@ -550,7 +551,7 @@ class qemu_functions(unittest.TestCase):
 
     def test_set_smbios_without_workspace(self):
         with open(config.infrasim_default_config, "r") as f_yml:
-            compute_info = yaml.load(f_yml)["compute"]
+            compute_info = yaml_load(f_yml)["compute"]
 
         compute = model.CCompute(compute_info)
         compute.set_type("s2600tp")
@@ -560,7 +561,7 @@ class qemu_functions(unittest.TestCase):
 
     def test_set_smbios_with_type_and_workspace(self):
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         compute_info = node_info["compute"]
 
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
@@ -574,7 +575,7 @@ class qemu_functions(unittest.TestCase):
 
     def test_set_extra_option(self):
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         compute_info = node_info["compute"]
         compute_info["extra_option"] = "-msg timestamp=on"
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
@@ -827,7 +828,7 @@ class qemu_functions(unittest.TestCase):
         if not os.path.exists("/dev/kvm"):
             self.skipTest("OS disable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         print "node_info: ", node_info
         compute_info = node_info["compute"]
         compute_info["kvm_enabled"] = True
@@ -843,7 +844,7 @@ class qemu_functions(unittest.TestCase):
         if os.path.exists("/dev/kvm"):
             self.skipTest("OS enable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         compute_info = node_info["compute"]
         compute_info["kvm_enabled"] = True
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
@@ -858,7 +859,7 @@ class qemu_functions(unittest.TestCase):
         if not os.path.exists("/dev/kvm"):
             self.skipTest("OS disable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         compute_info = node_info["compute"]
         compute_info["kvm_enabled"] = False
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
@@ -873,7 +874,7 @@ class qemu_functions(unittest.TestCase):
         if os.path.exists("/dev/kvm"):
             self.skipTest("OS enable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         compute_info = node_info["compute"]
         compute_info["kvm_enabled"] = False
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
@@ -888,7 +889,7 @@ class qemu_functions(unittest.TestCase):
         if not os.path.exists("/dev/kvm"):
             self.skipTest("OS disable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         compute_info = node_info["compute"]
         compute_info.pop("kvm_enabled", None)
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
@@ -903,7 +904,7 @@ class qemu_functions(unittest.TestCase):
         if os.path.exists("/dev/kvm"):
             self.skipTest("OS enable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         compute_info = node_info["compute"]
         compute_info.pop("kvm_enabled", None)
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
@@ -918,7 +919,7 @@ class qemu_functions(unittest.TestCase):
         if not os.path.exists("/dev/kvm"):
             self.skipTest("OS disable KVM, skip")
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         compute_info = node_info["compute"]
         compute_info["kvm_enabled"] = "invalid"
         workspace = "{}/{}".format(config.infrasim_home, node_info['name'])
@@ -935,7 +936,7 @@ class qemu_functions(unittest.TestCase):
 
     def test_pcie_topo_without_sec_bus(self):
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
             node_info["compute"]["pce_topology"] = {
                 "root_port": [{
                     "bus": "pcie.0",
@@ -1724,7 +1725,7 @@ class monitor_configuration(unittest.TestCase):
 
     def test_default_monitor_in_qemu(self):
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
         try:
             del(node_info["monitor"])
         except KeyError:
@@ -1741,7 +1742,7 @@ class monitor_configuration(unittest.TestCase):
 
     def test_enable_monitor_in_qemu(self):
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
 
         node_info["monitor"] = {
             "enable": True
@@ -1758,7 +1759,7 @@ class monitor_configuration(unittest.TestCase):
 
     def test_disable_monitor_in_qemu(self):
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
 
         node_info["monitor"] = {
             "enable": False
@@ -1772,7 +1773,7 @@ class monitor_configuration(unittest.TestCase):
 
     def test_invalid_monitor_in_qemu(self):
         with open(config.infrasim_default_config, "r") as f_yml:
-            node_info = yaml.load(f_yml)
+            node_info = yaml_load(f_yml)
 
         node_info["monitor"] = {
             "enable": "invalid"

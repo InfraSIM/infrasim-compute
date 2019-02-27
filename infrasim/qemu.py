@@ -6,11 +6,11 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 # -*- coding: utf-8 -*-
 
 import os
-import yaml
 import time
 from infrasim import config
 from . import run_command, CommandNotFound, CommandRunFailed, ArgsNotCorrect, InfraSimError
 from infrasim.model import CCompute
+from infrasim.helper import yaml_load
 from .log import infrasim_log, LoggerType
 
 logger_qemu = infrasim_log.get_logger(LoggerType.qemu.value)
@@ -56,7 +56,7 @@ def stop_macvtap(eth):
 def start_qemu(conf_file=config.infrasim_default_config):
     try:
         with open(conf_file, 'r') as f_yml:
-            conf = yaml.load(f_yml)
+            conf = yaml_load(f_yml)
         compute = CCompute(conf["compute"])
         node_name = conf["name"] if "name" in conf else "node-0"
 
@@ -119,7 +119,7 @@ def start_qemu(conf_file=config.infrasim_default_config):
 def stop_qemu(conf_file=config.infrasim_default_config):
     try:
         with open(conf_file, 'r') as f_yml:
-            conf = yaml.load(f_yml)
+            conf = yaml_load(f_yml)
         compute = CCompute(conf["compute"])
         node_name = conf["name"] if "name" in conf else "node-0"
 

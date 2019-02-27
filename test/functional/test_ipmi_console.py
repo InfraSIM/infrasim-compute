@@ -12,13 +12,14 @@ import subprocess
 import os
 import time
 import paramiko
+import yaml
 from infrasim import ipmiconsole
 from infrasim import config
 from infrasim.model import CNode
 from infrasim.config_manager import NodeMap
+from infrasim.helper import yaml_load
 from test import fixtures
 import threading
-import yaml
 import shutil
 import telnetlib
 import socket
@@ -306,7 +307,7 @@ class test_ipmi_console(unittest.TestCase):
         cls.ssh.close()
 
         with open(cls.TMP_CONF_FILE, "r") as yml_file:
-            node_info = yaml.load(yml_file)
+            node_info = yaml_load(yml_file)
 
         ipmiconsole.stop(node_info["name"])
 
@@ -524,7 +525,7 @@ class test_ipmi_console_config_change(unittest.TestCase):
     def tearDownClass(cls):
 
         with open(cls.TMP_CONF_FILE, "r") as yml_file:
-            node_info = yaml.load(yml_file)
+            node_info = yaml_load(yml_file)
 
         ipmiconsole.stop(node_info["name"])
 

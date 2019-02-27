@@ -11,7 +11,7 @@ pycparser==2.14
 pycrypto==2.6.1
 six>=1.11.0
 ssh==1.8.0
-pyyaml>=4.2b1
+pyyaml>=5.1b1
 requests>=2.20.0
 texttable==0.8.7
 flask >=0.12.2
