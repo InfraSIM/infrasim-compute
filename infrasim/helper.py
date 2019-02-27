@@ -16,8 +16,8 @@ import string
 import random
 import subprocess
 import struct
-import paramiko
 from functools import wraps
+from functools import reduce
 from ctypes import cdll
 from socket import AF_INET, AF_INET6, inet_ntop
 from ctypes import (
@@ -27,9 +27,10 @@ from ctypes import (
     c_char_p, c_uint, c_uint16,
     c_uint32
 )
+import paramiko
+import yaml
 from infrasim import InfraSimError, run_command
 from . import logger
-from functools import reduce
 
 
 libc = cdll.LoadLibrary('libc.so.6')
@@ -373,7 +374,7 @@ def is_valid_ip(ip):
     '''
 
     if type(ip) in [types.StringType, types.UnicodeType]:
-        p = re.search('^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$', ip)
+        p = re.search(r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$', ip)
         if p:
             for i in range(1, 5):
                 if int(p.group(i), 0) not in range(0, 256):
@@ -509,7 +510,7 @@ class NumaCtl(object):
         core_info = {}
 
         for line in lines:
-            if len(line.strip()) != 0:
+            if line.strip():
                 key, value = line.split(":", 1)
                 core_info[key.strip()] = value.strip()
             else:
@@ -741,3 +742,7 @@ def get_full_qemu_cmd(cmd_line):
             lines = f.read()
 
     return cmd_line + " " + lines
+
+
+def yaml_load(fp):
+    return yaml.load(fp, Loader=yaml.FullLoader)

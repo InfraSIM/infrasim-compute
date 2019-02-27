@@ -6,14 +6,15 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 '''
 # -*- coding: utf-8 -*-
 
+import yaml
 from infrasim.ipmiconsole import sdr
 from infrasim.ipmiconsole.command import Command_Handler
 from infrasim.ipmiconsole import common
 from infrasim.model import CNode
+from infrasim.helper import yaml_load
 from infrasim import config
 from test import fixtures
 import unittest
-import yaml
 import shutil
 import os
 
@@ -82,7 +83,7 @@ class test_ipmi_console_default_env(unittest.TestCase):
     def tearDownClass(cls):
 
         with open(cls.TMP_CONF_FILE, "r") as yml_file:
-            node_info = yaml.load(yml_file)
+            node_info = yaml_load(yml_file)
 
         node = CNode(node_info)
         node.init()
@@ -132,7 +133,7 @@ class test_ipmi_console_customized_env(unittest.TestCase):
     def tearDownClass(cls):
 
         with open(cls.TMP_CONF_FILE, "r") as yml_file:
-            node_info = yaml.load(yml_file)
+            node_info = yaml_load(yml_file)
 
         node = CNode(node_info)
         node.init()

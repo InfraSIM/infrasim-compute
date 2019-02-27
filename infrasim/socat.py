@@ -7,9 +7,9 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 
 import os
 import time
-import yaml
 import config
 from infrasim.model import CSocat, CNode
+from infrasim.helper import yaml_load
 from . import run_command, logger, CommandNotFound, CommandRunFailed, InfraSimError
 
 
@@ -32,7 +32,7 @@ def status_socat():
 def start_socat(conf_file=config.infrasim_default_config):
     try:
         with open(conf_file, 'r') as f_yml:
-            conf = yaml.load(f_yml)
+            conf = yaml_load(f_yml)
 
         node = CNode(conf)
         if "name" in conf:
