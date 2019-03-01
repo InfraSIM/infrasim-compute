@@ -22,7 +22,7 @@ class FruCmd(object):
         self.fru_id = 0
         self.len = 0
         self.data = []
-        self._data_area = [None, None]
+        self._data_area = [None] * 6
 
         # flag indicates the FRU data has been modified.
         self._changed = False
@@ -41,8 +41,9 @@ class FruCmd(object):
         if self._file and not self.merge:
             # save data to external file if it does changed.
             if self._changed:
+                result = ''.join([chr(x) for x in self.data])
                 with open(self._file, "wb") as f:
-                    f.write(''.join([chr(x) for x in self.data]))
+                    f.write(result)
             content.append("mc_add_fru_data 0x20 {} {} file 0 \"{}\"".format(
                 hex(self.fru_id), hex(self.len), self._file))
         else:
@@ -71,48 +72,45 @@ class FruCmd(object):
         if self.fru_id == 0 and self.len == 0:
             return False
 
-        if self.data[0] == 0x01:
-            # decode Common Header. Refer to FRM spec, chapter 8
-            for index in range(FruCmd.CHASSIS_INFO_AREA, FruCmd.MULTIRECORD_AREA):
-                offset = self.data[index] * 8
-                if offset != 0:
-                    end = offset + self.data[offset + 1] * 8
-                    self._data_area.append({"start": offset, "end": end, "data": self.data[offset:end]})
-                else:
-                    self._data_area.append(None)
-
-            # decode each record and get whold MultiRecord area
-            offset = self.data[FruCmd.MULTIRECORD_AREA] * 8
+        if self.data[0] != 0x01:
+            return False
+        # decode Common Header. Refer to FRM spec, chapter 8
+        for index in range(FruCmd.CHASSIS_INFO_AREA, FruCmd.MULTIRECORD_AREA):
+            offset = self.data[index] * 8
             if offset != 0:
-                end = offset
-                while True:
-                    # decode Record Header table according to Table 16-1 in spec.
-                    end_list = self.data[end + 1]
-                    # get length of current record.
-                    record_length = self.data[end + 2]
-                    # plus length of record header to get start of next Record
-                    end += record_length + 5
+                end = offset + self.data[offset + 1] * 8
+                self._data_area[index] = {"start": offset, "end": end, "data": self.data[offset:end]}
 
-                    if (end_list & 0x80) != 0:  # End_of_list is Zero.
-                        break
-                self._data_area.append({"start": offset, "end": end, "data": self.data[offset:end]})
-            else:
-                self._data_area.append(None)
+        # decode each record and get whold MultiRecord area
+        offset = self.data[FruCmd.MULTIRECORD_AREA] * 8
+        if offset != 0:
+            end = offset
+            while True:
+                # decode Record Header table according to Table 16-1 in spec.
+                end_list = self.data[end + 1]
+                # get length of current record.
+                record_length = self.data[end + 2]
+                # plus length of record header to get start of next Record
+                end += record_length + 5
 
-            # Split Internal Use Area because it may not comply with the spec and doesn't has length.
-            # Take start position of next area as its end postion.
-            internal_start = self.data[FruCmd.INTERNAL_USE_AREA] * 8
+                if (end_list & 0x80) != 0:  # End_of_list is Zero.
+                    break
+            self._data_area[FruCmd.MULTIRECORD_AREA] = {"start": offset, "end": end, "data": self.data[offset:end]}
 
-            if internal_start > 0:
-                internal_stop = self.len
-                for area in self._data_area[FruCmd.CHASSIS_INFO_AREA:FruCmd.MULTIRECORD_AREA + 1]:
-                    if area and internal_start < area["start"] and internal_stop > area["start"]:
-                        internal_stop = area["start"]
-                self._data_area[FruCmd.INTERNAL_USE_AREA] = {
-                    "start": internal_start, "end": internal_stop, "data": self.data[internal_start:internal_stop]}
-            # return True if this fru contains chassis info.
-            return self._data_area[FruCmd.CHASSIS_INFO_AREA] is not None
-        return False
+        # Split Internal Use Area because it may not comply with the spec and doesn't has length.
+        # Take start position of next area as its end postion.
+        internal_start = self.data[FruCmd.INTERNAL_USE_AREA] * 8
+
+        if internal_start > 0:
+            internal_stop = self.len
+            for area in self._data_area[FruCmd.CHASSIS_INFO_AREA:FruCmd.MULTIRECORD_AREA + 1]:
+                if area and internal_start < area["start"] and internal_stop > area["start"]:
+                    internal_stop = area["start"]
+            self._data_area[FruCmd.INTERNAL_USE_AREA] = {
+                "start": internal_start, "end": internal_stop, "data": self.data[internal_start:internal_stop]}
+        # print([(self._data_area.index(x), hex(x["start"]), hex(x["end"])) if x else None for x in self._data_area])
+        # return True if this fru contains chassis info.
+        return self._data_area[FruCmd.CHASSIS_INFO_AREA] is not None
 
     def __decode_table(self, _data, _pos):
         values = []
@@ -131,9 +129,16 @@ class FruCmd(object):
         if value is None:
             return
         value = [ord(x) for x in value]
+        '''
         self.__pad_bytes(value)
         if len(value) > 0x3c:
             value = value[:0x3c]
+        '''
+        # keep the string length as origin so that layout will not change.
+        ori_len = values[idx][0] & 0x3c
+        value.extend([ord(' ')] * 256)
+        value = value[:ori_len]
+
         # insert type/length field
         value.insert(0, 0xc0 + len(value))
         values[idx] = value
@@ -163,12 +168,12 @@ class FruCmd(object):
         """
         if info is None:
             return
-        if self._data_area[FruCmd.CHASSIS_INFO_AREA]:
-            _data = self._data_area[FruCmd.CHASSIS_INFO_AREA]['data']
-            # decode table from byte 3
-            _ori_values = self.__decode_table(_data, 3)
-        else:
-            _ori_values = [None, None]
+        if self._data_area[FruCmd.CHASSIS_INFO_AREA] is None:
+            return
+
+        _data = self._data_area[FruCmd.CHASSIS_INFO_AREA]['data']
+        # decode table from byte 3
+        _ori_values = self.__decode_table(_data, 3)
 
         self.__change_str_value(_ori_values, 0, info.get('pn'))
         self.__change_str_value(_ori_values, 1, info.get('sn'))
@@ -179,8 +184,9 @@ class FruCmd(object):
         # Refer to EMC technical white paper in Dell Community, the Type is 0x17
         result.append(0x17)
         self.__fill_table(result, _ori_values)
-
-        self._data_area[FruCmd.CHASSIS_INFO_AREA] = {"start": 0, "end": 0, "data": result}
+        if len(result) > len(_data):
+            return
+        self._data_area[FruCmd.CHASSIS_INFO_AREA]["data"] = result
         self._changed = True
 
     def ChangeBoardInfo(self, info):
@@ -204,7 +210,10 @@ class FruCmd(object):
         result = _data[0:6]
 
         self.__fill_table(result, _ori_values)
-        self._data_area[FruCmd.BOARD_INFO_AREA] = {"start": 0, "end": 0, "data": result}
+
+        if len(result) > len(_data):
+            return
+        self._data_area[FruCmd.BOARD_INFO_AREA]["data"] = result
         self._changed = True
 
     def ChangeProductInfo(self, info):
@@ -229,27 +238,22 @@ class FruCmd(object):
         result = _data[0:3]
 
         self.__fill_table(result, _ori_values)
-
-        self._data_area[FruCmd.PRODUCT_INFO_AREA] = {"start": 0, "end": 0, "data": result}
+        if len(result) > len(_data):
+            return
+        self._data_area[FruCmd.PRODUCT_INFO_AREA]["data"] = result
         self._changed = True
 
     def UpdateData(self):
-        # Adjust positon of all areas
-        start = 8
-        # calculate the position of FruCmd.INTERNAL_USE_AREA in the last, because it has no length field.
-        for index in (FruCmd.CHASSIS_INFO_AREA, FruCmd.BOARD_INFO_AREA, FruCmd.PRODUCT_INFO_AREA,
-                      FruCmd.MULTIRECORD_AREA, FruCmd.INTERNAL_USE_AREA):
+        # keep orignal layout.
+        for index in (FruCmd.CHASSIS_INFO_AREA, FruCmd.BOARD_INFO_AREA, FruCmd.PRODUCT_INFO_AREA):
             area = self._data_area[index]
             if area:
-                area["start"] = start
+                start = area["start"]
                 end = area["start"] + len(area["data"])
                 self.data[start:end] = area["data"]
                 self.data[index] = area["start"] / 8
-                area["end"] = end
-                start = end
-        # ensure the length doesn't exceed.
-        if len(self.data) > self.len:
-            self.data = self.data[:self.len]
+
+        self.data[7] = 0
         # update checksum of Entry Point
         self.data[7] = (-sum(self.data[0:8]) & 0xff)
 
@@ -342,6 +346,6 @@ class FruFile(object):
     def Save(self, emu, merge=False):
         for f in self._fru_cmds:
             f.merge = merge
+        result = [str(item) for item in self._data]
         with open(emu, "w") as fo:
-            for item in self._data:
-                fo.write(str(item))
+            fo.write("".join(result))
