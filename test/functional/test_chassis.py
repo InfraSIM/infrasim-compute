@@ -103,6 +103,7 @@ def start_chassis():
     global ssh2
     global chassis
     conf = fixtures.ChassisConfig().get_chassis_info()
+    conf["type"] = "s2600kp"
     conf["data"]["pn"] = "What_ever_SN"
     conf["data"]["sn"] = "What_ever_SN"
     conf["data"]["psu1_pn"] = "A380-B737-C909"
