@@ -193,6 +193,7 @@ class test_bmc_communication(unittest.TestCase):
         status, result1 = node0_ssh.exec_command(cmd_prefix1[3])
         self.assertNotEqual(result0, result1, "peer_bmc can not Obtain sensor")
 
+    @unittest.skip("skip test, don't supoort lan access feature now")
     def test_peer_node_off_on(self):
         os.system(cmd_prefix1[4])
         PS_QEMU = "ps ax | grep qemu"
@@ -208,6 +209,7 @@ class test_bmc_communication(unittest.TestCase):
         status, result = node1_ssh.exec_command('ls')
         assert result
 
+    @unittest.skip("skip test, don't supoort lan access feature now")
     def test_peer_node_cycle(self):
         os.system(cmd_prefix1[6])
         node1_ssh = self.client_ssh('192.168.188.92')
