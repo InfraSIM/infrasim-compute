@@ -7,11 +7,13 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import unittest
 import os
 import yaml
+import copy
 from infrasim import model
 from infrasim import config
 from infrasim import run_command
 from test import fixtures
 from infrasim.workspace import Workspace
+
 
 old_path = os.environ.get("PATH")
 new_path = "{}/bin:{}".format(os.environ.get("PYTHONPATH"), old_path)
@@ -369,11 +371,12 @@ class test_start_stop_stress(unittest.TestCase):
         count = 5
 
         for i in range(count):
-            node = model.CNode(self.node_info)
+            cfg = copy.deepcopy(self.node_info)
+            node = model.CNode(cfg)
             node.init()
             node.precheck()
             node.start()
-            node = model.CNode(self.node_info)
+            node = model.CNode(cfg)
             node.init()
             node.stop()
             node.status()
